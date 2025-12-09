@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateStep } from "@/utils/validation";
 import { getProyectosActivos, Proyecto } from "@/services/proyectos";
-import { 
-  getProyectosDisponibles, 
-  getUnidadesPorProyecto, 
-  getUnidadesPorSector, 
-  getSectoresProyecto, 
+import {
+  getProyectosDisponibles,
+  getUnidadesPorProyecto,
+  getUnidadesPorSector,
+  getSectoresProyecto,
   UnidadResumen,
   getNaturalezasProyecto,
   getProyectosPorNaturaleza,
@@ -32,7 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export const Step1ProyectoUnidad: React.FC = () => {
   const { data, setData } = useWizard();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   // Estados para los filtros
   const [naturalezas, setNaturalezas] = useState<string[]>([]);
   const [proyectos, setProyectos] = useState<string[]>([]);
@@ -40,7 +40,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
   const [tipos, setTipos] = useState<string[]>([]);
   const [sectores, setSectores] = useState<string[]>([]);
   const [unidades, setUnidades] = useState<UnidadResumen[]>([]);
-  
+
   // Estados para las selecciones
   const [naturalezaSeleccionada, setNaturalezaSeleccionada] = useState<string>('');
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<string>('');
@@ -48,7 +48,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string>('');
   const [sectorSeleccionado, setSectorSeleccionado] = useState<string>('');
   const [unidadSeleccionada, setUnidadSeleccionada] = useState<string>('');
-  
+
   // Estados de carga
   const [loadingNaturalezas, setLoadingNaturalezas] = useState(false);
   const [loadingProyectos, setLoadingProyectos] = useState(false);
@@ -56,9 +56,9 @@ export const Step1ProyectoUnidad: React.FC = () => {
   const [loadingTipos, setLoadingTipos] = useState(false);
   const [loadingSectores, setLoadingSectores] = useState(false);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
-  
+
   const [mostrarPorSector, setMostrarPorSector] = useState<boolean>(true);
-  
+
   // Estados para la selección múltiple de unidades
   const [tipoUnidadSeleccionado, setTipoUnidadSeleccionado] = useState<TipoUnidad>("Departamento");
   const [unidadesSeleccionadas, setUnidadesSeleccionadas] = useState<UnidadSeleccionada[]>(data.unidades || []);
@@ -75,7 +75,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
       try {
         const naturalezasDisponibles = await getNaturalezasProyecto();
         setNaturalezas(naturalezasDisponibles);
-        console.log('Naturalezas disponibles:', naturalezasDisponibles);
+        // console.log('Naturalezas disponibles:', naturalezasDisponibles);
       } catch (error) {
         console.error('Error al cargar naturalezas:', error);
       } finally {
@@ -85,21 +85,21 @@ export const Step1ProyectoUnidad: React.FC = () => {
 
     fetchNaturalezas();
   }, []);
-  
+
   // Cargar proyectos cuando cambia la naturaleza seleccionada
   useEffect(() => {
     if (!naturalezaSeleccionada) {
       setProyectos([]);
       return;
     }
-    
+
     const fetchProyectos = async () => {
       setLoadingProyectos(true);
       try {
         const proyectosDisponibles = await getProyectosPorNaturaleza(naturalezaSeleccionada);
         setProyectos(proyectosDisponibles);
-        console.log('Proyectos disponibles para naturaleza:', proyectosDisponibles);
-        
+        // console.log('Proyectos disponibles para naturaleza:', proyectosDisponibles);
+
         // Limpiar selecciones posteriores
         setProyectoSeleccionado('');
         setEtapaSeleccionada('');
@@ -116,24 +116,24 @@ export const Step1ProyectoUnidad: React.FC = () => {
         setLoadingProyectos(false);
       }
     };
-    
+
     fetchProyectos();
   }, [naturalezaSeleccionada]);
-  
+
   // Cargar etapas cuando cambia el proyecto seleccionado
   useEffect(() => {
     if (!proyectoSeleccionado) {
       setEtapas([]);
       return;
     }
-    
+
     const fetchEtapas = async () => {
       setLoadingEtapas(true);
       try {
         const etapasDisponibles = await getEtapasPorProyecto(proyectoSeleccionado);
         setEtapas(etapasDisponibles);
-        console.log('Etapas disponibles para proyecto:', etapasDisponibles);
-        
+        // console.log('Etapas disponibles para proyecto:', etapasDisponibles);
+
         // Limpiar selecciones posteriores
         setEtapaSeleccionada('');
         setTipoSeleccionado('');
@@ -142,7 +142,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
         setTipos([]);
         setSectores([]);
         setUnidades([]);
-        
+
         // Actualizar el proyecto en el contexto del wizard
         setData({ proyecto: proyectoSeleccionado });
       } catch (error) {
@@ -151,24 +151,24 @@ export const Step1ProyectoUnidad: React.FC = () => {
         setLoadingEtapas(false);
       }
     };
-    
+
     fetchEtapas();
   }, [proyectoSeleccionado]);
-  
+
   // Cargar tipos cuando cambia la etapa seleccionada
   useEffect(() => {
     if (!proyectoSeleccionado || !etapaSeleccionada) {
       setTipos([]);
       return;
     }
-    
+
     const fetchTipos = async () => {
       setLoadingTipos(true);
       try {
         const tiposDisponibles = await getTiposPorProyectoYEtapa(proyectoSeleccionado, etapaSeleccionada);
         setTipos(tiposDisponibles);
-        console.log('Tipos disponibles para proyecto y etapa:', tiposDisponibles);
-        
+        // console.log('Tipos disponibles para proyecto y etapa:', tiposDisponibles);
+
         // Limpiar selecciones posteriores
         setTipoSeleccionado('');
         setSectorSeleccionado('');
@@ -181,24 +181,24 @@ export const Step1ProyectoUnidad: React.FC = () => {
         setLoadingTipos(false);
       }
     };
-    
+
     fetchTipos();
   }, [proyectoSeleccionado, etapaSeleccionada]);
-  
+
   // Cargar sectores cuando cambia el tipo seleccionado
   useEffect(() => {
     if (!proyectoSeleccionado || !etapaSeleccionada || !tipoSeleccionado) {
       setSectores([]);
       return;
     }
-    
+
     const fetchSectores = async () => {
       setLoadingSectores(true);
       try {
         const sectoresDisponibles = await getSectoresPorProyectoEtapaYTipo(proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado);
         setSectores(sectoresDisponibles);
-        console.log('Sectores disponibles para proyecto, etapa y tipo:', sectoresDisponibles);
-        
+        // console.log('Sectores disponibles para proyecto, etapa y tipo:', sectoresDisponibles);
+
         // Limpiar selecciones posteriores
         setSectorSeleccionado('');
         setUnidadSeleccionada('');
@@ -209,25 +209,25 @@ export const Step1ProyectoUnidad: React.FC = () => {
         setLoadingSectores(false);
       }
     };
-    
+
     fetchSectores();
   }, [proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado]);
-  
+
   // Cargar unidades cuando se selecciona un sector
   useEffect(() => {
     if (!proyectoSeleccionado || !etapaSeleccionada || !tipoSeleccionado || !sectorSeleccionado) {
       setUnidades([]);
       return;
     }
-    
+
     const fetchUnidades = async () => {
       setLoadingUnidades(true);
       try {
-        console.log(`Obteniendo unidades del sector ${sectorSeleccionado} para el proyecto ${proyectoSeleccionado}, etapa ${etapaSeleccionada} y tipo ${tipoSeleccionado}`);
+        // console.log(`Obteniendo unidades del sector ${sectorSeleccionado}...`);
         const unidadesDisponibles = await getUnidadesPorEtapaTipoYSector(proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado, sectorSeleccionado);
-        console.log('Unidades obtenidas:', unidadesDisponibles);
+        // console.log('Unidades obtenidas:', unidadesDisponibles);
         setUnidades(unidadesDisponibles);
-        
+
         // Limpiar selección de unidad
         setUnidadSeleccionada('');
       } catch (error) {
@@ -236,7 +236,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
         setLoadingUnidades(false);
       }
     };
-    
+
     fetchUnidades();
   }, [proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado, sectorSeleccionado]);
 
@@ -262,31 +262,31 @@ export const Step1ProyectoUnidad: React.FC = () => {
     setNaturalezaSeleccionada(naturaleza);
     clearAllErrors();
   };
-  
+
   const handleProyectoChange = (proyecto: string) => {
     setProyectoSeleccionado(proyecto);
     clearAllErrors();
   };
-  
+
   const handleEtapaChange = (etapa: string) => {
     setEtapaSeleccionada(etapa);
     clearAllErrors();
   };
-  
+
   const handleTipoChange = (tipo: string) => {
     setTipoSeleccionado(tipo);
     clearAllErrors();
   };
-  
+
   const handleSectorChange = (sector: string) => {
     setSectorSeleccionado(sector);
     clearAllErrors();
   };
-  
+
   // Manejar cambio de unidad en el selector
   const handleUnidadChange = (unidadId: string) => {
     setUnidadSeleccionada(unidadId);
-    
+
     // Buscar la unidad seleccionada para obtener su descripción y precio
     const unidad = unidades.find(u => u.id.toString() === unidadId);
     if (unidad) {
@@ -304,27 +304,27 @@ export const Step1ProyectoUnidad: React.FC = () => {
         valorDescuento: 0,
         naturaleza: naturalezaSeleccionada
       });
-      
+
       // Para mantener compatibilidad con código existente
-      setData({ 
+      setData({
         unidad: unidadId,
         unidadDescripcion: unidad.descripcion,
         precioLista: unidad.precioUSD || 0,
         precioNegociado: unidad.precioUSD || 0
       });
-      
-      console.log(`Unidad seleccionada: ${unidad.descripcion}, Precio USD: ${unidad.precioUSD}`);
+
+      // console.log(`Unidad seleccionada: ${unidad.descripcion}...`);
       clearAllErrors();
     }
   };
-  
+
   // Mostrar formulario para agregar una unidad
   const mostrarFormulario = (tipo: TipoUnidad) => {
     setTipoUnidadSeleccionado(tipo);
     setMostrarFormularioUnidad(true);
     setModoEdicion(false);
     setIndiceEdicion(-1);
-    
+
     // Resetear selecciones
     setNaturalezaSeleccionada('');
     setProyectoSeleccionado('');
@@ -334,27 +334,27 @@ export const Step1ProyectoUnidad: React.FC = () => {
     setUnidadSeleccionada('');
     setUnidadActual(null);
   };
-  
+
   // Cancelar la adición de unidad
   const cancelarAgregarUnidad = () => {
     setMostrarFormularioUnidad(false);
     setModoEdicion(false);
     setIndiceEdicion(-1);
   };
-  
+
   // Agregar una unidad a la lista de unidades seleccionadas
   const agregarUnidad = () => {
     if (!unidadActual) return;
-    
+
     // Verificar si ya existe una unidad con el mismo ID
     const existeUnidad = unidadesSeleccionadas.some(u => u.id === unidadActual.id);
     if (existeUnidad) {
-      setErrors({...errors, unidadExistente: "Esta unidad ya ha sido agregada"});
+      setErrors({ ...errors, unidadExistente: "Esta unidad ya ha sido agregada" });
       return;
     }
-    
+
     let nuevasUnidades: UnidadSeleccionada[];
-    
+
     if (modoEdicion && indiceEdicion >= 0) {
       // Modo edición: actualizar unidad existente
       nuevasUnidades = [...unidadesSeleccionadas];
@@ -363,11 +363,11 @@ export const Step1ProyectoUnidad: React.FC = () => {
       // Modo agregar: añadir nueva unidad
       nuevasUnidades = [...unidadesSeleccionadas, unidadActual];
     }
-    
+
     // Actualizar estado local y contexto del wizard
     setUnidadesSeleccionadas(nuevasUnidades);
     setData({ unidades: nuevasUnidades });
-    
+
     // Resetear formulario
     setMostrarFormularioUnidad(false);
     setModoEdicion(false);
@@ -375,18 +375,18 @@ export const Step1ProyectoUnidad: React.FC = () => {
     setUnidadActual(null);
     clearAllErrors();
   };
-  
+
   // Editar una unidad existente
   const editarUnidad = (indice: number) => {
     const unidad = unidadesSeleccionadas[indice];
-    
+
     // Establecer modo edición
     setModoEdicion(true);
     setIndiceEdicion(indice);
     setUnidadActual(unidad);
     setMostrarFormularioUnidad(true);
     setTipoUnidadSeleccionado(unidad.tipo);
-    
+
     // Cargar los valores de la unidad en los selectores
     setNaturalezaSeleccionada(unidad.naturaleza);
     setProyectoSeleccionado(unidad.proyecto);
@@ -395,16 +395,16 @@ export const Step1ProyectoUnidad: React.FC = () => {
     setSectorSeleccionado(unidad.sector);
     setUnidadSeleccionada(unidad.id);
   };
-  
+
   // Eliminar una unidad
   const eliminarUnidad = (indice: number) => {
     const nuevasUnidades = [...unidadesSeleccionadas];
     nuevasUnidades.splice(indice, 1);
-    
+
     setUnidadesSeleccionadas(nuevasUnidades);
     setData({ unidades: nuevasUnidades });
   };
-  
+
   // Toggle entre mostrar por sector o todas las unidades
   const toggleMostrarPorSector = () => {
     setMostrarPorSector(!mostrarPorSector);
@@ -416,47 +416,47 @@ export const Step1ProyectoUnidad: React.FC = () => {
   // Validar datos al intentar avanzar al siguiente paso
   const validateData = () => {
     const newErrors: Record<string, string> = {};
-    
+
     // Verificar que haya al menos una unidad seleccionada
     if (unidadesSeleccionadas.length === 0) {
       newErrors.unidades = "Debe agregar al menos una unidad";
     }
-    
+
     if (!data.fechaPosesion) {
       newErrors.fechaPosesion = "La fecha de posesión es requerida";
     }
-    
+
     // Si está en modo de agregar unidad, verificar que se hayan completado todos los campos
     if (mostrarFormularioUnidad) {
       if (!naturalezaSeleccionada) {
         newErrors.naturaleza = "Debe seleccionar una naturaleza de proyecto";
       }
-      
+
       if (!proyectoSeleccionado) {
         newErrors.proyecto = "Debe seleccionar un proyecto";
       }
-      
+
       if (!etapaSeleccionada) {
         newErrors.etapa = "Debe seleccionar una etapa";
       }
-      
+
       if (!tipoSeleccionado) {
         newErrors.tipo = "Debe seleccionar un tipo";
       }
-      
+
       if (!sectorSeleccionado) {
         newErrors.sector = "Debe seleccionar un sector";
       }
-      
+
       if (!unidadSeleccionada) {
         newErrors.unidad = "Debe seleccionar una unidad";
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   // Validar campos en tiempo real
   useEffect(() => {
     validateData();
@@ -502,8 +502,8 @@ export const Step1ProyectoUnidad: React.FC = () => {
                 <SelectItem value="Nave">Nave</SelectItem>
               </SelectContent>
             </Select>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => mostrarFormulario(tipoUnidadSeleccionado)}
               className="flex items-center gap-1"
             >
@@ -513,7 +513,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
             </Button>
           </div>
         </div>
-        
+
         {unidadesSeleccionadas.length === 0 ? (
           <div className="text-center py-8 border border-dashed rounded-lg">
             <Building className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
@@ -534,17 +534,17 @@ export const Step1ProyectoUnidad: React.FC = () => {
                         </CardTitle>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => editarUnidad(index)}
                           className="h-8 w-8 p-0"
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => eliminarUnidad(index)}
                           className="h-8 w-8 p-0"
                         >
@@ -576,7 +576,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Formulario para agregar unidad */}
       {mostrarFormularioUnidad && (
         <Card className="border-primary/50">
@@ -805,8 +805,8 @@ export const Step1ProyectoUnidad: React.FC = () => {
             <Button variant="outline" onClick={cancelarAgregarUnidad}>
               Cancelar
             </Button>
-            <Button 
-              onClick={agregarUnidad} 
+            <Button
+              onClick={agregarUnidad}
               disabled={!unidadActual || !unidadSeleccionada}
             >
               {modoEdicion ? "Actualizar" : "Agregar"} Unidad

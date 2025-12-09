@@ -3,13 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/hooks/useAuth';
 
 export const ForceChangePasswordPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSuccess = () => {
-    // Redirigir al dashboard después de cambiar la contraseña
-    navigate('/minutas', { replace: true });
+    // Redirigir al dashboard correcto según el rol del usuario
+    if (user?.role === 'administracion') {
+      navigate('/admin/dashboard', { replace: true });
+    } else {
+      navigate('/comercial/dashboard', { replace: true });
+    }
   };
 
   return (

@@ -4,6 +4,11 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 10
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -59,6 +64,14 @@
         {
           "key": "X-Permitted-Cross-Domain-Policies",
           "value": "none"
+        },
+        {
+          "key": "Server",
+          "value": "AppMinuta"
+        },
+        {
+          "key": "X-Powered-By",
+          "value": ""
         }
       ]
     },

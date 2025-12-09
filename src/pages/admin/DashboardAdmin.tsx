@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListaMinutasDefinitivasAdmin } from '@/components/minutas/ListaMinutasDefinitivasAdmin';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
-import { 
-  LogOut, 
-  FileText, 
-  Users, 
+import {
+  LogOut,
+  FileText,
+  Users,
   BarChart
 } from 'lucide-react';
 
@@ -32,7 +32,7 @@ export const DashboardAdmin: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Dashboard Administración</h1>
           <p className="text-muted-foreground">
-            Bienvenido, {user?.email}
+            Bienvenido, {user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email}
           </p>
         </div>
         <Button variant="outline" onClick={handleLogout}>
@@ -56,11 +56,11 @@ export const DashboardAdmin: React.FC = () => {
             Gestión de Usuarios
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="minutas" className="mt-6">
           <ListaMinutasDefinitivasAdmin />
         </TabsContent>
-        
+
         <TabsContent value="definitivas" className="mt-6">
           <Card>
             <CardHeader>
@@ -79,7 +79,7 @@ export const DashboardAdmin: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="usuarios" className="mt-6">
           <Card>
             <CardHeader>

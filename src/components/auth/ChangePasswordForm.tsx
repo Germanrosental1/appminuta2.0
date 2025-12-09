@@ -6,17 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle, Lock } from 'lucide-react';
 import { validatePasswordComplexity, calculatePasswordStrength, sanitizePassword } from '@/utils/passwordValidation';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ChangePasswordFormProps {
   isForced?: boolean;
   onSuccess?: () => void;
 }
 
-export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ 
+export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   isForced = false,
-  onSuccess 
+  onSuccess
 }) => {
+  const { updatePassword } = useAuth();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -51,27 +52,17 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     setIsLoading(true);
 
     try {
-      // 1. Actualizar contraseña en Supabase Auth
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: sanitizedPassword
-      });
 
-      if (updateError) throw updateError;
 
-      // 2. Actualizar flags en el perfil
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            require_password_change: false,
-            first_login: false
-          })
-          .eq('id', user.id);
+      // Usar la función updatePassword del AuthContext que ya maneja todo correctamente
+      const { error: updateError } = await updatePassword(sanitizedPassword);
 
-        if (profileError) throw profileError;
+      if (updateError) {
+        console.error('❌ Error al cambiar contraseña:', updateError);
+        throw updateError;
       }
+
+
 
       setSuccess(true);
       setNewPassword('');
@@ -100,7 +91,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           </CardTitle>
         </div>
         <CardDescription>
-          {isForced 
+          {isForced
             ? 'Por seguridad, debes cambiar tu contraseña antes de continuar'
             : 'Actualiza tu contraseña por una más segura'
           }
@@ -145,13 +136,12 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      strength.score < 40 ? 'bg-red-500' :
-                      strength.score < 60 ? 'bg-orange-500' :
-                      strength.score < 75 ? 'bg-yellow-500' :
-                      strength.score < 90 ? 'bg-green-500' : 'bg-emerald-500'
-                    }`}
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${strength.score < 40 ? 'bg-red-500' :
+                        strength.score < 60 ? 'bg-orange-500' :
+                          strength.score < 75 ? 'bg-yellow-500' :
+                            strength.score < 90 ? 'bg-green-500' : 'bg-emerald-500'
+                      }`}
                     style={{ width: `${strength.score}%` }}
                   />
                 </div>
@@ -198,9 +188,9 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             />
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             disabled={isLoading || !validation.valid || success}
           >
             {isLoading ? 'Cambiando contraseña...' : 'Cambiar Contraseña'}

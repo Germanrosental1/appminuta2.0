@@ -7,19 +7,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getMinutasDefinitivasByUsuario } from '@/services/minutas';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
-  FileText, 
-  LogOut, 
-  PlusCircle, 
-  Calculator, 
+import {
+  FileText,
+  LogOut,
+  PlusCircle,
+  Calculator,
   ClipboardList,
   Eye,
   Download
@@ -92,7 +92,7 @@ export const DashboardComercial: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Dashboard Comercial</h1>
           <p className="text-muted-foreground">
-            Bienvenido, {user?.email}
+            Bienvenido, {user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email}
           </p>
         </div>
         <Button variant="outline" onClick={handleLogout}>
@@ -112,7 +112,7 @@ export const DashboardComercial: React.FC = () => {
             Historial de Minutas
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="nueva" className="mt-6">
           <Card>
             <CardHeader>
@@ -125,9 +125,9 @@ export const DashboardComercial: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center pt-6 pb-8">
-              <Button 
-                size="lg" 
-                className="px-8 py-6 text-lg" 
+              <Button
+                size="lg"
+                className="px-8 py-6 text-lg"
                 onClick={handleNuevaCalculadora}
               >
                 <Calculator className="mr-3 h-6 w-6" />
@@ -136,7 +136,7 @@ export const DashboardComercial: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="historial" className="mt-6">
           <Card>
             <CardHeader>
@@ -180,8 +180,8 @@ export const DashboardComercial: React.FC = () => {
                           <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleVerMinuta(minuta.id)}
                               >

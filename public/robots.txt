@@ -1,14 +1,7 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login
+Disallow: /_next/
+Disallow: /assets/
 Allow: /
