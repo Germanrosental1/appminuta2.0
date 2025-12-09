@@ -134,10 +134,42 @@ const routes: RouteObject[] = [
   }
 ];
 
+// Componente de Layout que aplica el MobileBlocker a todas las rutas
+const AppLayout = ({ children }: { children: React.ReactNode }) => (
+  <MobileBlocker>{children}</MobileBlocker>
+);
+
+// Modificamos las rutas para incluir el MobileBlocker
+const routesWithMobileBlocker = routes.map(route => {
+  // Si la ruta tiene un elemento, lo envolvemos con AppLayout
+  if (route.element) {
+    return {
+      ...route,
+      element: <AppLayout>{route.element}</AppLayout>
+    };
+  }
+  // Si tiene hijos, procesamos cada hijo
+  if (route.children) {
+    return {
+      ...route,
+      children: route.children.map(childRoute => {
+        if (childRoute.element) {
+          return {
+            ...childRoute,
+            element: <AppLayout>{childRoute.element}</AppLayout>
+          };
+        }
+        return childRoute;
+      })
+    };
+  }
+  return route;
+}) as RouteObject[];
+
 // Crear el router con opciones estándar
 // Nota: Los future flags mencionados en las advertencias no están disponibles en la versión actual
 // de React Router que estamos utilizando. Se implementarán correctamente cuando actualicemos a v7.
-const router = createBrowserRouter(routes);
+const router = createBrowserRouter(routesWithMobileBlocker);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -146,9 +178,7 @@ const App = () => (
         <WizardProvider>
           <Toaster />
           <Sonner />
-          <MobileBlocker>
-            <RouterProvider router={router} />
-          </MobileBlocker>
+          <RouterProvider router={router} />
         </WizardProvider>
       </AuthProvider>
     </TooltipProvider>

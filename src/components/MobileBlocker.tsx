@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/use-mobile';
 
 interface MobileBlockerProps {
@@ -9,7 +8,6 @@ interface MobileBlockerProps {
 export const MobileBlocker: React.FC<MobileBlockerProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const [showBlocker, setShowBlocker] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Pequeño retraso para evitar parpadeos durante la carga inicial
@@ -34,12 +32,12 @@ export const MobileBlocker: React.FC<MobileBlockerProps> = ({ children }) => {
             </p>
           </div>
           <div className="mt-6">
-            <button
-              onClick={() => navigate('/')}
-              className="px-4 py-2 bg-gray-200 rounded-md text-gray-800 hover:bg-gray-300 transition-colors"
+            <a
+              href="/"
+              className="px-4 py-2 bg-gray-200 rounded-md text-gray-800 hover:bg-gray-300 transition-colors inline-block"
             >
               Volver al inicio
-            </button>
+            </a>
           </div>
         </div>
       </div>
