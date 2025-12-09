@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getMinutasDefinitivasByUsuario } from '@/services/minutas';
+import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
 import { 
   Table, 
   TableBody, 
@@ -33,6 +34,9 @@ export const DashboardComercial: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedMinutaId, setSelectedMinutaId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Verificar si requiere cambio de contraseña
+  useRequirePasswordChange();
 
   useEffect(() => {
     if (activeTab === 'historial' && user?.id) {

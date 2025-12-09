@@ -1,5 +1,5 @@
 /**
- * 🔒 SECURITY: Validación de complejidad de contraseñas para appminuta
+ * SECURITY: Validación de complejidad de contraseñas para appminuta
  * 
  * Estas funciones pueden usarse para:
  * - Validar contraseñas antes de enviarlas a Supabase Auth
@@ -7,34 +7,51 @@
  * - Futuro formulario de registro si se implementa
  */
 
-// Función para validar contraseña y obtener errores específicos
+// Sanitizar contraseña removiendo caracteres peligrosos sin afectar complejidad
+export function sanitizePassword(password: string): string {
+  if (typeof password !== 'string') return '';
+  
+  return password
+    .trim()
+    // Remover caracteres de control peligrosos
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Remover NULL bytes
+    .replace(/\0/g, '')
+    // Remover secuencias de escape peligrosas
+    .replace(/\\x[0-9a-fA-F]{2}/g, '')
+    .replace(/\\u[0-9a-fA-F]{4}/g, '');
+}
+
+// Función auxiliar para validar contraseña y obtener errores específicos
 export function validatePasswordComplexity(password: string): {
   valid: boolean;
   errors: string[];
 } {
+  // Sanitizar primero
+  const sanitized = sanitizePassword(password);
   const errors: string[] = [];
 
-  if (password.length < 8) {
+  if (sanitized.length < 8) {
     errors.push('Mínimo 8 caracteres');
   }
   
-  if (password.length > 100) {
+  if (sanitized.length > 100) {
     errors.push('Máximo 100 caracteres');
   }
 
-  if (!/[A-Z]/.test(password)) {
+  if (!/[A-Z]/.test(sanitized)) {
     errors.push('Una letra mayúscula (A-Z)');
   }
 
-  if (!/[a-z]/.test(password)) {
+  if (!/[a-z]/.test(sanitized)) {
     errors.push('Una letra minúscula (a-z)');
   }
 
-  if (!/[0-9]/.test(password)) {
+  if (!/[0-9]/.test(sanitized)) {
     errors.push('Un número (0-9)');
   }
 
-  if (!/[^A-Za-z0-9]/.test(password)) {
+  if (!/[^A-Za-z0-9]/.test(sanitized)) {
     errors.push('Un carácter especial (!@#$%...)');
   }
 
@@ -50,24 +67,26 @@ export function calculatePasswordStrength(password: string): {
   level: 'muy débil' | 'débil' | 'medio' | 'fuerte' | 'muy fuerte';
   color: string;
 } {
+  // Sanitizar primero
+  const sanitized = sanitizePassword(password);
   let score = 0;
 
   // Longitud
-  if (password.length >= 8) score += 20;
-  if (password.length >= 12) score += 10;
-  if (password.length >= 16) score += 10;
+  if (sanitized.length >= 8) score += 20;
+  if (sanitized.length >= 12) score += 10;
+  if (sanitized.length >= 16) score += 10;
 
   // Mayúsculas
-  if (/[A-Z]/.test(password)) score += 15;
+  if (/[A-Z]/.test(sanitized)) score += 15;
 
   // Minúsculas
-  if (/[a-z]/.test(password)) score += 15;
+  if (/[a-z]/.test(sanitized)) score += 15;
 
   // Números
-  if (/[0-9]/.test(password)) score += 15;
+  if (/[0-9]/.test(sanitized)) score += 15;
 
   // Caracteres especiales
-  if (/[^A-Za-z0-9]/.test(password)) score += 15;
+  if (/[^A-Za-z0-9]/.test(sanitized)) score += 15;
 
   // Nivel de fortaleza y color
   let level: 'muy débil' | 'débil' | 'medio' | 'fuerte' | 'muy fuerte';

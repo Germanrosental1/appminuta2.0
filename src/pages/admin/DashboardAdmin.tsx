@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListaMinutasDefinitivasAdmin } from '@/components/minutas/ListaMinutasDefinitivasAdmin';
+import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
 import { 
   LogOut, 
   FileText, 
@@ -16,6 +17,9 @@ export const DashboardAdmin: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('minutas');
+
+  // Verificar si requiere cambio de contraseña
+  useRequirePasswordChange();
 
   const handleLogout = async () => {
     await signOut();

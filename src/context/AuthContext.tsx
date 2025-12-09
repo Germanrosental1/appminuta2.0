@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { sanitizePassword } from '@/utils/passwordValidation';
+import { setCSRFToken, clearCSRFToken, refreshCSRFToken } from '@/utils/csrf';
 
 // Tipos para los roles de usuario
 export type UserRole = 'comercial' | 'administracion';
@@ -14,6 +16,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<{ error: any }>;
   isAdmin: boolean;
   isComercial: boolean;
 }
@@ -205,7 +208,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (!error && data.user) {
+        // Generar CSRF token tras login exitoso
+        setCSRFToken();
+        
+        // Verificar si requiere cambio de contraseña
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('require_password_change, first_login')
+          .eq('id', data.user.id)
+          .single();
+        
+        // Si requiere cambio, no hacer nada más - el middleware redirigirá
+        if (profile?.require_password_change) {
+          console.log('Usuario requiere cambio de contraseña');
+        }
+      }
+      
       return { error };
     } catch (error) {
       return { error };
@@ -213,7 +234,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
+    // Limpiar CSRF token al cerrar sesión
+    clearCSRFToken();
     await supabase.auth.signOut();
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    try {
+      // Sanitizar contraseña
+      const sanitized = sanitizePassword(newPassword);
+      
+      const { error } = await supabase.auth.updateUser({
+        password: sanitized
+      });
+      
+      if (!error && user) {
+        // Refrescar CSRF token tras cambio de contraseña
+        refreshCSRFToken();
+        
+        // Actualizar flags en el perfil
+        await supabase
+          .from('profiles')
+          .update({
+            require_password_change: false,
+            first_login: false
+          })
+          .eq('id', user.id);
+      }
+      
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   };
 
   // Propiedades derivadas para verificar roles
@@ -221,7 +273,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isComercial = user?.role === 'comercial';
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, isAdmin, isComercial }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, updatePassword, isAdmin, isComercial }}>
       {children}
     </AuthContext.Provider>
   );

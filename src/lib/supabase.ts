@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getCSRFToken } from '@/utils/csrf';
 
 // Estas variables deberían estar en un archivo .env
 // Por ahora las definimos aquí para desarrollo
@@ -19,8 +20,27 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'x-application-name': 'minuta-generator' // Identificar la aplicación
-    }
+      'x-application-name': 'minuta-generator', // Identificar la aplicación
+      // CSRF token se agregará dinámicamente en cada request
+    },
+    fetch: (url, options) => {
+      // Interceptor para agregar CSRF token a todas las peticiones
+      const csrfToken = getCSRFToken();
+      
+      // Crear objeto de opciones con tipo correcto
+      const fetchOptions: RequestInit = options || {};
+      
+      // Solo agregar CSRF en métodos que modifican datos
+      const method = fetchOptions.method?.toUpperCase();
+      if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        fetchOptions.headers = {
+          ...(fetchOptions.headers as Record<string, string>),
+          'X-CSRF-Token': csrfToken || '',
+        };
+      }
+      
+      return fetch(url, fetchOptions);
+    },
   },
   realtime: {
     params: {

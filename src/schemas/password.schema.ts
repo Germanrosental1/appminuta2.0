@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { sanitizeString } from '@/utils/sanitize';
 
 // Schema de validación de contraseña con complejidad alta
 export const passwordSchema = z.string()
+  .transform((val) => sanitizeString(val)) // Sanitizar antes de validar
   .min(8, 'La contraseña debe tener al menos 8 caracteres')
   .max(100, 'La contraseña no puede exceder 100 caracteres')
   .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
