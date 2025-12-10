@@ -57,10 +57,10 @@ export const Step3ComposicionFSB: React.FC = () => {
   useEffect(() => {
     // Validate when values change
     const validation = validateStep(2, data);
-    if (!validation.valid) {
-      setErrors(validation.errors);
-    } else {
+    if (validation.valid) {
       setErrors({});
+    } else {
+      setErrors(validation.errors);
     }
   }, [data.modoA, data.porcA, data.impA, data.precioNegociado, data.cocheras, data.baulera, data.unidades]);
 
@@ -107,7 +107,7 @@ export const Step3ComposicionFSB: React.FC = () => {
                 // Mostrar todas las unidades del nuevo modelo
                 <>
                   {data.unidades.map((unidad, index) => (
-                    <p key={index}>
+                    <p key={unidad.id || index}>
                       {unidad.tipo}: {unidad.descripcion} - ${(unidad.precioNegociado || 0).toLocaleString("es-AR", { minimumFractionDigits: 2 })}
                     </p>
                   ))}

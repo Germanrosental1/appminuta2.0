@@ -68,9 +68,13 @@ export const Step5Cargos: React.FC = () => {
     return total;
   };
 
-  // Calcular los montos de cargos financiados para sumarlos a los totales existentes
+  // Calcular montos financiados por categoría
+  const calcularMontoFinanciado = (monto: number | undefined, pagoSeleccionado: string, targetPago: string) => {
+    return pagoSeleccionado === targetPago ? (monto || 0) : 0;
+  };
+
+  // Calcular totales de cargos financiados
   useEffect(() => {
-    // Obtener los valores base de financiación (sin cargos)
     const baseFinanciarArs = data.valorArsConIVA || 0;
     const baseFinanciarUsd = data.valorUsdConIVA || 0;
 
@@ -78,95 +82,50 @@ export const Step5Cargos: React.FC = () => {
     const baseFinanciarArsConAnticipos = baseFinanciarArs - (data.anticipoArsA || 0) - (data.anticipoArsB || 0);
     const baseFinanciarUsdConAnticipos = baseFinanciarUsd - (data.anticipoUsdA || 0) - (data.anticipoUsdB || 0);
 
-    // Obtener el tipo de cambio
     const tcValor = data.tcValor || 1;
 
-    // Inicializar totales de cargos financiados para A y B
-    let cargosFinanciadosAArs = 0;
-    let cargosFinanciadosAUsd = 0;
-    let cargosFinanciadosBArs = 0;
-    let cargosFinanciadosBUsd = 0;
+    // Calcular montos financiados A (ARS/USD) y B (ARS/USD)
+    let cargosFinanciadosAArs =
+      calcularMontoFinanciado(data.certificacionFirmas, data.certificacionFirmasPago, "Financiado A") +
+      calcularMontoFinanciado(data.selladoMonto, data.selladoPago, "Financiado A");
 
-    // Verificar cada cargo y su forma de pago
-    // Certificación Firmas (ARS)
-    if (data.certificacionFirmasPago === "Financiado A") {
-      cargosFinanciadosAArs += data.certificacionFirmas || 0;
-    } else if (data.certificacionFirmasPago === "Financiado B") {
-      cargosFinanciadosBArs += data.certificacionFirmas || 0;
-    }
+    let cargosFinanciadosBArs =
+      calcularMontoFinanciado(data.certificacionFirmas, data.certificacionFirmasPago, "Financiado B") +
+      calcularMontoFinanciado(data.selladoMonto, data.selladoPago, "Financiado B");
 
-    // Sellado (ARS)
-    if (data.selladoPago === "Financiado A") {
-      cargosFinanciadosAArs += data.selladoMonto || 0;
-    } else if (data.selladoPago === "Financiado B") {
-      cargosFinanciadosBArs += data.selladoMonto || 0;
-    }
+    let cargosFinanciadosAUsd =
+      calcularMontoFinanciado(data.alhajamiemtoMonto, data.alhajamiemtoPago, "Financiado A") +
+      calcularMontoFinanciado(data.planosUnidadMonto, data.planosUnidadPago, "Financiado A") +
+      calcularMontoFinanciado(data.planosCocheraMonto, data.planosCocheraPago, "Financiado A") +
+      calcularMontoFinanciado(data.otrosGastos, data.otrosGastosPago, "Financiado A");
 
-    // Alhajamiento (USD)
-    if (data.alhajamiemtoPago === "Financiado A") {
-      cargosFinanciadosAUsd += data.alhajamiemtoMonto || 0;
-    } else if (data.alhajamiemtoPago === "Financiado B") {
-      cargosFinanciadosBUsd += data.alhajamiemtoMonto || 0;
-    }
+    let cargosFinanciadosBUsd =
+      calcularMontoFinanciado(data.alhajamiemtoMonto, data.alhajamiemtoPago, "Financiado B") +
+      calcularMontoFinanciado(data.planosUnidadMonto, data.planosUnidadPago, "Financiado B") +
+      calcularMontoFinanciado(data.planosCocheraMonto, data.planosCocheraPago, "Financiado B") +
+      calcularMontoFinanciado(data.otrosGastos, data.otrosGastosPago, "Financiado B");
 
-    // Planos Unidad (USD)
-    if (data.planosUnidadPago === "Financiado A") {
-      cargosFinanciadosAUsd += data.planosUnidadMonto || 0;
-    } else if (data.planosUnidadPago === "Financiado B") {
-      cargosFinanciadosBUsd += data.planosUnidadMonto || 0;
-    }
+    // Calcular total a financiar ARS
+    let totalFinanciarArs = baseFinanciarArsConAnticipos + cargosFinanciadosAArs + (cargosFinanciadosAUsd * tcValor);
 
-    // Planos Cochera (USD)
-    if (data.planosCocheraPago === "Financiado A") {
-      cargosFinanciadosAUsd += data.planosCocheraMonto || 0;
-    } else if (data.planosCocheraPago === "Financiado B") {
-      cargosFinanciadosBUsd += data.planosCocheraMonto || 0;
-    }
-
-    // Otros gastos (USD)
-    if (data.otrosGastosPago === "Financiado A") {
-      cargosFinanciadosAUsd += data.otrosGastos || 0;
-    } else if (data.otrosGastosPago === "Financiado B") {
-      cargosFinanciadosBUsd += data.otrosGastos || 0;
-    }
-
-    // Convertir los cargos según la moneda de cada parte
-    let totalFinanciarArs = baseFinanciarArsConAnticipos;
+    // Calcular total a financiar USD según moneda B
     let totalFinanciarUsd = baseFinanciarUsdConAnticipos;
 
-    // La parte A siempre está en ARS
-    totalFinanciarArs += cargosFinanciadosAArs;
-    // Convertir los cargos en USD de la parte A a ARS
-    totalFinanciarArs += cargosFinanciadosAUsd * tcValor;
-
-    // La parte B depende de la moneda seleccionada
     if (data.monedaB === "ARS") {
-      // Si la parte B está en ARS, sumar directamente los cargos en ARS
-      totalFinanciarArs += cargosFinanciadosBArs;
-      // Y convertir los cargos en USD a ARS
-      totalFinanciarArs += cargosFinanciadosBUsd * tcValor;
+      totalFinanciarArs += cargosFinanciadosBArs + (cargosFinanciadosBUsd * tcValor);
     } else if (data.monedaB === "USD") {
-      // Si la parte B está en USD, convertir los cargos en ARS a USD
-      totalFinanciarUsd += cargosFinanciadosBArs / tcValor;
-      // Y sumar directamente los cargos en USD
-      totalFinanciarUsd += cargosFinanciadosBUsd;
+      totalFinanciarUsd += (cargosFinanciadosBArs / tcValor) + cargosFinanciadosBUsd;
     } else if (data.monedaB === "MIX") {
-      // Si la parte B es MIX, mantener cada moneda en su respectivo total
       totalFinanciarArs += cargosFinanciadosBArs;
       totalFinanciarUsd += cargosFinanciadosBUsd;
     }
 
-    // Actualizar los totales solo si son diferentes a los actuales
     if (totalFinanciarArs !== data.totalFinanciarArs || totalFinanciarUsd !== data.totalFinanciarUsd) {
-      setData({
-        totalFinanciarArs,
-        totalFinanciarUsd
-      });
+      setData({ totalFinanciarArs, totalFinanciarUsd });
     }
   }, [
     data.valorArsConIVA, data.valorUsdConIVA,
-    data.anticipoArsA, data.anticipoArsB,
-    data.anticipoUsdA, data.anticipoUsdB,
+    data.anticipoArsA, data.anticipoArsB, data.anticipoUsdA, data.anticipoUsdB,
     data.tcValor, data.monedaB,
     data.certificacionFirmas, data.certificacionFirmasPago,
     data.selladoMonto, data.selladoPago,

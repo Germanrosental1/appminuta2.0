@@ -1,6 +1,6 @@
 // Script para verificar si la tabla mapadeventas tiene datos
 import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+
 import { fileURLToPath } from 'url';
 import { dirname } from 'node:path';
 import { config } from 'dotenv';

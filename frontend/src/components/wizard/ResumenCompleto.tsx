@@ -13,7 +13,7 @@ interface ResumenCompletoProps {
 
 export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false, wizardData }) => {
   const { data } = useWizard();
-  
+
   // Usar los datos proporcionados o los del contexto
   const displayData = wizardData || data;
 
@@ -31,7 +31,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
 
   // Cálculos
   const porcB = 100 - (displayData.porcA || 0);
-  const impB = (displayData.precioNegociado || 0) - (displayData.impA || 0);
+
   const cocherasCant = displayData.cocheras?.length || 0;
   const totalCocheras = displayData.cocheras?.reduce((sum, cochera) => sum + (cochera.precioNegociado || 0), 0) || 0;
   const totalReglasA = (displayData.reglasFinanciacionA || []).reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
@@ -39,7 +39,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
 
   return (
     <div className={`space-y-6 ${forPDF ? 'pdf-content bg-white p-8' : ''}`}>
-      
+
       {/* Paso 1: Proyecto & Unidad */}
       <Card>
         <CardHeader className="bg-primary/10">
@@ -62,7 +62,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Paso 2: Estructura Comercial */}
       <Card>
         <CardHeader className="bg-primary/10">
@@ -89,7 +89,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Paso 3: Composición F/SB */}
       <Card>
         <CardHeader className="bg-primary/10">
@@ -128,7 +128,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Paso 4: Pago */}
       <Card>
         <CardHeader className="bg-primary/10">
@@ -177,7 +177,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Paso 5: Cargos & Extras */}
       <Card>
         <CardHeader className="bg-primary/10">
@@ -226,7 +226,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Paso 6: Reglas de Financiación */}
       <Card>
         <CardHeader className="bg-primary/10">
@@ -273,9 +273,9 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
                 <p className="text-sm text-muted-foreground">No hay reglas de financiación para la Parte F</p>
               )}
             </div>
-            
+
             <Separator />
-            
+
             <div>
               <h3 className="font-medium mb-2">Parte SB ({displayData.monedaB})</h3>
               {displayData.reglasFinanciacionB && displayData.reglasFinanciacionB.length > 0 ? (
@@ -315,7 +315,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
                 <p className="text-sm text-muted-foreground">No hay reglas de financiación para la Parte SB</p>
               )}
             </div>
-            
+
             <div className="mt-4 p-3 bg-primary/5 rounded-md">
               <p className="text-sm font-medium">% financiado a fecha Posesión:</p>
               <p className="text-xl font-bold">{displayData.porcentajePagadoFechaPosesion || 0}%</p>
@@ -323,7 +323,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
           </div>
         </CardContent>
       </Card>
-      
+
     </div>
   );
 };

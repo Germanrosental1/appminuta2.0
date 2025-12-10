@@ -26,8 +26,8 @@ interface ConfirmarGuardarMinutaDefinitivaProps {
   onSuccess?: () => void;
 }
 
-export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDefinitivaProps> = ({ 
-  unidadId, 
+export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDefinitivaProps> = ({
+  unidadId,
   wizardData,
   onSuccess
 }) => {
@@ -38,7 +38,7 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   // Cargar datos del mapa de ventas cuando se abre el diálogo
   useEffect(() => {
     if (open && unidadId) {
@@ -53,7 +53,7 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
           setLoadingMapaVentas(false);
         }
       };
-      
+
       fetchDatosMapaVentas();
     }
   }, [open, unidadId]);
@@ -70,31 +70,31 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
 
     try {
       setSaving(true);
-      
+
       // Asegurarnos de que el código de la unidad esté incluido en los datos
       const datosCompletos = {
         ...wizardData,
         unidadCodigo: unidadId, // Agregar el código de la unidad a los datos
       };
-      
+
       await guardarMinutaDefinitiva({
         proyecto: wizardData.proyecto || 'Sin proyecto',
         usuario_id: user.id,
         datos: datosCompletos,
         estado: 'pendiente'
       });
-      
+
       toast({
         title: "Minuta guardada",
         description: "La minuta definitiva ha sido guardada exitosamente",
       });
-      
+
       setOpen(false);
-      
+
       if (onSuccess) {
         onSuccess();
       }
-      
+
       // Redirigir al dashboard comercial después de un breve retraso
       setTimeout(() => {
         navigate('/comercial/dashboard');
@@ -137,7 +137,7 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
             Revisa los datos antes de guardar la minuta definitiva
           </DialogDescription>
         </DialogHeader>
-        
+
         <Tabs defaultValue="resumen">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
@@ -148,35 +148,12 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
           </TabsList>
           <TabsContent value="resumen" className="mt-4">
             <ScrollArea className="h-[50vh]">
-              <ResumenCompleto wizardData={wizardData} />
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent value="mapa-ventas" className="mt-4">
-            <ScrollArea className="h-[50vh]">
               <Card>
                 <CardContent className="pt-6">
-                  {loadingMapaVentas ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <span className="ml-2">Cargando datos del mapa de ventas...</span>
-                    </div>
-                  ) : datosMapaVentas ? (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Datos del Mapa de Ventas</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(datosMapaVentas).map(([key, value]) => (
-                          <div key={key} className="border-b pb-2">
-                            <span className="font-medium">{key}: </span>
-                            <span>{String(value)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No se encontraron datos del mapa de ventas para esta unidad
-                    </div>
-                  )}
+                  <MapaVentasContent
+                    loading={loadingMapaVentas}
+                    datos={datosMapaVentas}
+                  />
                 </CardContent>
               </Card>
             </ScrollArea>
@@ -193,14 +170,14 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
             </ScrollArea>
           </TabsContent>
         </Tabs>
-        
+
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
             <X className="mr-2 h-4 w-4" />
             Cancelar
           </Button>
-          <Button 
-            onClick={handleGuardar} 
+          <Button
+            onClick={handleGuardar}
             disabled={saving}
             className="bg-green-600 hover:bg-green-700"
           >
@@ -219,5 +196,39 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Componente auxiliar para mostrar el contenido del mapa de ventas
+const MapaVentasContent: React.FC<{ loading: boolean; datos: any }> = ({ loading, datos }) => {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Cargando datos del mapa de ventas...</span>
+      </div>
+    );
+  }
+
+  if (datos) {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Datos del Mapa de Ventas</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {Object.entries(datos).map(([key, value]) => (
+            <div key={key} className="border-b pb-2">
+              <span className="font-medium">{key}: </span>
+              <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-8 text-muted-foreground">
+      No se encontraron datos del mapa de ventas para esta unidad
+    </div>
   );
 };

@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const Step2Comercial: React.FC = () => {
   const { data, setData } = useWizard();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
 
   // Estado para las unidades seleccionadas
   const [unidades, setUnidades] = useState<UnidadSeleccionada[]>(data.unidades || []);
@@ -121,9 +121,7 @@ export const Step2Comercial: React.FC = () => {
 
   const handleBlur = () => {
     const validation = validateStep(1, data);
-    if (!validation.valid) {
-      setErrors(validation.errors);
-    }
+    // Errores eliminados por ser unused
   };
 
   const validateCochera = (index: number) => {
@@ -166,29 +164,13 @@ export const Step2Comercial: React.FC = () => {
     }
   };
 
-  const removeCochera = (index: number) => {
-    // Asegurarse de que cocheras existe
-    const cocheras = data.cocheras || [];
-    const updatedCocheras = [...cocheras];
-    updatedCocheras.splice(index, 1);
-    setData({ cocheras: updatedCocheras });
 
-    // Limpiar errores para esta cochera
-    const updatedErrors = { ...cocheraErrors };
-    delete updatedErrors[index];
-    setCocheraErrors(updatedErrors);
-  };
 
-  const addBaulera = () => {
-    if (!data.baulera) {
-      setData({ baulera: { precioLista: 0, precioNegociado: 0 } });
-    }
-  };
 
-  const removeBaulera = () => {
-    setData({ baulera: null });
-    setBauleraErrors({});
-  };
+
+
+
+
 
 
   return (

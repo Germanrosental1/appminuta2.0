@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getMinutaDefinitivaById, actualizarEstadoMinutaDefinitiva } from '@/services/minutas';
 import { ResumenCompleto } from '@/components/wizard/ResumenCompleto';
 import { Button } from '@/components/ui/button';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
   DialogFooter
 } from '@/components/ui/dialog';
@@ -34,10 +34,10 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [procesandoEstado, setProcesandoEstado] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  
+
   // Check if user is commercial by checking the URL path
   const isComercial = window.location.pathname.includes('/comercial/');
-  
+
   const consolidadoRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -78,19 +78,19 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
 
   const handleChangeEstado = async (nuevoEstado: 'pendiente' | 'aprobada' | 'firmada' | 'cancelada') => {
     if (!minutaId) return;
-    
+
     try {
       setProcesandoEstado(true);
       await actualizarEstadoMinutaDefinitiva(minutaId, nuevoEstado);
-      
+
       // Actualizar el estado local
       setMinuta(prev => ({ ...prev, estado: nuevoEstado }));
-      
+
       toast({
         title: "Estado actualizado",
         description: `La minuta ha sido ${nuevoEstado === 'aprobada' ? 'aprobada' : nuevoEstado === 'firmada' ? 'firmada' : 'cancelada'} exitosamente`,
       });
-      
+
     } catch (error) {
       console.error('Error al cambiar estado:', error);
       toast({
@@ -105,56 +105,56 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
 
   const handleDownloadConsolidatedPDF = async () => {
     if (!consolidadoRef.current || !minuta) return;
-    
+
     try {
       setIsGeneratingPDF(true);
-      
+
       // Crear nombre del archivo
       const fileName = `Minuta_Consolidada_${minuta.proyecto || 'Proyecto'}_${minuta.datos?.unidadDescripcion || 'Unidad'}_${new Date().toISOString().split('T')[0]}.pdf`;
-      
+
       // Enfoque simple: usar jsPDF y html2canvas directamente
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
-      
+
       const element = consolidadoRef.current;
-      
+
       // Usar html2canvas con configuración mínima
       const canvas = await html2canvas(element, {
         scale: 1,
         useCORS: true,
         logging: false
       });
-      
+
       // Convertir canvas a imagen
       const imgData = canvas.toDataURL('image/jpeg', 0.8);
-      
+
       // Obtener dimensiones
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const aspectRatio = canvas.width / canvas.height;
       const imgWidth = pdfWidth;
       const imgHeight = pdfWidth / aspectRatio;
-      
+
       // Añadir imagen al PDF (usar valores fijos para evitar cálculos que puedan causar errores)
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-      
+
       // Si la imagen es más alta que la página, añadir páginas adicionales
       let heightLeft = imgHeight - pdfHeight;
       let position = -pdfHeight;
-      
+
       while (heightLeft > 0) {
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
         position -= pdfHeight;
       }
-      
+
       // Guardar PDF
       pdf.save(fileName);
-      
+
       toast({
         title: "PDF generado",
         description: "El PDF consolidado ha sido generado exitosamente",
@@ -189,7 +189,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           <DialogDescription>
             {minuta && "Información detallada de la minuta provisoria"}
           </DialogDescription>
-          
+
           {minuta && (
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
               <div>
@@ -219,7 +219,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           </div>
         ) : minuta ? (
           <>
-            
+
             <Tabs defaultValue="consolidado" className="mt-4">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="consolidado">Vista Consolidada</TabsTrigger>
@@ -227,14 +227,14 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                 <TabsTrigger value="mapa-ventas">Mapa de Ventas</TabsTrigger>
                 <TabsTrigger value="json">Datos JSON</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="consolidado">
                 <div ref={consolidadoRef} className="p-4 bg-white rounded-md">
                   <div className="mb-6">
                     <h2 className="text-xl font-bold mb-4">Datos de la Calculadora Comercial</h2>
                     <ResumenCompleto wizardData={minuta.datos} />
                   </div>
-                  
+
                   {minuta.datos_mapa_ventas && (
                     <div className="mb-6">
                       <h2 className="text-xl font-bold mb-4">Datos del Mapa de Ventas</h2>
@@ -256,7 +256,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Sección de Precios y Pagos */}
                           <div className="space-y-4">
                             <div className="bg-slate-50 p-3 rounded-md">
@@ -273,7 +273,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Sección de Cliente */}
                           <div className="space-y-4">
                             <div className="bg-slate-50 p-3 rounded-md">
@@ -290,7 +290,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Sección de Fechas */}
                           <div className="space-y-4">
                             <div className="bg-slate-50 p-3 rounded-md">
@@ -307,7 +307,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Otros datos que no encajan en las categorías anteriores */}
                           <div className="md:col-span-2 space-y-4">
                             <div className="bg-slate-50 p-3 rounded-md">
@@ -333,7 +333,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                       </div>
                     </div>
                   )}
-                  
+
                   {minuta.comentarios && (
                     <div className="mb-6">
                       <h2 className="text-xl font-bold mb-4">Comentarios</h2>
@@ -342,13 +342,13 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                   )}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="resumen">
                 <div>
                   <ResumenCompleto wizardData={minuta.datos} />
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="mapa-ventas">
                 <Card>
                   <CardContent className="pt-6">
@@ -359,7 +359,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                           {Object.entries(minuta.datos_mapa_ventas).map(([key, value]) => (
                             <div key={key} className="border-b pb-2">
                               <span className="font-medium">{key}: </span>
-                              <span>{String(value)}</span>
+                              <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
                             </div>
                           ))}
                         </div>
@@ -372,7 +372,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="json">
                 <Card>
                   <CardContent className="pt-6">
@@ -383,24 +383,24 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                 </Card>
               </TabsContent>
             </Tabs>
-            
+
             {minuta.comentarios && (
               <div className="mt-4 p-4 bg-muted rounded-md">
                 <h3 className="font-medium mb-2">Comentarios de Administración:</h3>
                 <p className="text-sm">{minuta.comentarios}</p>
               </div>
             )}
-            
+
             <DialogFooter className="mt-6 flex flex-wrap gap-2 justify-end">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 <X className="mr-2 h-4 w-4" />
                 Cerrar
               </Button>
-              
+
               {/* Botón para descargar PDF - oculto para comerciales */}
               {!isComercial && (
-                <Button 
-                  onClick={handleDownloadConsolidatedPDF} 
+                <Button
+                  onClick={handleDownloadConsolidatedPDF}
                   disabled={isGeneratingPDF}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
@@ -417,12 +417,12 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                   )}
                 </Button>
               )}
-              
+
               {/* Botones para cambiar estado (solo visibles para administradores, no para comerciales) */}
               {minuta.estado === 'pendiente' && !isComercial && (
                 <div className="flex gap-2 w-full mt-4 justify-end">
-                  <Button 
-                    onClick={() => handleChangeEstado('cancelada')} 
+                  <Button
+                    onClick={() => handleChangeEstado('cancelada')}
                     disabled={procesandoEstado}
                     variant="destructive"
                   >
@@ -433,8 +433,8 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                     )}
                     Denegar
                   </Button>
-                  <Button 
-                    onClick={() => handleChangeEstado('aprobada')} 
+                  <Button
+                    onClick={() => handleChangeEstado('aprobada')}
                     disabled={procesandoEstado}
                     className="bg-green-600 hover:bg-green-700"
                   >

@@ -7,7 +7,8 @@ export const sanitizeString = (input: string): string => {
   return input
     .trim()
     // Remover caracteres de control
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    // Remover caracteres de control (0-8, 11-12, 14-31, 127)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     // Remover scripts HTML
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     // Remover tags HTML peligrosos
@@ -51,6 +52,51 @@ export const sanitizeRut = (rut: string): string => {
     .replace(/[^\dKk.-]/g, ''); // Solo permitir dígitos, K, k, puntos y guiones
 };
 
+// Helper para sanitizar valores string específicos según la key
+const sanitizeStringValue = (key: string, value: string): string => {
+  const lowerKey = key.toLowerCase();
+
+  if (lowerKey.includes('email') || lowerKey.includes('correo')) {
+    return sanitizeEmail(value);
+  }
+  if (lowerKey.includes('phone') || lowerKey.includes('telefono')) {
+    return sanitizePhone(value);
+  }
+  if (lowerKey.includes('rut')) {
+    return sanitizeRut(value);
+  }
+  return sanitizeString(value);
+};
+
+// Helper para sanitizar cualquier valor basado en su tipo
+const sanitizeValue = (key: string, value: any): any => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return sanitizeStringValue(key, value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        return sanitizeObject(item);
+      }
+      if (typeof item === 'string') {
+        return sanitizeString(item);
+      }
+      return item;
+    });
+  }
+
+  if (typeof value === 'object') {
+    return sanitizeObject(value);
+  }
+
+  return value;
+};
+
 // Sanitiza un objeto recursivamente
 export const sanitizeObject = <T extends Record<string, any>>(obj: T): T => {
   if (obj === null || obj === undefined) {
@@ -79,43 +125,8 @@ export const sanitizeObject = <T extends Record<string, any>>(obj: T): T => {
   const sanitized: any = {};
 
   for (const [key, value] of Object.entries(obj)) {
-    // Sanitizar la clave también
     const sanitizedKey = sanitizeString(key);
-
-    if (value === null || value === undefined) {
-      sanitized[sanitizedKey] = value;
-    } else if (typeof value === 'string') {
-      // Detectar si es un email
-      if (sanitizedKey.toLowerCase().includes('email') || sanitizedKey.toLowerCase().includes('correo')) {
-        sanitized[sanitizedKey] = sanitizeEmail(value);
-      }
-      // Detectar si es un teléfono
-      else if (sanitizedKey.toLowerCase().includes('phone') || sanitizedKey.toLowerCase().includes('telefono')) {
-        sanitized[sanitizedKey] = sanitizePhone(value);
-      }
-      // Detectar si es un RUT
-      else if (sanitizedKey.toLowerCase().includes('rut')) {
-        sanitized[sanitizedKey] = sanitizeRut(value);
-      }
-      // String genérico
-      else {
-        sanitized[sanitizedKey] = sanitizeString(value);
-      }
-    } else if (Array.isArray(value)) {
-      sanitized[sanitizedKey] = value.map(item => {
-        if (typeof item === 'object' && item !== null) {
-          return sanitizeObject(item);
-        }
-        if (typeof item === 'string') {
-          return sanitizeString(item);
-        }
-        return item;
-      });
-    } else if (typeof value === 'object') {
-      sanitized[sanitizedKey] = sanitizeObject(value);
-    } else {
-      sanitized[sanitizedKey] = value;
-    }
+    sanitized[sanitizedKey] = sanitizeValue(sanitizedKey, value);
   }
 
   return sanitized as T;

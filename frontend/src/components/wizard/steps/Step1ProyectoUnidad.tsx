@@ -7,7 +7,6 @@ import { validateStep } from "@/utils/validation";
 import { getProyectosActivos } from "@/services/proyectos";
 import {
 
-
   getUnidadesPorSector,
   getSectoresProyecto,
   UnidadResumen,
@@ -72,7 +71,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
       try {
         const naturalezasDisponibles = await getNaturalezasProyecto();
         setNaturalezas(naturalezasDisponibles);
-        // console.log('Naturalezas disponibles:', naturalezasDisponibles);
+
       } catch (error) {
         console.error('Error al cargar naturalezas:', error);
       } finally {
@@ -95,7 +94,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
       try {
         const proyectosDisponibles = await getProyectosPorNaturaleza(naturalezaSeleccionada);
         setProyectos(proyectosDisponibles);
-        // console.log('Proyectos disponibles para naturaleza:', proyectosDisponibles);
+
 
         // Limpiar selecciones posteriores
         setProyectoSeleccionado('');
@@ -129,7 +128,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
       try {
         const etapasDisponibles = await getEtapasPorProyecto(proyectoSeleccionado);
         setEtapas(etapasDisponibles);
-        // console.log('Etapas disponibles para proyecto:', etapasDisponibles);
+
 
         // Limpiar selecciones posteriores
         setEtapaSeleccionada('');
@@ -164,7 +163,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
       try {
         const tiposDisponibles = await getTiposPorProyectoYEtapa(proyectoSeleccionado, etapaSeleccionada);
         setTipos(tiposDisponibles);
-        // console.log('Tipos disponibles para proyecto y etapa:', tiposDisponibles);
+
 
         // Limpiar selecciones posteriores
         setTipoSeleccionado('');
@@ -194,7 +193,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
       try {
         const sectoresDisponibles = await getSectoresPorProyectoEtapaYTipo(proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado);
         setSectores(sectoresDisponibles);
-        // console.log('Sectores disponibles para proyecto, etapa y tipo:', sectoresDisponibles);
+
 
         // Limpiar selecciones posteriores
         setSectorSeleccionado('');
@@ -308,7 +307,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
         precioNegociado: unidad.precioUSD || 0
       });
 
-      // console.log(`Unidad seleccionada: ${unidad.descripcion}...`);
+
       clearAllErrors();
     }
   };
@@ -423,33 +422,44 @@ export const Step1ProyectoUnidad: React.FC = () => {
 
     // Si está en modo de agregar unidad, verificar que se hayan completado todos los campos
     if (mostrarFormularioUnidad) {
-      if (!naturalezaSeleccionada) {
-        newErrors.naturaleza = "Debe seleccionar una naturaleza de proyecto";
-      }
-
-      if (!proyectoSeleccionado) {
-        newErrors.proyecto = "Debe seleccionar un proyecto";
-      }
-
-      if (!etapaSeleccionada) {
-        newErrors.etapa = "Debe seleccionar una etapa";
-      }
-
-      if (!tipoSeleccionado) {
-        newErrors.tipo = "Debe seleccionar un tipo";
-      }
-
-      if (!sectorSeleccionado) {
-        newErrors.sector = "Debe seleccionar un sector";
-      }
-
-      if (!unidadSeleccionada) {
-        newErrors.unidad = "Debe seleccionar una unidad";
-      }
+      const formErrors = validateUnitForm();
+      Object.assign(newErrors, formErrors);
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const validateUnitForm = (): Record<string, string> => {
+    const formErrors: Record<string, string> = {};
+
+    if (!naturalezaSeleccionada) {
+      formErrors.naturaleza = "Debe seleccionar una naturaleza de proyecto";
+    }
+
+    if (!proyectoSeleccionado) {
+      formErrors.proyecto = "Debe seleccionar un proyecto";
+    }
+
+    if (!etapaSeleccionada) {
+      formErrors.etapa = "Debe seleccionar una etapa";
+    }
+
+    if (!tipoSeleccionado) {
+      formErrors.tipo = "Debe seleccionar un tipo";
+    }
+
+    if (!sectorSeleccionado) {
+      formErrors.sector = "Debe seleccionar un sector";
+    }
+
+    if (!unidadSeleccionada) {
+      formErrors.unidad = "Debe seleccionar una unidad";
+    }
+
+    return formErrors;
+
+
   };
 
   // Validar campos en tiempo real

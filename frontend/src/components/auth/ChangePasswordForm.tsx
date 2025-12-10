@@ -138,9 +138,9 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-300 ${strength.score < 40 ? 'bg-red-500' :
-                        strength.score < 60 ? 'bg-orange-500' :
-                          strength.score < 75 ? 'bg-yellow-500' :
-                            strength.score < 90 ? 'bg-green-500' : 'bg-emerald-500'
+                      strength.score < 60 ? 'bg-orange-500' :
+                        strength.score < 75 ? 'bg-yellow-500' :
+                          strength.score < 90 ? 'bg-green-500' : 'bg-emerald-500'
                       }`}
                     style={{ width: `${strength.score}%` }}
                   />
@@ -156,7 +156,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                 </p>
                 <ul className="space-y-1">
                   {validation.errors.map((err, idx) => (
-                    <li key={idx} className="text-xs text-amber-700 flex items-center gap-1">
+                    <li key={`${idx}-${err.substring(0, 10)}`} className="text-xs text-amber-700 flex items-center gap-1">
                       <span className="text-amber-500">✗</span>
                       <span>{err}</span>
                     </li>

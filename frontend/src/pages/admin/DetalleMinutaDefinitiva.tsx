@@ -212,6 +212,28 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
     }
   };
 
+  const getDialogTitle = (accion: 'aprobada' | 'firmada' | 'cancelada' | null) => {
+    switch (accion) {
+      case 'aprobada': return 'Confirmar Aprobación';
+      case 'firmada': return 'Confirmar Firma';
+      case 'cancelada': return 'Confirmar Cancelación';
+      default: return '';
+    }
+  };
+
+  const getDialogDescription = (accion: 'aprobada' | 'firmada' | 'cancelada' | null) => {
+    switch (accion) {
+      case 'aprobada':
+        return '¿Está seguro que desea aprobar esta minuta? Esta acción no se puede deshacer.';
+      case 'firmada':
+        return '¿Está seguro que desea marcar esta minuta como firmada? Esta acción no se puede deshacer.';
+      case 'cancelada':
+        return '¿Está seguro que desea cancelar esta minuta? Esta acción no se puede deshacer.';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center mb-6">
@@ -440,15 +462,10 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {accionPendiente === 'aprobada' ? 'Confirmar Aprobación' :
-                    accionPendiente === 'firmada' ? 'Confirmar Firma' : 'Confirmar Cancelación'}
+                  {getDialogTitle(accionPendiente)}
                 </DialogTitle>
                 <DialogDescription>
-                  {accionPendiente === 'aprobada'
-                    ? '¿Está seguro que desea aprobar esta minuta? Esta acción no se puede deshacer.'
-                    : accionPendiente === 'firmada'
-                      ? '¿Está seguro que desea marcar esta minuta como firmada? Esta acción no se puede deshacer.'
-                      : '¿Está seguro que desea cancelar esta minuta? Esta acción no se puede deshacer.'}
+                  {getDialogDescription(accionPendiente)}
                 </DialogDescription>
               </DialogHeader>
 

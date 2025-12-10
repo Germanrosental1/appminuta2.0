@@ -14,9 +14,9 @@ export function sanitizePassword(password: string): string {
   return password
     .trim()
     // Remover caracteres de control peligrosos
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     // Remover NULL bytes
-    .replace(/\0/g, '')
+    .replace(/\x00/g, '')
     // Remover secuencias de escape peligrosas
     .replaceAll(/\\x[\da-fA-F]{2}/g, '')
     .replaceAll(/\\u[\da-fA-F]{4}/g, '');

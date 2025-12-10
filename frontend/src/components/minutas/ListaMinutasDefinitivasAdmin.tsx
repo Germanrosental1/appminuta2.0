@@ -16,7 +16,6 @@ import {
 import {
   CheckCircle,
   XCircle,
-  Clock,
   Eye,
   AlertCircle
 } from 'lucide-react';
@@ -24,7 +23,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import {
   DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,

@@ -352,7 +352,7 @@ export const Step4Pago: React.FC = () => {
                         min="0"
                         step="0.01"
                         value={data.anticipoArsA || ""}
-                        onChange={(e) => handleChange("anticipoArsA", parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleChange("anticipoArsA", Number.parseFloat(e.target.value) || 0)}
                         onBlur={handleBlur}
                         className={errors.anticipoArsA ? "border-destructive" : ""}
                         placeholder="0.00"
@@ -374,7 +374,7 @@ export const Step4Pago: React.FC = () => {
                         min="0"
                         step="0.01"
                         value={data.anticipoArsB || ""}
-                        onChange={(e) => handleChange("anticipoArsB", parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleChange("anticipoArsB", Number.parseFloat(e.target.value) || 0)}
                         onBlur={handleBlur}
                         className={errors.anticipoArsB ? "border-destructive" : ""}
                         placeholder="0.00"
@@ -401,7 +401,7 @@ export const Step4Pago: React.FC = () => {
                         min="0"
                         step="0.01"
                         value={data.anticipoUsdA || ""}
-                        onChange={(e) => handleChange("anticipoUsdA", parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleChange("anticipoUsdA", Number.parseFloat(e.target.value) || 0)}
                         onBlur={handleBlur}
                         className={errors.anticipoUsdA ? "border-destructive" : ""}
                         placeholder="0.00"
@@ -423,7 +423,7 @@ export const Step4Pago: React.FC = () => {
                         min="0"
                         step="0.01"
                         value={data.anticipoUsdB || ""}
-                        onChange={(e) => handleChange("anticipoUsdB", parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleChange("anticipoUsdB", Number.parseFloat(e.target.value) || 0)}
                         onBlur={handleBlur}
                         className={errors.anticipoUsdB ? "border-destructive" : ""}
                         placeholder="0.00"

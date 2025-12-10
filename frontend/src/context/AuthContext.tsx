@@ -221,8 +221,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .single();
 
         // Si requiere cambio, no hacer nada más - el middleware redirigirá
+        // Si requiere cambio, el middleware se encargará de redirigir
         if (profile?.require_password_change) {
-
+          console.log('Usuario requiere cambio de contraseña');
         }
       }
 

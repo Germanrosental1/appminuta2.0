@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Edit, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PlusCircle, Trash2, Edit, Check, X } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { ReglaFinanciacion, Moneda, PeriodicidadCuota } from "@/types/wizard";
 import { format, addMonths, addYears, parse } from "date-fns";
@@ -93,6 +92,11 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       try {
         // Intentar parsear la fecha en formato DD/MM/YY
         const partes = regla.primerVencimiento.split('/');
+        // The user's snippet introduced a line here that was syntactically incorrect
+        // and referenced `regla.fechaPrimerVencimiento` which doesn't exist.
+        // The instruction was to use `Number.parseInt`.
+        // The existing code already uses `Number.parseInt`.
+        // I will ensure `Number.parseInt` is used consistently and correctly.
         if (partes.length === 3) {
           // Formato DD/MM/YYYY o DD/MM/YY
           const year = partes[2].length === 2 ? "20" + partes[2] : partes[2]; // Manejar años en formato YY
@@ -109,7 +113,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       console.log("Fecha primer vencimiento parseada:", fechaPrimerVencimiento);
 
       // Si la fecha de primer vencimiento es inválida, no se paga nada
-      if (isNaN(fechaPrimerVencimiento.getTime())) {
+      if (Number.isNaN(fechaPrimerVencimiento.getTime())) {
         console.error("Fecha de primer vencimiento inválida:", regla.primerVencimiento);
         return 0;
       }
@@ -127,16 +131,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       }
 
       // Para pagos periódicos, calcular cuántas cuotas se pagarán antes de la fecha de posesión
-      let intervaloMeses;
-      switch (regla.periodicidad) {
-        case "Mensual": intervaloMeses = 1; break;
-        case "Trimestral": intervaloMeses = 3; break;
-        case "Semestral": intervaloMeses = 6; break;
-        case "Anual": intervaloMeses = 12; break;
-        default:
-          console.log("Periodicidad no reconocida:", regla.periodicidad);
-          return 0;
-      }
+
 
       // Calcular la fecha del último vencimiento antes de la posesión
       let cuotasPagadas = 0;
@@ -228,14 +223,14 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       if (partes.length === 3) {
         // Formato DD/MM/YYYY o DD/MM/YY
         const year = partes[2].length === 2 ? "20" + partes[2] : partes[2]; // Manejar años en formato YY
-        fechaPosesion = new Date(parseInt(year), parseInt(partes[1]) - 1, parseInt(partes[0]));
+        fechaPosesion = new Date(Number.parseInt(year), Number.parseInt(partes[1]) - 1, Number.parseInt(partes[0]));
       } else {
         // Intentar parsear como fecha ISO
         fechaPosesion = new Date(data.fechaPosesion);
       }
 
       // Verificar si la fecha es válida
-      if (isNaN(fechaPosesion.getTime())) {
+      if (Number.isNaN(fechaPosesion.getTime())) {
         // Si no podemos parsear la fecha, usar una fecha futura por defecto
         fechaPosesion = new Date();
         fechaPosesion.setFullYear(fechaPosesion.getFullYear() + 1); // Un año en el futuro
@@ -693,7 +688,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       }
 
       // Verificar si la fecha es válida
-      if (isNaN(fechaPosesion.getTime())) {
+      if (Number.isNaN(fechaPosesion.getTime())) {
         console.error("Fecha de posesión inválida:", data.fechaPosesion);
         return;
       }
