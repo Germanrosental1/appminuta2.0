@@ -16,10 +16,10 @@ export const Step5Cargos: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (field: string, value: string) => {
-    const numValue = value === "" ? 0 : parseFloat(value.replace(/,/g, "."));
-    if (!isNaN(numValue) && numValue >= 0) {
+    const numValue = value === "" ? 0 : parseFloat(value.replaceAll(",", "."));
+    if (!Number.isNaN(numValue) && numValue >= 0) {
       setData({ [field]: numValue });
-      
+
       if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: "" }));
       }
@@ -30,7 +30,7 @@ export const Step5Cargos: React.FC = () => {
   const handleFormaPagoChange = (field: string, value: FormaPagoInternal, cargoField: string, moneda: "ARS" | "USD") => {
     // Si es bonificado, poner el cargo en 0 y guardar "-" como forma de pago
     if (value === "Bonificado") {
-      setData({ 
+      setData({
         [field]: "-", // Usamos "-" como valor en la base de datos
         [cargoField]: 0
       });
@@ -51,7 +51,7 @@ export const Step5Cargos: React.FC = () => {
   const calcularPrecioTotal = () => {
     // Precio de la unidad principal
     let total = data.precioNegociado || 0;
-    
+
     // Sumar precios de cocheras
     const cocheras = data.cocheras || [];
     if (cocheras.length > 0) {
@@ -59,12 +59,12 @@ export const Step5Cargos: React.FC = () => {
         total += cochera.precioNegociado || 0;
       });
     }
-    
+
     // Sumar precio de baulera si existe
     if (data.baulera) {
       total += data.baulera.precioNegociado || 0;
     }
-    
+
     return total;
   };
 
@@ -73,14 +73,14 @@ export const Step5Cargos: React.FC = () => {
     // Obtener los valores base de financiación (sin cargos)
     const baseFinanciarArs = data.valorArsConIVA || 0;
     const baseFinanciarUsd = data.valorUsdConIVA || 0;
-    
+
     // Restar anticipos
     const baseFinanciarArsConAnticipos = baseFinanciarArs - (data.anticipoArsA || 0) - (data.anticipoArsB || 0);
     const baseFinanciarUsdConAnticipos = baseFinanciarUsd - (data.anticipoUsdA || 0) - (data.anticipoUsdB || 0);
-    
+
     // Obtener el tipo de cambio
     const tcValor = data.tcValor || 1;
-    
+
     // Inicializar totales de cargos financiados para A y B
     let cargosFinanciadosAArs = 0;
     let cargosFinanciadosAUsd = 0;
@@ -133,12 +133,12 @@ export const Step5Cargos: React.FC = () => {
     // Convertir los cargos según la moneda de cada parte
     let totalFinanciarArs = baseFinanciarArsConAnticipos;
     let totalFinanciarUsd = baseFinanciarUsdConAnticipos;
-    
+
     // La parte A siempre está en ARS
     totalFinanciarArs += cargosFinanciadosAArs;
     // Convertir los cargos en USD de la parte A a ARS
     totalFinanciarArs += cargosFinanciadosAUsd * tcValor;
-    
+
     // La parte B depende de la moneda seleccionada
     if (data.monedaB === "ARS") {
       // Si la parte B está en ARS, sumar directamente los cargos en ARS
@@ -188,25 +188,25 @@ export const Step5Cargos: React.FC = () => {
     const planosCocheraValor = data.planosCocheraValor || 0;
     const certificacionFirmas = data.certificacionFirmas || 0;
     const otrosGastos = data.otrosGastos || 0;
-    
+
     // Calcular sellado (porcentaje sobre la parte A en ARS)
     const selladoMonto = valorArsConIVA * (selladoPorcentaje / 100);
-    
+
     // Calcular alhajamiento (porcentaje sobre el precio total)
     const precioTotal = calcularPrecioTotal();
     const alhajamiemtoMonto = precioTotal * (alhajamiemtoPorcentaje / 100);
-    
+
     // Calcular planos unidad (valor por m2 * m2)
     const planosUnidadMonto = planosUnidadValorM2 * planosUnidadM2;
-    
+
     // Calcular planos cochera (valor por cochera * cantidad de cocheras)
     const cantidadCocheras = (data.cocheras || []).length;
     const planosCocheraMonto = planosCocheraValor * cantidadCocheras;
-    
+
     // Calcular totales
     const totalCargosArs = certificacionFirmas + selladoMonto;
     const totalCargosUsd = alhajamiemtoMonto + planosUnidadMonto + planosCocheraMonto + otrosGastos;
-    
+
     if (
       selladoMonto !== data.selladoMonto ||
       alhajamiemtoMonto !== data.alhajamiemtoMonto ||
@@ -268,8 +268,8 @@ export const Step5Cargos: React.FC = () => {
                   {formatCurrency(data.certificacionFirmas)} ARS
                 </td>
                 <td className="p-4 text-right">
-                  <Select 
-                    value={data.certificacionFirmasPago} 
+                  <Select
+                    value={data.certificacionFirmasPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("certificacionFirmasPago", value, "certificacionFirmas", "ARS")}
                   >
                     <SelectTrigger className="w-[180px] text-blue-500">
@@ -287,7 +287,7 @@ export const Step5Cargos: React.FC = () => {
                   </Select>
                 </td>
               </tr>
-              
+
               {/* Sellado */}
               <tr className="border-b border-border">
                 <td className="p-4 font-medium">Sellado:</td>
@@ -306,8 +306,8 @@ export const Step5Cargos: React.FC = () => {
                   {formatCurrency(data.selladoMonto)} ARS
                 </td>
                 <td className="p-4 text-right">
-                  <Select 
-                    value={data.selladoPago} 
+                  <Select
+                    value={data.selladoPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("selladoPago", value, "selladoPorcentaje", "ARS")}
                   >
                     <SelectTrigger className="w-[180px] text-blue-500">
@@ -325,7 +325,7 @@ export const Step5Cargos: React.FC = () => {
                   </Select>
                 </td>
               </tr>
-              
+
               {/* Alhajamiento */}
               <tr className="border-b border-border">
                 <td className="p-4 font-medium">Alhajamiento:</td>
@@ -344,8 +344,8 @@ export const Step5Cargos: React.FC = () => {
                   {formatCurrency(data.alhajamiemtoMonto)} USD
                 </td>
                 <td className="p-4 text-right">
-                  <Select 
-                    value={data.alhajamiemtoPago} 
+                  <Select
+                    value={data.alhajamiemtoPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("alhajamiemtoPago", value, "alhajamiemtoPorcentaje", "USD")}
                   >
                     <SelectTrigger className="w-[180px] text-blue-500">
@@ -363,7 +363,7 @@ export const Step5Cargos: React.FC = () => {
                   </Select>
                 </td>
               </tr>
-              
+
               {/* Planos Unidad */}
               <tr className="border-b border-border">
                 <td className="p-4 font-medium">Planos Unidad:</td>
@@ -396,8 +396,8 @@ export const Step5Cargos: React.FC = () => {
                   {formatCurrency(data.planosUnidadMonto)} USD
                 </td>
                 <td className="p-4 text-right">
-                  <Select 
-                    value={data.planosUnidadPago} 
+                  <Select
+                    value={data.planosUnidadPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("planosUnidadPago", value, "planosUnidadM2", "USD")}
                   >
                     <SelectTrigger className="w-[180px] text-blue-500">
@@ -415,7 +415,7 @@ export const Step5Cargos: React.FC = () => {
                   </Select>
                 </td>
               </tr>
-              
+
               {/* Planos Cochera */}
               <tr className="border-b border-border">
                 <td className="p-4 font-medium">Planos Cochera:</td>
@@ -441,8 +441,8 @@ export const Step5Cargos: React.FC = () => {
                   {formatCurrency(data.planosCocheraMonto)} USD
                 </td>
                 <td className="p-4 text-right">
-                  <Select 
-                    value={data.planosCocheraPago} 
+                  <Select
+                    value={data.planosCocheraPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("planosCocheraPago", value, "planosCocheraValor", "USD")}
                   >
                     <SelectTrigger className="w-[180px] text-blue-500">
@@ -460,7 +460,7 @@ export const Step5Cargos: React.FC = () => {
                   </Select>
                 </td>
               </tr>
-              
+
               {/* Otros gastos */}
               <tr className="border-b border-border">
                 <td className="p-4 font-medium">Otros gastos</td>
@@ -478,8 +478,8 @@ export const Step5Cargos: React.FC = () => {
                   {formatCurrency(data.otrosGastos)} USD
                 </td>
                 <td className="p-4 text-right">
-                  <Select 
-                    value={data.otrosGastosPago} 
+                  <Select
+                    value={data.otrosGastosPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("otrosGastosPago", value, "otrosGastos", "USD")}
                   >
                     <SelectTrigger className="w-[180px] text-blue-500">
@@ -497,7 +497,7 @@ export const Step5Cargos: React.FC = () => {
                   </Select>
                 </td>
               </tr>
-              
+
               {/* Total cargos ARS */}
               <tr className="border-b border-border bg-blue-50">
                 <td colSpan={2} className="p-4 font-bold text-blue-600">
@@ -507,7 +507,7 @@ export const Step5Cargos: React.FC = () => {
                   {formatCurrency(data.totalCargosArs)} ARS
                 </td>
               </tr>
-              
+
               {/* Total cargos USD */}
               <tr className="bg-blue-50">
                 <td colSpan={2} className="p-4 font-bold text-blue-600">

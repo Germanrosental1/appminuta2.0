@@ -4,10 +4,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateStep } from "@/utils/validation";
-import { getProyectosActivos, Proyecto } from "@/services/proyectos";
+import { getProyectosActivos } from "@/services/proyectos";
 import {
-  getProyectosDisponibles,
-  getUnidadesPorProyecto,
+
+
   getUnidadesPorSector,
   getSectoresProyecto,
   UnidadResumen,
@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Loader2, Plus, Trash, Building, Car, Package, Store, Warehouse, Pencil } from "lucide-react";
 import { UnidadSeleccionada, TipoUnidad } from "@/types/wizard";
-import { Separator } from "@/components/ui/separator";
+
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -519,7 +519,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
           <div className="space-y-3">
             <ScrollArea className="h-[300px] pr-4">
               {unidadesSeleccionadas.map((unidad, index) => (
-                <Card key={index} className="mb-3">
+                <Card key={unidad.id || index} className="mb-3">
                   <CardHeader className="py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

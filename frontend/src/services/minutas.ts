@@ -3,7 +3,6 @@ import { apiFetch } from '../lib/api-client';
 import { WizardData } from '@/types/wizard';
 import { validateRequest, safeValidate, ValidationError } from '@/utils/validateRequest';
 import {
-  minutaSchema,
   createMinutaSchema,
   updateMinutaSchema,
   minutaFilterSchema,
@@ -37,8 +36,7 @@ export interface MinutaDefinitiva {
   updated_at?: string;
 }
 
-// Exportar ValidationError para uso en componentes
-export { ValidationError };
+export { ValidationError } from '@/utils/validateRequest';
 
 // Guardar una minuta provisoria (CON VALIDACIÓN)
 export async function guardarMinutaProvisoria(minuta: Omit<MinutaProvisoria, 'id' | 'fecha_creacion'>) {

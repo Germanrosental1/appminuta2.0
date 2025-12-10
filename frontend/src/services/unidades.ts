@@ -191,6 +191,7 @@ export async function getProyectosPorNaturaleza(naturaleza: string): Promise<str
     // Let's assume fetching all projects is fine for now as distinct projects are limited.
     return proyectos.map(p => p.nombre);
   } catch (error) {
+    console.error('Error al obtener proyectos por naturaleza:', error);
     return [];
   }
 }

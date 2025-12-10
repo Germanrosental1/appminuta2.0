@@ -69,14 +69,14 @@ export const Step3ComposicionFSB: React.FC = () => {
   };
 
   const handlePorcAChange = (value: string) => {
-    const num = parseFloat(value);
-    if (!isNaN(num) && num >= 0 && num <= 100) {
+    const num = Number.parseFloat(value);
+    if (!Number.isNaN(num) && num >= 0 && num <= 100) {
       setData({ porcA: num });
     }
   };
 
   const handleImpAChange = (value: string) => {
-    const val = parseFloat(value.replace(/[^0-9.-]+/g, ""));
+    const val = Number.parseFloat(value.replace(/[^0-9.-]+/g, ""));
     if (Number.isNaN(val)) {
       // If the parsed value is NaN, we might want to clear the input or set it to 0
       // For now, we'll just not update the state if it's not a valid number.

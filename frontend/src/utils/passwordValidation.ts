@@ -18,8 +18,8 @@ export function sanitizePassword(password: string): string {
     // Remover NULL bytes
     .replace(/\0/g, '')
     // Remover secuencias de escape peligrosas
-    .replace(/\\x[0-9a-fA-F]{2}/g, '')
-    .replace(/\\u[0-9a-fA-F]{4}/g, '');
+    .replaceAll(/\\x[\da-fA-F]{2}/g, '')
+    .replaceAll(/\\u[\da-fA-F]{4}/g, '');
 }
 
 // Función auxiliar para validar contraseña y obtener errores específicos

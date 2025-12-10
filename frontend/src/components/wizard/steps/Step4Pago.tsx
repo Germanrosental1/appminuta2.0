@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateStep } from "@/utils/validation";
 import { Button } from "@/components/ui/button";
-import { Pencil, DollarSign, Check, CreditCard } from "lucide-react";
+import { DollarSign, Check, CreditCard } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 

@@ -140,7 +140,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
       // Calcular la fecha del último vencimiento antes de la posesión
       let cuotasPagadas = 0;
-      let fechaVencimiento = new Date(fechaPrimerVencimiento.getTime());
+      let fechaVencimiento = new Date(fechaPrimerVencimiento);
 
       // Para el primer vencimiento, ya sabemos que es anterior o igual a la fecha de posesión
       // Contamos la primera cuota como pagada
@@ -925,17 +925,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           </div>
 
           {/* Formulario para agregar nueva regla */}
-          {!mostrarFormA ? (
-            <div className="flex justify-center">
-              <Button
-                onClick={() => setMostrarFormA(true)}
-                className="flex items-center gap-2"
-                disabled={calcularSaldoRestanteA() <= 0}
-              >
-                <PlusCircle className="w-4 h-4" /> Agregar regla de financiación
-              </Button>
-            </div>
-          ) : (
+          {mostrarFormA ? (
             <Card className="border border-dashed border-gray-300 p-4">
               <CardHeader className="px-0 pt-0">
                 <div className="flex justify-between items-center">
@@ -1005,60 +995,24 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div>
-                    <Label htmlFor="primerVencimientoA">Primer vencimiento</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !nuevaReglaA.primerVencimiento && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {nuevaReglaA.primerVencimiento ? nuevaReglaA.primerVencimiento : <span>Seleccionar fecha</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={nuevaReglaA.primerVencimiento ? parseDate(nuevaReglaA.primerVencimiento) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              const formattedDate = format(date, "d/MM/yy");
-                              setNuevaReglaA({ ...nuevaReglaA, primerVencimiento: formattedDate });
-                            }
-                          }}
-                          initialFocus
-                          locale={es}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <Label htmlFor="valorBienA">Valor bien (opcional)</Label>
+                  <Input
+                    id="valorBienA"
+                    placeholder="Descripción del bien"
+                    value={nuevaReglaA.valorBien || ""}
+                    onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, valorBien: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cargoA">Cargo (opcional)</Label>
+                  <Input
+                    id="cargoA"
+                    placeholder="Descripción del cargo"
+                    value={nuevaReglaA.cargo || ""}
+                    onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, cargo: e.target.value })}
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="valorBienA">Valor bien (opcional)</Label>
-                    <Input
-                      id="valorBienA"
-                      placeholder="Descripción del bien"
-                      value={nuevaReglaA.valorBien || ""}
-                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, valorBien: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cargoA">Cargo (opcional)</Label>
-                    <Input
-                      id="cargoA"
-                      placeholder="Descripción del cargo"
-                      value={nuevaReglaA.cargo || ""}
-                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, cargo: e.target.value })}
-                    />
-                  </div>
-                </div>
 
                 <div className="flex justify-end">
                   <Button
@@ -1070,12 +1024,22 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          ) : (
+            <div className="flex justify-center">
+              <Button
+                onClick={() => setMostrarFormA(true)}
+                className="flex items-center gap-2"
+                disabled={calcularSaldoRestanteA() <= 0}
+              >
+                <PlusCircle className="w-4 h-4" /> Agregar regla de financiación
+              </Button>
+            </div>
           )}
         </CardContent>
-      </Card>
+      </Card >
 
       {/* Sección B - Moneda según paso 3 */}
-      <Card className="border-2 border-purple-500">
+      < Card className="border-2 border-purple-500" >
         <CardHeader className="bg-purple-500 text-white">
           <CardTitle className="text-xl">Financiación Parte SB ({data.monedaB})</CardTitle>
         </CardHeader>
@@ -1331,7 +1295,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
             </Card>
           )}
         </CardContent>
-      </Card>
-    </div>
+      </Card >
+    </div >
   );
 };

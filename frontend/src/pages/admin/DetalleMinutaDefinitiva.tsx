@@ -303,7 +303,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                                 {Object.entries(datosMapaVentas).map(([key, value]) => (
                                   <div key={key} className="border-b pb-2">
                                     <span className="font-medium">{key}: </span>
-                                    <span>{String(value)}</span>
+                                    <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
                                   </div>
                                 ))}
                               </div>
@@ -475,17 +475,19 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      {accionPendiente === 'aprobada' ? (
+                      {accionPendiente === 'aprobada' && (
                         <>
                           <CheckCircle className="mr-2 h-4 w-4" />
                           Confirmar Aprobación
                         </>
-                      ) : accionPendiente === 'firmada' ? (
+                      )}
+                      {accionPendiente === 'firmada' && (
                         <>
                           <FileText className="mr-2 h-4 w-4" />
                           Confirmar Firma
                         </>
-                      ) : (
+                      )}
+                      {accionPendiente === 'cancelada' && (
                         <>
                           <XCircle className="mr-2 h-4 w-4" />
                           Confirmar Cancelación

@@ -27,7 +27,7 @@ export const SelectorUnidades: React.FC<SelectorUnidadesProps> = ({ onSelectUnid
         const data = await getUnidadesDisponibles();
         setUnidades(data);
         setFilteredUnidades(data);
-        
+
         // Extraer proyectos únicos
         const uniqueProyectos = Array.from(new Set(data.map(u => u.proyecto)));
         setProyectos(uniqueProyectos);
@@ -45,20 +45,20 @@ export const SelectorUnidades: React.FC<SelectorUnidadesProps> = ({ onSelectUnid
   useEffect(() => {
     // Filtrar unidades según búsqueda y proyecto seleccionado
     let filtered = unidades;
-    
+
     if (proyectoFilter) {
       filtered = filtered.filter(u => u.proyecto === proyectoFilter);
     }
-    
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(u => 
-        u.unidad.toLowerCase().includes(term) || 
+      filtered = filtered.filter(u =>
+        u.unidad.toLowerCase().includes(term) ||
         u.proyecto.toLowerCase().includes(term) ||
-        (u.ubicacion && u.ubicacion.toLowerCase().includes(term))
+        u.ubicacion?.toLowerCase().includes(term)
       );
     }
-    
+
     setFilteredUnidades(filtered);
   }, [searchTerm, proyectoFilter, unidades]);
 
@@ -146,8 +146,8 @@ export const SelectorUnidades: React.FC<SelectorUnidadesProps> = ({ onSelectUnid
                 </div>
               </CardContent>
               <CardFooter className="pt-0">
-                <Button 
-                  onClick={() => handleSelectUnidad(unidad)} 
+                <Button
+                  onClick={() => handleSelectUnidad(unidad)}
                   className="w-full"
                   variant="outline"
                 >

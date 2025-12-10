@@ -168,12 +168,12 @@ export const escapeSQLString = (input: string): string => {
   if (typeof input !== 'string') return '';
 
   return input
-    .replace(/'/g, "''")  // Escapar comillas simples
-    .replace(/\\/g, '\\\\') // Escapar backslashes
-    .replace(/\0/g, '\\0')  // Escapar null bytes
-    .replace(/\n/g, '\\n')  // Escapar nuevas líneas
-    .replace(/\r/g, '\\r')  // Escapar retornos de carro
-    .replace(/\x1a/g, '\\Z'); // Escapar Ctrl+Z
+    .replaceAll(/'/g, "''")  // Escapar comillas simples
+    .replaceAll(/\\/g, '\\\\') // Escapar backslashes
+    .replaceAll(/\u0000/g, '\\0')  // Escapar null bytes
+    .replaceAll(/\n/g, '\\n')  // Escapar nuevas líneas
+    .replaceAll(/\r/g, '\\r')  // Escapar retornos de carro
+    .replaceAll(/\u001a/g, '\\Z'); // Escapar Ctrl+Z
 };
 
 // Limpia espacios en blanco excesivos
