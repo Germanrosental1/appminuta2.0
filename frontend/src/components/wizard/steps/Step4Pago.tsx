@@ -7,7 +7,7 @@ import { validateStep } from "@/utils/validation";
 import { Button } from "@/components/ui/button";
 import { Pencil, DollarSign, Check, CreditCard } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 export const Step4Pago: React.FC = () => {
   const { data, setData } = useWizard();
@@ -106,10 +106,10 @@ export const Step4Pago: React.FC = () => {
       const tcValorDefault = 1100; // Valor por defecto si no hay uno configurado
 
       // Preservar los anticipos existentes o inicializar a cero si no existen
-      const anticipoArsA = data.anticipoArsA !== undefined ? data.anticipoArsA : 0;
-      const anticipoUsdA = data.anticipoUsdA !== undefined ? data.anticipoUsdA : 0;
-      const anticipoArsB = data.anticipoArsB !== undefined ? data.anticipoArsB : 0;
-      const anticipoUsdB = data.anticipoUsdB !== undefined ? data.anticipoUsdB : 0;
+      const anticipoArsA = data.anticipoArsA ?? 0;
+      const anticipoUsdA = data.anticipoUsdA ?? 0;
+      const anticipoArsB = data.anticipoArsB ?? 0;
+      const anticipoUsdB = data.anticipoUsdB ?? 0;
 
       console.log("Inicializando valores en Step4Pago:");
       console.log("Anticipos ARS A:", anticipoArsA);
@@ -181,7 +181,7 @@ export const Step4Pago: React.FC = () => {
                 // Mostrar todas las unidades del nuevo modelo
                 <>
                   {data.unidades.map((unidad, index) => (
-                    <p key={index}>
+                    <p key={unidad.id || index}>
                       {unidad.tipo}: {unidad.descripcion} - ${(unidad.precioNegociado || 0).toLocaleString("es-AR", { minimumFractionDigits: 2 })}
                     </p>
                   ))}

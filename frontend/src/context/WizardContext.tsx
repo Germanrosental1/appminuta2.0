@@ -34,18 +34,18 @@ export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Efectos de auto-guardado y carga eliminados
 
+  const value = React.useMemo(() => ({
+    data,
+    currentStep,
+    generatedFile,
+    setData,
+    setCurrentStep,
+    setGeneratedFile,
+    resetWizard,
+  }), [data, currentStep, generatedFile]);
+
   return (
-    <WizardContext.Provider
-      value={{
-        data,
-        currentStep,
-        generatedFile,
-        setData,
-        setCurrentStep,
-        setGeneratedFile,
-        resetWizard,
-      }}
-    >
+    <WizardContext.Provider value={value}>
       {children}
     </WizardContext.Provider>
   );

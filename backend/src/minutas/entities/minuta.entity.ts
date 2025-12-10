@@ -1,1 +1,4 @@
-export class Minuta {}
+export class Minuta {
+    id: string;
+    proyecto: string;
+}

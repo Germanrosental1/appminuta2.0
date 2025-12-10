@@ -51,11 +51,11 @@ export function validatePasswordComplexity(password: string): {
     errors.push('Falta una letra minúscula');
   }
 
-  if (!/[0-9]/.test(password)) {
+  if (!/\d/.test(password)) {
     errors.push('Falta un número');
   }
 
-  if (!/[^A-Za-z0-9]/.test(password)) {
+  if (!/[^A-Za-z\d]/.test(password)) {
     errors.push('Falta un carácter especial (!@#$%^&*...)');
   }
 
@@ -84,10 +84,10 @@ export function calculatePasswordStrength(password: string): {
   if (/[a-z]/.test(password)) score += 15;
 
   // Números
-  if (/[0-9]/.test(password)) score += 15;
+  if (/\d/.test(password)) score += 15;
 
   // Caracteres especiales
-  if (/[^A-Za-z0-9]/.test(password)) score += 15;
+  if (/[^A-Za-z\d]/.test(password)) score += 15;
 
   // Nivel de fortaleza
   let level: 'muy débil' | 'débil' | 'medio' | 'fuerte' | 'muy fuerte';

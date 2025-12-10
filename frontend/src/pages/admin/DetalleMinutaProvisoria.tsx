@@ -5,16 +5,16 @@ import { ResumenCompleto } from '@/components/wizard/ResumenCompleto';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { 
-  ArrowLeft, 
-  CheckCircle, 
-  XCircle, 
-  FileText, 
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  FileText,
   Save,
   Loader2,
   AlertCircle
@@ -32,7 +32,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [minuta, setMinuta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,21 +40,21 @@ export const DetalleMinutaProvisoria: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [accionPendiente, setAccionPendiente] = useState<'aprobada' | 'rechazada' | null>(null);
   const [procesando, setProcesando] = useState(false);
-  
+
   // Datos del mapa de ventas
   const [datosMapaVentas, setDatosMapaVentas] = useState<any>(null);
   const [loadingMapaVentas, setLoadingMapaVentas] = useState(false);
-  
+
   useEffect(() => {
     const fetchMinuta = async () => {
       if (!id) return;
-      
+
       try {
         setLoading(true);
         const data = await getMinutaProvisoriaById(id);
         setMinuta(data);
         setComentarios(data.comentarios || '');
-        
+
         // Cargar datos del mapa de ventas relacionados con esta unidad
         fetchDatosMapaVentas(data.unidad_id);
       } catch (err) {
@@ -64,17 +64,17 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchMinuta();
   }, [id]);
-  
+
   const fetchDatosMapaVentas = async (unidadId: string) => {
     try {
       setLoadingMapaVentas(true);
-      
+
       // Aquí deberías implementar la función para obtener los datos del mapa de ventas
       // por ejemplo: const data = await getDatosMapaVentasByUnidadId(unidadId);
-      
+
       // Por ahora, simulamos datos de ejemplo
       setTimeout(() => {
         setDatosMapaVentas({
@@ -91,46 +91,46 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         });
         setLoadingMapaVentas(false);
       }, 1000);
-      
+
     } catch (err) {
       console.error('Error al cargar datos del mapa de ventas:', err);
       setLoadingMapaVentas(false);
     }
   };
-  
+
   const handleChangeEstado = async (nuevoEstado: 'revisada' | 'aprobada' | 'rechazada') => {
     if (nuevoEstado === 'aprobada' || nuevoEstado === 'rechazada') {
       setAccionPendiente(nuevoEstado);
       setDialogOpen(true);
       return;
     }
-    
+
     await actualizarEstadoMinutaAsync(nuevoEstado);
   };
-  
+
   const confirmarCambioEstado = async () => {
     if (!accionPendiente) return;
-    
+
     await actualizarEstadoMinutaAsync(accionPendiente);
     setDialogOpen(false);
     setAccionPendiente(null);
   };
-  
+
   const actualizarEstadoMinutaAsync = async (nuevoEstado: 'revisada' | 'aprobada' | 'rechazada') => {
     if (!id) return;
-    
+
     try {
       setProcesando(true);
       await actualizarEstadoMinutaProvisoria(id, nuevoEstado, comentarios);
-      
+
       toast({
         title: "Estado actualizado",
         description: `La minuta ha sido marcada como ${nuevoEstado}`,
       });
-      
+
       // Actualizar el estado local
       setMinuta(prev => ({ ...prev, estado: nuevoEstado }));
-      
+
       // Si fue aprobada o rechazada, redirigir al listado
       if (nuevoEstado === 'aprobada' || nuevoEstado === 'rechazada') {
         setTimeout(() => {
@@ -148,14 +148,14 @@ export const DetalleMinutaProvisoria: React.FC = () => {
       setProcesando(false);
     }
   };
-  
+
   const guardarComentarios = async () => {
     if (!id) return;
-    
+
     try {
       setProcesando(true);
       await actualizarEstadoMinutaProvisoria(id, minuta.estado, comentarios);
-      
+
       toast({
         title: "Comentarios guardados",
         description: "Los comentarios han sido guardados correctamente",
@@ -171,7 +171,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
       setProcesando(false);
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -180,7 +180,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
       </div>
     );
   }
-  
+
   if (error || !minuta) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -194,7 +194,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center mb-6">
@@ -205,12 +205,12 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold">Minuta Provisoria #{id?.substring(0, 8)}</h1>
           <p className="text-muted-foreground">
-            Proyecto: {minuta.proyecto} | Unidad: {minuta.unidad?.unidad || minuta.unidad_id} | 
+            Proyecto: {minuta.proyecto} | Unidad: {minuta.unidad?.unidad || minuta.unidad_id} |
             Estado: {minuta.estado.charAt(0).toUpperCase() + minuta.estado.slice(1)}
           </p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
@@ -228,7 +228,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-        
+
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -274,9 +274,9 @@ export const DetalleMinutaProvisoria: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div>
                     <h3 className="font-medium mb-2">Comparación</h3>
                     <div className="space-y-2">
@@ -302,7 +302,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               )}
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Comentarios</CardTitle>
@@ -311,7 +311,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Textarea 
+              <Textarea
                 placeholder="Escriba sus comentarios aquí..."
                 value={comentarios}
                 onChange={(e) => setComentarios(e.target.value)}
@@ -319,8 +319,8 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               />
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button 
-                onClick={guardarComentarios} 
+              <Button
+                onClick={guardarComentarios}
                 disabled={procesando}
               >
                 {procesando ? (
@@ -337,7 +337,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Acciones</CardTitle>
@@ -345,8 +345,8 @@ export const DetalleMinutaProvisoria: React.FC = () => {
             <CardContent>
               <div className="space-y-3">
                 {minuta.estado === 'pendiente' && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={() => handleChangeEstado('revisada')}
                     disabled={procesando}
@@ -355,11 +355,11 @@ export const DetalleMinutaProvisoria: React.FC = () => {
                     Marcar como Revisada
                   </Button>
                 )}
-                
+
                 {(minuta.estado === 'pendiente' || minuta.estado === 'revisada') && (
                   <>
-                    <Button 
-                      variant="default" 
+                    <Button
+                      variant="default"
                       className="w-full bg-green-600 hover:bg-green-700"
                       onClick={() => handleChangeEstado('aprobada')}
                       disabled={procesando}
@@ -367,9 +367,9 @@ export const DetalleMinutaProvisoria: React.FC = () => {
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Aprobar Minuta
                     </Button>
-                    
-                    <Button 
-                      variant="destructive" 
+
+                    <Button
+                      variant="destructive"
                       className="w-full"
                       onClick={() => handleChangeEstado('rechazada')}
                       disabled={procesando}
@@ -379,10 +379,10 @@ export const DetalleMinutaProvisoria: React.FC = () => {
                     </Button>
                   </>
                 )}
-                
+
                 {minuta.estado === 'aprobada' && (
-                  <Button 
-                    variant="default" 
+                  <Button
+                    variant="default"
                     className="w-full"
                     onClick={() => navigate(`/admin/minutas/${id}/definitiva`)}
                   >
@@ -395,7 +395,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
           </Card>
         </div>
       </div>
-      
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -403,15 +403,15 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               {accionPendiente === 'aprobada' ? 'Confirmar Aprobación' : 'Confirmar Rechazo'}
             </DialogTitle>
             <DialogDescription>
-              {accionPendiente === 'aprobada' 
+              {accionPendiente === 'aprobada'
                 ? '¿Está seguro que desea aprobar esta minuta? Esta acción no se puede deshacer.'
                 : '¿Está seguro que desea rechazar esta minuta? Esta acción no se puede deshacer.'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <Label htmlFor="comentarios-confirmacion">Comentarios (opcional)</Label>
-            <Textarea 
+            <Textarea
               id="comentarios-confirmacion"
               value={comentarios}
               onChange={(e) => setComentarios(e.target.value)}
@@ -419,34 +419,32 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               className="mt-2"
             />
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={procesando}>
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={confirmarCambioEstado}
               disabled={procesando}
               variant={accionPendiente === 'aprobada' ? 'default' : 'destructive'}
             >
-              {procesando ? (
+              {procesando && (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...
                 </>
-              ) : (
+              )}
+              {!procesando && accionPendiente === 'aprobada' && (
                 <>
-                  {accionPendiente === 'aprobada' ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Confirmar Aprobación
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Confirmar Rechazo
-                    </>
-                  )}
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Confirmar Aprobación
+                </>
+              )}
+              {!procesando && accionPendiente !== 'aprobada' && (
+                <>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Confirmar Rechazo
                 </>
               )}
             </Button>

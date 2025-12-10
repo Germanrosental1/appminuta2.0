@@ -47,11 +47,11 @@ export function validatePasswordComplexity(password: string): {
     errors.push('Una letra minúscula (a-z)');
   }
 
-  if (!/[0-9]/.test(sanitized)) {
+  if (!/\d/.test(sanitized)) {
     errors.push('Un número (0-9)');
   }
 
-  if (!/[^A-Za-z0-9]/.test(sanitized)) {
+  if (!/[^A-Za-z\d]/.test(sanitized)) {
     errors.push('Un carácter especial (!@#$%...)');
   }
 
@@ -83,10 +83,10 @@ export function calculatePasswordStrength(password: string): {
   if (/[a-z]/.test(sanitized)) score += 15;
 
   // Números
-  if (/[0-9]/.test(sanitized)) score += 15;
+  if (/\d/.test(sanitized)) score += 15;
 
   // Caracteres especiales
-  if (/[^A-Za-z0-9]/.test(sanitized)) score += 15;
+  if (/[^A-Za-z\d]/.test(sanitized)) score += 15;
 
   // Nivel de fortaleza y color
   let level: 'muy débil' | 'débil' | 'medio' | 'fuerte' | 'muy fuerte';

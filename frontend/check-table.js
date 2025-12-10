@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname } from 'node:path';
 import { config } from 'dotenv';
 
 // Configurar dotenv
@@ -20,22 +20,22 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 async function checkMapadeventasTable() {
   console.log('Verificando tabla mapadeventas...');
   console.log('URL de Supabase:', supabaseUrl);
-  
+
   try {
     // Intentar obtener todos los datos
-    const { data, error, count } = await supabase
+    const { data, error } = await supabase
       .from('mapadeventas')
       .select('*', { count: 'exact' });
-    
+
     console.log('Resultado de la consulta:');
     console.log('- Error:', error);
-    
+
     // Verificar si la tabla existe
     if (error && error.code === '42P01') {
       console.error('La tabla mapadeventas no existe');
       return;
     }
-    
+
     // Verificar si hay datos
     if (!data || data.length === 0) {
       console.warn('La tabla mapadeventas está vacía');

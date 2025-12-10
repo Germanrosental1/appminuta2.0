@@ -72,6 +72,26 @@ export async function guardarMinutaProvisoria(minuta: Omit<MinutaProvisoria, 'id
   }
 }
 
+// Obtener una minuta provisoria por ID
+export async function getMinutaProvisoriaById(id: string) {
+  return apiFetch<MinutaProvisoria>(`/minutas/provisoria/${id}`);
+}
+
+// Actualizar el estado de una minuta provisoria
+export async function actualizarEstadoMinutaProvisoria(
+  id: string,
+  estado: 'revisada' | 'aprobada' | 'rechazada',
+  comentarios?: string
+) {
+  return apiFetch<MinutaProvisoria>(`/minutas/provisoria/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      estado,
+      comentarios: comentarios || undefined
+    })
+  });
+}
+
 // Obtener minutas definitivas por usuario comercial (CON VALIDACIÓN DE FILTROS)
 export async function getMinutasDefinitivasByUsuario(usuarioId: string, filters?: Partial<MinutaFilters>) {
   try {

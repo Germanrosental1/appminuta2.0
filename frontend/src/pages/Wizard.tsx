@@ -19,7 +19,7 @@ const Wizard: React.FC = () => {
     if (currentStep === 0) {
       // Obtener el componente Step1ProyectoUnidad
       const step1Component = document.querySelector('[data-step="1"]');
-      
+
       // Verificar si hay campos con errores (bordes rojos)
       if (step1Component) {
         const errorFields = step1Component.querySelectorAll('.border-destructive');
@@ -28,24 +28,24 @@ const Wizard: React.FC = () => {
           return false;
         }
       }
-      
+
       // Validar que todos los campos requeridos estén completos
       if (!data.proyecto) {
         toast.error("Debe seleccionar un proyecto");
         return false;
       }
-      
+
       if (!data.unidad) {
         toast.error("Debe seleccionar una unidad");
         return false;
       }
-      
+
       if (!data.fechaPosesion) {
         toast.error("Debe ingresar la fecha de posesión");
         return false;
       }
     }
-    
+
     // Si estamos en el paso 4 (Pago) y el tipo de pago es "contado", saltear el paso 6 (Reglas de Financiación)
     if (currentStep === 3 && data.tipoPago === "contado") {
       // Verificar si la validación del paso actual es exitosa
@@ -55,11 +55,11 @@ const Wizard: React.FC = () => {
         toast.error(firstError || "Por favor complete todos los campos requeridos");
         return false;
       }
-      
-      // Si estamos avanzando al paso 5 (Cargos), todo está bien
+
+      // Si estamos avanzando al paso 5 (Cargos), el proceso es correcto
       return true;
     }
-    
+
     // Validación especial para el paso 6 (Reglas de Financiación)
     if (currentStep === 5) {
       // Calcular saldo restante A
@@ -72,23 +72,23 @@ const Wizard: React.FC = () => {
           }
           return sum + regla.saldoFinanciar;
         }, 0);
-      
+
       const saldoRestanteA = Math.max((data.totalFinanciarArs || 0) - totalReglasA, 0);
-      
+
       // Calcular saldo restante B
       const totalReglasB = (data.reglasFinanciacionB || [])
         .filter(regla => regla.activa)
         .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
-      
+
       const saldoRestanteB = Math.max((data.totalFinanciarUsd || 0) - totalReglasB, 0);
-      
+
       // Verificar que ambos saldos restantes sean 0
       if (saldoRestanteA > 0 || saldoRestanteB > 0) {
         toast.error("Debe cubrir el 100% del saldo a financiar con reglas de financiación");
         return false;
       }
     }
-    
+
     // Validación general para todos los pasos
     const validation = validateStep(currentStep, data);
     if (!validation.valid) {
@@ -105,7 +105,7 @@ const Wizard: React.FC = () => {
     if (data.tipoPago === "contado" && currentStep === 5) {
       return <Step7Salida />;
     }
-    
+
     switch (currentStep) {
       case 0:
         return <Step1ProyectoUnidad />;
@@ -128,7 +128,7 @@ const Wizard: React.FC = () => {
 
   // Determinar si estamos en el paso final
   const isFinalStep = currentStep === 6 || (data.tipoPago === "contado" && currentStep === 5);
-  
+
   return (
     <WizardLayout onNext={handleNext} finalStep={isFinalStep}>
       {renderStep()}

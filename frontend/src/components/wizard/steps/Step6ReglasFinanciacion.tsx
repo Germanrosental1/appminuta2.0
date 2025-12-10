@@ -96,7 +96,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         if (partes.length === 3) {
           // Formato DD/MM/YYYY o DD/MM/YY
           const year = partes[2].length === 2 ? "20" + partes[2] : partes[2]; // Manejar años en formato YY
-          fechaPrimerVencimiento = new Date(parseInt(year), parseInt(partes[1]) - 1, parseInt(partes[0]));
+          fechaPrimerVencimiento = new Date(Number.parseInt(year), Number.parseInt(partes[1]) - 1, Number.parseInt(partes[0]));
         } else {
           // Intentar parsear como fecha ISO
           fechaPrimerVencimiento = new Date(regla.primerVencimiento);

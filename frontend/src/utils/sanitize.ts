@@ -7,7 +7,7 @@ export const sanitizeString = (input: string): string => {
   return input
     .trim()
     // Remover caracteres de control
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     // Remover scripts HTML
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     // Remover tags HTML peligrosos

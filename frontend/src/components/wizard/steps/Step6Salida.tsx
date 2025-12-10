@@ -14,20 +14,20 @@ export const Step6Salida: React.FC = () => {
 
   const handleDownloadPDF = async () => {
     if (!resumenRef.current) return;
-    
+
     try {
       setIsGeneratingPDF(true);
-      
+
       // Crear nombre del archivo
       const fileName = `Minuta_${data.proyecto || 'Proyecto'}_${data.unidad || 'Unidad'}_${new Date().toISOString().split('T')[0]}.pdf`;
-      
+
       // Configuración del PDF
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
-      
+
       // Obtener el elemento del resumen
       const element = resumenRef.current;
       const canvas = await html2canvas(element, {
@@ -36,21 +36,21 @@ export const Step6Salida: React.FC = () => {
         logging: false,
         allowTaint: true
       });
-      
+
       // Convertir el canvas a imagen
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      
+      const imgData = canvas.toDataURL('image/jpeg', 1);
+
       // Calcular dimensiones para ajustar al PDF
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 295; // A4 height in mm
       const imgHeight = canvas.height * imgWidth / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
-      
+
       // Añadir la primera página
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-      
+
       // Añadir páginas adicionales si es necesario
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
@@ -58,10 +58,10 @@ export const Step6Salida: React.FC = () => {
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-      
+
       // Guardar el PDF
       pdf.save(fileName);
-      
+
     } catch (error) {
       console.error('Error al generar el PDF:', error);
       alert('Hubo un error al generar el PDF. Por favor, inténtelo de nuevo.');
@@ -75,9 +75,9 @@ export const Step6Salida: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Resumen de la Operación</h2>
         <div className="flex gap-2">
-          <ConfirmarGuardarMinutaDefinitiva 
-            unidadId={data.unidad} 
-            wizardData={data} 
+          <ConfirmarGuardarMinutaDefinitiva
+            unidadId={data.unidad}
+            wizardData={data}
             onSuccess={() => {
               alert('Minuta guardada exitosamente. Puedes verla en tu dashboard.');
             }}

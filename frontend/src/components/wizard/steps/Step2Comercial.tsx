@@ -90,35 +90,7 @@ export const Step2Comercial: React.FC = () => {
     }
   };
 
-  const handleCocheraChange = (index: number, field: keyof CocheraData, value: string) => {
-    const numValue = value === "" ? 0 : parseFloat(value.replace(/,/g, "."));
-    if (!isNaN(numValue)) {
-      const updatedCocheras = [...data.cocheras];
 
-      // Para mantener compatibilidad, si actualizamos precioNegociado, también actualizamos precioLista
-      if (field === "precioNegociado") {
-        updatedCocheras[index] = {
-          ...updatedCocheras[index],
-          precioNegociado: numValue,
-          precioLista: numValue // Mantener sincronizado para compatibilidad
-        };
-      } else {
-        updatedCocheras[index] = {
-          ...updatedCocheras[index],
-          [field]: numValue
-        };
-      }
-
-      setData({ cocheras: updatedCocheras });
-
-      if (cocheraErrors[index]?.[field]) {
-        setCocheraErrors((prev) => ({
-          ...prev,
-          [index]: { ...prev[index], [field]: "" }
-        }));
-      }
-    }
-  };
 
   const handleBauleraChange = (field: keyof BauleraData, value: string) => {
     const numValue = value === "" ? 0 : parseFloat(value.replace(/,/g, "."));

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMinutaDefinitivaById, actualizarEstadoMinutaDefinitiva, actualizarDatosMinutaDefinitiva } from '@/services/minutas';
 import { ResumenCompleto } from '@/components/wizard/ResumenCompleto';
@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -24,13 +23,10 @@ import {
   Loader2,
   FileText,
   AlertCircle,
-  Edit,
-  Save,
   Download
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { usePDFGenerator } from '@/hooks/usePDFGenerator';
+import { MinutaEditarTab } from './components/MinutaEditarTab';
 
 export const DetalleMinutaDefinitiva: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,8 +47,10 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   const [datosEditados, setDatosEditados] = useState<any>(null);
   const [guardandoDatos, setGuardandoDatos] = useState(false);
 
-  // Referencia para el PDF
-  const pdfContenidoRef = useRef<HTMLDivElement>(null);
+  // Hook de generación de PDF
+  const { generarPDF, procesando: procesandoPDF, pdfContenidoRef } = usePDFGenerator({
+    prefix: 'Minuta'
+  });
 
   useEffect(() => {
     const fetchMinuta = async () => {
@@ -101,7 +99,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       });
 
       // Actualizar el estado local
-      setMinuta(prev => ({ ...prev, comentarios }));
+      setMinuta((prev: any) => ({ ...prev, comentarios }));
 
     } catch (error) {
       console.error('Error al guardar comentarios:', error);
@@ -126,7 +124,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   };
 
   const handleCambioDato = (campo: string, valor: any) => {
-    setDatosEditados(prev => ({
+    setDatosEditados((prev: any) => ({
       ...prev,
       [campo]: valor
     }));
@@ -137,7 +135,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
     try {
       setGuardandoDatos(true);
-      const minutaActualizada = await actualizarDatosMinutaDefinitiva(id, datosEditados);
+      await actualizarDatosMinutaDefinitiva(id, datosEditados);
 
       toast({
         title: "Datos actualizados",
@@ -145,7 +143,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       });
 
       // Actualizar el estado local
-      setMinuta(prev => ({ ...prev, datos: datosEditados }));
+      setMinuta((prev: any) => ({ ...prev, datos: datosEditados }));
       setEditandoDatos(false);
 
     } catch (error) {
@@ -178,7 +176,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       });
 
       // Actualizar el estado local
-      setMinuta(prev => ({ ...prev, estado: accionPendiente }));
+      setMinuta((prev: any) => ({ ...prev, estado: accionPendiente }));
       setDialogOpen(false);
 
     } catch (error) {
@@ -193,68 +191,9 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
     }
   };
 
-  const handleGenerarPDF = async () => {
-    if (!pdfContenidoRef.current) return;
-
-    try {
-      setProcesando(true);
-
-      // Importar jsPDF y html2canvas dinámicamente para reducir el tamaño del bundle
-      const { default: jsPDF } = await import('jspdf');
-      const { default: html2canvas } = await import('html2canvas');
-
-      const canvas = await html2canvas(pdfContenidoRef.current, {
-        scale: 1.5, // Mayor calidad
-        useCORS: true,
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-      // Crear PDF en formato A4
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const imgWidth = 210; // Ancho A4 en mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Agregar imagen al PDF
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-
-      // Si la imagen es más grande que una página A4, agregar páginas adicionales
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      while (heightLeft > 297) { // 297mm es el alto de A4
-        position -= 297;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= 297;
-      }
-
-      // Generar nombre de archivo
-      const nombreArchivo = `Minuta_${minuta.proyecto}_${new Date().toISOString().split('T')[0]}.pdf`;
-
-      // Descargar PDF
-      pdf.save(nombreArchivo);
-
-      toast({
-        title: "PDF generado",
-        description: "El PDF ha sido generado exitosamente",
-      });
-
-    } catch (error) {
-      console.error('Error al generar PDF:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo generar el PDF",
-        variant: "destructive",
-      });
-    } finally {
-      setProcesando(false);
+  const handleGenerarPDFClick = () => {
+    if (minuta?.proyecto) {
+      generarPDF(minuta.proyecto);
     }
   };
 
@@ -310,10 +249,14 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleGenerarPDF}
-                        disabled={procesando}
+                        onClick={handleGenerarPDFClick}
+                        disabled={procesando || procesandoPDF}
                       >
-                        <Download className="h-4 w-4 mr-1" />
+                        {procesandoPDF ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-1" />
+                        )}
                         PDF Completo
                       </Button>
                     </div>
@@ -375,95 +318,16 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                     </TabsContent>
 
                     <TabsContent value="editar" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex justify-between items-center">
-                            <span>Editar Datos de la Calculadora</span>
-                            <div className="flex gap-2">
-                              {editandoDatos ? (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleCancelarEdicion}
-                                    disabled={guardandoDatos}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Cancelar
-                                  </Button>
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={handleGuardarDatos}
-                                    disabled={guardandoDatos}
-                                  >
-                                    {guardandoDatos ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                        Guardando...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Save className="h-4 w-4 mr-1" />
-                                        Guardar Cambios
-                                      </>
-                                    )}
-                                  </Button>
-                                </>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleEditarDatos}
-                                >
-                                  <Edit className="h-4 w-4 mr-1" />
-                                  Editar Datos
-                                </Button>
-                              )}
-                            </div>
-                          </CardTitle>
-                          <CardDescription>
-                            Modifique los datos de la calculadora comercial según sea necesario
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <ScrollArea className="h-[400px] pr-4">
-                            {editandoDatos ? (
-                              <div className="space-y-4">
-                                {datosEditados && Object.entries(datosEditados).map(([key, value]) => {
-                                  // No mostrar objetos anidados o arrays
-                                  if (typeof value === 'object' && value !== null) return null;
-
-                                  return (
-                                    <div key={key} className="grid gap-2">
-                                      <Label htmlFor={key}>{key}</Label>
-                                      <Input
-                                        id={key}
-                                        value={value as string}
-                                        onChange={(e) => handleCambioDato(key, e.target.value)}
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <div className="space-y-4">
-                                {minuta.datos && Object.entries(minuta.datos).map(([key, value]) => {
-                                  // No mostrar objetos anidados o arrays
-                                  if (typeof value === 'object' && value !== null) return null;
-
-                                  return (
-                                    <div key={key} className="border-b pb-2">
-                                      <span className="font-medium">{key}: </span>
-                                      <span>{String(value)}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
+                      <MinutaEditarTab
+                        editandoDatos={editandoDatos}
+                        guardandoDatos={guardandoDatos}
+                        datosEditados={datosEditados}
+                        minutaDatos={minuta.datos}
+                        onEditar={handleEditarDatos}
+                        onCancelar={handleCancelarEdicion}
+                        onGuardar={handleGuardarDatos}
+                        onCambioDato={handleCambioDato}
+                      />
                     </TabsContent>
 
                     <TabsContent value="json" className="mt-4">

@@ -220,9 +220,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
     const fetchUnidades = async () => {
       setLoadingUnidades(true);
       try {
-        // console.log(`Obteniendo unidades del sector ${sectorSeleccionado}...`);
         const unidadesDisponibles = await getUnidadesPorEtapaTipoYSector(proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado, sectorSeleccionado);
-        // console.log('Unidades obtenidas:', unidadesDisponibles);
         setUnidades(unidadesDisponibles);
 
         // Limpiar selección de unidad
