@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { logAuthEvent } from '../lib/authLogger';
 
 // Tipos para los roles de usuario
 export type UserRole = 'comercial' | 'administracion';
@@ -16,14 +17,21 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isComercial: boolean;
+  lastActivity: Date | null;
+  resetInactivityTimer: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Tiempo de inactividad en minutos antes de cerrar sesión automáticamente
+const INACTIVITY_TIMEOUT_MINUTES = 30;
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastProcessedEvent, setLastProcessedEvent] = useState<string | null>(null);
+  const [lastActivity, setLastActivity] = useState<Date | null>(new Date());
+  const inactivityTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Verificar el estado de autenticación inicial
@@ -108,7 +116,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         if (event === 'TOKEN_REFRESHED') {
           console.log('Token refrescado exitosamente');
-          // No hacer nada especial, solo mantener la sesión activa
+          // Registrar renovación de token
+          if (session?.user) {
+            logAuthEvent('token_refreshed', session.user);
+          }
+          // Mantener la sesión activa
           return;
         }
         
@@ -203,16 +215,90 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  // Función para reiniciar el temporizador de inactividad
+  const resetInactivityTimer = useCallback(() => {
+    const now = new Date();
+    setLastActivity(now);
+    
+    // Limpiar el temporizador existente si hay uno
+    if (inactivityTimerRef.current) {
+      window.clearTimeout(inactivityTimerRef.current);
+    }
+    
+    // Configurar un nuevo temporizador
+    if (user) {
+      inactivityTimerRef.current = window.setTimeout(() => {
+        console.log('Sesión cerrada por inactividad');
+        logAuthEvent('session_expired', user, { reason: 'inactivity' });
+        signOut();
+      }, INACTIVITY_TIMEOUT_MINUTES * 60 * 1000);
+    }
+  }, [user]);
+
+  // Efecto para configurar listeners de actividad del usuario
+  useEffect(() => {
+    if (!user) return;
+    
+    // Eventos para detectar actividad del usuario
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+    
+    const handleUserActivity = () => {
+      resetInactivityTimer();
+    };
+    
+    // Agregar listeners
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleUserActivity);
+    });
+    
+    // Iniciar el temporizador
+    resetInactivityTimer();
+    
+    // Limpiar listeners al desmontar
+    return () => {
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleUserActivity);
+      });
+      
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [user, resetInactivityTimer]);
+
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        // Registrar intento fallido
+        logAuthEvent('login_failed', null, { email, error: error.message });
+        return { error };
+      }
+      
+      // Registrar inicio de sesión exitoso
+      logAuthEvent('login_success', data.user);
+      resetInactivityTimer();
+      return { error: null };
     } catch (error) {
+      // Registrar error inesperado
+      logAuthEvent('auth_error', null, { email, error: String(error) });
       return { error };
     }
   };
 
   const signOut = async () => {
+    if (user) {
+      // Registrar cierre de sesión
+      await logAuthEvent('logout', user);
+    }
+    
+    // Limpiar el temporizador de inactividad
+    if (inactivityTimerRef.current) {
+      window.clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+    
     await supabase.auth.signOut();
   };
 
@@ -221,7 +307,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isComercial = user?.role === 'comercial';
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, isAdmin, isComercial }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signIn, 
+      signOut, 
+      isAdmin, 
+      isComercial,
+      lastActivity,
+      resetInactivityTimer
+    }}>
       {children}
     </AuthContext.Provider>
   );
