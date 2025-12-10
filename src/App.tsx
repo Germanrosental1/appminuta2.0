@@ -8,6 +8,7 @@ import { WizardProvider } from "@/context/WizardContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import { useCSRFProtection } from "@/hooks/useCSRF";
 import Index from "./pages/Index";
 import Wizard from "./pages/Wizard";
 import NotFound from "./pages/NotFound";
@@ -15,15 +16,45 @@ import { LoginPage } from "./pages/LoginPage";
 import { DashboardComercial } from "./pages/comercial/DashboardComercial";
 import { DashboardAdmin } from "./pages/admin/DashboardAdmin";
 import { PerfilIncompletoPage } from "./pages/error/PerfilIncompletoPage";
+import { ForceChangePasswordPage } from "./pages/ForceChangePasswordPage";
 
 // Componente de protección para rutas que requieren autenticación
 const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode, requiredRole?: 'comercial' | 'administracion' }) => {
   const { user, loading } = useAuth();
-  
-  // No hay timeout, simplemente esperar a que se complete la carga
-  
-  // Mostrar spinner de carga mientras se verifica la autenticación
-  if (loading) {
+  const [checkingPassword, setCheckingPassword] = React.useState(true);
+  const [requiresPasswordChange, setRequiresPasswordChange] = React.useState(false);
+
+  // Verificar si requiere cambio de contraseña ANTES de renderizar
+  React.useEffect(() => {
+    const checkPasswordRequirement = async () => {
+      if (!user) {
+        setCheckingPassword(false);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('require_password_change')
+          .eq('id', user.id)
+          .single();
+
+        setRequiresPasswordChange(data?.require_password_change || false);
+      } catch (err) {
+        console.error('Error checking password requirement:', err);
+        setRequiresPasswordChange(false);
+      } finally {
+        setCheckingPassword(false);
+      }
+    };
+
+    if (!loading) {
+      checkPasswordRequirement();
+    }
+  }, [user, loading]);
+
+  // Mostrar spinner mientras se verifica autenticación O cambio de contraseña
+  if (loading || checkingPassword) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
@@ -31,12 +62,17 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
       </div>
     );
   }
-  
+
   // Si no hay usuario autenticado, redirigir al login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
+
+  // SECURITY: Si requiere cambio de contraseña, bloquear acceso
+  if (requiresPasswordChange) {
+    return <Navigate to="/change-password" replace />;
+  }
+
   // Verificar el rol requerido
   if (requiredRole && user.role !== requiredRole) {
     // Redirigir según el rol del usuario
@@ -46,8 +82,39 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
       return <Navigate to="/comercial/dashboard" replace />;
     }
   }
-  
+
   // Si todo está bien, mostrar el contenido protegido
+  return <>{children}</>;
+};
+
+// Componente especial para la página de cambio de contraseña 
+// Solo permite acceso si el usuario está autenticado Y requiere cambio de contraseña
+const PasswordChangeRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+        <p className="text-sm text-gray-500">Cargando...</p>
+      </div>
+    );
+  }
+
+  // Si no hay usuario, login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si NO requiere cambio de contraseña, redirigir al dashboard según rol
+  if (!user.require_password_change) {
+    if (user.role === 'administracion') {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else {
+      return <Navigate to="/comercial/dashboard" replace />;
+    }
+  }
+
   return <>{children}</>;
 };
 
@@ -62,6 +129,14 @@ const routes: RouteObject[] = [
   {
     path: "/login",
     element: <LoginPage />
+  },
+  {
+    path: "/change-password",
+    element: (
+      <PasswordChangeRoute>
+        <ForceChangePasswordPage />
+      </PasswordChangeRoute>
+    )
   },
   {
     path: "/perfil-incompleto",
@@ -138,14 +213,25 @@ const routes: RouteObject[] = [
 // de React Router que estamos utilizando. Se implementarán correctamente cuando actualicemos a v7.
 const router = createBrowserRouter(routes);
 
+// Componente wrapper para inicializar CSRF
+const AppWrapper = () => {
+  useCSRFProtection();
+
+  return (
+    <>
+      <Toaster />
+      <Sonner />
+      <RouterProvider router={router} />
+    </>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
         <WizardProvider>
-          <Toaster />
-          <Sonner />
-          <RouterProvider router={router} />
+          <AppWrapper />
         </WizardProvider>
       </AuthProvider>
     </TooltipProvider>

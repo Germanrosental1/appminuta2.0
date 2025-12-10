@@ -13,12 +13,8 @@ export const LoginPage: React.FC = () => {
     if (!loading) {
       // Si hay un usuario autenticado
       if (user) {
-        console.log('Usuario autenticado en LoginPage:', { 
-          id: user.id, 
-          email: user.email,
-          role: user.role 
-        });
-        
+
+
         // Verificar si el usuario tiene un rol definido
         if (user.role === undefined) {
           // Si no tiene rol, mostrar un mensaje o redirigir a una página de error
@@ -28,10 +24,10 @@ export const LoginPage: React.FC = () => {
         } else {
           // Redirigir según el rol del usuario
           if (user.role === 'administracion') {
-            console.log('Redirigiendo a dashboard de administración');
+
             navigate('/admin/dashboard');
           } else {
-            console.log('Redirigiendo a dashboard comercial');
+
             navigate('/comercial/dashboard');
           }
         }
@@ -40,7 +36,7 @@ export const LoginPage: React.FC = () => {
         // Si no hay usuario y no se ha intentado redireccionar antes,
         // marcar que ya se intentó para evitar bucles
         setRedirectAttempted(true);
-        console.log('No hay usuario autenticado, mostrando página de login');
+
       }
     }
   }, [user, loading, navigate, redirectAttempted]);

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getCSRFToken } from '@/utils/csrf';
 
 // Estas variables deberían estar en un archivo .env
 // Por ahora las definimos aquí para desarrollo
@@ -14,13 +15,37 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: window.localStorage, // Usar localStorage en lugar de sessionStorage
     detectSessionInUrl: false, // Desactivar la detección de sesión en la URL
     flowType: 'pkce', // Usar PKCE para mayor seguridad
-    // Extender la duración de la sesión a 24 horas
     storageKey: 'supabase-auth-token-24h'
   },
   global: {
     headers: {
-      'x-application-name': 'minuta-generator' // Identificar la aplicación
-    }
+      'x-application-name': 'minuta-generator', // Identificar la aplicación
+      // CSRF token se agregará dinámicamente en cada request
+    },
+    fetch: (url, options) => {
+      // Interceptor para agregar CSRF token a todas las peticiones
+      const csrfToken = getCSRFToken();
+
+      // Crear objeto de opciones con tipo correcto
+      const fetchOptions: RequestInit = options || {};
+
+      // Usar Headers API para manejar headers de forma segura independientemente del formato de entrada
+      // (Supabase puede pasar headers como objeto, array o instancia de Headers)
+      const headers = new Headers(fetchOptions.headers);
+
+      // Solo agregar CSRF en métodos que modifican datos
+      const method = fetchOptions.method?.toUpperCase();
+      if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        if (csrfToken) {
+          headers.set('X-CSRF-Token', csrfToken);
+        }
+      }
+
+      // Asignar los headers actualizados
+      fetchOptions.headers = headers;
+
+      return fetch(url, fetchOptions);
+    },
   },
   realtime: {
     params: {
@@ -49,42 +74,34 @@ export async function signOut() {
 export async function getCurrentUser() {
   try {
     // Obtener la sesión directamente
-    console.log('Obteniendo sesión de usuario...');
+    // Obtener la sesión directamente
     const { data: sessionData } = await supabase.auth.getSession();
-    
+
     // Si no hay sesión, no intentar obtener el usuario
     if (!sessionData.session) {
-      console.log('No hay sesión activa');
+      // console.log('No hay sesión activa');
       return null;
     }
-    
-    console.log('Sesión activa encontrada:', { 
-      userId: sessionData.session.user.id,
-      email: sessionData.session.user.email
-    });
-    
+
+
     // Usar directamente el usuario de la sesión para evitar una llamada adicional
     const user = sessionData.session.user;
-    
+
     // Log para depuración
-    console.log('Usuario autenticado:', { 
-      id: user.id, 
-      email: user.email,
-      created_at: user.created_at
-    });
-    
+
+
     try {
       // Obtener el rol del usuario desde la tabla de perfiles
-      console.log('Buscando perfil para el usuario con ID:', user.id);
-      
+
+
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role') // Seleccionar solo el campo necesario
         .eq('id', user.id)
         .single();
-      
-      console.log('Resultado de la consulta a profiles:', { profile, profileError });
-      
+
+
+
       if (profileError) {
         console.error('Error al obtener el perfil del usuario:', profileError);
         // En caso de error, devolvemos el usuario sin rol
@@ -93,7 +110,7 @@ export async function getCurrentUser() {
           role: undefined
         };
       }
-      
+
       // Devolver el usuario con su rol
       return {
         ...user,
