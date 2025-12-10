@@ -8,10 +8,11 @@ export const useCSRFProtection = () => {
     // Verificar si existe token, si no, generar uno
     const token = getCSRFToken();
 
-    if (!token) {
-      setCSRFToken();
+    if (token) {
+      // Token exists
     } else {
-
+      // If no token, generate one
+      setCSRFToken();
     }
 
     // Cleanup al desmontar (opcional)

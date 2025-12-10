@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { validateStep } from "@/utils/validation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DollarSign, Plus, Trash, Car, Package, Percent, Building, Store, Warehouse } from "lucide-react";
 import { CocheraData, BauleraData, TipoDescuento, UnidadSeleccionada } from "@/types/wizard";
@@ -15,11 +15,11 @@ import { Badge } from "@/components/ui/badge";
 export const Step2Comercial: React.FC = () => {
   const { data, setData } = useWizard();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   // Estado para las unidades seleccionadas
   const [unidades, setUnidades] = useState<UnidadSeleccionada[]>(data.unidades || []);
   const [unidadEditando, setUnidadEditando] = useState<number>(-1);
-  
+
   // Para mantener compatibilidad con código existente
   const [cocheraErrors, setCocheraErrors] = useState<Record<string, Record<string, string>>>({});
   const [bauleraErrors, setBauleraErrors] = useState<Record<string, string>>({});
@@ -30,7 +30,7 @@ export const Step2Comercial: React.FC = () => {
       setUnidades(data.unidades);
     }
   }, [data.unidades]);
-  
+
   // Actualizar el contexto cuando cambian las unidades locales
   useEffect(() => {
     if (unidades.length > 0) {
@@ -55,28 +55,28 @@ export const Step2Comercial: React.FC = () => {
         return <Building className="w-5 h-5" />;
     }
   };
-  
+
   // Manejar cambio en el tipo de descuento de una unidad
   const handleTipoDescuentoChange = (index: number, value: TipoDescuento) => {
     const nuevasUnidades = [...unidades];
     nuevasUnidades[index].tipoDescuento = value;
-    
+
     // Si cambiamos a "ninguno", resetear el valor del descuento
     if (value === "ninguno") {
       nuevasUnidades[index].valorDescuento = 0;
       nuevasUnidades[index].precioNegociado = nuevasUnidades[index].precioLista;
     }
-    
+
     setUnidades(nuevasUnidades);
   };
-  
+
   // Manejar cambio en el valor del descuento de una unidad
   const handleValorDescuentoChange = (index: number, value: string) => {
     const numValue = value === "" ? 0 : parseFloat(value.replace(/,/g, "."));
     if (!isNaN(numValue)) {
       const nuevasUnidades = [...unidades];
       nuevasUnidades[index].valorDescuento = numValue;
-      
+
       // Recalcular precio negociado
       if (nuevasUnidades[index].tipoDescuento === "porcentaje" && numValue > 0) {
         // Aplicar descuento porcentual
@@ -85,7 +85,7 @@ export const Step2Comercial: React.FC = () => {
         // Aplicar descuento de importe fijo
         nuevasUnidades[index].precioNegociado = Math.max(nuevasUnidades[index].precioLista - numValue, 0);
       }
-      
+
       setUnidades(nuevasUnidades);
     }
   };
@@ -94,7 +94,7 @@ export const Step2Comercial: React.FC = () => {
     const numValue = value === "" ? 0 : parseFloat(value.replace(/,/g, "."));
     if (!isNaN(numValue)) {
       const updatedCocheras = [...data.cocheras];
-      
+
       // Para mantener compatibilidad, si actualizamos precioNegociado, también actualizamos precioLista
       if (field === "precioNegociado") {
         updatedCocheras[index] = {
@@ -108,9 +108,9 @@ export const Step2Comercial: React.FC = () => {
           [field]: numValue
         };
       }
-      
+
       setData({ cocheras: updatedCocheras });
-      
+
       if (cocheraErrors[index]?.[field]) {
         setCocheraErrors((prev) => ({
           ...prev,
@@ -124,23 +124,23 @@ export const Step2Comercial: React.FC = () => {
     const numValue = value === "" ? 0 : parseFloat(value.replace(/,/g, "."));
     if (!isNaN(numValue)) {
       let updatedBaulera;
-      
+
       // Para mantener compatibilidad, si actualizamos precioNegociado, también actualizamos precioLista
       if (field === "precioNegociado") {
-        updatedBaulera = data.baulera 
-          ? { ...data.baulera, precioNegociado: numValue, precioLista: numValue } 
+        updatedBaulera = data.baulera
+          ? { ...data.baulera, precioNegociado: numValue, precioLista: numValue }
           : { precioNegociado: numValue, precioLista: numValue };
       } else {
-        updatedBaulera = data.baulera 
-          ? { ...data.baulera, [field]: numValue } 
+        updatedBaulera = data.baulera
+          ? { ...data.baulera, [field]: numValue }
           : { precioLista: 0, precioNegociado: 0 };
-        
+
         // Asignar el valor al campo específico
         updatedBaulera[field] = numValue;
       }
-      
+
       setData({ baulera: updatedBaulera });
-      
+
       if (bauleraErrors[field]) {
         setBauleraErrors((prev) => ({ ...prev, [field]: "" }));
       }
@@ -160,27 +160,27 @@ export const Step2Comercial: React.FC = () => {
     if (!cocheras[index]) {
       return false;
     }
-    
+
     const cochera = cocheras[index];
     const errors: Record<string, string> = {};
-    
+
     if ((cochera.precioNegociado || 0) < 0) {
       errors.precioNegociado = "El precio negociado no puede ser negativo";
     }
-    
+
     setCocheraErrors((prev) => ({ ...prev, [index]: errors }));
     return Object.keys(errors).length === 0;
   };
 
   const validateBaulera = () => {
     if (!data.baulera) return true;
-    
+
     const errors: Record<string, string> = {};
-    
+
     if ((data.baulera.precioNegociado || 0) < 0) {
       errors.precioNegociado = "El precio negociado no puede ser negativo";
     }
-    
+
     setBauleraErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -200,7 +200,7 @@ export const Step2Comercial: React.FC = () => {
     const updatedCocheras = [...cocheras];
     updatedCocheras.splice(index, 1);
     setData({ cocheras: updatedCocheras });
-    
+
     // Limpiar errores para esta cochera
     const updatedErrors = { ...cocheraErrors };
     delete updatedErrors[index];
@@ -224,7 +224,7 @@ export const Step2Comercial: React.FC = () => {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Unidades Seleccionadas</h2>
       </div>
-      
+
       {unidades.length === 0 ? (
         <div className="text-center py-8 border border-dashed rounded-lg">
           <Building className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
@@ -263,7 +263,6 @@ export const Step2Comercial: React.FC = () => {
                         id={`precioLista-${index}`}
                         type="number"
                         step="0.01"
-                        min="0"
                         value={unidad.precioLista || ""}
                         className="pl-9 bg-muted"
                         placeholder="0.00"
@@ -271,13 +270,13 @@ export const Step2Comercial: React.FC = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor={`tipoDescuento-${index}`}>
                       Tipo de Descuento
                     </Label>
-                    <Select 
-                      value={unidad.tipoDescuento} 
+                    <Select
+                      value={unidad.tipoDescuento}
                       onValueChange={(value: TipoDescuento) => handleTipoDescuentoChange(index, value)}
                     >
                       <SelectTrigger id={`tipoDescuento-${index}`}>
@@ -290,7 +289,7 @@ export const Step2Comercial: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {unidad.tipoDescuento !== "ninguno" && (
                     <div className="space-y-2">
                       <Label htmlFor={`valorDescuento-${index}`}>

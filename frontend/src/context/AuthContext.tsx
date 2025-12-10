@@ -36,46 +36,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkUser = async () => {
       try {
         // Intentar obtener la sesión directamente de Supabase
-        const { data: sessionData } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
 
-        if (sessionData.session) {
-          // Si hay sesión, obtener el usuario completo con su rol
-          try {
-            // Obtener el perfil del usuario directamente
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('role, nombre, apellido, require_password_change')
-              .eq('id', sessionData.session.user.id)
-              .single();
-
-            if (profileError) {
-              console.error('Error al obtener perfil:', profileError);
-              setUser(sessionData.session.user as AuthUser);
-            } else {
-              // Crear el usuario completo con su rol
-              const userWithRole = {
-                ...sessionData.session.user,
-                role: profile?.role as UserRole,
-                nombre: profile?.nombre,
-                apellido: profile?.apellido,
-                require_password_change: profile?.require_password_change
-              };
-
-              setUser(userWithRole);
-            }
-          } catch (error) {
-            console.error('Error al obtener usuario tras cambio de autenticación:', error);
-            // Usar el usuario de la sesión como fallback
-            setUser(sessionData.session.user as AuthUser);
-          }
-        } else {
+        if (!session) {
           setUser(null);
+          return;
         }
+
+        await fetchUserProfile(session.user);
       } catch (error) {
         console.error('Error al obtener el usuario actual:', error);
         setUser(null);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const fetchUserProfile = async (authUser: User) => {
+      try {
+        // Obtener el perfil del usuario directamente
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, nombre, apellido, require_password_change')
+          .eq('id', authUser.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error al obtener perfil:', profileError);
+          setUser(authUser as AuthUser);
+          return;
+        }
+
+        // Crear el usuario completo con su rol
+        const userWithRole = {
+          ...authUser,
+          role: profile?.role as UserRole,
+          nombre: profile?.nombre,
+          apellido: profile?.apellido,
+          require_password_change: profile?.require_password_change
+        };
+
+        setUser(userWithRole);
+      } catch (error) {
+        console.error('Error al obtener usuario tras cambio de autenticación:', error);
+        // Usar el usuario de la sesión como fallback
+        setUser(authUser as AuthUser);
       }
     };
 

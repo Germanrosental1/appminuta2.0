@@ -1,27 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { getAllMinutasDefinitivasForAdmin, actualizarEstadoMinutaDefinitiva } from '@/services/minutas';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Eye, 
-  AlertCircle 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye,
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Usar la misma interfaz que en minutas.ts para evitar problemas de tipo
 import { MinutaDefinitiva } from '@/services/minutas';
@@ -34,7 +42,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('todas');
   const { toast } = useToast();
-  
+
   // Estados para el modal
   const [selectedMinutaId, setSelectedMinutaId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,22 +69,22 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
   useEffect(() => {
     // Filtrar minutas según el término de búsqueda y el estado activo
     let filtered = [...minutas];
-    
+
     // Filtrar por estado
     if (activeTab !== 'todas') {
       filtered = filtered.filter(m => m.estado === activeTab);
     }
-    
+
     // Filtrar por término de búsqueda
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(m => 
-        m.proyecto.toLowerCase().includes(term) || 
+      filtered = filtered.filter(m =>
+        m.proyecto.toLowerCase().includes(term) ||
         m.datos?.unidadDescripcion?.toLowerCase().includes(term) ||
         m.usuario_id.toLowerCase().includes(term)
       );
     }
-    
+
     setFilteredMinutas(filtered);
   }, [searchTerm, activeTab, minutas]);
 
@@ -88,12 +96,12 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
   const handleChangeEstado = async (id: string, nuevoEstado: 'pendiente' | 'aprobada' | 'firmada' | 'cancelada') => {
     try {
       await actualizarEstadoMinutaDefinitiva(id, nuevoEstado);
-      
+
       // Actualizar la lista local
-      setMinutas(prev => prev.map(m => 
+      setMinutas(prev => prev.map(m =>
         m.id === id ? { ...m, estado: nuevoEstado } : m
       ));
-      
+
       toast({
         title: "Estado actualizado",
         description: `La minuta ha sido marcada como ${nuevoEstado}`,
@@ -146,7 +154,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                   <TabsTrigger value="cancelada">Canceladas</TabsTrigger>
                 </TabsList>
               </Tabs>
-              
+
               <div className="w-full sm:w-64">
                 <Input
                   placeholder="Buscar minutas..."
@@ -155,7 +163,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             {loading ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -197,19 +205,19 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                           <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleVerMinuta(minuta.id || '')}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
                                 Ver
                               </Button>
-                              
+
                               {minuta.estado === 'pendiente' && (
                                 <>
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
                                     className="bg-green-50 hover:bg-green-100"
                                     onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
@@ -217,8 +225,8 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                     <CheckCircle className="h-4 w-4 mr-1" />
                                     Aprobar
                                   </Button>
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
                                     className="bg-red-50 hover:bg-red-100"
                                     onClick={() => handleChangeEstado(minuta.id, 'cancelada')}
@@ -228,10 +236,10 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                   </Button>
                                 </>
                               )}
-                              
+
                               {minuta.estado === 'aprobada' && (
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   className="bg-blue-50 hover:bg-blue-100"
                                   onClick={() => handleChangeEstado(minuta.id, 'firmada')}
@@ -252,9 +260,9 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Modal para ver detalles de la minuta */}
-      <DetalleMinutaModal 
+      <DetalleMinutaModal
         minutaId={selectedMinutaId}
         open={modalOpen}
         onOpenChange={setModalOpen}

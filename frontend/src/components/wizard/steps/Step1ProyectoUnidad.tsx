@@ -15,10 +15,7 @@ import {
   getProyectosPorNaturaleza,
   getEtapasPorProyecto,
   getTiposPorProyectoYEtapa,
-  getTiposPorProyecto,
-  getSectoresPorProyectoYTipo,
   getSectoresPorProyectoEtapaYTipo,
-  getUnidadesPorTipoYSector,
   getUnidadesPorEtapaTipoYSector
 } from "@/services/unidades";
 import { Button } from "@/components/ui/button";

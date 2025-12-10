@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { CreateMinutaDto } from './dto/create-minuta.dto';
-import { UpdateMinutaDto } from './dto/update-minuta.dto';
 import { CreateMinutaProvisoriaDto } from './dto/create-minuta-provisoria.dto';
 import { PrismaService } from '../prisma/prisma.service';
 

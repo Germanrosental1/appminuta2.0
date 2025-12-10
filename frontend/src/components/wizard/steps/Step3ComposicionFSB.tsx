@@ -14,7 +14,7 @@ export const Step3ComposicionFSB: React.FC = () => {
   // Calcular precio total de todas las unidades seleccionadas
   const calcularPrecioTotal = () => {
     let total = 0;
-    
+
     // Sumar precios de todas las unidades en el nuevo modelo
     if (data.unidades && data.unidades.length > 0) {
       data.unidades.forEach(unidad => {
@@ -22,11 +22,11 @@ export const Step3ComposicionFSB: React.FC = () => {
       });
       return total;
     }
-    
+
     // Fallback al modelo antiguo si no hay unidades en el nuevo modelo
     // Precio de la unidad principal
     total = data.precioNegociado || 0;
-    
+
     // Sumar precios de cocheras
     const cocheras = data.cocheras || [];
     if (cocheras.length > 0) {
@@ -34,12 +34,12 @@ export const Step3ComposicionFSB: React.FC = () => {
         total += cochera.precioNegociado || 0;
       });
     }
-    
+
     // Sumar precio de baulera si existe
     if (data.baulera) {
       total += data.baulera.precioNegociado || 0;
     }
-    
+
     return total;
   };
 
@@ -76,9 +76,18 @@ export const Step3ComposicionFSB: React.FC = () => {
   };
 
   const handleImpAChange = (value: string) => {
-    const num = parseFloat(value.replace(/,/g, "."));
-    if (!isNaN(num) && num >= 0 && num <= precioTotal) {
-      setData({ impA: num });
+    const val = parseFloat(value.replace(/[^0-9.-]+/g, ""));
+    if (Number.isNaN(val)) {
+      // If the parsed value is NaN, we might want to clear the input or set it to 0
+      // For now, we'll just not update the state if it's not a valid number.
+      // Or, if the user clears the input, we can set it to 0.
+      if (value.trim() === "") {
+        setData({ impA: 0 });
+      }
+      return;
+    }
+    if (val >= 0 && val <= precioTotal) {
+      setData({ impA: val });
     }
   };
 

@@ -3,7 +3,7 @@
 // Sanitiza un string removiendo caracteres peligrosos
 export const sanitizeString = (input: string): string => {
   if (typeof input !== 'string') return '';
-  
+
   return input
     .trim()
     // Remover caracteres de control
@@ -25,7 +25,7 @@ export const sanitizeString = (input: string): string => {
 // Sanitiza un email
 export const sanitizeEmail = (email: string): string => {
   if (typeof email !== 'string') return '';
-  
+
   return email
     .toLowerCase()
     .trim()
@@ -35,7 +35,7 @@ export const sanitizeEmail = (email: string): string => {
 // Sanitiza un número de teléfono
 export const sanitizePhone = (phone: string): string => {
   if (typeof phone !== 'string') return '';
-  
+
   return phone
     .trim()
     .replace(/[^\d+\s-]/g, ''); // Solo permitir dígitos, +, espacios y guiones
@@ -44,7 +44,7 @@ export const sanitizePhone = (phone: string): string => {
 // Sanitiza un RUT
 export const sanitizeRut = (rut: string): string => {
   if (typeof rut !== 'string') return '';
-  
+
   return rut
     .trim()
     .toUpperCase()
@@ -147,26 +147,26 @@ export const sanitizeHTML = (html: string): string => {
 
   // Tags permitidos
   const allowedTags = ['b', 'i', 'u', 'strong', 'em', 'p', 'br', 'span', 'div'];
-  
+
   // Remover todos los tags excepto los permitidos
   let sanitized = html;
-  
+
   // Primero remover scripts y tags peligrosos
   sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
   sanitized = sanitized.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
   sanitized = sanitized.replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '');
-  
+
   // Remover event handlers de todos los tags
   sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
   sanitized = sanitized.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
-  
+
   return sanitized;
 };
 
 // Escapa caracteres SQL (capa adicional de seguridad, Supabase ya lo hace)
 export const escapeSQLString = (input: string): string => {
   if (typeof input !== 'string') return '';
-  
+
   return input
     .replace(/'/g, "''")  // Escapar comillas simples
     .replace(/\\/g, '\\\\') // Escapar backslashes
@@ -179,7 +179,7 @@ export const escapeSQLString = (input: string): string => {
 // Limpia espacios en blanco excesivos
 export const normalizeWhitespace = (input: string): string => {
   if (typeof input !== 'string') return '';
-  
+
   return input
     .replace(/\s+/g, ' ') // Múltiples espacios a uno solo
     .trim();
@@ -188,18 +188,18 @@ export const normalizeWhitespace = (input: string): string => {
 // Valida y sanitiza un UUID
 export const sanitizeUUID = (uuid: string): string | null => {
   if (typeof uuid !== 'string') return null;
-  
+
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  
+
   const cleaned = uuid.trim().toLowerCase();
-  
+
   return uuidPattern.test(cleaned) ? cleaned : null;
 };
 
 // Sanitiza un path de archivo para prevenir directory traversal
 export const sanitizeFilePath = (path: string): string => {
   if (typeof path !== 'string') return '';
-  
+
   return path
     .replace(/\.\./g, '') // Remover ..
     .replace(/\/+/g, '/') // Normalizar múltiples slashes
@@ -209,15 +209,15 @@ export const sanitizeFilePath = (path: string): string => {
 
 // Lista de palabras SQL peligrosas para detectar inyección
 const SQL_KEYWORDS = [
-  'DROP', 'DELETE', 'INSERT', 'UPDATE', 'CREATE', 'ALTER', 
+  'DROP', 'DELETE', 'INSERT', 'UPDATE', 'CREATE', 'ALTER',
   'EXEC', 'EXECUTE', 'SCRIPT', 'UNION', 'SELECT', '--', ';--'
 ];
 
 // Detecta si un input contiene intentos de SQL injection
 export const containsSQLInjection = (input: string): boolean => {
   if (typeof input !== 'string') return false;
-  
+
   const upperInput = input.toUpperCase();
-  
+
   return SQL_KEYWORDS.some(keyword => upperInput.includes(keyword));
 };

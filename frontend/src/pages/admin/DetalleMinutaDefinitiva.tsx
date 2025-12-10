@@ -9,19 +9,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
-import { 
-  ArrowLeft, 
-  CheckCircle, 
-  XCircle, 
-  Loader2, 
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Loader2,
   FileText,
   AlertCircle,
   Edit,
@@ -36,7 +36,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [minuta, setMinuta] = useState<any>(null);
   const [datosMapaVentas, setDatosMapaVentas] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -45,38 +45,38 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   const [procesando, setProcesando] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [accionPendiente, setAccionPendiente] = useState<'aprobada' | 'firmada' | 'cancelada' | null>(null);
-  
+
   // Estados para edición de datos
   const [editandoDatos, setEditandoDatos] = useState(false);
   const [datosEditados, setDatosEditados] = useState<any>(null);
   const [guardandoDatos, setGuardandoDatos] = useState(false);
-  
+
   // Referencia para el PDF
   const pdfContenidoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchMinuta = async () => {
       if (!id) return;
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Obtener datos de la minuta
         const minutaData = await getMinutaDefinitivaById(id);
         setMinuta(minutaData);
-        
+
         // Inicializar comentarios con los existentes
         if (minutaData.comentarios) {
           setComentarios(minutaData.comentarios);
         }
-        
+
         // Inicializar datos editados con los datos actuales
-        setDatosEditados(JSON.parse(JSON.stringify(minutaData.datos)));
-        
+        setDatosEditados(structuredClone(minutaData.datos));
+
         // Obtener datos del mapa de ventas
         setDatosMapaVentas(minutaData.datos_mapa_ventas || null);
-        
+
       } catch (err) {
         console.error('Error al cargar datos:', err);
         setError('No se pudieron cargar los datos de la minuta');
@@ -84,25 +84,25 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchMinuta();
   }, [id]);
 
   const handleGuardarComentarios = async () => {
     if (!id) return;
-    
+
     try {
       setProcesando(true);
       await actualizarEstadoMinutaDefinitiva(id, minuta.estado, comentarios);
-      
+
       toast({
         title: "Comentarios guardados",
         description: "Los comentarios han sido guardados exitosamente",
       });
-      
+
       // Actualizar el estado local
       setMinuta(prev => ({ ...prev, comentarios }));
-      
+
     } catch (error) {
       console.error('Error al guardar comentarios:', error);
       toast({
@@ -114,40 +114,40 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       setProcesando(false);
     }
   };
-  
+
   const handleEditarDatos = () => {
     setEditandoDatos(true);
   };
-  
+
   const handleCancelarEdicion = () => {
     // Restaurar datos originales
-    setDatosEditados(JSON.parse(JSON.stringify(minuta.datos)));
+    setDatosEditados(structuredClone(minuta.datos));
     setEditandoDatos(false);
   };
-  
+
   const handleCambioDato = (campo: string, valor: any) => {
     setDatosEditados(prev => ({
       ...prev,
       [campo]: valor
     }));
   };
-  
+
   const handleGuardarDatos = async () => {
     if (!id) return;
-    
+
     try {
       setGuardandoDatos(true);
       const minutaActualizada = await actualizarDatosMinutaDefinitiva(id, datosEditados);
-      
+
       toast({
         title: "Datos actualizados",
         description: "Los datos de la minuta han sido actualizados exitosamente",
       });
-      
+
       // Actualizar el estado local
       setMinuta(prev => ({ ...prev, datos: datosEditados }));
       setEditandoDatos(false);
-      
+
     } catch (error) {
       console.error('Error al actualizar datos:', error);
       toast({
@@ -167,20 +167,20 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
   const confirmarCambioEstado = async () => {
     if (!id || !accionPendiente) return;
-    
+
     try {
       setProcesando(true);
       await actualizarEstadoMinutaDefinitiva(id, accionPendiente, comentarios);
-      
+
       toast({
         title: "Estado actualizado",
         description: `La minuta ha sido marcada como ${accionPendiente}`,
       });
-      
+
       // Actualizar el estado local
       setMinuta(prev => ({ ...prev, estado: accionPendiente }));
       setDialogOpen(false);
-      
+
     } catch (error) {
       console.error('Error al cambiar estado:', error);
       toast({
@@ -195,57 +195,57 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
   const handleGenerarPDF = async () => {
     if (!pdfContenidoRef.current) return;
-    
+
     try {
       setProcesando(true);
-      
+
       // Importar jsPDF y html2canvas dinámicamente para reducir el tamaño del bundle
       const { default: jsPDF } = await import('jspdf');
       const { default: html2canvas } = await import('html2canvas');
-      
+
       const canvas = await html2canvas(pdfContenidoRef.current, {
         scale: 1.5, // Mayor calidad
         useCORS: true,
         logging: false,
       });
-      
+
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
+
       // Crear PDF en formato A4
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
-      
+
       const imgWidth = 210; // Ancho A4 en mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
+
       // Agregar imagen al PDF
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-      
+
       // Si la imagen es más grande que una página A4, agregar páginas adicionales
       let heightLeft = imgHeight;
       let position = 0;
-      
+
       while (heightLeft > 297) { // 297mm es el alto de A4
         position -= 297;
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= 297;
       }
-      
+
       // Generar nombre de archivo
       const nombreArchivo = `Minuta_${minuta.proyecto}_${new Date().toISOString().split('T')[0]}.pdf`;
-      
+
       // Descargar PDF
       pdf.save(nombreArchivo);
-      
+
       toast({
         title: "PDF generado",
         description: "El PDF ha sido generado exitosamente",
       });
-      
+
     } catch (error) {
       console.error('Error al generar PDF:', error);
       toast({
@@ -257,7 +257,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       setProcesando(false);
     }
   };
-  
+
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case 'pendiente':
@@ -276,8 +276,8 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center mb-6">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => navigate('/admin/dashboard')}
           className="mr-4"
         >
@@ -286,7 +286,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
         </Button>
         <h1 className="text-2xl font-bold">Detalle de Minuta</h1>
       </div>
-      
+
       {loading ? (
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -307,9 +307,9 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                     <span>Información de la Minuta</span>
                     <div className="flex items-center gap-2">
                       {getEstadoBadge(minuta.estado)}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={handleGenerarPDF}
                         disabled={procesando}
                       >
@@ -345,11 +345,11 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                         <TabsTrigger value="json">Datos JSON</TabsTrigger>
                       </TabsList>
                     </div>
-                    
+
                     <TabsContent value="resumen" className="mt-4">
                       <ResumenCompleto wizardData={minuta.datos} />
                     </TabsContent>
-                    
+
                     <TabsContent value="mapa-ventas" className="mt-4">
                       <Card>
                         <CardContent className="pt-6">
@@ -373,7 +373,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                         </CardContent>
                       </Card>
                     </TabsContent>
-                    
+
                     <TabsContent value="editar" className="mt-4">
                       <Card>
                         <CardHeader>
@@ -382,8 +382,8 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                             <div className="flex gap-2">
                               {editandoDatos ? (
                                 <>
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
                                     onClick={handleCancelarEdicion}
                                     disabled={guardandoDatos}
@@ -391,8 +391,8 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                                     <XCircle className="h-4 w-4 mr-1" />
                                     Cancelar
                                   </Button>
-                                  <Button 
-                                    variant="default" 
+                                  <Button
+                                    variant="default"
                                     size="sm"
                                     onClick={handleGuardarDatos}
                                     disabled={guardandoDatos}
@@ -411,8 +411,8 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                                   </Button>
                                 </>
                               ) : (
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={handleEditarDatos}
                                 >
@@ -433,7 +433,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                                 {datosEditados && Object.entries(datosEditados).map(([key, value]) => {
                                   // No mostrar objetos anidados o arrays
                                   if (typeof value === 'object' && value !== null) return null;
-                                  
+
                                   return (
                                     <div key={key} className="grid gap-2">
                                       <Label htmlFor={key}>{key}</Label>
@@ -451,7 +451,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                                 {minuta.datos && Object.entries(minuta.datos).map(([key, value]) => {
                                   // No mostrar objetos anidados o arrays
                                   if (typeof value === 'object' && value !== null) return null;
-                                  
+
                                   return (
                                     <div key={key} className="border-b pb-2">
                                       <span className="font-medium">{key}: </span>
@@ -465,7 +465,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                         </CardContent>
                       </Card>
                     </TabsContent>
-                    
+
                     <TabsContent value="json" className="mt-4">
                       <Card>
                         <CardContent className="pt-6">
@@ -478,7 +478,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   </Tabs>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Comentarios</CardTitle>
@@ -495,7 +495,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   />
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button 
+                  <Button
                     onClick={handleGuardarComentarios}
                     disabled={procesando}
                   >
@@ -511,7 +511,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                 </CardFooter>
               </Card>
             </div>
-            
+
             <div className="w-full md:w-1/3">
               <Card>
                 <CardHeader>
@@ -523,7 +523,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                 <CardContent className="space-y-4">
                   {minuta.estado === 'pendiente' && (
                     <>
-                      <Button 
+                      <Button
                         className="w-full bg-green-600 hover:bg-green-700"
                         onClick={() => handleCambiarEstado('aprobada')}
                         disabled={procesando}
@@ -531,8 +531,8 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                         <CheckCircle className="mr-2 h-4 w-4" />
                         Aprobar Minuta
                       </Button>
-                      
-                      <Button 
+
+                      <Button
                         className="w-full bg-red-600 hover:bg-red-700"
                         onClick={() => handleCambiarEstado('cancelada')}
                         disabled={procesando}
@@ -542,9 +542,9 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                       </Button>
                     </>
                   )}
-                  
+
                   {minuta.estado === 'aprobada' && (
-                    <Button 
+                    <Button
                       className="w-full bg-blue-600 hover:bg-blue-700"
                       onClick={() => handleCambiarEstado('firmada')}
                       disabled={procesando}
@@ -553,14 +553,14 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                       Marcar como Firmada
                     </Button>
                   )}
-                  
+
                   {minuta.estado === 'firmada' && (
                     <div className="text-center py-4 text-green-600">
                       <CheckCircle className="h-8 w-8 mx-auto mb-2" />
                       <p className="font-medium">Esta minuta ha sido firmada</p>
                     </div>
                   )}
-                  
+
                   {minuta.estado === 'cancelada' && (
                     <div className="text-center py-4 text-red-600">
                       <XCircle className="h-8 w-8 mx-auto mb-2" />
@@ -571,35 +571,35 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
               </Card>
             </div>
           </div>
-          
+
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {accionPendiente === 'aprobada' ? 'Confirmar Aprobación' : 
-                   accionPendiente === 'firmada' ? 'Confirmar Firma' : 'Confirmar Cancelación'}
+                  {accionPendiente === 'aprobada' ? 'Confirmar Aprobación' :
+                    accionPendiente === 'firmada' ? 'Confirmar Firma' : 'Confirmar Cancelación'}
                 </DialogTitle>
                 <DialogDescription>
-                  {accionPendiente === 'aprobada' 
+                  {accionPendiente === 'aprobada'
                     ? '¿Está seguro que desea aprobar esta minuta? Esta acción no se puede deshacer.'
                     : accionPendiente === 'firmada'
-                    ? '¿Está seguro que desea marcar esta minuta como firmada? Esta acción no se puede deshacer.'
-                    : '¿Está seguro que desea cancelar esta minuta? Esta acción no se puede deshacer.'}
+                      ? '¿Está seguro que desea marcar esta minuta como firmada? Esta acción no se puede deshacer.'
+                      : '¿Está seguro que desea cancelar esta minuta? Esta acción no se puede deshacer.'}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Textarea
                 placeholder="Agregue un comentario (opcional)"
                 value={comentarios}
                 onChange={(e) => setComentarios(e.target.value)}
                 className="mt-4"
               />
-              
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={procesando}>
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   onClick={confirmarCambioEstado}
                   disabled={procesando}
                   variant={accionPendiente === 'aprobada' ? 'default' : 'destructive'}
@@ -639,7 +639,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
           No se encontró la minuta solicitada
         </div>
       )}
-      
+
       {/* Contenido oculto para generar PDF */}
       <div className="hidden">
         <div ref={pdfContenidoRef} className="p-8 bg-white">
@@ -653,14 +653,14 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   {getEstadoBadge(minuta.estado)}
                 </div>
               </div>
-              
+
               <div className="mb-6">
                 <h2 className="text-xl font-bold mb-4">Datos de la Calculadora Comercial</h2>
                 {minuta.datos && (
                   <ResumenCompleto wizardData={minuta.datos} />
                 )}
               </div>
-              
+
               {datosMapaVentas && (
                 <div className="mb-6">
                   <h2 className="text-xl font-bold mb-4">Datos del Mapa de Ventas</h2>
@@ -674,7 +674,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   </div>
                 </div>
               )}
-              
+
               {minuta.comentarios && (
                 <div className="mb-6">
                   <h2 className="text-xl font-bold mb-4">Comentarios</h2>

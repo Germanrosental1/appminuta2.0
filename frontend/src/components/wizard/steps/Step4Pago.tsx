@@ -16,7 +16,7 @@ export const Step4Pago: React.FC = () => {
 
   const handleChange = (field: string, value: any) => {
     setData({ [field]: value });
-    
+
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -34,7 +34,7 @@ export const Step4Pago: React.FC = () => {
   // Calcular precio total de todas las unidades seleccionadas
   const calcularPrecioTotal = () => {
     let total = 0;
-    
+
     // Sumar precios de todas las unidades en el nuevo modelo
     if (data.unidades && data.unidades.length > 0) {
       data.unidades.forEach(unidad => {
@@ -42,11 +42,11 @@ export const Step4Pago: React.FC = () => {
       });
       return total;
     }
-    
+
     // Fallback al modelo antiguo si no hay unidades en el nuevo modelo
     // Precio de la unidad principal
     total = data.precioNegociado || 0;
-    
+
     // Sumar precios de cocheras
     const cocheras = data.cocheras || [];
     if (cocheras.length > 0) {
@@ -54,12 +54,12 @@ export const Step4Pago: React.FC = () => {
         total += cochera.precioNegociado || 0;
       });
     }
-    
+
     // Sumar precio de baulera si existe
     if (data.baulera) {
       total += data.baulera.precioNegociado || 0;
     }
-    
+
     return total;
   };
 
@@ -67,7 +67,7 @@ export const Step4Pago: React.FC = () => {
   const calcularComposicionAB = (precioTotal: number) => {
     let valorA = 0;
     let valorB = 0;
-    
+
     if (data.modoA === "porcentaje") {
       // Si es por porcentaje, calcular según los porcentajes definidos
       valorA = (precioTotal * data.porcA) / 100;
@@ -77,21 +77,21 @@ export const Step4Pago: React.FC = () => {
       valorA = data.impA;
       valorB = precioTotal - valorA;
     }
-    
+
     // Importante: Tanto valorA como valorB están en USD en este punto
-    
+
     // Convertir el valor A a ARS (siempre es en ARS)
     if (data.tcValor > 0) {
       valorA = valorA * data.tcValor;
     }
-    
+
     // Ajustar el valor B según la moneda seleccionada
     if (data.monedaB === "ARS" && data.tcValor > 0) {
       // Si la moneda B es ARS, convertir de USD a ARS usando el tipo de cambio
       valorB = valorB * data.tcValor;
     }
     // Si es USD o MIX, dejamos el valor B en USD
-    
+
     return { valorA, valorB };
   };
 
@@ -100,23 +100,23 @@ export const Step4Pago: React.FC = () => {
     // Siempre recalcular los valores basados en la composición actual
     const precioTotal = calcularPrecioTotal();
     const { valorA, valorB } = calcularComposicionAB(precioTotal);
-    
+
     // Solo inicializar si no hay valores previos o si es la primera vez
     if (!initialized) {
       const tcValorDefault = 1100; // Valor por defecto si no hay uno configurado
-      
+
       // Preservar los anticipos existentes o inicializar a cero si no existen
       const anticipoArsA = data.anticipoArsA !== undefined ? data.anticipoArsA : 0;
       const anticipoUsdA = data.anticipoUsdA !== undefined ? data.anticipoUsdA : 0;
       const anticipoArsB = data.anticipoArsB !== undefined ? data.anticipoArsB : 0;
       const anticipoUsdB = data.anticipoUsdB !== undefined ? data.anticipoUsdB : 0;
-      
+
       console.log("Inicializando valores en Step4Pago:");
       console.log("Anticipos ARS A:", anticipoArsA);
       console.log("Anticipos USD A:", anticipoUsdA);
       console.log("Anticipos ARS B:", anticipoArsB);
       console.log("Anticipos USD B:", anticipoUsdB);
-      
+
       setData({
         valorArsConIVA: valorA,
         valorUsdConIVA: valorB,
@@ -130,7 +130,7 @@ export const Step4Pago: React.FC = () => {
         totalFinanciarArs: Math.max(valorA - anticipoArsA - (anticipoUsdA * (data.tcValor || tcValorDefault)), 0),
         totalFinanciarUsd: Math.max(valorB - anticipoUsdB - (anticipoArsB / (data.tcValor || tcValorDefault)), 0)
       });
-      
+
       setInitialized(true);
     } else if (data.valorArsConIVA !== valorA || data.valorUsdConIVA !== valorB) {
       // Si los valores han cambiado debido a cambios en la composición, actualizarlos
@@ -153,10 +153,10 @@ export const Step4Pago: React.FC = () => {
     const anticipoUsdAEnArs = (data.anticipoUsdA || 0) * (data.tcValor || 1);
     // Convertir anticipos en ARS a USD para la parte B
     const anticipoArsBEnUsd = (data.anticipoArsB || 0) / (data.tcValor || 1);
-    
+
     const totalArs = Math.max(data.valorArsConIVA - (data.anticipoArsA || 0) - anticipoUsdAEnArs, 0);
     const totalUsd = Math.max(data.valorUsdConIVA - (data.anticipoUsdB || 0) - anticipoArsBEnUsd, 0);
-    
+
     if (totalArs !== data.totalFinanciarArs || totalUsd !== data.totalFinanciarUsd) {
       setData({
         totalFinanciarArs: totalArs,
@@ -207,9 +207,9 @@ export const Step4Pago: React.FC = () => {
       {/* Tipo de pago */}
       <div className="rounded-lg border border-border p-4 space-y-4">
         <h3 className="font-semibold text-foreground">Tipo de pago</h3>
-        
-        <RadioGroup 
-          value={data.tipoPago} 
+
+        <RadioGroup
+          value={data.tipoPago}
           onValueChange={(val: "contado" | "financiado") => handleChange("tipoPago", val)}
           className="flex flex-col space-y-3"
         >
@@ -233,7 +233,7 @@ export const Step4Pago: React.FC = () => {
       {/* Tipo de cambio */}
       <div className="rounded-lg border border-border p-4 space-y-4">
         <h3 className="font-semibold text-foreground">Tipo de cambio</h3>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="tcFuente">
@@ -265,7 +265,7 @@ export const Step4Pago: React.FC = () => {
               min="0"
               step="0.01"
               value={data.tcValor || ""}
-              onChange={(e) => handleChange("tcValor", parseFloat(e.target.value) || 0)}
+              onChange={(e) => handleChange("tcValor", Number.parseFloat(e.target.value) || 0)}
               onBlur={handleBlur}
               className={errors.tcValor ? "border-destructive" : ""}
               placeholder="0.00"
@@ -389,7 +389,7 @@ export const Step4Pago: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Fila para USD */}
                 <tr>
                   <td className="p-2 font-medium text-muted-foreground">USD</td>
@@ -448,7 +448,7 @@ export const Step4Pago: React.FC = () => {
       {data.tipoPago === "financiado" && (
         <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 space-y-3">
           <h3 className="font-semibold text-foreground">Totales a financiar</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Total F (ARS)</p>
@@ -508,13 +508,13 @@ export const Step4Pago: React.FC = () => {
         <div className="rounded-lg bg-muted p-4">
           <p className="text-sm font-medium mb-2">Resumen</p>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium">Anticipo F:</span> ARS ${(data.anticipoArsA || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdA || 0).toLocaleString("es-AR")} <br/>
-            <span className="font-medium">Anticipo SB:</span> ARS ${(data.anticipoArsB || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdB || 0).toLocaleString("es-AR")} <br/>
+            <span className="font-medium">Anticipo F:</span> ARS ${(data.anticipoArsA || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdA || 0).toLocaleString("es-AR")} <br />
+            <span className="font-medium">Anticipo SB:</span> ARS ${(data.anticipoArsB || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdB || 0).toLocaleString("es-AR")} <br />
             <span className="font-medium">Saldo:</span> F (ARS) ${data.totalFinanciarArs.toLocaleString("es-AR")} / SB ({data.monedaB}) ${data.totalFinanciarUsd.toLocaleString("es-AR")}
           </p>
         </div>
       )}
-      
+
       {/* Resumen de pago de contado - Solo visible si es contado */}
       {data.tipoPago === "contado" && (
         <div className="rounded-lg bg-success/10 border border-success/20 p-4">

@@ -30,26 +30,26 @@ export const Step6ReglasFinanciacion: React.FC = () => {
   const { data, setData, resetWizard } = useWizard();
   const fechaActual = new Date();
   const fechaProximoMes = format(addMonths(fechaActual, 1), "d/MM/yy");
-  
-  const [nuevaReglaA, setNuevaReglaA] = useState<Partial<ReglaFinanciacion>>({ 
+
+  const [nuevaReglaA, setNuevaReglaA] = useState<Partial<ReglaFinanciacion>>({
     moneda: "ARS",
     primerVencimiento: fechaProximoMes
   });
-  const [nuevaReglaB, setNuevaReglaB] = useState<Partial<ReglaFinanciacion>>({ 
+  const [nuevaReglaB, setNuevaReglaB] = useState<Partial<ReglaFinanciacion>>({
     primerVencimiento: fechaProximoMes
   });
-  
+
   // Inicializar moneda B según la selección del paso 3
   useEffect(() => {
     setNuevaReglaB(prev => ({ ...prev, moneda: data.monedaB }));
   }, [data.monedaB]);
   const [mostrarFormA, setMostrarFormA] = useState(false);
   const [mostrarFormB, setMostrarFormB] = useState(false);
-  
+
   // Calcular totales a financiar
   const totalFinanciarArs = data.totalFinanciarArs || 0;
   const totalFinanciarUsd = data.totalFinanciarUsd || 0;
-  
+
   // Calcular saldos restantes
   const calcularSaldoRestanteA = () => {
     const totalReglasA = (data.reglasFinanciacionA || [])
@@ -63,7 +63,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       }, 0);
     return Math.max(totalFinanciarArs - totalReglasA, 0);
   };
-  
+
   const calcularSaldoRestanteB = () => {
     const totalReglasB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
@@ -81,12 +81,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       }, 0);
     return Math.max(totalFinanciarUsd - totalReglasB, 0);
   };
-  
+
   // Función para calcular cuánto se habrá pagado de una regla a la fecha de posesión
   const calcularMontoPagadoAFechaPosesion = (regla: ReglaFinanciacion, fechaPosesion: Date): number => {
     console.log("Calculando monto pagado para regla:", regla.id, "con saldo:", regla.saldoFinanciar);
     console.log("Primer vencimiento:", regla.primerVencimiento, "Fecha posesión:", fechaPosesion);
-    
+
     try {
       // Si el primer vencimiento es posterior a la fecha de posesión, no se paga nada
       let fechaPrimerVencimiento;
@@ -105,27 +105,27 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         console.error("Error al parsear primer vencimiento:", error);
         return 0;
       }
-      
+
       console.log("Fecha primer vencimiento parseada:", fechaPrimerVencimiento);
-      
+
       // Si la fecha de primer vencimiento es inválida, no se paga nada
       if (isNaN(fechaPrimerVencimiento.getTime())) {
         console.error("Fecha de primer vencimiento inválida:", regla.primerVencimiento);
         return 0;
       }
-      
+
       // Si el primer vencimiento es posterior a la fecha de posesión, no se paga nada
       if (fechaPrimerVencimiento > fechaPosesion) {
         console.log("Primer vencimiento posterior a fecha posesión, no se paga nada");
         return 0;
       }
-      
+
       // Si es pago único y el vencimiento es anterior a la fecha de posesión, se paga todo
       if (regla.periodicidad === "Pago Único") {
         console.log("Es pago único y vence antes de posesión, se paga todo:", regla.saldoFinanciar);
         return regla.saldoFinanciar;
       }
-      
+
       // Para pagos periódicos, calcular cuántas cuotas se pagarán antes de la fecha de posesión
       let intervaloMeses;
       switch (regla.periodicidad) {
@@ -133,27 +133,27 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         case "Trimestral": intervaloMeses = 3; break;
         case "Semestral": intervaloMeses = 6; break;
         case "Anual": intervaloMeses = 12; break;
-        default: 
+        default:
           console.log("Periodicidad no reconocida:", regla.periodicidad);
           return 0;
       }
-      
+
       // Calcular la fecha del último vencimiento antes de la posesión
       let cuotasPagadas = 0;
       let fechaVencimiento = new Date(fechaPrimerVencimiento.getTime());
-      
+
       // Para el primer vencimiento, ya sabemos que es anterior o igual a la fecha de posesión
       // Contamos la primera cuota como pagada
       cuotasPagadas = 1;
       console.log("Primera cuota pagada, fecha:", fechaPrimerVencimiento);
-      
+
       // Si es una sola cuota, ya terminamos
       if (regla.numCuotas <= 1) {
         console.log("Solo hay una cuota, ya está pagada");
       } else {
         // Para las siguientes cuotas, verificar cuáles se pagarían antes de la posesión
         let siguienteFechaVencimiento;
-        
+
         // Verificar cada fecha de vencimiento hasta la fecha de posesión
         for (let i = 1; i < regla.numCuotas; i++) {
           // Calcular la siguiente fecha de vencimiento
@@ -168,21 +168,21 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           } else {
             break; // Si no reconocemos la periodicidad, salimos
           }
-          
-          console.log(`Evaluando cuota #${i+1}, vencimiento:`, siguienteFechaVencimiento);
-          
+
+          console.log(`Evaluando cuota #${i + 1}, vencimiento:`, siguienteFechaVencimiento);
+
           // Si la siguiente fecha de vencimiento es anterior o igual a la fecha de posesión,
           // contamos esa cuota como pagada
           if (siguienteFechaVencimiento <= fechaPosesion) {
             cuotasPagadas++;
-            console.log(`Cuota #${i+1} pagada, total pagadas:`, cuotasPagadas);
+            console.log(`Cuota #${i + 1} pagada, total pagadas:`, cuotasPagadas);
           } else {
-            console.log(`Cuota #${i+1} posterior a posesión, no se cuenta`);
+            console.log(`Cuota #${i + 1} posterior a posesión, no se cuenta`);
             break; // No seguimos verificando más cuotas
           }
         }
       }
-      
+
       // Calcular el monto pagado (número de cuotas * importe por cuota)
       const montoPagado = Math.min(regla.saldoFinanciar, cuotasPagadas * regla.importeCuota);
       console.log("Monto pagado calculado:", montoPagado, "(", cuotasPagadas, "cuotas de", regla.importeCuota, ")");
@@ -199,30 +199,30 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     // Usar las reglas proporcionadas o las del estado actual
     const reglasFinanciacionA = reglasA || data.reglasFinanciacionA || [];
     const reglasFinanciacionB = reglasB || data.reglasFinanciacionB || [];
-    
+
     console.log("Calculando porcentaje pagado con:", {
       reglasA: reglasFinanciacionA.length,
       reglasB: reglasFinanciacionB.length
     });
     // Verificar si hay anticipos o reglas de financiación
-    const hayAnticipos = (data.anticipoArsA || 0) > 0 || (data.anticipoArsB || 0) > 0 || 
-                       (data.anticipoUsdA || 0) > 0 || (data.anticipoUsdB || 0) > 0;
-    
+    const hayAnticipos = (data.anticipoArsA || 0) > 0 || (data.anticipoArsB || 0) > 0 ||
+      (data.anticipoUsdA || 0) > 0 || (data.anticipoUsdB || 0) > 0;
+
     // Si no hay reglas de financiación ni anticipos, devolver 0%
     if (!hayAnticipos && reglasFinanciacionA.length === 0 && reglasFinanciacionB.length === 0) {
       console.log("No hay anticipos ni reglas de financiación, devolviendo 0%");
       return 0;
     }
-    
+
     // Si no hay fecha de posesión, devolver el valor por defecto
     if (!data.fechaPosesion) return 85;
-    
+
     // Convertir la fecha de posesión a un objeto Date
     let fechaPosesion;
     try {
       // Asegurar que la fecha esté en formato DD/MM/YYYY si viene en formato ISO
       const fechaFormateada = formatFechaPosesion(data.fechaPosesion);
-      
+
       // Parsear la fecha en formato DD/MM/YYYY
       const partes = fechaFormateada.split('/');
       if (partes.length === 3) {
@@ -233,7 +233,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         // Intentar parsear como fecha ISO
         fechaPosesion = new Date(data.fechaPosesion);
       }
-      
+
       // Verificar si la fecha es válida
       if (isNaN(fechaPosesion.getTime())) {
         // Si no podemos parsear la fecha, usar una fecha futura por defecto
@@ -246,15 +246,15 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       fechaPosesion = new Date();
       fechaPosesion.setFullYear(fechaPosesion.getFullYear() + 1); // Un año en el futuro
     }
-    
+
     const hoy = new Date();
-    
+
     // Si la fecha de posesión es anterior a hoy, devolver 100%
     if (fechaPosesion < hoy) return 100;
-    
+
     // Calcular el total a financiar en una moneda base (usamos ARS)
     let totalFinanciar;
-    
+
     // Convertir todos los valores a ARS para tener una base común
     if (data.monedaB === "USD") {
       // Si B está en USD, convertir a ARS para sumar
@@ -268,16 +268,16 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       console.log("Total a financiar en ARS (A):", totalFinanciarArs);
       console.log("Total a financiar en ARS (B):", totalFinanciarUsd);
     }
-    
+
     if (totalFinanciar === 0) return 100;
-    
+
     console.log("=== CALCULANDO PORCENTAJE PAGADO A FECHA POSESIÓN ===");
     console.log("Fecha posesión:", fechaPosesion);
     console.log("Total a financiar:", totalFinanciar);
-    
+
     // Considerar los anticipos como pagos ya realizados
     let totalAnticipos = 0;
-    
+
     // Anticipos en ARS
     const anticipoArsA = data.anticipoArsA || 0;
     const anticipoArsB = data.anticipoArsB || 0;
@@ -285,7 +285,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     console.log("Anticipos en ARS A:", anticipoArsA);
     console.log("Anticipos en ARS B:", anticipoArsB);
     console.log("Subtotal anticipos en ARS:", anticipoArsA + anticipoArsB);
-    
+
     // Anticipos en USD (convertidos a ARS para el cálculo)
     const anticipoUsdA = data.anticipoUsdA || 0;
     const anticipoUsdB = data.anticipoUsdB || 0;
@@ -295,33 +295,33 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     console.log("Anticipos en USD B:", anticipoUsdB);
     console.log("Tipo de cambio:", data.tcValor || 1);
     console.log("Subtotal anticipos en USD convertidos a ARS:", anticiposUsdEnArs);
-    
+
     console.log("Total anticipos (ARS + USD convertidos):", totalAnticipos);
-    
+
     // Verificar si los anticipos son números
     console.log("¿Es anticipoArsA un número?", typeof anticipoArsA === 'number');
     console.log("¿Es anticipoArsB un número?", typeof anticipoArsB === 'number');
     console.log("¿Es anticipoUsdA un número?", typeof anticipoUsdA === 'number');
     console.log("¿Es anticipoUsdB un número?", typeof anticipoUsdB === 'number');
     console.log("¿Es totalAnticipos un número?", typeof totalAnticipos === 'number');
-    
+
     // Calcular el total pagado a fecha de posesión para las reglas de la parte A
     console.log("Procesando reglas de la parte A:", reglasFinanciacionA);
     let totalPagadoA = 0;
-    
+
     // Procesar cada regla de la parte A
     reglasFinanciacionA.forEach(regla => {
       if (!regla.activa) {
         console.log("Regla inactiva, ignorando:", regla.id);
         return;
       }
-      
+
       console.log("Procesando regla A:", regla.id, "con saldo:", regla.saldoFinanciar, "moneda:", regla.moneda);
-      
+
       // Calcular cuánto se pagará de esta regla antes de la fecha de posesión
       const montoPagado = calcularMontoPagadoAFechaPosesion(regla, fechaPosesion);
       console.log("Monto pagado calculado para regla A:", montoPagado);
-      
+
       // Si la regla está en USD, convertir a ARS usando el tipo de cambio
       if (regla.moneda === "USD") {
         const montoPagadoConvertido = montoPagado * (data.tcValor || 1);
@@ -331,26 +331,26 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         totalPagadoA += montoPagado;
       }
     });
-    
+
     console.log("Total pagado parte A:", totalPagadoA);
-      
+
     // Calcular el total pagado a fecha de posesión para las reglas de la parte B
     console.log("Procesando reglas de la parte B:", reglasFinanciacionB);
     let totalPagadoB = 0;
-    
+
     // Procesar cada regla de la parte B
     reglasFinanciacionB.forEach(regla => {
       if (!regla.activa) {
         console.log("Regla inactiva, ignorando:", regla.id);
         return;
       }
-      
+
       console.log("Procesando regla B:", regla.id, "con saldo:", regla.saldoFinanciar, "moneda:", regla.moneda);
-      
+
       // Calcular cuánto se pagará de esta regla antes de la fecha de posesión
       const montoPagado = calcularMontoPagadoAFechaPosesion(regla, fechaPosesion);
       console.log("Monto pagado calculado para regla B:", montoPagado);
-      
+
       // Convertir todos los montos a ARS para tener una base común
       if (regla.moneda === "USD") {
         // Si la regla está en USD, convertir a ARS
@@ -363,9 +363,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         totalPagadoB += montoPagado;
       }
     });
-    
+
     console.log("Total pagado parte B (convertido a ARS):", totalPagadoB);
-    
+
     // Sumar los anticipos a los pagos de las reglas
     const totalPagado = totalPagadoA + totalPagadoB + totalAnticipos;
     console.log("Total pagado (Anticipos + Reglas A + Reglas B):", totalPagado);
@@ -374,11 +374,11 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     console.log(" - Reglas A:", totalPagadoA);
     console.log(" - Reglas B:", totalPagadoB);
     console.log(" - Total:", totalPagado);
-    
+
     // Verificar si los valores son números
     console.log("¿Es totalPagado un número?", typeof totalPagado === 'number');
     console.log("¿Es totalFinanciar un número?", typeof totalFinanciar === 'number');
-    
+
     // El porcentaje pagado es lo que se pagará antes de la fecha de posesión dividido por el total a financiar
     let porcentajePagado = 0;
     if (totalFinanciar > 0 && typeof totalPagado === 'number' && typeof totalFinanciar === 'number') {
@@ -389,15 +389,15 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       console.log("totalPagado:", totalPagado, "tipo:", typeof totalPagado);
       console.log("totalFinanciar:", totalFinanciar, "tipo:", typeof totalFinanciar);
     }
-    
+
     console.log("Porcentaje pagado calculado:", porcentajePagado, "%");
     console.log("Fórmula: (" + totalPagado + " / " + totalFinanciar + ") * 100 = " + porcentajePagado + "%");
     console.log("Desglose del total pagado: Anticipos (" + totalAnticipos + ") + Reglas A (" + totalPagadoA + ") + Reglas B (" + totalPagadoB + ") = " + totalPagado);
-    
+
     // Asegurarse de que el porcentaje esté entre 0 y 100
     return Math.max(0, Math.min(100, Math.round(porcentajePagado * 100) / 100));
   };
-  
+
   // Formato de moneda
   const formatCurrency = (value: number, moneda: Moneda = "ARS") => {
     const formattedValue = value.toLocaleString("es-AR", { minimumFractionDigits: 2 });
@@ -405,36 +405,36 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     if (moneda === "MIX") return formattedValue + " MIX";
     return formattedValue; // ARS por defecto
   };
-  
+
   // Formato de fecha de posesión: convierte de YYYY-MM-DD a DD/MM/YYYY
   const formatFechaPosesion = (fechaIso: string | undefined): string => {
     if (!fechaIso) return "No definida";
-    
+
     try {
       // Si ya está en formato DD/MM/YYYY o DD/MM/YY, devolverla tal cual
       if (fechaIso.includes("/")) return fechaIso;
-      
+
       // Convertir de YYYY-MM-DD a DD/MM/YYYY
       const [year, month, day] = fechaIso.split("-");
       if (!year || !month || !day) return fechaIso;
-      
+
       return `${day}/${month}/${year}`;
     } catch (error) {
       console.error("Error al formatear fecha de posesión:", error);
       return fechaIso;
     }
   };
-  
+
   // Agregar nueva regla A
   const agregarReglaA = () => {
     if (!nuevaReglaA.saldoFinanciar || !nuevaReglaA.numCuotas || !nuevaReglaA.moneda || !nuevaReglaA.primerVencimiento) return;
-    
+
     // Usar la fecha seleccionada por el usuario o la fecha actual + 1 mes
     const primerVencimiento = nuevaReglaA.primerVencimiento;
-    
+
     // Parsear la fecha del primer vencimiento
     const fechaPrimerVencimiento = parseDate(primerVencimiento);
-    
+
     let ultimoVencimiento;
     if (nuevaReglaA.periodicidad === "Mensual") {
       ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, Number(nuevaReglaA.numCuotas) - 1), "d/MM/yy");
@@ -447,18 +447,18 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     } else {
       ultimoVencimiento = primerVencimiento;
     }
-    
-    const importeCuota = nuevaReglaA.periodicidad === "Pago Único" 
-      ? Number(nuevaReglaA.saldoFinanciar) 
+
+    const importeCuota = nuevaReglaA.periodicidad === "Pago Único"
+      ? Number(nuevaReglaA.saldoFinanciar)
       : Number(nuevaReglaA.saldoFinanciar) / Number(nuevaReglaA.numCuotas);
-    
+
     // Calcular el monto en la moneda correcta para los porcentajes
     let montoEnMonedaBase = Number(nuevaReglaA.saldoFinanciar);
     if (nuevaReglaA.moneda === "USD") {
       // Si la regla está en USD, convertir a ARS para calcular porcentajes
       montoEnMonedaBase = montoEnMonedaBase * (data.tcValor || 1);
     }
-    
+
     // Calcular el total de reglas existentes para la parte A y total
     const totalReglasExistentesA = (data.reglasFinanciacionA || [])
       .filter(regla => regla.activa)
@@ -468,21 +468,21 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         }
         return sum + regla.saldoFinanciar;
       }, 0);
-    
+
     const totalReglasExistentesB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
       .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
-    
+
     // Sumar el monto de la nueva regla al total existente
     const totalReglasA = totalReglasExistentesA + montoEnMonedaBase;
     const totalReglas = totalReglasA + totalReglasExistentesB;
-    
+
     // Calcular los porcentajes como la cobertura de la deuda
-    const porcentajeDeudaTotal = totalFinanciarArs + totalFinanciarUsd > 0 ? 
+    const porcentajeDeudaTotal = totalFinanciarArs + totalFinanciarUsd > 0 ?
       (totalReglas / (totalFinanciarArs + totalFinanciarUsd)) * 100 : 0;
-    const porcentajeDeudaA = totalFinanciarArs > 0 ? 
+    const porcentajeDeudaA = totalFinanciarArs > 0 ?
       (totalReglasA / totalFinanciarArs) * 100 : 0;
-    
+
     const nuevaRegla: ReglaFinanciacion = {
       id: uuidv4(),
       moneda: nuevaReglaA.moneda as Moneda,
@@ -498,40 +498,40 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       porcentajeDeudaParte: Math.round(porcentajeDeudaA * 100) / 100,
       activa: true
     };
-    
+
     // Calcular el nuevo porcentaje pagado considerando la nueva regla
     const nuevasReglas = [...(data.reglasFinanciacionA || []), nuevaRegla];
-    
+
     // Calcular el porcentaje pagado con las nuevas reglas
     const porcentajeCalculado = calcularPorcentajePagado(nuevasReglas, data.reglasFinanciacionB || []);
-    
+
     // Actualizar el estado con las nuevas reglas y el porcentaje calculado
     setData({
       reglasFinanciacionA: nuevasReglas,
       porcentajePagadoFechaPosesion: porcentajeCalculado
     });
-    
+
     // Resetear el formulario
-    setNuevaReglaA({ 
+    setNuevaReglaA({
       moneda: "ARS",
       primerVencimiento: fechaProximoMes
     });
     setMostrarFormA(false);
-    
+
     // Log para depuración
     console.log("Nueva regla A agregada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
-  
+
   // Agregar nueva regla B
   const agregarReglaB = () => {
     if (!nuevaReglaB.saldoFinanciar || !nuevaReglaB.numCuotas || !nuevaReglaB.moneda || !nuevaReglaB.primerVencimiento) return;
-    
+
     // Usar la fecha seleccionada por el usuario o la fecha actual + 1 mes
     const primerVencimiento = nuevaReglaB.primerVencimiento;
-    
+
     // Parsear la fecha del primer vencimiento
     const fechaPrimerVencimiento = parseDate(primerVencimiento);
-    
+
     let ultimoVencimiento;
     if (nuevaReglaB.periodicidad === "Mensual") {
       ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, Number(nuevaReglaB.numCuotas) - 1), "d/MM/yy");
@@ -544,11 +544,11 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     } else {
       ultimoVencimiento = primerVencimiento;
     }
-    
-    const importeCuota = nuevaReglaB.periodicidad === "Pago Único" 
-      ? Number(nuevaReglaB.saldoFinanciar) 
+
+    const importeCuota = nuevaReglaB.periodicidad === "Pago Único"
+      ? Number(nuevaReglaB.saldoFinanciar)
       : Number(nuevaReglaB.saldoFinanciar) / Number(nuevaReglaB.numCuotas);
-    
+
     // Calcular el total de reglas existentes para la parte B y total
     const totalReglasExistentesA = (data.reglasFinanciacionA || [])
       .filter(regla => regla.activa)
@@ -558,14 +558,14 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         }
         return sum + regla.saldoFinanciar;
       }, 0);
-    
+
     const totalReglasExistentesB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
       .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
-    
+
     // Calcular el monto en la moneda correcta para los porcentajes
     let montoEnMonedaB = Number(nuevaReglaB.saldoFinanciar);
-    
+
     // Si la moneda de B es ARS pero la regla está en USD, convertir a ARS
     if (data.monedaB === "ARS" && nuevaReglaB.moneda === "USD") {
       montoEnMonedaB = montoEnMonedaB * (data.tcValor || 1);
@@ -574,17 +574,17 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     else if (data.monedaB === "USD" && nuevaReglaB.moneda === "ARS") {
       montoEnMonedaB = montoEnMonedaB / (data.tcValor || 1);
     }
-    
+
     // Sumar el monto de la nueva regla al total existente
     const totalReglasB = totalReglasExistentesB + montoEnMonedaB;
     const totalReglas = totalReglasExistentesA + totalReglasB;
-    
+
     // Calcular los porcentajes como la cobertura de la deuda
-    const porcentajeDeudaTotal = totalFinanciarArs + totalFinanciarUsd > 0 ? 
+    const porcentajeDeudaTotal = totalFinanciarArs + totalFinanciarUsd > 0 ?
       (totalReglas / (totalFinanciarArs + totalFinanciarUsd)) * 100 : 0;
-    const porcentajeDeudaB = totalFinanciarUsd > 0 ? 
+    const porcentajeDeudaB = totalFinanciarUsd > 0 ?
       (totalReglasB / totalFinanciarUsd) * 100 : 0;
-    
+
     const nuevaRegla: ReglaFinanciacion = {
       id: uuidv4(),
       moneda: nuevaReglaB.moneda as Moneda,
@@ -600,65 +600,65 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       porcentajeDeudaParte: Math.round(porcentajeDeudaB * 100) / 100,
       activa: true
     };
-    
+
     // Calcular el nuevo porcentaje pagado considerando la nueva regla
     const nuevasReglas = [...(data.reglasFinanciacionB || []), nuevaRegla];
-    
+
     // Calcular el porcentaje pagado con las nuevas reglas
     const porcentajeCalculado = calcularPorcentajePagado(data.reglasFinanciacionA || [], nuevasReglas);
-    
+
     // Actualizar el estado con las nuevas reglas y el porcentaje calculado
     setData({
       reglasFinanciacionB: nuevasReglas,
       porcentajePagadoFechaPosesion: porcentajeCalculado
     });
-    
+
     // Resetear el formulario
-    setNuevaReglaB({ 
+    setNuevaReglaB({
       moneda: data.monedaB,
       primerVencimiento: fechaProximoMes
     });
     setMostrarFormB(false);
-    
+
     // Log para depuración
     console.log("Nueva regla B agregada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
-  
+
   // Eliminar regla
   const eliminarReglaA = (id: string) => {
     // Filtrar la regla a eliminar
     const nuevasReglas = (data.reglasFinanciacionA || []).filter(regla => regla.id !== id);
-    
+
     // Calcular el porcentaje pagado con las nuevas reglas
     const porcentajeCalculado = calcularPorcentajePagado(nuevasReglas, data.reglasFinanciacionB || []);
-    
+
     // Actualizar el estado con las nuevas reglas y el porcentaje calculado
     setData({
       reglasFinanciacionA: nuevasReglas,
       porcentajePagadoFechaPosesion: porcentajeCalculado
     });
-    
+
     // Log para depuración
     console.log("Regla A eliminada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
-  
+
   const eliminarReglaB = (id: string) => {
     // Filtrar la regla a eliminar
     const nuevasReglas = (data.reglasFinanciacionB || []).filter(regla => regla.id !== id);
-    
+
     // Calcular el porcentaje pagado con las nuevas reglas
     const porcentajeCalculado = calcularPorcentajePagado(data.reglasFinanciacionA || [], nuevasReglas);
-    
+
     // Actualizar el estado con las nuevas reglas y el porcentaje calculado
     setData({
       reglasFinanciacionB: nuevasReglas,
       porcentajePagadoFechaPosesion: porcentajeCalculado
     });
-    
+
     // Log para depuración
     console.log("Regla B eliminada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
-  
+
   // Actualizar porcentaje pagado cuando cambian las reglas, la fecha de posesión o los anticipos
   useEffect(() => {
     // Si no hay fecha de posesión, no hacer cálculos detallados
@@ -667,20 +667,20 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       setData({ porcentajePagadoFechaPosesion: porcentajeCalculado });
       return;
     }
-    
+
     console.log("Recalculando porcentaje pagado debido a cambios en reglas, fecha de posesión o anticipos");
     console.log("Anticipos actuales:");
     console.log("- ARS A:", data.anticipoArsA || 0);
     console.log("- ARS B:", data.anticipoArsB || 0);
     console.log("- USD A:", data.anticipoUsdA || 0);
     console.log("- USD B:", data.anticipoUsdB || 0);
-    
+
     // Convertir la fecha de posesión a un objeto Date
     let fechaPosesion;
     try {
       // Asegurar que la fecha esté en formato DD/MM/YYYY si viene en formato ISO
       const fechaFormateada = formatFechaPosesion(data.fechaPosesion);
-      
+
       // Parsear la fecha en formato DD/MM/YYYY
       const partes = fechaFormateada.split('/');
       if (partes.length === 3) {
@@ -691,7 +691,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         // Intentar parsear como fecha ISO
         fechaPosesion = new Date(data.fechaPosesion);
       }
-      
+
       // Verificar si la fecha es válida
       if (isNaN(fechaPosesion.getTime())) {
         console.error("Fecha de posesión inválida:", data.fechaPosesion);
@@ -701,7 +701,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       console.error("Error al parsear fecha de posesión:", error);
       return;
     }
-    
+
     // Calcular el detalle de pagos por cada regla
     const detalleReglasA = (data.reglasFinanciacionA || [])
       .filter(regla => regla.activa)
@@ -718,7 +718,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           moneda: regla.moneda
         };
       });
-      
+
     const detalleReglasB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
       .map(regla => {
@@ -734,26 +734,26 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           moneda: regla.moneda
         };
       });
-    
+
     // Forzar la actualización del porcentaje pagado
     const porcentajeCalculado = calcularPorcentajePagado();
-    
+
     // Registrar para depuración
     console.log("=== DETALLE DE PORCENTAJE PAGADO A FECHA POSESIÓN ===");
     console.log("Fecha posesión:", data.fechaPosesion);
     console.log("Porcentaje pagado calculado:", porcentajeCalculado, "%");
     console.log("Total a financiar ARS:", totalFinanciarArs);
     console.log("Total a financiar USD:", totalFinanciarUsd);
-    
+
     // Mostrar información sobre anticipos
     console.log("Anticipo ARS A:", data.anticipoArsA || 0);
     console.log("Anticipo ARS B:", data.anticipoArsB || 0);
     console.log("Anticipo USD A:", data.anticipoUsdA || 0);
     console.log("Anticipo USD B:", data.anticipoUsdB || 0);
-    
+
     console.log("Detalle reglas parte A:", detalleReglasA);
     console.log("Detalle reglas parte B:", detalleReglasB);
-    
+
     // Actualizar el estado solo si el porcentaje ha cambiado
     if (porcentajeCalculado !== data.porcentajePagadoFechaPosesion) {
       console.log("Actualizando porcentaje pagado de", data.porcentajePagadoFechaPosesion, "% a", porcentajeCalculado, "%");
@@ -765,7 +765,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
   // Obtener el porcentaje pagado a fecha posesión
   const porcentajePagado = data.porcentajePagadoFechaPosesion || calcularPorcentajePagado();
-  
+
   // Verificar si hay saldos restantes
   const haySaldoRestanteA = calcularSaldoRestanteA() > 0;
   const haySaldoRestanteB = calcularSaldoRestanteB() > 0;
@@ -776,7 +776,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       <div className="bg-muted p-4 rounded-lg">
         <h2 className="text-xl font-bold text-blue-600">07. Reglas de Financiación F/SB</h2>
       </div>
-      
+
       {haySaldosPendientes && (
         <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
           <div className="flex items-start">
@@ -796,7 +796,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       <div className="grid grid-cols-4 gap-4 bg-blue-50 p-4 rounded-lg">
         <div>
           <h3 className="text-sm font-medium text-blue-700">Total a Financiar en ARS:</h3>
@@ -815,7 +815,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           <p className={`text-xl font-bold ${porcentajePagado < 50 ? "text-red-600" : "text-green-600"}`}>{porcentajePagado}%</p>
         </div>
       </div>
-      
+
       {/* Sección A - ARS */}
       <Card className="border-2 border-blue-500">
         <CardHeader className="bg-blue-500 text-white">
@@ -829,9 +829,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                 <Card key={regla.id} className="border border-gray-200">
                   <CardHeader className="bg-blue-50 py-2 px-4 flex justify-between items-center">
                     <CardTitle className="text-lg">Regla {index + 1}</CardTitle>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => eliminarReglaA(regla.id)}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
@@ -910,7 +910,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
               ))}
             </div>
           )}
-          
+
           {/* Saldo restante */}
           <div className={`p-4 rounded-lg mb-4 ${calcularSaldoRestanteA() > 0 ? 'bg-red-50' : 'bg-blue-50'}`}>
             <div className="flex justify-between items-center">
@@ -923,12 +923,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           {/* Formulario para agregar nueva regla */}
           {!mostrarFormA ? (
             <div className="flex justify-center">
-              <Button 
-                onClick={() => setMostrarFormA(true)} 
+              <Button
+                onClick={() => setMostrarFormA(true)}
                 className="flex items-center gap-2"
                 disabled={calcularSaldoRestanteA() <= 0}
               >
@@ -955,13 +955,13 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                         type="number"
                         placeholder="0.00"
                         value={nuevaReglaA.saldoFinanciar || ""}
-                        onChange={(e) => setNuevaReglaA({...nuevaReglaA, saldoFinanciar: Number(e.target.value)})}
+                        onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, saldoFinanciar: Number(e.target.value) })}
                         max={calcularSaldoRestanteA()}
                         className="flex-1"
                       />
                       <Select
                         value={nuevaReglaA.moneda as string || "ARS"}
-                        onValueChange={(value) => setNuevaReglaA({...nuevaReglaA, moneda: value as Moneda})}
+                        onValueChange={(value) => setNuevaReglaA({ ...nuevaReglaA, moneda: value as Moneda })}
                       >
                         <SelectTrigger className="w-[80px]">
                           <SelectValue placeholder="ARS" />
@@ -980,18 +980,18 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       type="number"
                       placeholder="12"
                       value={nuevaReglaA.numCuotas || ""}
-                      onChange={(e) => setNuevaReglaA({...nuevaReglaA, numCuotas: Number(e.target.value)})}
+                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, numCuotas: Number(e.target.value) })}
                       min={1}
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="periodicidadA">Periodicidad</Label>
                     <Select
                       value={nuevaReglaA.periodicidad as string || ""}
-                      onValueChange={(value) => setNuevaReglaA({...nuevaReglaA, periodicidad: value as PeriodicidadCuota})}
+                      onValueChange={(value) => setNuevaReglaA({ ...nuevaReglaA, periodicidad: value as PeriodicidadCuota })}
                     >
                       <SelectTrigger id="periodicidadA">
                         <SelectValue placeholder="Seleccionar periodicidad" />
@@ -1005,7 +1005,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="primerVencimientoA">Primer vencimiento</Label>
                     <Popover>
@@ -1028,7 +1028,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                           onSelect={(date) => {
                             if (date) {
                               const formattedDate = format(date, "d/MM/yy");
-                              setNuevaReglaA({...nuevaReglaA, primerVencimiento: formattedDate});
+                              setNuevaReglaA({ ...nuevaReglaA, primerVencimiento: formattedDate });
                             }
                           }}
                           initialFocus
@@ -1038,7 +1038,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                     </Popover>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="valorBienA">Valor bien (opcional)</Label>
@@ -1046,7 +1046,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       id="valorBienA"
                       placeholder="Descripción del bien"
                       value={nuevaReglaA.valorBien || ""}
-                      onChange={(e) => setNuevaReglaA({...nuevaReglaA, valorBien: e.target.value})}
+                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, valorBien: e.target.value })}
                     />
                   </div>
                   <div>
@@ -1055,14 +1055,14 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       id="cargoA"
                       placeholder="Descripción del cargo"
                       value={nuevaReglaA.cargo || ""}
-                      onChange={(e) => setNuevaReglaA({...nuevaReglaA, cargo: e.target.value})}
+                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, cargo: e.target.value })}
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end">
-                  <Button 
-                    onClick={agregarReglaA} 
+                  <Button
+                    onClick={agregarReglaA}
                     disabled={!nuevaReglaA.saldoFinanciar || !nuevaReglaA.numCuotas || !nuevaReglaA.periodicidad || !nuevaReglaA.moneda}
                   >
                     <Check className="w-4 h-4 mr-2" /> Guardar regla
@@ -1073,7 +1073,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Sección B - Moneda según paso 3 */}
       <Card className="border-2 border-purple-500">
         <CardHeader className="bg-purple-500 text-white">
@@ -1087,9 +1087,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                 <Card key={regla.id} className="border border-gray-200">
                   <CardHeader className="bg-purple-50 py-2 px-4 flex justify-between items-center">
                     <CardTitle className="text-lg">Regla {index + 1}</CardTitle>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => eliminarReglaB(regla.id)}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
@@ -1100,63 +1100,63 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                     <table className="w-full">
                       <tbody>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">Saldo a Financiar (IVA incluido):</td>
+                          <th scope="row" className="p-3 font-medium text-left">Saldo a Financiar (IVA incluido):</th>
                           <td className="p-3 bg-yellow-50 text-right font-bold">
                             {formatCurrency(regla.saldoFinanciar, regla.moneda)}
                           </td>
                           <td className="p-3 text-right font-bold text-purple-500">${regla.moneda}</td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">Nº de cuotas:</td>
+                          <th scope="row" className="p-3 font-medium text-left">Nº de cuotas:</th>
                           <td className="p-3 bg-yellow-50 text-right font-bold" colSpan={2}>
                             {regla.numCuotas}
                           </td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">Periodicidad cuotas:</td>
+                          <th scope="row" className="p-3 font-medium text-left">Periodicidad cuotas:</th>
                           <td className="p-3 bg-yellow-50 text-right font-bold" colSpan={2}>
                             {regla.periodicidad}
                           </td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">Importe cuota:</td>
+                          <th scope="row" className="p-3 font-medium text-left">Importe cuota:</th>
                           <td className="p-3 text-right font-bold">
                             {formatCurrency(regla.importeCuota, regla.moneda)}
                           </td>
                           <td className="p-3 text-right font-bold text-purple-500">${regla.moneda}</td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">1º Vencimiento:</td>
+                          <th scope="row" className="p-3 font-medium text-left">1º Vencimiento:</th>
                           <td className="p-3 text-right font-bold" colSpan={2}>
                             {regla.primerVencimiento}
                           </td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">Último Vencimiento:</td>
+                          <th scope="row" className="p-3 font-medium text-left">Último Vencimiento:</th>
                           <td className="p-3 text-right font-bold" colSpan={2}>
                             {regla.ultimoVencimiento}
                           </td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">Valor bien:</td>
+                          <th scope="row" className="p-3 font-medium text-left">Valor bien:</th>
                           <td className="p-3 text-right font-medium" colSpan={2}>
                             {regla.valorBien}
                           </td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">Cargo:</td>
+                          <th scope="row" className="p-3 font-medium text-left">Cargo:</th>
                           <td className="p-3 text-right font-medium" colSpan={2}>
                             {regla.cargo}
                           </td>
                         </tr>
                         <tr className="border-b">
-                          <td className="p-3 font-medium">% Cobertura Total:</td>
+                          <th scope="row" className="p-3 font-medium text-left">% Cobertura Total:</th>
                           <td className="p-3 text-right font-bold" colSpan={2}>
                             {regla.porcentajeDeudaTotal}%
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-medium">% Cobertura SB:</td>
+                          <th scope="row" className="p-3 font-medium text-left">% Cobertura SB:</th>
                           <td className="p-3 text-right font-bold" colSpan={2}>
                             {regla.porcentajeDeudaParte}%
                           </td>
@@ -1168,7 +1168,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
               ))}
             </div>
           )}
-          
+
           {/* Saldo restante */}
           <div className={`p-4 rounded-lg mb-4 ${calcularSaldoRestanteB() > 0 ? 'bg-red-50' : 'bg-purple-50'}`}>
             <div className="flex justify-between items-center">
@@ -1181,12 +1181,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           {/* Formulario para agregar nueva regla */}
           {!mostrarFormB ? (
             <div className="flex justify-center">
-              <Button 
-                onClick={() => setMostrarFormB(true)} 
+              <Button
+                onClick={() => setMostrarFormB(true)}
                 className="flex items-center gap-2"
                 disabled={calcularSaldoRestanteB() <= 0}
               >
@@ -1213,13 +1213,13 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                         type="number"
                         placeholder="0.00"
                         value={nuevaReglaB.saldoFinanciar || ""}
-                        onChange={(e) => setNuevaReglaB({...nuevaReglaB, saldoFinanciar: Number(e.target.value)})}
+                        onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, saldoFinanciar: Number(e.target.value) })}
                         max={calcularSaldoRestanteB()}
                         className="flex-1"
                       />
                       <Select
                         value={nuevaReglaB.moneda as string || data.monedaB}
-                        onValueChange={(value) => setNuevaReglaB({...nuevaReglaB, moneda: value as Moneda})}
+                        onValueChange={(value) => setNuevaReglaB({ ...nuevaReglaB, moneda: value as Moneda })}
                       >
                         <SelectTrigger className="w-[80px]">
                           <SelectValue placeholder={data.monedaB} />
@@ -1239,18 +1239,18 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       type="number"
                       placeholder="12"
                       value={nuevaReglaB.numCuotas || ""}
-                      onChange={(e) => setNuevaReglaB({...nuevaReglaB, numCuotas: Number(e.target.value)})}
+                      onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, numCuotas: Number(e.target.value) })}
                       min={1}
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="periodicidadB">Periodicidad</Label>
                     <Select
                       value={nuevaReglaB.periodicidad as string || ""}
-                      onValueChange={(value) => setNuevaReglaB({...nuevaReglaB, periodicidad: value as PeriodicidadCuota})}
+                      onValueChange={(value) => setNuevaReglaB({ ...nuevaReglaB, periodicidad: value as PeriodicidadCuota })}
                     >
                       <SelectTrigger id="periodicidadB">
                         <SelectValue placeholder="Seleccionar periodicidad" />
@@ -1264,7 +1264,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="primerVencimientoB">Primer vencimiento</Label>
                     <Popover>
@@ -1287,7 +1287,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                           onSelect={(date) => {
                             if (date) {
                               const formattedDate = format(date, "d/MM/yy");
-                              setNuevaReglaB({...nuevaReglaB, primerVencimiento: formattedDate});
+                              setNuevaReglaB({ ...nuevaReglaB, primerVencimiento: formattedDate });
                             }
                           }}
                           initialFocus
@@ -1297,7 +1297,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                     </Popover>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="valorBienB">Valor bien (opcional)</Label>
@@ -1305,7 +1305,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       id="valorBienB"
                       placeholder="Descripción del bien"
                       value={nuevaReglaB.valorBien || ""}
-                      onChange={(e) => setNuevaReglaB({...nuevaReglaB, valorBien: e.target.value})}
+                      onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, valorBien: e.target.value })}
                     />
                   </div>
                   <div>
@@ -1314,14 +1314,14 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       id="cargoB"
                       placeholder="Descripción del cargo"
                       value={nuevaReglaB.cargo || ""}
-                      onChange={(e) => setNuevaReglaB({...nuevaReglaB, cargo: e.target.value})}
+                      onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, cargo: e.target.value })}
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end">
-                  <Button 
-                    onClick={agregarReglaB} 
+                  <Button
+                    onClick={agregarReglaB}
                     disabled={!nuevaReglaB.saldoFinanciar || !nuevaReglaB.numCuotas || !nuevaReglaB.periodicidad || !nuevaReglaB.moneda}
                   >
                     <Check className="w-4 h-4 mr-2" /> Guardar regla

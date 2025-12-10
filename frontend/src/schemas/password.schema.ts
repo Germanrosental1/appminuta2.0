@@ -2,14 +2,18 @@ import { z } from 'zod';
 import { sanitizeString } from '@/utils/sanitize';
 
 // Schema de validación de contraseña con complejidad alta
+// Schema de validación de contraseña con complejidad alta
 export const passwordSchema = z.string()
   .transform((val) => sanitizeString(val)) // Sanitizar antes de validar
-  .min(8, 'La contraseña debe tener al menos 8 caracteres')
-  .max(100, 'La contraseña no puede exceder 100 caracteres')
-  .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
-  .regex(/[a-z]/, 'Debe contener al menos una letra minúscula')
-  .regex(/[0-9]/, 'Debe contener al menos un número')
-  .regex(/[^A-Za-z0-9]/, 'Debe contener al menos un carácter especial (!@#$%^&*...)');
+  .pipe(
+    z.string()
+      .min(8, 'La contraseña debe tener al menos 8 caracteres')
+      .max(100, 'La contraseña no puede exceder 100 caracteres')
+      .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
+      .regex(/[a-z]/, 'Debe contener al menos una letra minúscula')
+      .regex(/\d/, 'Debe contener al menos un número')
+      .regex(/[^A-Za-z\d]/, 'Debe contener al menos un carácter especial (!@#$%^&*...)')
+  );
 
 // Schema para validar confirmación de contraseña
 export const passwordConfirmSchema = z.object({
@@ -34,7 +38,7 @@ export function validatePasswordComplexity(password: string): {
   if (password.length < 8) {
     errors.push('Mínimo 8 caracteres');
   }
-  
+
   if (password.length > 100) {
     errors.push('Máximo 100 caracteres');
   }
@@ -87,7 +91,7 @@ export function calculatePasswordStrength(password: string): {
 
   // Nivel de fortaleza
   let level: 'muy débil' | 'débil' | 'medio' | 'fuerte' | 'muy fuerte';
-  
+
   if (score < 40) level = 'muy débil';
   else if (score < 60) level = 'débil';
   else if (score < 75) level = 'medio';

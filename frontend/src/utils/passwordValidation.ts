@@ -10,11 +10,11 @@
 // Sanitizar contraseña removiendo caracteres peligrosos sin afectar complejidad
 export function sanitizePassword(password: string): string {
   if (typeof password !== 'string') return '';
-  
+
   return password
     .trim()
     // Remover caracteres de control peligrosos
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     // Remover NULL bytes
     .replace(/\0/g, '')
     // Remover secuencias de escape peligrosas
@@ -34,7 +34,7 @@ export function validatePasswordComplexity(password: string): {
   if (sanitized.length < 8) {
     errors.push('Mínimo 8 caracteres');
   }
-  
+
   if (sanitized.length > 100) {
     errors.push('Máximo 100 caracteres');
   }
@@ -91,7 +91,7 @@ export function calculatePasswordStrength(password: string): {
   // Nivel de fortaleza y color
   let level: 'muy débil' | 'débil' | 'medio' | 'fuerte' | 'muy fuerte';
   let color: string;
-  
+
   if (score < 40) {
     level = 'muy débil';
     color = 'text-red-500';

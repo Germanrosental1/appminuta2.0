@@ -21,15 +21,10 @@ export const LoginPage: React.FC = () => {
           console.error('El usuario no tiene un rol definido');
           // Por defecto, redirigir a una página de perfil incompleto
           navigate('/perfil-incompleto');
+        } else if (user.role === 'administracion') {
+          navigate('/admin/dashboard');
         } else {
-          // Redirigir según el rol del usuario
-          if (user.role === 'administracion') {
-
-            navigate('/admin/dashboard');
-          } else {
-
-            navigate('/comercial/dashboard');
-          }
+          navigate('/comercial/dashboard');
         }
         setRedirectAttempted(true);
       } else if (!redirectAttempted) {

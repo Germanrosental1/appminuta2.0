@@ -197,7 +197,7 @@ export async function actualizarDatosMinutaDefinitiva(id: string, datosActualiza
 export async function getDatosMapaVentasByUnidadId(unidadId: string) {
   try {
     // Intenta buscar por ID si es numérico
-    if (!isNaN(Number(unidadId))) {
+    if (Number.isNaN(Number(unidadId))) {
       const dataById = await apiFetch<any>(`/unidades/${unidadId}`);
       if (dataById) return dataById;
     }
