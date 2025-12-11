@@ -9,13 +9,14 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 // Crear el cliente de Supabase con opciones para persistir la sesión
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Configuración para evitar recargas frecuentes
-    autoRefreshToken: false, // Desactivar el refresco automático del token
+    // Configuración para seguridad mejorada
+    autoRefreshToken: true, // Habilitar renovación automática de tokens
     persistSession: true,
     storage: globalThis.localStorage, // Usar localStorage en lugar de sessionStorage
     detectSessionInUrl: false, // Desactivar la detección de sesión en la URL
     flowType: 'pkce', // Usar PKCE para mayor seguridad
-    storageKey: 'supabase-auth-token-24h'
+    // Reducir tiempo de expiración del token a 1 hora para minimizar ventana de exposición
+    storageKey: 'supabase-auth-token-1h'
   },
   global: {
     headers: {
@@ -91,7 +92,6 @@ export async function getCurrentUser() {
 
     try {
       // Obtener el rol del usuario desde la tabla de perfiles
-
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')

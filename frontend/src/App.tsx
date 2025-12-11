@@ -16,6 +16,7 @@ import { DashboardComercial } from "./pages/comercial/DashboardComercial";
 import { DashboardAdmin } from "./pages/admin/DashboardAdmin";
 import { PerfilIncompletoPage } from "./pages/error/PerfilIncompletoPage";
 import { ForceChangePasswordPage } from "./pages/ForceChangePasswordPage";
+import MobileBlocker from "@/components/MobileBlocker";
 
 // Componente de protección para rutas que requieren autenticación
 const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode, requiredRole?: 'comercial' | 'administracion' }) => {
@@ -220,7 +221,9 @@ const AppWrapper = () => {
     <>
       <Toaster />
       <Sonner />
-      <RouterProvider router={router} />
+      <MobileBlocker>
+        <RouterProvider router={router} />
+      </MobileBlocker>
     </>
   );
 };

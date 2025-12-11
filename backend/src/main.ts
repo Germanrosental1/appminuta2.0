@@ -30,7 +30,6 @@ async function bootstrap() {
 }
 
 // Top-level await is not supported with CommonJS modules
-// NOSONAR: typescript:S6544 - Cannot use top-level await with module: commonjs
 void bootstrap().catch((err) => {
     console.error('Error during application bootstrap:', err);
     process.exit(1);

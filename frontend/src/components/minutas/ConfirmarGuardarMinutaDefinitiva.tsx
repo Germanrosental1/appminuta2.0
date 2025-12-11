@@ -205,7 +205,6 @@ const formatDisplayValue = (value: unknown): string => {
   if (typeof value === 'boolean') return String(value);
   if (typeof value === 'number') return String(value);
   if (typeof value === 'string') return value;
-  // Handle objects, arrays, and any other types
   return JSON.stringify(value);
 };
 

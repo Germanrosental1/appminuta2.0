@@ -1,7 +1,8 @@
-import { defineConfig } from "vite";
+import { defineConfig, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "node:path";
 import { componentTagger } from "lovable-tagger";
+import { mobileBlockerMiddleware } from "./src/middleware/mobileBlockerServer";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -24,6 +25,12 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    {
+      name: 'mobile-blocker',
+      configureServer(server: ViteDevServer) {
+        server.middlewares.use(mobileBlockerMiddleware());
+      },
+    },
     {
       name: 'html-transform',
       transformIndexHtml(html: string) {
