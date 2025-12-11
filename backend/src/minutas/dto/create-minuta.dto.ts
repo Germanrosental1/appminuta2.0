@@ -1,10 +1,8 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { DatosMinutaDto } from './datos-minuta.dto';
 
 export class CreateMinutaDto {
-    @IsUUID()
-    @IsNotEmpty()
-    usuario_id: string;
-
     @IsString()
     @IsNotEmpty()
     proyecto: string;
@@ -13,17 +11,20 @@ export class CreateMinutaDto {
     @IsNotEmpty()
     estado: string;
 
-    @IsObject()
+    @ValidateNested()
+    @Type(() => DatosMinutaDto)
     @IsNotEmpty()
-    datos: any;
+    datos: DatosMinutaDto;
 
-    @IsObject()
+    @ValidateNested()
+    @Type(() => DatosMinutaDto)
     @IsOptional()
-    datos_adicionales?: any;
+    datos_adicionales?: DatosMinutaDto;
 
-    @IsObject()
+    @ValidateNested()
+    @Type(() => DatosMinutaDto)
     @IsOptional()
-    datos_mapa_ventas?: any;
+    datos_mapa_ventas?: DatosMinutaDto;
 
     @IsString()
     @IsOptional()

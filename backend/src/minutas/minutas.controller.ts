@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards, Req } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { MinutasService } from './minutas.service';
 import { CreateMinutaDto } from './dto/create-minuta.dto';
 import { UpdateMinutaDto } from './dto/update-minuta.dto';
+import { FindAllMinutasQueryDto } from './dto/find-all-minutas-query.dto';
 
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
@@ -12,13 +13,15 @@ export class MinutasController {
   constructor(private readonly minutasService: MinutasService) { }
 
   @Post()
-  create(@Body() createMinutaDto: CreateMinutaDto) {
-    return this.minutasService.create(createMinutaDto);
+  create(@Body() createMinutaDto: CreateMinutaDto, @Req() req: Request) {
+    const userId = (req.user as any)?.sub;
+    return this.minutasService.create(createMinutaDto, userId);
   }
 
   @Post('provisoria')
-  createProvisoria(@Body() data: any) {
-    return this.minutasService.createProvisoria(data);
+  createProvisoria(@Body() data: any, @Req() req: Request) {
+    const userId = (req.user as any)?.sub;
+    return this.minutasService.createProvisoria(data, userId);
   }
 
   @Patch('provisoria/:id')
@@ -34,22 +37,28 @@ export class MinutasController {
   }
 
   @Get()
-  findAll(@Query() query: any) {
+  findAll(@Query() query: FindAllMinutasQueryDto) {
     return this.minutasService.findAll(query);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.minutasService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req.user as any)?.sub;
+    return this.minutasService.findOne(id, userId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMinutaDto: UpdateMinutaDto) {
-    return this.minutasService.update(id, updateMinutaDto);
+  async update(@Param('id') id: string, @Body() updateMinutaDto: UpdateMinutaDto, @Req() req: Request) {
+    const userId = (req.user as any)?.sub;
+    // Obtener rol del usuario desde la base de datos o JWT
+    // Por ahora, pasar undefined hasta implementar sistema de roles (Fase 2)
+    const userRole = undefined;
+    return this.minutasService.update(id, updateMinutaDto, userId, userRole);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.minutasService.remove(id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req.user as any)?.sub;
+    return this.minutasService.remove(id, userId);
   }
 }
