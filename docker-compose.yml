@@ -1,0 +1,23 @@
+services:
+  # --- Frontend (React + Vite) ---
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: always
+
+  # --- Backend (NestJS) ---
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      # - DATABASE_URL=... (To be added later)
+    restart: always
