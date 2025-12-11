@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional, IsUUID, IsNumberString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsObject, IsOptional, IsUUID, IsNumber } from 'class-validator';
 
 export class CreateMinutaProvisoriaDto {
     @IsString()

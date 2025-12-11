@@ -140,6 +140,12 @@ export async function getAllMinutasDefinitivasForAdmin() {
   return response.data;
 }
 
+// Obtener todas las minutas provisorias (para administración)
+export async function getAllMinutasProvisoriasForAdmin() {
+  const response = await apiFetch<{ data: MinutaProvisoria[] }>('/minutas/provisoria');
+  return response.data;
+}
+
 // Obtener una minuta definitiva por ID
 export async function getMinutaDefinitivaById(id: string) {
   return apiFetch<MinutaDefinitiva>(`/minutas/${id}`);

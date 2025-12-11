@@ -1,11 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { MinutasService } from './minutas.service';
 import { CreateMinutaDto } from './dto/create-minuta.dto';
 import { UpdateMinutaDto } from './dto/update-minuta.dto';
 
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
-import { UseGuards } from '@nestjs/common';
 
 @Controller('minutas')
 @UseGuards(SupabaseAuthGuard)

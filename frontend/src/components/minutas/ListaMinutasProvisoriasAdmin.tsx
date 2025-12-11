@@ -1,43 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { getAllMinutasProvisoriasForAdmin, actualizarEstadoMinutaProvisoria } from '@/services/minutas';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { getAllMinutasProvisoriasForAdmin, actualizarEstadoMinutaProvisoria, MinutaProvisoria } from '@/services/minutas';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
-  FileText, 
-  Search, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Eye, 
-  AlertCircle 
+import {
+  FileText,
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
-interface MinutaListItem {
-  id: string;
-  proyecto: string;
-  unidad_id: string;
-  usuario_id: string;
-  fecha_creacion: string;
-  estado: 'pendiente' | 'revisada' | 'aprobada' | 'rechazada';
-  datos: any;
-  comentarios?: string;
-}
-
 export const ListaMinutasProvisoriasAdmin: React.FC = () => {
-  const [minutas, setMinutas] = useState<MinutaListItem[]>([]);
-  const [filteredMinutas, setFilteredMinutas] = useState<MinutaListItem[]>([]);
+  const [minutas, setMinutas] = useState<MinutaProvisoria[]>([]);
+  const [filteredMinutas, setFilteredMinutas] = useState<MinutaProvisoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,37 +53,37 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
   useEffect(() => {
     // Filtrar minutas según búsqueda y tab activo
     let filtered = minutas;
-    
+
     // Filtrar por estado
     if (activeTab !== 'todas') {
       filtered = filtered.filter(m => m.estado === activeTab);
     }
-    
+
     // Filtrar por término de búsqueda
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(m => 
-        m.proyecto.toLowerCase().includes(term) || 
+      filtered = filtered.filter(m =>
+        m.proyecto.toLowerCase().includes(term) ||
         m.datos?.unidadDescripcion?.toLowerCase().includes(term) ||
         m.usuario_id.toLowerCase().includes(term)
       );
     }
-    
+
     setFilteredMinutas(filtered);
   }, [searchTerm, activeTab, minutas]);
 
   const handleChangeEstado = async (id: string, nuevoEstado: 'revisada' | 'aprobada' | 'rechazada') => {
     try {
       await actualizarEstadoMinutaProvisoria(id, nuevoEstado);
-      
+
       // Actualizar la lista local
-      setMinutas(prev => prev.map(m => 
+      setMinutas(prev => prev.map(m =>
         m.id === id ? { ...m, estado: nuevoEstado } : m
       ));
-      
+
       toast({
         title: "Estado actualizado",
-        description: `La minuta ha sido marcada como ${nuevoEstado}`,
+        description: `La minuta ha sido marcada como ${nuevoEstado} `,
       });
     } catch (error) {
       console.error('Error al actualizar estado:', error);
@@ -163,7 +151,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                 <TabsTrigger value="revisada">Revisadas</TabsTrigger>
                 <TabsTrigger value="aprobada">Aprobadas</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value={activeTab}>
                 <div className="rounded-md border">
                   <Table>
@@ -197,24 +185,24 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="sm" asChild>
-                                  <a href={`/admin/minutas/${minuta.id}`}>
+                                  <a href={`/ admin / minutas / ${minuta.id} `}>
                                     <Eye className="h-4 w-4 mr-1" />
                                     Ver
                                   </a>
                                 </Button>
-                                
+
                                 {minuta.estado === 'pendiente' && (
                                   <>
-                                    <Button 
-                                      variant="outline" 
+                                    <Button
+                                      variant="outline"
                                       size="sm"
                                       onClick={() => handleChangeEstado(minuta.id, 'revisada')}
                                     >
                                       <Clock className="h-4 w-4 mr-1" />
                                       Revisar
                                     </Button>
-                                    <Button 
-                                      variant="outline" 
+                                    <Button
+                                      variant="outline"
                                       size="sm"
                                       className="text-green-600"
                                       onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
@@ -222,8 +210,8 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                       <CheckCircle className="h-4 w-4 mr-1" />
                                       Aprobar
                                     </Button>
-                                    <Button 
-                                      variant="outline" 
+                                    <Button
+                                      variant="outline"
                                       size="sm"
                                       className="text-red-600"
                                       onClick={() => handleChangeEstado(minuta.id, 'rechazada')}
@@ -233,11 +221,11 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                     </Button>
                                   </>
                                 )}
-                                
+
                                 {minuta.estado === 'revisada' && (
                                   <>
-                                    <Button 
-                                      variant="outline" 
+                                    <Button
+                                      variant="outline"
                                       size="sm"
                                       className="text-green-600"
                                       onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
@@ -245,8 +233,8 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                       <CheckCircle className="h-4 w-4 mr-1" />
                                       Aprobar
                                     </Button>
-                                    <Button 
-                                      variant="outline" 
+                                    <Button
+                                      variant="outline"
                                       size="sm"
                                       className="text-red-600"
                                       onClick={() => handleChangeEstado(minuta.id, 'rechazada')}
@@ -256,32 +244,32 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                     </Button>
                                   </>
                                 )}
-                                
+
                                 {minuta.estado === 'aprobada' && (
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
                                     asChild
                                   >
-                                    <a href={`/admin/minutas/${minuta.id}/definitiva`}>
+                                    <a href={`/ admin / minutas / ${minuta.id}/definitiva`}>
                                       <FileText className="h-4 w-4 mr-1" />
                                       Crear Definitiva
-                                    </a>
-                                  </Button>
+                                    </a >
+                                  </Button >
                                 )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
+                              </div >
+                            </TableCell >
+                          </TableRow >
                         ))
                       )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                    </TableBody >
+                  </Table >
+                </div >
+              </TabsContent >
+            </Tabs >
+          </div >
+        </CardContent >
+      </Card >
+    </div >
   );
 };

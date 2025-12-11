@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getAllMinutasDefinitivasForAdmin, actualizarEstadoMinutaDefinitiva } from '@/services/minutas';
+import { getAllMinutasDefinitivasForAdmin, actualizarEstadoMinutaDefinitiva, MinutaDefinitiva } from '@/services/minutas';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -21,16 +21,6 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
-import {
-  DropdownMenu,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-// Usar la misma interfaz que en minutas.ts para evitar problemas de tipo
-import { MinutaDefinitiva } from '@/services/minutas';
 
 export const ListaMinutasDefinitivasAdmin: React.FC = () => {
   const [minutas, setMinutas] = useState<MinutaDefinitiva[]>([]);
@@ -162,16 +152,20 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
               </div>
             </div>
 
-            {loading ? (
+            {loading && (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
               </div>
-            ) : error ? (
+            )}
+
+            {!loading && error && (
               <div className="text-center py-8 text-red-500">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2" />
                 <p>{error}</p>
               </div>
-            ) : (
+            )}
+
+            {!loading && !error && (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>

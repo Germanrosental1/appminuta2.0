@@ -18,7 +18,6 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ResumenCompleto } from '@/components/wizard/ResumenCompleto';
 
 interface ConfirmarGuardarMinutaDefinitivaProps {
   unidadId: string;
@@ -199,6 +198,17 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
   );
 };
 
+// Helper function to format values for display
+const formatDisplayValue = (value: unknown): string => {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (typeof value === 'boolean') return String(value);
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') return value;
+  // Handle objects, arrays, and any other types
+  return JSON.stringify(value);
+};
+
 // Componente auxiliar para mostrar el contenido del mapa de ventas
 const MapaVentasContent: React.FC<{ loading: boolean; datos: any }> = ({ loading, datos }) => {
   if (loading) {
@@ -218,7 +228,7 @@ const MapaVentasContent: React.FC<{ loading: boolean; datos: any }> = ({ loading
           {Object.entries(datos).map(([key, value]) => (
             <div key={key} className="border-b pb-2">
               <span className="font-medium">{key}: </span>
-              <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
+              <span>{formatDisplayValue(value)}</span>
             </div>
           ))}
         </div>
