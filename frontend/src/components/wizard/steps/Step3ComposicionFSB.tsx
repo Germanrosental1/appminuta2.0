@@ -8,7 +8,7 @@ import { validateStep } from "@/utils/validation";
 import { DollarSign } from "lucide-react";
 
 export const Step3ComposicionFSB: React.FC = () => {
-  const { data, setData } = useWizard();
+  const { data, updateData } = useWizard();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Calcular precio total de todas las unidades seleccionadas
@@ -50,7 +50,7 @@ export const Step3ComposicionFSB: React.FC = () => {
   // Asegurar que la moneda A siempre sea ARS
   useEffect(() => {
     if (data.monedaA !== "ARS") {
-      setData({ monedaA: "ARS" });
+      updateData({ monedaA: "ARS" });
     }
   }, []);
 
@@ -65,29 +65,29 @@ export const Step3ComposicionFSB: React.FC = () => {
   }, [data.modoA, data.porcA, data.impA, data.precioNegociado, data.cocheras, data.baulera, data.unidades]);
 
   const handleModoChange = (modo: "porcentaje" | "importe") => {
-    setData({ modoA: modo });
+    updateData({ modoA: modo });
   };
 
   const handlePorcAChange = (value: string) => {
     const num = Number.parseFloat(value);
     if (!Number.isNaN(num) && num >= 0 && num <= 100) {
-      setData({ porcA: num });
+      updateData({ porcA: num });
     }
   };
 
   const handleImpAChange = (value: string) => {
-    const val = Number.parseFloat(value.replace(/[^0-9.-]+/g, ""));
+    const val = Number.parseFloat(value.replaceAll(/[^0-9.-]+/g, ""));
     if (Number.isNaN(val)) {
       // If the parsed value is NaN, we might want to clear the input or set it to 0
       // For now, we'll just not update the state if it's not a valid number.
       // Or, if the user clears the input, we can set it to 0.
       if (value.trim() === "") {
-        setData({ impA: 0 });
+        updateData({ impA: 0 });
       }
       return;
     }
     if (val >= 0 && val <= precioTotal) {
-      setData({ impA: val });
+      updateData({ impA: val });
     }
   };
 
@@ -207,7 +207,7 @@ export const Step3ComposicionFSB: React.FC = () => {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="monedaB">Moneda SB</Label>
-          <Select value={data.monedaB} onValueChange={(val: "USD" | "ARS" | "MIX") => setData({ monedaB: val, monedaA: "ARS" })}>
+          <Select value={data.monedaB} onValueChange={(val: "USD" | "ARS" | "MIX") => updateData({ monedaB: val, monedaA: "ARS" })}>
             <SelectTrigger id="monedaB">
               <SelectValue />
             </SelectTrigger>
@@ -224,6 +224,13 @@ export const Step3ComposicionFSB: React.FC = () => {
       {/* Resumen de totales a pagar */}
       <div className="rounded-lg border border-border overflow-hidden mt-6">
         <table className="w-full">
+          <thead>
+            <tr className="bg-muted/50 border-b border-border">
+              <th className="p-3 text-left font-medium text-sm">Concepto</th>
+              <th className="p-3 text-center font-medium text-sm">Porcentaje</th>
+              <th className="p-3 text-right font-medium text-sm">Monto</th>
+            </tr>
+          </thead>
           <tbody>
             <tr className="border-b border-border">
               <td className="p-3 font-medium text-blue-500">

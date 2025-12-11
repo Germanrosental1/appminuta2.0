@@ -108,7 +108,7 @@ export const MinutaEditarTab: React.FC<MinutaEditarTabProps> = ({
                                 return (
                                     <div key={key} className="border-b pb-2">
                                         <span className="font-medium">{key}: </span>
-                                        <span>{String(value)}</span>
+                                        <span>{typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''}</span>
                                     </div>
                                 );
                             })}

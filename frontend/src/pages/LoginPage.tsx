@@ -14,7 +14,6 @@ export const LoginPage: React.FC = () => {
       // Si hay un usuario autenticado
       if (user) {
 
-
         // Verificar si el usuario tiene un rol definido
         if (user.role === undefined) {
           // Si no tiene rol, mostrar un mensaje o redirigir a una página de error

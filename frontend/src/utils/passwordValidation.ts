@@ -11,12 +11,21 @@
 export function sanitizePassword(password: string): string {
   if (typeof password !== 'string') return '';
 
-  return password
-    .trim()
-    // Remover caracteres de control peligrosos
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    // Remover NULL bytes
-    .replace(/\x00/g, '')
+  // Remover caracteres de control (0-8, 11-12, 14-31, 127)
+  const removeControlChars = (str: string): string => {
+    return str.split('').filter((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      return !(
+        (code >= 0 && code <= 8) ||
+        code === 11 ||
+        code === 12 ||
+        (code >= 14 && code <= 31) ||
+        code === 127
+      );
+    }).join('');
+  };
+
+  return removeControlChars(password.trim())
     // Remover secuencias de escape peligrosas
     .replaceAll(/\\x[\da-fA-F]{2}/g, '')
     .replaceAll(/\\u[\da-fA-F]{4}/g, '');

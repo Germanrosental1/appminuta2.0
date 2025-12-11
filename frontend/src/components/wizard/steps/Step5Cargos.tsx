@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { validateStep } from "@/utils/validation";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormaPago } from "@/types/wizard";
 
@@ -12,13 +10,13 @@ import { FormaPago } from "@/types/wizard";
 type FormaPagoInternal = FormaPago | "Bonificado";
 
 export const Step5Cargos: React.FC = () => {
-  const { data, setData } = useWizard();
+  const { data, updateData } = useWizard();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (field: string, value: string) => {
-    const numValue = value === "" ? 0 : parseFloat(value.replaceAll(",", "."));
+    const numValue = value === "" ? 0 : Number.parseFloat(value.replaceAll(",", "."));
     if (!Number.isNaN(numValue) && numValue >= 0) {
-      setData({ [field]: numValue });
+      updateData({ [field]: numValue });
 
       if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -30,13 +28,13 @@ export const Step5Cargos: React.FC = () => {
   const handleFormaPagoChange = (field: string, value: FormaPagoInternal, cargoField: string, moneda: "ARS" | "USD") => {
     // Si es bonificado, poner el cargo en 0 y guardar "-" como forma de pago
     if (value === "Bonificado") {
-      setData({
+      updateData({
         [field]: "-", // Usamos "-" como valor en la base de datos
         [cargoField]: 0
       });
     } else {
       // Para cualquier otro valor, simplemente actualizar la forma de pago
-      setData({ [field]: value as FormaPago });
+      updateData({ [field]: value as FormaPago });
     }
   };
 
@@ -121,7 +119,7 @@ export const Step5Cargos: React.FC = () => {
     }
 
     if (totalFinanciarArs !== data.totalFinanciarArs || totalFinanciarUsd !== data.totalFinanciarUsd) {
-      setData({ totalFinanciarArs, totalFinanciarUsd });
+      updateData({ totalFinanciarArs, totalFinanciarUsd });
     }
   }, [
     data.valorArsConIVA, data.valorUsdConIVA,
@@ -174,7 +172,7 @@ export const Step5Cargos: React.FC = () => {
       totalCargosArs !== data.totalCargosArs ||
       totalCargosUsd !== data.totalCargosUsd
     ) {
-      setData({
+      updateData({
         selladoMonto,
         alhajamiemtoMonto,
         planosUnidadMonto,
@@ -209,6 +207,14 @@ export const Step5Cargos: React.FC = () => {
         </div>
         <CardContent className="p-0">
           <table className="w-full">
+            <thead>
+              <tr className="bg-muted/50 border-b border-border">
+                <th className="p-3 text-left font-medium text-sm">Concepto</th>
+                <th className="p-3 text-left font-medium text-sm">Valor/%</th>
+                <th className="p-3 text-right font-medium text-sm">Monto</th>
+                <th className="p-3 text-right font-medium text-sm">Forma de Pago</th>
+              </tr>
+            </thead>
             <tbody>
               {/* Certificación Firmas */}
               <tr className="border-b border-border">

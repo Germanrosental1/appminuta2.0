@@ -1,13 +1,15 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode } from "react";
 import { WizardData, initialWizardData, GeneratedFile } from "@/types/wizard";
 
 interface WizardContextType {
   data: WizardData;
   currentStep: number;
   generatedFile: GeneratedFile | null;
-  setData: (data: Partial<WizardData>) => void;
+  demoMode: boolean;
+  updateData: (data: Partial<WizardData>) => void;
   setCurrentStep: (step: number) => void;
   setGeneratedFile: (file: GeneratedFile | null) => void;
+  setDemoMode: (demo: boolean) => void;
   resetWizard: () => void;
 }
 
@@ -16,18 +18,19 @@ const WizardContext = createContext<WizardContextType | undefined>(undefined);
 // STORAGE_KEY eliminado
 
 export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [data, setDataState] = useState<WizardData>(initialWizardData);
+  const [data, setData] = useState<WizardData>(initialWizardData);
   const [currentStep, setCurrentStep] = useState(0);
   const [generatedFile, setGeneratedFile] = useState<GeneratedFile | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
 
-  const setData = (newData: Partial<WizardData>) => {
-    setDataState((prev) => ({ ...prev, ...newData }));
+  const updateData = (newData: Partial<WizardData>) => {
+    setData((prev) => ({ ...prev, ...newData }));
   };
 
   // Funciones de guardado y carga de borradores eliminadas
 
   const resetWizard = () => {
-    setDataState(initialWizardData);
+    setData(initialWizardData);
     setCurrentStep(0);
     setGeneratedFile(null);
   };
@@ -38,11 +41,13 @@ export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     data,
     currentStep,
     generatedFile,
-    setData,
+    demoMode,
+    updateData,
     setCurrentStep,
     setGeneratedFile,
+    setDemoMode,
     resetWizard,
-  }), [data, currentStep, generatedFile]);
+  }), [data, currentStep, generatedFile, demoMode]);
 
   return (
     <WizardContext.Provider value={value}>

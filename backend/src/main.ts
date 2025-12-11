@@ -24,4 +24,9 @@ async function bootstrap() {
     app.enableCors();
     await app.listen(process.env.PORT || 3000);
 }
-bootstrap();
+
+// NOSONAR - Top-level await not supported with CommonJS modules
+bootstrap().catch((err) => {
+    console.error('Error during application bootstrap:', err);
+    process.exit(1);
+});

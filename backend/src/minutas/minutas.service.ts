@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class MinutasService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createMinutaDto: CreateMinutaDto) {
     return this.prisma.minutas_definitivas.create({
@@ -34,7 +34,7 @@ export class MinutasService {
       data: {
         ...data,
         updated_at: new Date(),
-      } as any,
+      },
     });
   }
 

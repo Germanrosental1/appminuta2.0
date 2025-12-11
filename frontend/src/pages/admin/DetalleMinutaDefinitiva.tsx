@@ -28,6 +28,8 @@ import {
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 import { MinutaEditarTab } from './components/MinutaEditarTab';
 
+type MinutaEstado = 'aprobada' | 'firmada' | 'cancelada';
+
 export const DetalleMinutaDefinitiva: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   const [comentarios, setComentarios] = useState('');
   const [procesando, setProcesando] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [accionPendiente, setAccionPendiente] = useState<'aprobada' | 'firmada' | 'cancelada' | null>(null);
+  const [accionPendiente, setAccionPendiente] = useState<MinutaEstado | null>(null);
 
   // Estados para edición de datos
   const [editandoDatos, setEditandoDatos] = useState(false);
@@ -158,7 +160,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
     }
   };
 
-  const handleCambiarEstado = (nuevoEstado: 'aprobada' | 'firmada' | 'cancelada') => {
+  const handleCambiarEstado = (nuevoEstado: MinutaEstado) => {
     setAccionPendiente(nuevoEstado);
     setDialogOpen(true);
   };
@@ -212,7 +214,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
     }
   };
 
-  const getDialogTitle = (accion: 'aprobada' | 'firmada' | 'cancelada' | null) => {
+  const getDialogTitle = (accion: MinutaEstado | null) => {
     switch (accion) {
       case 'aprobada': return 'Confirmar Aprobación';
       case 'firmada': return 'Confirmar Firma';
@@ -221,7 +223,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
     }
   };
 
-  const getDialogDescription = (accion: 'aprobada' | 'firmada' | 'cancelada' | null) => {
+  const getDialogDescription = (accion: MinutaEstado | null) => {
     switch (accion) {
       case 'aprobada':
         return '¿Está seguro que desea aprobar esta minuta? Esta acción no se puede deshacer.';
@@ -232,6 +234,306 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       default:
         return '';
     }
+  };
+
+  // Helper
+  const formatMapValue = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') return JSON.stringify(value);
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    return '';
+  };
+
+  // Render Main
+  const renderMainContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Cargando información de la minuta...</span>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-8 text-red-500">
+          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+          <p>{error}</p>
+        </div>
+      );
+    }
+
+    if (!minuta) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          No se encontró la minuta solicitada
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-2/3 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Información de la Minuta</span>
+                  <div className="flex items-center gap-2">
+                    {getEstadoBadge(minuta.estado)}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerarPDFClick}
+                      disabled={procesando || procesandoPDF}
+                    >
+                      {procesandoPDF ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1" />
+                      )}
+                      PDF Completo
+                    </Button>
+                  </div>
+                </CardTitle>
+                <CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-2">
+                    <div>
+                      <span className="font-medium">Proyecto: </span>
+                      <span>{minuta.proyecto}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Unidad: </span>
+                      <span>{minuta.datos?.unidadDescripcion || minuta.unidad_id}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Fecha: </span>
+                      <span>{new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</span>
+                    </div>
+                  </div>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="resumen">
+                  <div className="flex justify-between items-center mb-4">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="resumen">Resumen</TabsTrigger>
+                      <TabsTrigger value="mapa-ventas">Mapa de Ventas</TabsTrigger>
+                      <TabsTrigger value="editar">Editar Datos</TabsTrigger>
+                      <TabsTrigger value="json">Datos JSON</TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="resumen" className="mt-4">
+                    <ResumenCompleto wizardData={minuta.datos} />
+                  </TabsContent>
+
+                  <TabsContent value="mapa-ventas" className="mt-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        {datosMapaVentas ? (
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Datos del Mapa de Ventas</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                              {Object.entries(datosMapaVentas).map(([key, value]) => (
+                                <div key={key} className="border-b pb-2">
+                                  <span className="font-medium">{key}: </span>
+                                  <span>{formatMapValue(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No hay datos del mapa de ventas disponibles
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="editar" className="mt-4">
+                    <MinutaEditarTab
+                      editandoDatos={editandoDatos}
+                      guardandoDatos={guardandoDatos}
+                      datosEditados={datosEditados}
+                      minutaDatos={minuta.datos}
+                      onEditar={handleEditarDatos}
+                      onCancelar={handleCancelarEdicion}
+                      onGuardar={handleGuardarDatos}
+                      onCambioDato={handleCambioDato}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="json" className="mt-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <pre className="text-xs overflow-auto">
+                          {JSON.stringify(minuta, null, 2)}
+                        </pre>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Comentarios</CardTitle>
+                <CardDescription>
+                  Agregue comentarios o notas sobre esta minuta
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder="Escriba sus comentarios aquí..."
+                  value={comentarios}
+                  onChange={(e) => setComentarios(e.target.value)}
+                  rows={4}
+                />
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button
+                  onClick={handleGuardarComentarios}
+                  disabled={procesando}
+                >
+                  {procesando ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar Comentarios'
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+
+          <div className="w-full md:w-1/3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Acciones</CardTitle>
+                <CardDescription>
+                  Gestione el estado de la minuta
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {minuta.estado === 'pendiente' && (
+                  <>
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => handleCambiarEstado('aprobada')}
+                      disabled={procesando}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Aprobar Minuta
+                    </Button>
+
+                    <Button
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      onClick={() => handleCambiarEstado('cancelada')}
+                      disabled={procesando}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancelar Minuta
+                    </Button>
+                  </>
+                )}
+
+                {minuta.estado === 'aprobada' && (
+                  <Button
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleCambiarEstado('firmada')}
+                    disabled={procesando}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Marcar como Firmada
+                  </Button>
+                )}
+
+                {minuta.estado === 'firmada' && (
+                  <div className="text-center py-4 text-green-600">
+                    <CheckCircle className="h-8 w-8 mx-auto mb-2" />
+                    <p className="font-medium">Esta minuta ha sido firmada</p>
+                  </div>
+                )}
+
+                {minuta.estado === 'cancelada' && (
+                  <div className="text-center py-4 text-red-600">
+                    <XCircle className="h-8 w-8 mx-auto mb-2" />
+                    <p className="font-medium">Esta minuta ha sido cancelada</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {getDialogTitle(accionPendiente)}
+              </DialogTitle>
+              <DialogDescription>
+                {getDialogDescription(accionPendiente)}
+              </DialogDescription>
+            </DialogHeader>
+
+            <Textarea
+              placeholder="Agregue un comentario (opcional)"
+              value={comentarios}
+              onChange={(e) => setComentarios(e.target.value)}
+              className="mt-4"
+            />
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={procesando}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmarCambioEstado}
+                disabled={procesando}
+                variant={accionPendiente === 'aprobada' ? 'default' : 'destructive'}
+              >
+                {procesando ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    {accionPendiente === 'aprobada' && (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Confirmar Aprobación
+                      </>
+                    )}
+                    {accionPendiente === 'firmada' && (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Confirmar Firma
+                      </>
+                    )}
+                    {accionPendiente === 'cancelada' && (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Confirmar Cancelación
+                      </>
+                    )}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
   };
 
   return (
@@ -248,280 +550,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
         <h1 className="text-2xl font-bold">Detalle de Minuta</h1>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Cargando información de la minuta...</span>
-        </div>
-      ) : error ? (
-        <div className="text-center py-8 text-red-500">
-          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-          <p>{error}</p>
-        </div>
-      ) : minuta ? (
-        <>
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="w-full md:w-2/3 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Información de la Minuta</span>
-                    <div className="flex items-center gap-2">
-                      {getEstadoBadge(minuta.estado)}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGenerarPDFClick}
-                        disabled={procesando || procesandoPDF}
-                      >
-                        {procesandoPDF ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4 mr-1" />
-                        )}
-                        PDF Completo
-                      </Button>
-                    </div>
-                  </CardTitle>
-                  <CardDescription>
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-2">
-                      <div>
-                        <span className="font-medium">Proyecto: </span>
-                        <span>{minuta.proyecto}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Unidad: </span>
-                        <span>{minuta.datos?.unidadDescripcion || minuta.unidad_id}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Fecha: </span>
-                        <span>{new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</span>
-                      </div>
-                    </div>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="resumen">
-                    <div className="flex justify-between items-center mb-4">
-                      <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="resumen">Resumen</TabsTrigger>
-                        <TabsTrigger value="mapa-ventas">Mapa de Ventas</TabsTrigger>
-                        <TabsTrigger value="editar">Editar Datos</TabsTrigger>
-                        <TabsTrigger value="json">Datos JSON</TabsTrigger>
-                      </TabsList>
-                    </div>
-
-                    <TabsContent value="resumen" className="mt-4">
-                      <ResumenCompleto wizardData={minuta.datos} />
-                    </TabsContent>
-
-                    <TabsContent value="mapa-ventas" className="mt-4">
-                      <Card>
-                        <CardContent className="pt-6">
-                          {datosMapaVentas ? (
-                            <div className="space-y-4">
-                              <h3 className="text-lg font-medium">Datos del Mapa de Ventas</h3>
-                              <div className="grid grid-cols-2 gap-4">
-                                {Object.entries(datosMapaVentas).map(([key, value]) => (
-                                  <div key={key} className="border-b pb-2">
-                                    <span className="font-medium">{key}: </span>
-                                    <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-8 text-muted-foreground">
-                              No hay datos del mapa de ventas disponibles
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="editar" className="mt-4">
-                      <MinutaEditarTab
-                        editandoDatos={editandoDatos}
-                        guardandoDatos={guardandoDatos}
-                        datosEditados={datosEditados}
-                        minutaDatos={minuta.datos}
-                        onEditar={handleEditarDatos}
-                        onCancelar={handleCancelarEdicion}
-                        onGuardar={handleGuardarDatos}
-                        onCambioDato={handleCambioDato}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="json" className="mt-4">
-                      <Card>
-                        <CardContent className="pt-6">
-                          <pre className="text-xs overflow-auto">
-                            {JSON.stringify(minuta, null, 2)}
-                          </pre>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Comentarios</CardTitle>
-                  <CardDescription>
-                    Agregue comentarios o notas sobre esta minuta
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    placeholder="Escriba sus comentarios aquí..."
-                    value={comentarios}
-                    onChange={(e) => setComentarios(e.target.value)}
-                    rows={4}
-                  />
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button
-                    onClick={handleGuardarComentarios}
-                    disabled={procesando}
-                  >
-                    {procesando ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      'Guardar Comentarios'
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-
-            <div className="w-full md:w-1/3">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Acciones</CardTitle>
-                  <CardDescription>
-                    Gestione el estado de la minuta
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {minuta.estado === 'pendiente' && (
-                    <>
-                      <Button
-                        className="w-full bg-green-600 hover:bg-green-700"
-                        onClick={() => handleCambiarEstado('aprobada')}
-                        disabled={procesando}
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Aprobar Minuta
-                      </Button>
-
-                      <Button
-                        className="w-full bg-red-600 hover:bg-red-700"
-                        onClick={() => handleCambiarEstado('cancelada')}
-                        disabled={procesando}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Cancelar Minuta
-                      </Button>
-                    </>
-                  )}
-
-                  {minuta.estado === 'aprobada' && (
-                    <Button
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={() => handleCambiarEstado('firmada')}
-                      disabled={procesando}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Marcar como Firmada
-                    </Button>
-                  )}
-
-                  {minuta.estado === 'firmada' && (
-                    <div className="text-center py-4 text-green-600">
-                      <CheckCircle className="h-8 w-8 mx-auto mb-2" />
-                      <p className="font-medium">Esta minuta ha sido firmada</p>
-                    </div>
-                  )}
-
-                  {minuta.estado === 'cancelada' && (
-                    <div className="text-center py-4 text-red-600">
-                      <XCircle className="h-8 w-8 mx-auto mb-2" />
-                      <p className="font-medium">Esta minuta ha sido cancelada</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {getDialogTitle(accionPendiente)}
-                </DialogTitle>
-                <DialogDescription>
-                  {getDialogDescription(accionPendiente)}
-                </DialogDescription>
-              </DialogHeader>
-
-              <Textarea
-                placeholder="Agregue un comentario (opcional)"
-                value={comentarios}
-                onChange={(e) => setComentarios(e.target.value)}
-                className="mt-4"
-              />
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={procesando}>
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmarCambioEstado}
-                  disabled={procesando}
-                  variant={accionPendiente === 'aprobada' ? 'default' : 'destructive'}
-                >
-                  {procesando ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      {accionPendiente === 'aprobada' && (
-                        <>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Confirmar Aprobación
-                        </>
-                      )}
-                      {accionPendiente === 'firmada' && (
-                        <>
-                          <FileText className="mr-2 h-4 w-4" />
-                          Confirmar Firma
-                        </>
-                      )}
-                      {accionPendiente === 'cancelada' && (
-                        <>
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Confirmar Cancelación
-                        </>
-                      )}
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </>
-      ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          No se encontró la minuta solicitada
-        </div>
-      )}
+      {renderMainContent()}
 
       {/* Contenido oculto para generar PDF */}
       <div className="hidden">
@@ -551,7 +580,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                     {Object.entries(datosMapaVentas).map(([key, value]) => (
                       <div key={key} className="border-b pb-2">
                         <span className="font-medium">{key}: </span>
-                        <span>{String(value)}</span>
+                        <span>{formatMapValue(value)}</span>
                       </div>
                     ))}
                   </div>

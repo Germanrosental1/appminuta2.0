@@ -6,17 +6,17 @@ export const useDownloadBlob = () => {
       try {
         const blob = new Blob([arrayBuffer], { type: contentType });
         const url = URL.createObjectURL(blob);
-        
+
         const link = document.createElement("a");
         link.href = url;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
-        
+
         // Clean up
-        document.body.removeChild(link);
+        link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 100);
-        
+
         return { blob, url };
       } catch (error) {
         console.error("Error downloading file:", error);

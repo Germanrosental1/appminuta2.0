@@ -3,13 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, createBrowserRouter, RouterProvider, type RouteObject } from "react-router-dom";
+import { Navigate, createBrowserRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { WizardProvider } from "@/context/WizardContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useCSRFProtection } from "@/hooks/useCSRF";
-import Index from "./pages/Index";
 import Wizard from "./pages/Wizard";
 import NotFound from "./pages/NotFound";
 import { LoginPage } from "./pages/LoginPage";
@@ -83,7 +82,7 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
     }
   }
 
-  // Si todo está bien, mostrar el contenido protegido
+  // Si está bien, mostrar el contenido protegido
   return <>{children}</>;
 };
 

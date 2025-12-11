@@ -42,10 +42,10 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   finalStep = false,
 }) => {
   const { currentStep, setCurrentStep, resetWizard, data } = useWizard();
-  
+
   // Determinar qué conjunto de títulos usar basado en el tipo de pago
   const titles = data.tipoPago === "contado" ? STEP_TITLES_CONTADO : STEP_TITLES;
-  
+
   // Calcular el progreso basado en el conjunto de títulos actual
   const progress = ((currentStep + 1) / titles.length) * 100;
 
@@ -71,7 +71,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   // Función de guardar borrador eliminada
 
   const handleReset = () => {
-    if (window.confirm('¿Estás seguro de que quieres reiniciar toda la calculadora? Todos los datos se perderán.')) {
+    if (globalThis.confirm('¿Estás seguro de que quieres reiniciar toda la calculadora? Todos los datos se perderán.')) {
       resetWizard();
       toast.success("Calculadora reiniciada correctamente");
     }

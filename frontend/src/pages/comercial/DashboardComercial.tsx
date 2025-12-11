@@ -3,7 +3,7 @@ import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getMinutasDefinitivasByUsuario } from '@/services/minutas';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
@@ -22,7 +22,6 @@ import {
   Calculator,
   ClipboardList,
   Eye,
-  Download
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -84,6 +83,64 @@ export const DashboardComercial: React.FC = () => {
       default:
         return <Badge variant="outline">{estado}</Badge>;
     }
+  };
+
+  const renderMinutasContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+
+    if (minutas.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          No has creado ninguna minuta provisoria aún
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Proyecto</TableHead>
+              <TableHead>Unidad</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {minutas.map((minuta) => (
+              <TableRow key={minuta.id}>
+                <TableCell>{minuta.proyecto || 'Sin proyecto'}</TableCell>
+                <TableCell>{minuta.datos?.unidadDescripcion || minuta.unidad_id || 'Sin unidad'}</TableCell>
+                <TableCell>
+                  {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
+                </TableCell>
+                <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleVerMinuta(minuta.id)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Ver
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
   };
 
   return (
@@ -149,53 +206,7 @@ export const DashboardComercial: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                </div>
-              ) : minutas.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No has creado ninguna minuta provisoria aún
-                </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Proyecto</TableHead>
-                        <TableHead>Unidad</TableHead>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {minutas.map((minuta) => (
-                        <TableRow key={minuta.id}>
-                          <TableCell>{minuta.proyecto || 'Sin proyecto'}</TableCell>
-                          <TableCell>{minuta.datos?.unidadDescripcion || minuta.unidad_id || 'Sin unidad'}</TableCell>
-                          <TableCell>
-                            {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
-                          </TableCell>
-                          <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleVerMinuta(minuta.id)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Ver
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+              {renderMinutasContent()}
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,10 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
-
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
-import { UseGuards } from '@nestjs/common';
 
 @Controller('proyectos')
 @UseGuards(SupabaseAuthGuard)

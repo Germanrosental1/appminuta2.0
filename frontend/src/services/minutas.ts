@@ -1,4 +1,3 @@
-import { supabase } from '../lib/supabase';
 import { apiFetch } from '../lib/api-client';
 import { WizardData } from '@/types/wizard';
 import { validateRequest, safeValidate, ValidationError } from '@/utils/validateRequest';
@@ -90,33 +89,43 @@ export async function actualizarEstadoMinutaProvisoria(
   });
 }
 
+// Helper: Validate user ID
+function validateUsuarioId(usuarioId: string): void {
+  if (!usuarioId || typeof usuarioId !== 'string') {
+    throw new ValidationError('ID de usuario inválido', [
+      { field: 'usuarioId', message: 'El ID de usuario es requerido y debe ser una cadena válida' }
+    ]);
+  }
+}
+
+// Helper: Build query parameters for minutas
+function buildMinutasQueryParams(
+  usuarioId: string,
+  filters?: Partial<MinutaFilters>
+): URLSearchParams {
+  const params = new URLSearchParams({ usuario_id: usuarioId });
+
+  if (!filters) return params;
+
+  const validatedFilters = safeValidate(minutaFilterSchema.partial(), filters);
+  if (!validatedFilters.success) return params;
+
+  const f = validatedFilters.data;
+  if (f.estado) params.append('estado', f.estado);
+  if (f.proyecto) params.append('proyecto', f.proyecto);
+  if (f.fechaDesde) params.append('fechaDesde', f.fechaDesde);
+  if (f.fechaHasta) params.append('fechaHasta', f.fechaHasta);
+
+  return params;
+}
+
 // Obtener minutas definitivas por usuario comercial (CON VALIDACIÓN DE FILTROS)
 export async function getMinutasDefinitivasByUsuario(usuarioId: string, filters?: Partial<MinutaFilters>) {
   try {
-    // 1. VALIDAR el UUID del usuario
-    if (!usuarioId || typeof usuarioId !== 'string') {
-      throw new ValidationError('ID de usuario inválido', [
-        { field: 'usuarioId', message: 'El ID de usuario es requerido y debe ser una cadena válida' }
-      ]);
-    }
-
-    // 2. Construir query params
-    const params = new URLSearchParams({ usuario_id: usuarioId });
-
-    if (filters) {
-      const validatedFilters = safeValidate(minutaFilterSchema.partial(), filters);
-      if (validatedFilters.success) {
-        const f = validatedFilters.data;
-        if (f.estado) params.append('estado', f.estado);
-        if (f.proyecto) params.append('proyecto', f.proyecto);
-        if (f.fechaDesde) params.append('fechaDesde', f.fechaDesde);
-        if (f.fechaHasta) params.append('fechaHasta', f.fechaHasta);
-      }
-    }
-
+    validateUsuarioId(usuarioId);
+    const params = buildMinutasQueryParams(usuarioId, filters);
     const response = await apiFetch<{ data: MinutaDefinitiva[] }>(`/minutas?${params.toString()}`);
     return response.data;
-
   } catch (error) {
     if (error instanceof ValidationError) {
       console.error('Error de validación al obtener minutas:', error.errors);
@@ -357,7 +366,8 @@ export async function getMinutasStats(usuarioId?: string) {
 
     return stats;
   } catch (error) {
-    throw error;
+    console.error('Error al obtener estadísticas de minutas:', error);
+
   }
 }
 

@@ -4,23 +4,33 @@
 export const sanitizeString = (input: string): string => {
   if (typeof input !== 'string') return '';
 
-  return input
-    .trim()
-    // Remover caracteres de control
-    // Remover caracteres de control (0-8, 11-12, 14-31, 127)
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+  // Remover caracteres de control (0-8, 11-12, 14-31, 127)
+  const removeControlChars = (str: string): string => {
+    return str.split('').filter((char) => {
+      const code = char.codePointAt(0) ?? 0;
+      return !(
+        (code >= 0 && code <= 8) ||
+        code === 11 ||
+        code === 12 ||
+        (code >= 14 && code <= 31) ||
+        code === 127
+      );
+    }).join('');
+  };
+
+  return removeControlChars(input.trim())
     // Remover scripts HTML
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     // Remover tags HTML peligrosos
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-    .replace(/<embed\b[^<]*>/gi, '')
+    .replaceAll(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replaceAll(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+    .replaceAll(/<embed\b[^<]*>/gi, '')
     // Remover javascript: en URLs
-    .replace(/javascript:/gi, '')
+    .replaceAll(/javascript:/gi, '')
     // Remover data: URLs (pueden contener scripts)
-    .replace(/data:text\/html/gi, '')
+    .replaceAll(/data:text\/html/gi, '')
     // Remover event handlers
-    .replace(/on\w+\s*=/gi, '');
+    .replaceAll(/on\w+\s*=/gi, '');
 };
 
 // Sanitiza un email
@@ -30,7 +40,7 @@ export const sanitizeEmail = (email: string): string => {
   return email
     .toLowerCase()
     .trim()
-    .replace(/[^\w@.+-]/g, ''); // Solo permitir caracteres válidos en emails
+    .replaceAll(/[^\w@.+-]/g, ''); // Solo permitir caracteres válidos en emails
 };
 
 // Sanitiza un número de teléfono
@@ -39,7 +49,7 @@ export const sanitizePhone = (phone: string): string => {
 
   return phone
     .trim()
-    .replace(/[^\d+\s-]/g, ''); // Solo permitir dígitos, +, espacios y guiones
+    .replaceAll(/[^\d+\s-]/g, ''); // Solo permitir dígitos, +, espacios y guiones
 };
 
 // Sanitiza un RUT
@@ -49,7 +59,7 @@ export const sanitizeRut = (rut: string): string => {
   return rut
     .trim()
     .toUpperCase()
-    .replace(/[^\dKk.-]/g, ''); // Solo permitir dígitos, K, k, puntos y guiones
+    .replaceAll(/[^\dKk.-]/g, ''); // Solo permitir dígitos, K, k, puntos y guiones
 };
 
 // Helper para sanitizar valores string específicos según la key
@@ -156,20 +166,17 @@ export const containsMaliciousCode = (input: string): boolean => {
 export const sanitizeHTML = (html: string): string => {
   if (typeof html !== 'string') return '';
 
-  // Tags permitidos
-  const allowedTags = ['b', 'i', 'u', 'strong', 'em', 'p', 'br', 'span', 'div'];
-
   // Remover todos los tags excepto los permitidos
   let sanitized = html;
 
   // Primero remover scripts y tags peligrosos
-  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-  sanitized = sanitized.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-  sanitized = sanitized.replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '');
+  sanitized = sanitized.replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  sanitized = sanitized.replaceAll(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+  sanitized = sanitized.replaceAll(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '');
 
   // Remover event handlers de todos los tags
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
+  sanitized = sanitized.replaceAll(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+  sanitized = sanitized.replaceAll(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
 
   return sanitized;
 };
@@ -179,12 +186,12 @@ export const escapeSQLString = (input: string): string => {
   if (typeof input !== 'string') return '';
 
   return input
-    .replaceAll(/'/g, "''")  // Escapar comillas simples
-    .replaceAll(/\\/g, '\\\\') // Escapar backslashes
-    .replaceAll(/\u0000/g, '\\0')  // Escapar null bytes
-    .replaceAll(/\n/g, '\\n')  // Escapar nuevas líneas
-    .replaceAll(/\r/g, '\\r')  // Escapar retornos de carro
-    .replaceAll(/\u001a/g, '\\Z'); // Escapar Ctrl+Z
+    .replaceAll("'", "''")  // Escapar comillas simples
+    .replaceAll("\\", String.raw`\\`) // Escapar backslashes
+    .replaceAll("\u0000", String.raw`\0`)  // Escapar null bytes
+    .replaceAll("\n", String.raw`\n`)  // Escapar nuevas líneas
+    .replaceAll("\r", String.raw`\r`)  // Escapar retornos de carro
+    .replaceAll("\u001a", String.raw`\Z`); // Escapar Ctrl+Z
 };
 
 // Limpia espacios en blanco excesivos
@@ -192,7 +199,7 @@ export const normalizeWhitespace = (input: string): string => {
   if (typeof input !== 'string') return '';
 
   return input
-    .replace(/\s+/g, ' ') // Múltiples espacios a uno solo
+    .replaceAll(/\s+/g, ' ') // Múltiples espacios a uno solo
     .trim();
 };
 
@@ -212,9 +219,9 @@ export const sanitizeFilePath = (path: string): string => {
   if (typeof path !== 'string') return '';
 
   return path
-    .replace(/\.\./g, '') // Remover ..
-    .replace(/\/+/g, '/') // Normalizar múltiples slashes
-    .replace(/^\/+/, '')  // Remover slashes iniciales
+    .replaceAll('..', '') // Remover ..
+    .replaceAll(/\/+/g, '/') // Normalizar múltiples slashes
+    .replaceAll(/^\/+/, '')  // Remover slashes iniciales
     .trim();
 };
 

@@ -13,6 +13,16 @@ interface ChangePasswordFormProps {
   onSuccess?: () => void;
 }
 
+// Helper: Determinar color de barra según score de fortaleza
+const getStrengthBarColor = (score: number): string => {
+  if (score < 40) return 'bg-red-500';
+  if (score < 60) return 'bg-orange-500';
+  if (score < 75) return 'bg-yellow-500';
+  if (score < 90) return 'bg-green-500';
+  return 'bg-emerald-500';
+};
+
+
 export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   isForced = false,
   onSuccess
@@ -54,7 +64,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     try {
 
 
-      // Usar la función updatePassword del AuthContext que ya maneja todo correctamente
+      // Usar la función updatePassword del AuthContext que ya maneja  correctamente
       const { error: updateError } = await updatePassword(sanitizedPassword);
 
       if (updateError) {
@@ -137,11 +147,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className={`h-2 rounded-full transition-all duration-300 ${strength.score < 40 ? 'bg-red-500' :
-                      strength.score < 60 ? 'bg-orange-500' :
-                        strength.score < 75 ? 'bg-yellow-500' :
-                          strength.score < 90 ? 'bg-green-500' : 'bg-emerald-500'
-                      }`}
+                    className={`h-2 rounded-full transition-all duration-300 ${getStrengthBarColor(strength.score)}`}
                     style={{ width: `${strength.score}%` }}
                   />
                 </div>

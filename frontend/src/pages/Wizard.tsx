@@ -11,91 +11,100 @@ import { Step6Salida as Step7Salida } from "@/components/wizard/steps/Step6Salid
 import { validateStep } from "@/utils/validation";
 import { toast } from "sonner";
 
+import { WizardData } from "@/types/wizard";
+
+// Helper: Validate Step 0 (Proyecto y Unidad)
+function validateStep0ProyectoUnidad(data: WizardData): boolean {
+  const step1Component = document.querySelector('[data-step="1"]');
+
+  if (step1Component) {
+    const errorFields = step1Component.querySelectorAll('.border-destructive');
+    if (errorFields.length > 0) {
+      toast.error("Por favor complete todos los campos requeridos");
+      return false;
+    }
+  }
+
+  if (!data.proyecto) {
+    toast.error("Debe seleccionar un proyecto");
+    return false;
+  }
+
+  if (!data.unidad) {
+    toast.error("Debe seleccionar una unidad");
+    return false;
+  }
+
+  if (!data.fechaPosesion) {
+    toast.error("Debe ingresar la fecha de posesión");
+    return false;
+  }
+
+  return true;
+}
+
+// Helper: Validate Step 5 (Reglas de Financiación)
+function validateStep5ReglasFinanciacion(data: WizardData): boolean {
+  // Calcular saldo restante A
+  const totalReglasA = (data.reglasFinanciacionA || [])
+    .filter(regla => regla.activa)
+    .reduce((sum, regla) => {
+      if (regla.moneda === "USD") {
+        return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+      }
+      return sum + regla.saldoFinanciar;
+    }, 0);
+
+  const saldoRestanteA = Math.max((data.totalFinanciarArs || 0) - totalReglasA, 0);
+
+  // Calcular saldo restante B
+  const totalReglasB = (data.reglasFinanciacionB || [])
+    .filter(regla => regla.activa)
+    .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
+
+  const saldoRestanteB = Math.max((data.totalFinanciarUsd || 0) - totalReglasB, 0);
+
+  if (saldoRestanteA > 0 || saldoRestanteB > 0) {
+    toast.error("Debe cubrir el 100% del saldo a financiar con reglas de financiación");
+    return false;
+  }
+
+  return true;
+}
+
 const Wizard: React.FC = () => {
   const { currentStep, data } = useWizard();
 
   const handleNext = () => {
-    // Validación especial para el paso 1 (Proyecto y Unidad)
+    // Step 0: Proyecto y Unidad
     if (currentStep === 0) {
-      // Obtener el componente Step1ProyectoUnidad
-      const step1Component = document.querySelector('[data-step="1"]');
-
-      // Verificar si hay campos con errores (bordes rojos)
-      if (step1Component) {
-        const errorFields = step1Component.querySelectorAll('.border-destructive');
-        if (errorFields.length > 0) {
-          toast.error("Por favor complete todos los campos requeridos");
-          return false;
-        }
-      }
-
-      // Validar que todos los campos requeridos estén completos
-      if (!data.proyecto) {
-        toast.error("Debe seleccionar un proyecto");
-        return false;
-      }
-
-      if (!data.unidad) {
-        toast.error("Debe seleccionar una unidad");
-        return false;
-      }
-
-      if (!data.fechaPosesion) {
-        toast.error("Debe ingresar la fecha de posesión");
-        return false;
-      }
+      if (!validateStep0ProyectoUnidad(data)) return false;
     }
 
-    // Si estamos en el paso 4 (Pago) y el tipo de pago es "contado", saltear el paso 6 (Reglas de Financiación)
+    // Step 3: Skip to step 5 if payment is "contado"
     if (currentStep === 3 && data.tipoPago === "contado") {
-      // Verificar si la validación del paso actual es exitosa
       const validation = validateStep(currentStep, data);
       if (!validation.valid) {
         const firstError = Object.values(validation.errors)[0];
         toast.error(firstError || "Por favor complete todos los campos requeridos");
         return false;
       }
-
-      // Si estamos avanzando al paso 5 (Cargos), el proceso es correcto
       return true;
     }
 
-    // Validación especial para el paso 6 (Reglas de Financiación)
+    // Step 5: Reglas de Financiación
     if (currentStep === 5) {
-      // Calcular saldo restante A
-      const totalReglasA = (data.reglasFinanciacionA || [])
-        .filter(regla => regla.activa)
-        .reduce((sum, regla) => {
-          // Si la regla está en USD, convertir a ARS usando el tipo de cambio
-          if (regla.moneda === "USD") {
-            return sum + (regla.saldoFinanciar * (data.tcValor || 1));
-          }
-          return sum + regla.saldoFinanciar;
-        }, 0);
-
-      const saldoRestanteA = Math.max((data.totalFinanciarArs || 0) - totalReglasA, 0);
-
-      // Calcular saldo restante B
-      const totalReglasB = (data.reglasFinanciacionB || [])
-        .filter(regla => regla.activa)
-        .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
-
-      const saldoRestanteB = Math.max((data.totalFinanciarUsd || 0) - totalReglasB, 0);
-
-      // Verificar que ambos saldos restantes sean 0
-      if (saldoRestanteA > 0 || saldoRestanteB > 0) {
-        toast.error("Debe cubrir el 100% del saldo a financiar con reglas de financiación");
-        return false;
-      }
+      if (!validateStep5ReglasFinanciacion(data)) return false;
     }
 
-    // Validación general para todos los pasos
+    // General validation for all steps
     const validation = validateStep(currentStep, data);
     if (!validation.valid) {
       const firstError = Object.values(validation.errors)[0];
       toast.error(firstError || "Por favor complete todos los campos requeridos");
       return false;
     }
+
     return true;
   };
 

@@ -1,17 +1,15 @@
 import React, { useRef } from "react";
 import { ResumenCompleto } from "../ResumenCompleto";
-import { Button } from "@/components/ui/button";
 import { useWizard } from "@/context/WizardContext";
-import { FileDown, Loader2 } from "lucide-react";
 import { ConfirmarGuardarMinutaDefinitiva } from "@/components/minutas/ConfirmarGuardarMinutaDefinitiva";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 export const Step6Salida: React.FC = () => {
   const { data } = useWizard();
   const resumenRef = useRef<HTMLDivElement>(null);
-  const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
 
+  /**
+   * Genera un PDF a partir del resumen del wizard
+   * NOTA: Funcionalidad temporalmente deshabilitada
   const handleDownloadPDF = async () => {
     if (!resumenRef.current) return;
 
@@ -70,6 +68,8 @@ export const Step6Salida: React.FC = () => {
     }
   };
 
+  */
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-4">
@@ -105,7 +105,7 @@ export const Step6Salida: React.FC = () => {
       </div>
 
       <div ref={resumenRef}>
-        <ResumenCompleto forPDF={isGeneratingPDF} />
+        <ResumenCompleto forPDF={false} />
       </div>
     </div>
   );

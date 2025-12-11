@@ -12,7 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     // Configuración para evitar recargas frecuentes
     autoRefreshToken: false, // Desactivar el refresco automático del token
     persistSession: true,
-    storage: window.localStorage, // Usar localStorage en lugar de sessionStorage
+    storage: globalThis.localStorage, // Usar localStorage en lugar de sessionStorage
     detectSessionInUrl: false, // Desactivar la detección de sesión en la URL
     flowType: 'pkce', // Usar PKCE para mayor seguridad
     storageKey: 'supabase-auth-token-24h'
@@ -79,7 +79,6 @@ export async function getCurrentUser() {
 
     // Si no hay sesión, no intentar obtener el usuario
     if (!sessionData.session) {
-      // console.log('No hay sesión activa');
       return null;
     }
 

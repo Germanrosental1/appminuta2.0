@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { sanitizePassword } from '@/utils/passwordValidation';
@@ -24,18 +24,74 @@ interface AuthContextType {
   isComercial: boolean;
 }
 
+interface UserProfile {
+  role: UserRole;
+  nombre: string;
+  apellido: string;
+  require_password_change: boolean;
+}
+
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Helper function: Fetch user profile from database
+const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role, nombre, apellido, require_password_change')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error al obtener perfil:', error);
+      return null;
+    }
+
+    return profile as UserProfile;
+  } catch (error) {
+    console.error('Error al obtener perfil del usuario:', error);
+    return null;
+  }
+};
+
+// Helper function: Enrich auth user with profile data
+const enrichUserWithProfile = async (authUser: User): Promise<AuthUser> => {
+  const profile = await fetchUserProfile(authUser.id);
+
+  if (!profile) {
+    return authUser as AuthUser;
+  }
+
+  return {
+    ...authUser,
+    role: profile.role,
+    nombre: profile.nombre,
+    apellido: profile.apellido,
+    require_password_change: profile.require_password_change
+  };
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastProcessedEvent, setLastProcessedEvent] = useState<string | null>(null);
+  const lastSignInTime = useRef<number>(0);
+
+  // Memoized function to load profile in background
+  const loadProfileInBackground = useCallback((authUser: User) => {
+    setTimeout(async () => {
+      try {
+        const enrichedUser = await enrichUserWithProfile(authUser);
+        setUser(enrichedUser);
+      } catch (error) {
+        console.error('Error al cargar perfil en segundo plano:', error);
+      }
+    }, 100);
+  }, []);
 
   useEffect(() => {
-    // Verificar el estado de autenticación inicial
+    // Check initial authentication state
     const checkUser = async () => {
       try {
-        // Intentar obtener la sesión directamente de Supabase
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
@@ -43,7 +99,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        await fetchUserProfile(session.user);
+        const enrichedUser = await enrichUserWithProfile(session.user);
+        setUser(enrichedUser);
       } catch (error) {
         console.error('Error al obtener el usuario actual:', error);
         setUser(null);
@@ -52,145 +109,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
 
-    const fetchUserProfile = async (authUser: User) => {
-      try {
-        // Obtener el perfil del usuario directamente
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, nombre, apellido, require_password_change')
-          .eq('id', authUser.id)
-          .single();
-
-        if (profileError) {
-          console.error('Error al obtener perfil:', profileError);
-          setUser(authUser as AuthUser);
-          return;
-        }
-
-        // Crear el usuario completo con su rol
-        const userWithRole = {
-          ...authUser,
-          role: profile?.role as UserRole,
-          nombre: profile?.nombre,
-          apellido: profile?.apellido,
-          require_password_change: profile?.require_password_change
-        };
-
-        setUser(userWithRole);
-      } catch (error) {
-        console.error('Error al obtener usuario tras cambio de autenticación:', error);
-        // Usar el usuario de la sesión como fallback
-        setUser(authUser as AuthUser);
-      }
-    };
-
-    // Suscribirse a cambios en la autenticación
+    // Subscribe to auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Generar un ID único para este evento
-        const eventId = `${event}-${Date.now()}`;
-
-        // Evitar procesar eventos duplicados en un corto periodo de tiempo
-        if (event === 'SIGNED_IN' && lastProcessedEvent && Date.now() - parseInt(lastProcessedEvent.split('-')[1]) < 60000) {
-          return;
-        }
-
-        // Actualizar el último evento procesado
-        if (event === 'SIGNED_IN') {
-          setLastProcessedEvent(eventId);
-        }
-
-        // Manejar eventos específicos
+        // Handle sign out
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setLoading(false);
           return;
         }
 
+        // Ignore token refresh events
         if (event === 'TOKEN_REFRESHED') {
-          // No hacer nada especial, solo mantener la sesión activa
           return;
         }
 
-        // Para el evento SIGNED_IN, usar directamente los datos de la sesión
-        // sin hacer consultas adicionales que podrían bloquear
-        if (session?.user && event === 'SIGNED_IN') {
-          // Verificar si ya tenemos un usuario con rol
-          if (user?.role) {
-            setLoading(false);
+        // Handle sign in with deduplication
+        if (event === 'SIGNED_IN' && session?.user) {
+          const now = Date.now();
+
+          // Prevent duplicate sign-in events within 60 seconds
+          if (now - lastSignInTime.current < 60000) {
             return;
           }
 
-          // Usar los datos de la sesión directamente
-          const basicUser = session.user as AuthUser;
-          setUser(basicUser);
-          setLoading(false);
+          lastSignInTime.current = now;
 
-          // Obtener el rol en segundo plano sin bloquear
-          setTimeout(() => {
-            // Usar un bloque try-catch en lugar de .catch()
-            try {
-              supabase
-                .from('profiles')
-                .select('role, nombre, apellido, require_password_change')
-                .eq('id', session.user.id)
-                .single()
-                .then(({ data: profile, error: profileError }) => {
-                  if (!profileError && profile) {
-                    setUser({
-                      ...session.user,
-                      role: profile.role as UserRole,
-                      nombre: profile.nombre,
-                      apellido: profile.apellido,
-                      require_password_change: profile.require_password_change
-                    });
-                  }
-                });
-            } catch (error) {
-              console.error('Error al obtener perfil en segundo plano:', error);
-            }
-          }, 100);
-
-          return;
-        }
-
-        // Para otros eventos con sesión
-        if (session?.user) {
-          // Si ya tenemos un usuario con rol, no hacer nada
-          if (user?.role) {
-            console.log('Manteniendo usuario existente con rol');
-            return;
-          }
-
-          // Usar los datos de la sesión directamente
+          // Set basic user immediately for fast UI response
           setUser(session.user as AuthUser);
           setLoading(false);
 
-          // Obtener el rol en segundo plano
-          setTimeout(() => {
-            try {
-              supabase
-                .from('profiles')
-                .select('role, nombre, apellido, require_password_change')
-                .eq('id', session.user.id)
-                .single()
-                .then(({ data: profile }) => {
-                  if (profile) {
-                    setUser({
-                      ...session.user,
-                      role: profile.role as UserRole,
-                      nombre: profile.nombre,
-                      apellido: profile.apellido,
-                      require_password_change: profile.require_password_change
-                    });
-                  }
-                });
-            } catch (error) {
-              // Ignorar errores silenciosamente
-            }
-          }, 100);
-        } else {
+          // Load full profile in background
+          loadProfileInBackground(session.user);
+          return;
+        }
 
+        // Handle other events with session
+        if (session?.user) {
+          setUser(session.user as AuthUser);
+          setLoading(false);
+
+          // Load profile in background if not already loaded
+          if (!(user?.role)) {
+            loadProfileInBackground(session.user);
+          }
+        } else {
           setUser(null);
           setLoading(false);
         }
@@ -199,11 +162,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     checkUser();
 
-    // Limpiar suscripción
+    // Cleanup subscription
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, []);
+  }, [loadProfileInBackground]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -278,8 +241,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isAdmin = user?.role === 'administracion';
   const isComercial = user?.role === 'comercial';
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = React.useMemo(
+    () => ({ user, loading, signIn, signOut, updatePassword, isAdmin, isComercial }),
+    [user, loading, isAdmin, isComercial]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, updatePassword, isAdmin, isComercial }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

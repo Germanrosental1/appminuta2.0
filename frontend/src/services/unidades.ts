@@ -103,12 +103,7 @@ export async function getUnidadesPorProyecto(proyecto: string): Promise<UnidadRe
  * Obtener una unidad específica por ID
  */
 export async function getUnidadById(id: number): Promise<UnidadMapaVentas | null> {
-  try {
-    return apiFetch<UnidadMapaVentas>(`/unidades/${id}`);
-  } catch (error) {
-    console.error(`Error al obtener unidad con ID ${id}:`, error);
-    return null;
-  }
+  return await apiFetch<UnidadMapaVentas>(`/unidades/${id}`);
 }
 
 /**
@@ -148,12 +143,7 @@ function formatearUnidadResumen(unidad: UnidadTabla): UnidadResumen {
  * Obtener todas las naturalezas de proyecto disponibles
  */
 export async function getNaturalezasProyecto(): Promise<string[]> {
-  try {
-    return apiFetch<string[]>('/unidades/metadata/naturalezas');
-  } catch (error) {
-    console.error('Error al obtener naturalezas de proyecto:', error);
-    return [];
-  }
+  return await apiFetch<string[]>('/unidades/metadata/naturalezas');
 }
 
 /**

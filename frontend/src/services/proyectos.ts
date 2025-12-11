@@ -17,13 +17,7 @@ export interface Proyecto {
  * Obtiene todos los proyectos activos
  */
 export async function getProyectosActivos(): Promise<Proyecto[]> {
-  try {
-    return apiFetch<Proyecto[]>('/proyectos');
-  } catch (error) {
-    console.error('Error fetching proyectos:', error);
-    // Fallback logic could be here, but ideally better handled by error component
-    return [];
-  }
+  return await apiFetch<Proyecto[]>('/proyectos');
 }
 
 /**

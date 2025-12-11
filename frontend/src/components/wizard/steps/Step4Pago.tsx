@@ -4,18 +4,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateStep } from "@/utils/validation";
-import { Button } from "@/components/ui/button";
 import { DollarSign, Check, CreditCard } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card } from "@/components/ui/card";
 
 export const Step4Pago: React.FC = () => {
-  const { data, setData } = useWizard();
+  const { data, updateData } = useWizard();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
 
   const handleChange = (field: string, value: any) => {
-    setData({ [field]: value });
+    updateData({ [field]: value });
 
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -117,7 +115,7 @@ export const Step4Pago: React.FC = () => {
       console.log("Anticipos ARS B:", anticipoArsB);
       console.log("Anticipos USD B:", anticipoUsdB);
 
-      setData({
+      updateData({
         valorArsConIVA: valorA,
         valorUsdConIVA: valorB,
         tcValor: data.tcValor || tcValorDefault,
@@ -134,7 +132,7 @@ export const Step4Pago: React.FC = () => {
       setInitialized(true);
     } else if (data.valorArsConIVA !== valorA || data.valorUsdConIVA !== valorB) {
       // Si los valores han cambiado debido a cambios en la composición, actualizarlos
-      setData({
+      updateData({
         valorArsConIVA: valorA,
         valorUsdConIVA: valorB,
         // Actualizar totales a financiar
@@ -158,7 +156,7 @@ export const Step4Pago: React.FC = () => {
     const totalUsd = Math.max(data.valorUsdConIVA - (data.anticipoUsdB || 0) - anticipoArsBEnUsd, 0);
 
     if (totalArs !== data.totalFinanciarArs || totalUsd !== data.totalFinanciarUsd) {
-      setData({
+      updateData({
         totalFinanciarArs: totalArs,
         totalFinanciarUsd: totalUsd,
       });

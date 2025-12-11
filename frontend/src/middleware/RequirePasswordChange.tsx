@@ -22,7 +22,7 @@ export const useRequirePasswordChange = () => {
         if (error) throw error;
 
         // Si requiere cambio y no está en la página de cambio, redirigir
-        if (data?.require_password_change && window.location.pathname !== '/change-password') {
+        if (data?.require_password_change && globalThis.location.pathname !== '/change-password') {
           navigate('/change-password', { replace: true });
         }
       } catch (err) {

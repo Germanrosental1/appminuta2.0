@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   ArrowLeft,
   CheckCircle,
@@ -17,7 +16,6 @@ import {
   FileText,
   Save,
   Loader2,
-  AlertCircle
 } from 'lucide-react';
 import {
   Dialog,
@@ -172,6 +170,79 @@ export const DetalleMinutaProvisoria: React.FC = () => {
     }
   };
 
+  const renderMapaVentasContent = () => {
+    if (loadingMapaVentas) {
+      return (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="ml-2">Cargando datos del mapa...</span>
+        </div>
+      );
+    }
+
+    if (datosMapaVentas) {
+      return (
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-medium mb-2">Datos del Mapa de Ventas</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Proyecto:</p>
+                <p className="font-medium">{datosMapaVentas.proyecto}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Unidad:</p>
+                <p className="font-medium">{datosMapaVentas.unidad}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Estado:</p>
+                <p className="font-medium">{datosMapaVentas.estado}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Precio Lista:</p>
+                <p className="font-medium">${datosMapaVentas.precio_lista.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">M² Totales:</p>
+                <p className="font-medium">{datosMapaVentas.m2_totales} m²</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Dormitorios:</p>
+                <p className="font-medium">{datosMapaVentas.dormitorios}</p>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="font-medium mb-2">Comparación</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center p-2 bg-green-50 rounded-md">
+                <span>Proyecto</span>
+                <span className="font-medium text-green-600">Coincide</span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-green-50 rounded-md">
+                <span>Unidad</span>
+                <span className="font-medium text-green-600">Coincide</span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-yellow-50 rounded-md">
+                <span>Precio Lista</span>
+                <span className="font-medium text-yellow-600">Revisar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-center py-4 text-muted-foreground">
+        No se encontraron datos en el mapa de ventas
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -184,7 +255,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
   if (error || !minuta) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <XCircle className="h-12 w-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold mb-2">Error al cargar la minuta</h2>
         <p className="text-muted-foreground mb-4">{error || 'No se encontró la minuta solicitada'}</p>
         <Button onClick={() => navigate('/admin/dashboard')}>
@@ -238,68 +309,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingMapaVentas ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <span className="ml-2">Cargando datos del mapa...</span>
-                </div>
-              ) : datosMapaVentas ? (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-2">Datos del Mapa de Ventas</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Proyecto:</p>
-                        <p className="font-medium">{datosMapaVentas.proyecto}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Unidad:</p>
-                        <p className="font-medium">{datosMapaVentas.unidad}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Estado:</p>
-                        <p className="font-medium">{datosMapaVentas.estado}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Precio Lista:</p>
-                        <p className="font-medium">${datosMapaVentas.precio_lista.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">M² Totales:</p>
-                        <p className="font-medium">{datosMapaVentas.m2_totales} m²</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Dormitorios:</p>
-                        <p className="font-medium">{datosMapaVentas.dormitorios}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="font-medium mb-2">Comparación</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center p-2 bg-green-50 rounded-md">
-                        <span>Proyecto</span>
-                        <span className="font-medium text-green-600">Coincide</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2 bg-green-50 rounded-md">
-                        <span>Unidad</span>
-                        <span className="font-medium text-green-600">Coincide</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2 bg-yellow-50 rounded-md">
-                        <span>Precio Lista</span>
-                        <span className="font-medium text-yellow-600">Revisar</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  No se encontraron datos en el mapa de ventas
-                </div>
-              )}
+              {renderMapaVentasContent()}
             </CardContent>
           </Card>
 
