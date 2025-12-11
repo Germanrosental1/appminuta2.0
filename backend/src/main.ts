@@ -16,17 +16,22 @@ async function bootstrap() {
 
     // Enable Global Validation Pipe
     app.useGlobalPipes(new ValidationPipe({
-        whitelist: true, // properties not in DTO are stripped
-        transform: true, // auto-transform payloads to DTO instances
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
     }));
 
     // Enable CORS so the React frontend can talk to us
     app.enableCors();
-    await app.listen(process.env.PORT || 3000);
+
+    const port = process.env.PORT || 3000;
+    await app.listen(port);
+    console.log(`Application is running on port: ${port}`);
 }
 
-// NOSONAR - Top-level await not supported with CommonJS modules
-bootstrap().catch((err) => {
+// Top-level await is not supported with CommonJS modules
+// NOSONAR: typescript:S6544 - Cannot use top-level await with module: commonjs
+void bootstrap().catch((err) => {
     console.error('Error during application bootstrap:', err);
     process.exit(1);
 });

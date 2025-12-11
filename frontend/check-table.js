@@ -1,7 +1,7 @@
 // Script para verificar si la tabla mapadeventas tiene datos
 import { createClient } from '@supabase/supabase-js';
 
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { config } from 'dotenv';
 
@@ -51,12 +51,11 @@ async function checkMapadeventasTable() {
 }
 
 // Ejecutar la función
-checkMapadeventasTable()
-  .then(() => {
-    console.log('Verificación completada');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Error en la verificación:', error);
-    process.exit(1);
-  });
+try {
+  await checkMapadeventasTable();
+  console.log('Verificación completada');
+  process.exit(0);
+} catch (error) {
+  console.error('Error en la verificación:', error);
+  process.exit(1);
+}
