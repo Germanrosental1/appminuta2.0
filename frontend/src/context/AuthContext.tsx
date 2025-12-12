@@ -3,12 +3,15 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { sanitizePassword } from '@/utils/passwordValidation';
 import { setCSRFToken, clearCSRFToken, refreshCSRFToken } from '@/utils/csrf';
+import { rbacApi, Role, Permission } from '@/services/rbac';
 
-// Tipos para los roles de usuario
-export type UserRole = 'comercial' | 'administracion';
+// Tipos para los roles de usuario (deprecated - usar Role de RBAC)
+export type UserRole = 'comercial' | 'administrador' | 'viewer' | 'firmante';
 
 interface AuthUser extends User {
-  role?: UserRole;
+  role?: UserRole; // Deprecated - mantener para backward compatibility
+  roles?: Role[]; // New: roles from RBAC system
+  permissions?: Permission[]; // New: permissions from RBAC system
   nombre?: string;
   apellido?: string;
   require_password_change?: boolean;
@@ -20,12 +23,24 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
+
+  // New: Permission-based checks (backend as source of truth)
+  permissions: Permission[];
+  roles: Role[];
+  hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (...permissions: string[]) => boolean;
+  hasAllPermissions: (...permissions: string[]) => boolean;
+  hasRole: (role: string) => boolean;
+
+  // Method to manually fetch roles (lazy load)
+  refreshRoles: (user?: AuthUser) => Promise<Role[]>;
+
+  // Deprecated but kept for backward compatibility
   isAdmin: boolean;
   isComercial: boolean;
 }
 
 interface UserProfile {
-  role: UserRole;
   nombre: string;
   apellido: string;
   require_password_change: boolean;
@@ -38,7 +53,7 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('role, nombre, apellido, require_password_change')
+      .select('nombre, apellido, require_password_change')
       .eq('id', userId)
       .single();
 
@@ -54,38 +69,118 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
   }
 };
 
-// Helper function: Enrich auth user with profile data
+// Helper function: Enrich auth user with profile data and RBAC permissions
 const enrichUserWithProfile = async (authUser: User): Promise<AuthUser> => {
   const profile = await fetchUserProfile(authUser.id);
 
+  // Check if roles are already in JWT (Custom Claims)
+  const jwtRoles = authUser.app_metadata?.roles as any[];
+
   if (!profile) {
+    // If no profile, but we have JWT roles, we should return them at least
+    if (jwtRoles && jwtRoles.length > 0) {
+      return {
+        ...authUser,
+        roles: jwtRoles,
+        permissions: [], // Permissions might not be in JWT yet, or need separate logic
+      } as AuthUser;
+    }
     return authUser as AuthUser;
   }
 
   return {
     ...authUser,
-    role: profile.role,
+    // Prefer JWT roles if available, otherwise undefined (will prompt lazy load if missing)
+    roles: jwtRoles || undefined,
+    permissions: [],
     nombre: profile.nombre,
     apellido: profile.apellido,
     require_password_change: profile.require_password_change
-  };
+  } as AuthUser;
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const lastSignInTime = useRef<number>(0);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const userRef = useRef<AuthUser | null>(null);
+
+  // Keep userRef in sync with user state
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Update permissions and roles when user changes
+  useEffect(() => {
+    if (user?.permissions) {
+      setPermissions(user.permissions);
+    } else {
+      setPermissions([]);
+    }
+
+    if (user?.roles) {
+      setRoles(user.roles);
+    } else {
+      setRoles([]);
+    }
+  }, [user]);
+
+  // Permission check helpers (backend is source of truth)
+  const hasPermission = useCallback((permission: string): boolean => {
+    return permissions.some(p => p.nombre === permission);
+  }, [permissions]);
+
+  const hasAnyPermission = useCallback((...perms: string[]): boolean => {
+    return perms.some(p => hasPermission(p));
+  }, [hasPermission]);
+
+  const hasAllPermissions = useCallback((...perms: string[]): boolean => {
+    return perms.every(p => hasPermission(p));
+  }, [hasPermission]);
+
+  const hasRole = useCallback((role: string): boolean => {
+    return roles.some(r => r.nombre === role);
+  }, [roles]);
+
+  const refreshRoles = useCallback(async (providedUser?: AuthUser) => {
+    const currentUser = providedUser || userRef.current;
+    if (!currentUser) {
+      return [];
+    }
+
+    // If roles are already loaded (e.g. from JWT or previous fetch), return them
+    if (currentUser.roles && currentUser.roles.length > 0) {
+      setRoles(currentUser.roles);
+      return currentUser.roles;
+    }
+
+    // Fetch roles from API
+    try {
+      const [fetchedRoles, fetchedPermissions] = await Promise.all([
+        rbacApi.getMyRoles(),
+        rbacApi.getUserPermissions(currentUser.id),
+      ]);
+
+      // Update user object with fetched roles
+      setUser(prev => prev ? { ...prev, roles: fetchedRoles, permissions: fetchedPermissions } : null);
+      setRoles(fetchedRoles);
+      setPermissions(fetchedPermissions);
+      return fetchedRoles;
+    } catch (e) {
+      console.error('Error al cargar roles:', e);
+      return [];
+    }
+  }, []);
 
   // Memoized function to load profile in background
-  const loadProfileInBackground = useCallback((authUser: User) => {
-    setTimeout(async () => {
-      try {
-        const enrichedUser = await enrichUserWithProfile(authUser);
-        setUser(enrichedUser);
-      } catch (error) {
-        console.error('Error al cargar perfil en segundo plano:', error);
-      }
-    }, 100);
+  const loadProfileInBackground = useCallback(async (authUser: User) => {
+    try {
+      const enrichedUser = await enrichUserWithProfile(authUser);
+      setUser(enrichedUser);
+    } catch (error) {
+      console.error('Error al cargar perfil en segundo plano:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -114,6 +209,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       (event, session) => {
         // Handle sign out
         if (event === 'SIGNED_OUT') {
+          console.log('[AuthContext] SIGNED_OUT event');
           setUser(null);
           setLoading(false);
           return;
@@ -124,23 +220,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        // Handle sign in with deduplication
+        // Handle sign in
         if (event === 'SIGNED_IN' && session?.user) {
-          const now = Date.now();
-
-          // Prevent duplicate sign-in events within 60 seconds
-          if (now - lastSignInTime.current < 60000) {
-            return;
-          }
-
-          lastSignInTime.current = now;
-
-          // Set basic user immediately for fast UI response
-          setUser(session.user as AuthUser);
-          setLoading(false);
-
-          // Load full profile in background
-          loadProfileInBackground(session.user);
+          // CRITICAL: Immediately enrich with JWT roles for instant redirect
+          enrichUserWithProfile(session.user).then(enrichedUser => {
+            setUser(enrichedUser);
+            setLoading(false);
+          });
           return;
         }
 
@@ -150,7 +236,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setLoading(false);
 
           // Load profile in background if not already loaded
-          if (!(user?.role)) {
+          if (!user?.roles || user.roles.length === 0) {
             loadProfileInBackground(session.user);
           }
         } else {
@@ -238,13 +324,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Propiedades derivadas para verificar roles
-  const isAdmin = user?.role === 'administracion';
-  const isComercial = user?.role === 'comercial';
+  // Mantener backward compatibility usando el nuevo sistema de roles
+  const isAdmin = hasRole('administrador');
+  const isComercial = hasRole('comercial');
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = React.useMemo(
-    () => ({ user, loading, signIn, signOut, updatePassword, isAdmin, isComercial }),
-    [user, loading, isAdmin, isComercial]
+    () => ({
+      user,
+      loading,
+      signIn,
+      signOut,
+      updatePassword,
+      permissions,
+      roles,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+      hasRole,
+      refreshRoles,
+      isAdmin,
+      isComercial
+    }),
+    [
+      user,
+      loading,
+      permissions,
+      roles,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+      hasRole,
+      isAdmin,
+      isComercial
+    ]
   );
 
   return (

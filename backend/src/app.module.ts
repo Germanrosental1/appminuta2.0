@@ -5,6 +5,11 @@ import { PrismaModule } from './prisma/prisma.module';
 import { MinutasModule } from './minutas/minutas.module';
 import { ProyectosModule } from './proyectos/proyectos.module';
 import { UnidadesModule } from './unidades/unidades.module';
+import { RolesModule } from './roles/roles.module';
+import { PermisosModule } from './permisos/permisos.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
+import { UsuariosRolesModule } from './usuarios-roles/usuarios-roles.module';
+import { UsuariosProyectosModule } from './usuarios-proyectos/usuarios-proyectos.module';
 
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -17,6 +22,11 @@ import { APP_GUARD } from '@nestjs/core';
         MinutasModule,
         ProyectosModule,
         UnidadesModule,
+        RolesModule,
+        PermisosModule,
+        UsuariosModule,
+        UsuariosRolesModule,
+        UsuariosProyectosModule,
         ThrottlerModule.forRoot([{
             ttl: 60000,
             limit: 100,

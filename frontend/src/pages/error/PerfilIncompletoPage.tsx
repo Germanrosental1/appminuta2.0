@@ -34,13 +34,13 @@ export const PerfilIncompletoPage: React.FC = () => {
             </p>
             <p>
               Por favor, contacta al administrador del sistema para que complete tu perfil
-              y asigne el rol correspondiente (comercial o administración).
+              y asigne el rol correspondiente (comercial o administrador).
             </p>
             <div className="bg-amber-50 p-4 rounded-md text-sm">
               <p className="font-medium">Información técnica:</p>
               <p>
-                Es necesario crear un registro en la tabla <code>profiles</code> para tu usuario
-                con el campo <code>role</code> configurado como 'comercial' o 'administracion'.
+                Es necesario asignar un rol en la tabla <code>usuarios-roles</code> para tu usuario
+                con el rol 'comercial' o 'administrador'.
               </p>
             </div>
           </div>

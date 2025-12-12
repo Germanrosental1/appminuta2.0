@@ -139,7 +139,7 @@ model oauth_authorizations {
   client_id             String                     @db.Uuid
   user_id               String?                    @db.Uuid
   redirect_uri          String
-  scope                 String
+  scope                 String?
   state                 String?
   resource              String?
   code_challenge        String?
@@ -496,34 +496,118 @@ model minutas_provisorias {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model profiles {
-  id                      String    @id @db.Uuid
+  id                      String               @id @db.Uuid
   email                   String
   nombre                  String?
   apellido                String?
-  role                    String
-  activo                  Boolean?  @default(true)
-  created_at              DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime? @default(now()) @db.Timestamptz(6)
-  require_password_change Boolean?  @default(true)
-  first_login             Boolean?  @default(true)
-  users                   users     @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  activo                  Boolean?             @default(true)
+  created_at              DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?            @default(now()) @db.Timestamptz(6)
+  require_password_change Boolean?             @default(true)
+  first_login             Boolean?             @default(true)
+  users                   users                @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios_roles          usuarios_roles[]
+  usuarios_proyectos      usuarios_proyectos[]
 
   @@schema("public")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model proyectos {
-  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  nombre       String    @unique
-  tabla_nombre String
-  descripcion  String?
-  direccion    String?
-  localidad    String?
-  provincia    String?
-  activo       Boolean?  @default(true)
-  created_at   DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nombre             String               @unique
+  tabla_nombre       String
+  descripcion        String?
+  direccion          String?
+  localidad          String?
+  provincia          String?
+  activo             Boolean?             @default(true)
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  tablas             tablas[]
+  usuarios_proyectos usuarios_proyectos[]
 
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model roles {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre             String               @default("")
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  roles_permisos     roles_permisos[]
+  usuarios_roles     usuarios_roles[]
+  usuarios_proyectos usuarios_proyectos[]
+
+  @@map("roles")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model permisos {
+  id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  nombre          String?
+  descripcion     String?
+  roles_permisos  roles_permisos[]
+  permisos_extras permisos_extras[]
+
+  @@map("permisos")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios_roles {
+  idusuario  String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  profiles   profiles @relation(fields: [idusuario], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([idusuario, idrol])
+  @@map("usuarios-roles")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios_proyectos {
+  idusuario  String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idproyecto String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idrol      String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  profiles   profiles  @relation(fields: [idusuario], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proyectos  proyectos @relation(fields: [idproyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles      roles     @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([idusuario, idproyecto, idrol])
+  @@map("usuarios-proyectos")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model roles_permisos {
+  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idpermiso  String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  permisos   permisos @relation(fields: [idpermiso], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([idrol, idpermiso])
+  @@map("roles-permisos")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model permisos_extras {
+  idrolusuario String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  idpermiso    String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  descripcion  String?
+  permisos     permisos @relation(fields: [idpermiso], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([idrolusuario, idpermiso])
+  @@map("permisos-extras")
   @@schema("public")
 }
 
@@ -571,7 +655,7 @@ model tablaaasss {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model tablas {
-  id                                Int     @id @db.SmallInt
+  id                                Int        @id @db.SmallInt
   natdelproyecto                    String?
   proyecto                          String?
   etapa                             String?
@@ -606,6 +690,8 @@ model tablas {
   clientetitularboleto              String?
   fechaposesionporboletocompraventa String?
   deptocomprador                    String?
+  proyecto_id                       String?    @db.Uuid
+  proyectos                         proyectos? @relation(fields: [proyecto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
