@@ -9,6 +9,42 @@ export const LoginPage: React.FC = () => {
   const [verifyingRoles, setVerifyingRoles] = useState(false);
   const hasRedirected = useRef(false);
 
+  // Helper function to check if user has a specific role
+  const hasRole = (roles: Array<{ nombre: string }>, roleName: string): boolean => {
+    return roles.some(r => r.nombre === roleName);
+  };
+
+  // Helper function to determine redirect path based on user roles
+  const getRedirectPath = (roles: Array<{ nombre: string }>): string => {
+    if (hasRole(roles, 'administrador')) {
+      return '/admin/dashboard';
+    } else if (hasRole(roles, 'comercial')) {
+      return '/comercial/dashboard';
+    } else {
+      console.error('[LoginPage] User has no recognized roles');
+      return '/perfil-incompleto';
+    }
+  };
+
+  // Handle redirect after role verification
+  const performRedirect = async (currentUser: typeof user) => {
+    if (!currentUser) return;
+
+    hasRedirected.current = true;
+    setVerifyingRoles(true);
+
+    try {
+      const roles = await refreshRoles(currentUser);
+      const redirectPath = getRedirectPath(roles);
+      navigate(redirectPath, { replace: true });
+    } catch (error) {
+      console.error('[LoginPage] Error in performRedirect:', error);
+      navigate('/perfil-incompleto', { replace: true });
+    } finally {
+      setVerifyingRoles(false);
+    }
+  };
+
   useEffect(() => {
     // Reset redirect flag when user logs out
     if (!user) {
@@ -22,34 +58,7 @@ export const LoginPage: React.FC = () => {
     }
 
     // User exists and we haven't redirected yet - do it now
-    const performRedirect = async () => {
-      hasRedirected.current = true;
-      setVerifyingRoles(true);
-
-      try {
-        const roles = await refreshRoles(user);
-
-        const hasRole = (name: string) => roles.some(r => r.nombre === name);
-
-        if (hasRole('administrador')) {
-          navigate('/admin/dashboard', { replace: true });
-        } else if (hasRole('comercial')) {
-          navigate('/comercial/dashboard', { replace: true });
-        } else {
-          console.error('[LoginPage] User has no recognized roles');
-          navigate('/perfil-incompleto', { replace: true });
-        }
-      } catch (error) {
-        console.error('[LoginPage] Error in performRedirect:', error);
-        navigate('/perfil-incompleto', { replace: true });
-      } finally {
-        setVerifyingRoles(false);
-      }
-    };
-
-    performRedirect();
-    // refreshRoles is stable (no dependencies) so we don't need it in the deps array
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    performRedirect(user);
   }, [user, loading, navigate]);
 
   // Mostrar pantalla de carga mientras se verifica la autenticación o los roles

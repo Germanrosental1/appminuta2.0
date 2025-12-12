@@ -453,6 +453,12 @@ model mapadeventas {
   Fecha_Posesi_n_por_Boleto_Compra_Venta String? @map("Fecha Posesión por Boleto Compra-Venta")
   proyecto                               String  @default("Arboria")
 
+  @@index([proyecto])
+  @@index([ESTADO])
+  @@index([Sector])
+  @@index([N__Unidad])
+  @@index([proyecto, N__Unidad])
+  @@index([proyecto, ESTADO])
   @@schema("public")
 }
 
@@ -473,6 +479,13 @@ model minutas_definitivas {
   datos_mapa_ventas Json?
   users             users     @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([usuario_id])
+  @@index([estado])
+  @@index([proyecto])
+  @@index([usuario_id, estado])
+  @@index([proyecto, estado])
+  @@index([created_at(sort: Desc)])
+  @@index([fecha_creacion(sort: Desc)])
   @@schema("public")
 }
 
@@ -491,6 +504,14 @@ model minutas_provisorias {
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
   users          users     @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([usuario_id])
+  @@index([proyecto])
+  @@index([estado])
+  @@index([unidad_id])
+  @@index([proyecto, unidad_id])
+  @@index([usuario_id, estado])
+  @@index([proyecto, estado])
+  @@index([created_at(sort: Desc)])
   @@schema("public")
 }
 
@@ -509,6 +530,9 @@ model profiles {
   usuarios_roles          usuarios_roles[]
   usuarios_proyectos      usuarios_proyectos[]
 
+  @@index([email])
+  @@index([activo])
+  @@index([require_password_change])
   @@schema("public")
 }
 
@@ -527,6 +551,8 @@ model proyectos {
   tablas             tablas[]
   usuarios_proyectos usuarios_proyectos[]
 
+  @@index([activo])
+  @@index([nombre])
   @@schema("public")
 }
 
@@ -539,6 +565,7 @@ model roles {
   usuarios_roles     usuarios_roles[]
   usuarios_proyectos usuarios_proyectos[]
 
+  @@index([nombre])
   @@map("roles")
   @@schema("public")
 }
@@ -553,6 +580,7 @@ model permisos {
   roles_permisos  roles_permisos[]
   permisos_extras permisos_extras[]
 
+  @@index([nombre])
   @@map("permisos")
   @@schema("public")
 }
@@ -566,6 +594,8 @@ model usuarios_roles {
   roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([idusuario, idrol])
+  @@index([idusuario])
+  @@index([idrol])
   @@map("usuarios-roles")
   @@schema("public")
 }
@@ -581,6 +611,10 @@ model usuarios_proyectos {
   roles      roles     @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([idusuario, idproyecto, idrol])
+  @@index([idusuario])
+  @@index([idproyecto])
+  @@index([idrol])
+  @@index([idusuario, idproyecto])
   @@map("usuarios-proyectos")
   @@schema("public")
 }
@@ -594,6 +628,8 @@ model roles_permisos {
   roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([idrol, idpermiso])
+  @@index([idrol])
+  @@index([idpermiso])
   @@map("roles-permisos")
   @@schema("public")
 }
@@ -607,6 +643,8 @@ model permisos_extras {
   permisos     permisos @relation(fields: [idpermiso], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([idrolusuario, idpermiso])
+  @@index([idrolusuario])
+  @@index([idpermiso])
   @@map("permisos-extras")
   @@schema("public")
 }
@@ -693,6 +731,13 @@ model tablas {
   proyecto_id                       String?    @db.Uuid
   proyectos                         proyectos? @relation(fields: [proyecto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([proyecto_id])
+  @@index([proyecto])
+  @@index([estado])
+  @@index([sectorid])
+  @@index([nrounidad])
+  @@index([proyecto, nrounidad])
+  @@index([proyecto, estado])
   @@schema("public")
 }
 
