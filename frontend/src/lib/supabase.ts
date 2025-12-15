@@ -99,7 +99,6 @@ export async function getCurrentUser() {
       role: undefined
     };
   } catch (error) {
-    console.error('Error inesperado al obtener el usuario:', error);
     return null;
   }
 }

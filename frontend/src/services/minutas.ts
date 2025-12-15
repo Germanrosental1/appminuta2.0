@@ -21,18 +21,25 @@ export interface MinutaProvisoria {
 }
 
 export interface MinutaDefinitiva {
-  id?: string;
-  proyecto: string;
+  id: string;
   usuario_id: string;
-  fecha_creacion?: string;
+  fecha_creacion: string;
   datos: any; // Incluye la información de la unidad
   datos_adicionales?: any; // Campo existente en la tabla
   datos_mapa_ventas?: any;
-  estado: 'pendiente' | 'aprobada' | 'firmada' | 'cancelada';
+  estado: string; // 'pendiente' | 'aprobada' | 'firmada' | 'cancelada';
   comentarios?: string;
   url_documento?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
+  proyecto?: string;
+  // Relaciones agregadas por el backend
+  users?: {
+    email: string;
+  };
+  proyectos?: {
+    nombre: string;
+  };
 }
 
 export { ValidationError } from '@/utils/validateRequest';
@@ -61,10 +68,8 @@ export async function guardarMinutaProvisoria(minuta: Omit<MinutaProvisoria, 'id
 
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.error('Error de validación al guardar minuta provisoria:', error.errors);
       throw error;
     }
-    console.error('Error al guardar minuta provisoria:', error);
     throw error;
   }
 }
@@ -128,7 +133,6 @@ export async function getMinutasDefinitivasByUsuario(usuarioId: string, filters?
     return response.data;
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.error('Error de validación al obtener minutas:', error.errors);
     }
     throw error;
   }
@@ -182,7 +186,6 @@ export async function actualizarEstadoMinutaDefinitiva(
 
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.error('Error de validación al actualizar estado:', error.errors);
     }
     throw error;
   }
@@ -190,7 +193,6 @@ export async function actualizarEstadoMinutaDefinitiva(
 
 // Actualizar los datos de una minuta definitiva (CON VALIDACIÓN)
 export async function actualizarDatosMinutaDefinitiva(id: string, datosActualizados: any) {
-  console.log('Actualizando datos de minuta definitiva:', { id, datosActualizados });
 
   try {
     // 1. VALIDAR el ID
@@ -206,7 +208,6 @@ export async function actualizarDatosMinutaDefinitiva(id: string, datosActualiza
       datosActualizados
     );
 
-    console.log('Datos validados correctamente');
 
     // 3. Actualizar en Backend
     return apiFetch<MinutaDefinitiva>(`/minutas/${id}`, {
@@ -218,9 +219,7 @@ export async function actualizarDatosMinutaDefinitiva(id: string, datosActualiza
 
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.error('Error de validación al actualizar minuta:', error.errors);
     } else {
-      console.error('Error inesperado al actualizar minuta:', error);
     }
     throw error;
   }
@@ -245,7 +244,6 @@ export async function getDatosMapaVentasByUnidadId(unidadId: string) {
 
     return null;
   } catch (error) {
-    console.error('Error fetching mapa ventas data', error);
     return null;
   }
 }
@@ -331,7 +329,6 @@ export async function getMinutasWithFilters(filters: Partial<MinutaFilters>) {
     };
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.error('Validation error in getMinutasWithFilters', error);
     }
     throw error;
   }
@@ -372,7 +369,6 @@ export async function getMinutasStats(usuarioId?: string) {
 
     return stats;
   } catch (error) {
-    console.error('Error al obtener estadísticas de minutas:', error);
 
   }
 }

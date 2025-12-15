@@ -21,7 +21,6 @@ export interface UnidadSeleccionada {
   precioNegociado: number;
   tipoDescuento: TipoDescuento;
   valorDescuento: number;
-  naturaleza: string;
 }
 
 // Mantenemos estas interfaces para compatibilidad con código existente
@@ -57,7 +56,7 @@ export interface WizardData {
   unidad: string;        // Para mantener compatibilidad con código existente
   unidadDescripcion: string; // Para mantener compatibilidad con código existente
   fechaPosesion: string;
-  
+
   // Nueva estructura para múltiples unidades
   unidades: UnidadSeleccionada[];
 
@@ -120,7 +119,7 @@ export interface WizardData {
   reglasFinanciacionA: ReglaFinanciacion[];
   reglasFinanciacionB: ReglaFinanciacion[];
   porcentajePagadoFechaPosesion: number;
-  
+
   // Paso 7: Tipo de cambio & salida
   dolarRef: number;
   formatoSalida: FormatoSalida;

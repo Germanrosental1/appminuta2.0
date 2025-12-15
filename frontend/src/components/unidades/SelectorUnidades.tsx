@@ -32,7 +32,6 @@ export const SelectorUnidades: React.FC<SelectorUnidadesProps> = ({ onSelectUnid
         const uniqueProyectos = Array.from(new Set(data.map(u => u.proyecto)));
         setProyectos(uniqueProyectos);
       } catch (err) {
-        console.error('Error al cargar unidades:', err);
         setError('Error al cargar las unidades disponibles');
       } finally {
         setLoading(false);

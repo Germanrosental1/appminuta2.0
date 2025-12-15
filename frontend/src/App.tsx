@@ -1,23 +1,27 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Navigate, createBrowserRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { WizardProvider } from "@/context/WizardContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useCSRFProtection } from "@/hooks/useCSRF";
-import Wizard from "./pages/Wizard";
 import NotFound from "./pages/NotFound";
 import { LoginPage } from "./pages/LoginPage";
-import { DashboardComercial } from "./pages/comercial/DashboardComercial";
-import { DashboardAdmin } from "./pages/admin/DashboardAdmin";
 import { PerfilIncompletoPage } from "./pages/error/PerfilIncompletoPage";
 import { ForceChangePasswordPage } from "./pages/ForceChangePasswordPage";
 import MobileBlocker from "@/components/MobileBlocker";
 import { rbacApi } from '@/services/rbac';
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+
+// Lazy loading de componentes pesados
+const Wizard = lazy(() => import("./pages/Wizard"));
+const DashboardComercial = lazy(() => import("./pages/comercial/DashboardComercial"));
+const DashboardAdmin = lazy(() => import("./pages/admin/DashboardAdmin"));
 
 // Helper functions to reduce complexity
 async function verifyRole(
@@ -32,7 +36,7 @@ async function verifyRole(
   // Lazy check via API
   const hasAccess = await rbacApi.checkRole(requiredRole);
   if (hasAccess) {
-    refreshRoles();
+    await refreshRoles();
     return true;
   }
   return false;
@@ -78,7 +82,9 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
 
         // 2. Check Role (Lazy Load)
         if (requiredRole) {
-          const authorized = await verifyRole(requiredRole, hasRole, refreshRoles);
+          const authorized = await verifyRole(requiredRole, hasRole, async () => {
+            await refreshRoles();
+          });
           setIsAuthorized(authorized);
 
           if (!authorized) {
@@ -87,11 +93,10 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
           }
         } else {
           setIsAuthorized(true);
-          refreshRoles();
+          void refreshRoles(); // Fire and forget
         }
 
       } catch (err) {
-        console.error('Error checking requirements:', err);
         setRequiresPasswordChange(false);
         setIsAuthorized(false);
       } finally {
@@ -166,7 +171,8 @@ const PasswordChangeRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const queryClient = new QueryClient();
+// Importar queryClient optimizado
+import { queryClient } from '@/lib/queryClient';
 
 // Definir las rutas
 const routes: RouteObject[] = [
@@ -194,7 +200,9 @@ const routes: RouteObject[] = [
     path: "/wizard",
     element: (
       <ProtectedRoute requiredRole="comercial">
-        <Wizard />
+        <Suspense fallback={<LoadingSpinner />}>
+          <Wizard />
+        </Suspense>
       </ProtectedRoute>
     )
   },
@@ -205,7 +213,9 @@ const routes: RouteObject[] = [
         path: "dashboard",
         element: (
           <ProtectedRoute requiredRole="comercial">
-            <DashboardComercial />
+            <Suspense fallback={<LoadingSpinner />}>
+              <DashboardComercial />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -213,7 +223,9 @@ const routes: RouteObject[] = [
         path: "wizard",
         element: (
           <ProtectedRoute requiredRole="comercial">
-            <Wizard />
+            <Suspense fallback={<LoadingSpinner />}>
+              <Wizard />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -234,7 +246,9 @@ const routes: RouteObject[] = [
         path: "dashboard",
         element: (
           <ProtectedRoute requiredRole="administrador">
-            <DashboardAdmin />
+            <Suspense fallback={<LoadingSpinner />}>
+              <DashboardAdmin />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -277,15 +291,19 @@ const AppWrapper = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+  <TooltipProvider>
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <WizardProvider>
           <AppWrapper />
+          {/* ⚡ OPTIMIZACIÓN: DevTools solo en desarrollo */}
+          {import.meta.env.DEV && (
+            <ReactQueryDevtools initialIsOpen={false} />
+          )}
         </WizardProvider>
       </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </TooltipProvider>
 );
 
 export default App;

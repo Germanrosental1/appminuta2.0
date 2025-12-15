@@ -7,34 +7,26 @@ import { FilterSelect } from './FilterSelect';
 
 interface UnidadFormularioProps {
     // Filter state
-    naturalezas: string[];
     proyectos: string[];
     etapas: string[];
-    tipos: string[];
     sectores: string[];
     unidades: Array<{ id: number; descripcion: string; precioUSD?: number }>;
 
     // Selected values
-    naturalezaSeleccionada: string;
     proyectoSeleccionado: string;
     etapaSeleccionada: string;
-    tipoSeleccionado: string;
     sectorSeleccionado: string;
     unidadSeleccionada: string;
 
     // Loading states
-    loadingNaturalezas: boolean;
     loadingProyectos: boolean;
     loadingEtapas: boolean;
-    loadingTipos: boolean;
     loadingSectores: boolean;
     loadingUnidades: boolean;
 
     // Handlers
-    onNaturalezaChange: (value: string) => void;
     onProyectoChange: (value: string) => void;
     onEtapaChange: (value: string) => void;
-    onTipoChange: (value: string) => void;
     onSectorChange: (value: string) => void;
     onUnidadChange: (value: string) => void;
 
@@ -50,13 +42,13 @@ interface UnidadFormularioProps {
 
 export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
     const {
-        naturalezas, proyectos, etapas, tipos, sectores, unidades,
-        naturalezaSeleccionada, proyectoSeleccionado, etapaSeleccionada,
-        tipoSeleccionado, sectorSeleccionado, unidadSeleccionada,
-        loadingNaturalezas, loadingProyectos, loadingEtapas,
-        loadingTipos, loadingSectores, loadingUnidades,
-        onNaturalezaChange, onProyectoChange, onEtapaChange,
-        onTipoChange, onSectorChange, onUnidadChange,
+        proyectos, etapas, sectores, unidades,
+        proyectoSeleccionado, etapaSeleccionada,
+        sectorSeleccionado, unidadSeleccionada,
+        loadingProyectos, loadingEtapas,
+        loadingSectores, loadingUnidades,
+        onProyectoChange, onEtapaChange,
+        onSectorChange, onUnidadChange,
         tipoUnidad, modoEdicion, errors,
         onAgregar, onCancelar
     } = props;
@@ -76,28 +68,18 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
             </CardHeader>
 
             <CardContent className="space-y-4">
+                {/* Start directly with PROYECTO - tipo is already selected above */}
                 <FilterSelect
-                    id="naturaleza"
-                    label="Naturaleza del Proyecto"
-                    value={naturalezaSeleccionada}
-                    options={naturalezas}
-                    onChange={onNaturalezaChange}
-                    loading={loadingNaturalezas}
-                    error={errors.naturaleza}
+                    id="proyecto"
+                    label="Proyecto"
+                    value={proyectoSeleccionado}
+                    options={proyectos}
+                    onChange={onProyectoChange}
+                    loading={loadingProyectos}
+                    error={errors.proyecto}
                 />
 
-                {naturalezaSeleccionada && (
-                    <FilterSelect
-                        id="proyecto"
-                        label="Proyecto"
-                        value={proyectoSeleccionado}
-                        options={proyectos}
-                        onChange={onProyectoChange}
-                        loading={loadingProyectos}
-                        error={errors.proyecto}
-                    />
-                )}
-
+                {/* ETAPA - Only show after proyecto selected */}
                 {proyectoSeleccionado && (
                     <FilterSelect
                         id="etapa"
@@ -110,19 +92,8 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                     />
                 )}
 
+                {/* SECTOR - Only show after etapa selected */}
                 {etapaSeleccionada && (
-                    <FilterSelect
-                        id="tipo"
-                        label="Tipo"
-                        value={tipoSeleccionado}
-                        options={tipos}
-                        onChange={onTipoChange}
-                        loading={loadingTipos}
-                        error={errors.tipo}
-                    />
-                )}
-
-                {tipoSeleccionado && etapaSeleccionada && (
                     <FilterSelect
                         id="sector"
                         label="Sector"
@@ -131,9 +102,11 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                         onChange={onSectorChange}
                         loading={loadingSectores}
                         error={errors.sector}
+                        searchable={true}
                     />
                 )}
 
+                {/* UNIDAD - Only show after sector selected */}
                 {sectorSeleccionado && (
                     <FilterSelect
                         id="unidad"

@@ -69,18 +69,25 @@ export const Step3ComposicionFSB: React.FC = () => {
   };
 
   const handlePorcAChange = (value: string) => {
+    // Permitir campo vacío (para poder borrar y escribir)
+    if (value === '') {
+      updateData({ porcA: 0 });
+      return;
+    }
+
     const num = Number.parseFloat(value);
-    if (!Number.isNaN(num) && num >= 0 && num <= 100) {
-      updateData({ porcA: num });
+    // Solo validar si es un número válido
+    if (!Number.isNaN(num)) {
+      // pero limitar al guardar
+      if (num >= 0 && num <= 100) {
+        updateData({ porcA: num });
+      }
     }
   };
 
   const handleImpAChange = (value: string) => {
     const val = Number.parseFloat(value.replaceAll(/[^0-9.-]+/g, ""));
     if (Number.isNaN(val)) {
-      // If the parsed value is NaN, we might want to clear the input or set it to 0
-      // For now, we'll just not update the state if it's not a valid number.
-      // Or, if the user clears the input, we can set it to 0.
       if (value.trim() === "") {
         updateData({ impA: 0 });
       }
@@ -158,9 +165,16 @@ export const Step3ComposicionFSB: React.FC = () => {
               min="0"
               max="100"
               step="0.1"
-              value={data.porcA}
+              value={data.porcA === 0 ? '' : data.porcA}
               onChange={(e) => handlePorcAChange(e.target.value)}
+              onBlur={(e) => {
+                // Al salir del campo, si está vacío poner 0
+                if (e.target.value === '') {
+                  updateData({ porcA: 0 });
+                }
+              }}
               className={errors.porcA ? "border-destructive" : ""}
+              placeholder="0"
             />
             {errors.porcA && <p className="text-sm text-destructive">{errors.porcA}</p>}
           </div>

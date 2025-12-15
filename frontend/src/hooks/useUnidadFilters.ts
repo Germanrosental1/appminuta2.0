@@ -1,214 +1,115 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useTiposDisponibles, useProyectosPorTipo, useEtapas, useSectores } from './useUnidades';
 import {
     UnidadResumen,
-    getNaturalezasProyecto,
-    getProyectosPorNaturaleza,
-    getEtapasPorProyecto,
-    getTiposPorProyectoYEtapa,
-    getSectoresPorProyectoEtapaYTipo,
     getUnidadesPorEtapaTipoYSector
 } from '@/services/unidades';
 
 interface UseUnidadFiltersReturn {
     // Opciones disponibles
-    naturalezas: string[];
+    tiposDisponibles: string[];
     proyectos: string[];
     etapas: string[];
-    tipos: string[];
     sectores: string[];
     unidades: UnidadResumen[];
 
     // Selecciones actuales
-    naturalezaSeleccionada: string;
+    tipoSeleccionado: string;
     proyectoSeleccionado: string;
     etapaSeleccionada: string;
-    tipoSeleccionado: string;
     sectorSeleccionado: string;
     unidadSeleccionada: string;
 
     // Estados de carga
-    loadingNaturalezas: boolean;
+    loadingTiposDisponibles: boolean;
     loadingProyectos: boolean;
     loadingEtapas: boolean;
-    loadingTipos: boolean;
     loadingSectores: boolean;
     loadingUnidades: boolean;
 
     // Handlers
-    setNaturalezaSeleccionada: (value: string) => void;
+    setTipoSeleccionado: (value: string) => void;
     setProyectoSeleccionado: (value: string) => void;
     setEtapaSeleccionada: (value: string) => void;
-    setTipoSeleccionado: (value: string) => void;
     setSectorSeleccionado: (value: string) => void;
     setUnidadSeleccionada: (value: string) => void;
+    setAllFilters: (filters: {
+        tipo: string;
+        proyecto: string;
+        etapa: string;
+        sector: string;
+        unidad: string;
+    }) => void;
     resetFilters: () => void;
 }
 
 export const useUnidadFilters = (): UseUnidadFiltersReturn => {
-    // Estados para las opciones
-    const [naturalezas, setNaturalezas] = useState<string[]>([]);
-    const [proyectos, setProyectos] = useState<string[]>([]);
-    const [etapas, setEtapas] = useState<string[]>([]);
-    const [tipos, setTipos] = useState<string[]>([]);
-    const [sectores, setSectores] = useState<string[]>([]);
+    // Estados para unidades (local)
     const [unidades, setUnidades] = useState<UnidadResumen[]>([]);
 
-    // Estados para las selecciones
-    const [naturalezaSeleccionada, setNaturalezaSeleccionada] = useState<string>('');
+    // Estados para las selecciones - TIPO PRIMERO
+    const [tipoSeleccionado, setTipoSeleccionado] = useState<string>('');
     const [proyectoSeleccionado, setProyectoSeleccionado] = useState<string>('');
     const [etapaSeleccionada, setEtapaSeleccionada] = useState<string>('');
-    const [tipoSeleccionado, setTipoSeleccionado] = useState<string>('');
     const [sectorSeleccionado, setSectorSeleccionado] = useState<string>('');
     const [unidadSeleccionada, setUnidadSeleccionada] = useState<string>('');
 
-    // Estados de carga
-    const [loadingNaturalezas, setLoadingNaturalezas] = useState(false);
-    const [loadingProyectos, setLoadingProyectos] = useState(false);
-    const [loadingEtapas, setLoadingEtapas] = useState(false);
-    const [loadingTipos, setLoadingTipos] = useState(false);
-    const [loadingSectores, setLoadingSectores] = useState(false);
+    // Estado de carga local
     const [loadingUnidades, setLoadingUnidades] = useState(false);
 
-    // Cargar naturalezas al montar
-    useEffect(() => {
-        const fetchNaturalezas = async () => {
-            setLoadingNaturalezas(true);
-            try {
-                const naturalezasDisponibles = await getNaturalezasProyecto();
-                setNaturalezas(naturalezasDisponibles);
-            } catch (error) {
-                console.error('Error al cargar naturalezas:', error);
-            } finally {
-                setLoadingNaturalezas(false);
-            }
-        };
+    // Flag to skip cascade resets when setting all filters at once (for edit mode)
+    const skipCascadeRef = useRef(false);
 
-        fetchNaturalezas();
-    }, []);
+    // ⚡ OPTIMIZACIÓN: Usar React Query hooks
+    // 1. Cargar TODOS los tipos disponibles (no filtrado)
+    const { data: tiposDisponibles = [], isLoading: loadingTiposDisponibles } = useTiposDisponibles();
 
-    // Cargar proyectos cuando cambia la naturaleza
+    // 2. Cargar proyectos filtrados por tipo seleccionado
+    const { data: proyectos = [], isLoading: loadingProyectos } = useProyectosPorTipo(tipoSeleccionado);
+
+    // 3. Cargar etapas del proyecto seleccionado
+    const { data: etapas = [], isLoading: loadingEtapas } = useEtapas(proyectoSeleccionado);
+
+    // 4. Cargar sectores (proyecto + etapa + tipo)
+    const { data: sectores = [], isLoading: loadingSectores } = useSectores(
+        proyectoSeleccionado,
+        etapaSeleccionada,
+        tipoSeleccionado // Pass tipo to filter sectores correctly
+    );
+
+    // Reset cuando cambia el TIPO
     useEffect(() => {
-        if (!naturalezaSeleccionada) {
-            setProyectos([]);
-            return;
+        if (tipoSeleccionado && !skipCascadeRef.current) {
+            setProyectoSeleccionado('');
+            setEtapaSeleccionada('');
+            setSectorSeleccionado('');
+            setUnidadSeleccionada('');
+            setUnidades([]);
         }
+    }, [tipoSeleccionado]);
 
-        const fetchProyectos = async () => {
-            setLoadingProyectos(true);
-            try {
-                const proyectosDisponibles = await getProyectosPorNaturaleza(naturalezaSeleccionada);
-                setProyectos(proyectosDisponibles);
-
-                setProyectoSeleccionado('');
-                setEtapaSeleccionada('');
-                setTipoSeleccionado('');
-                setSectorSeleccionado('');
-                setUnidadSeleccionada('');
-                setEtapas([]);
-                setTipos([]);
-                setSectores([]);
-                setUnidades([]);
-            } catch (error) {
-                console.error('Error al cargar proyectos:', error);
-            } finally {
-                setLoadingProyectos(false);
-            }
-        };
-
-        fetchProyectos();
-    }, [naturalezaSeleccionada]);
-
-    // Cargar etapas cuando cambia el proyecto
+    // Reset cuando cambia el proyecto
     useEffect(() => {
-        if (!proyectoSeleccionado) {
-            setEtapas([]);
-            return;
+        if (proyectoSeleccionado && !skipCascadeRef.current) {
+            setEtapaSeleccionada('');
+            setSectorSeleccionado('');
+            setUnidadSeleccionada('');
+            setUnidades([]);
         }
-
-        const fetchEtapas = async () => {
-            setLoadingEtapas(true);
-            try {
-                const etapasDisponibles = await getEtapasPorProyecto(proyectoSeleccionado);
-                setEtapas(etapasDisponibles);
-
-                setEtapaSeleccionada('');
-                setTipoSeleccionado('');
-                setSectorSeleccionado('');
-                setUnidadSeleccionada('');
-                setTipos([]);
-                setSectores([]);
-                setUnidades([]);
-            } catch (error) {
-                console.error('Error al cargar etapas:', error);
-            } finally {
-                setLoadingEtapas(false);
-            }
-        };
-
-        fetchEtapas();
     }, [proyectoSeleccionado]);
 
-    // Cargar tipos cuando cambia la etapa
+    // Reset cuando cambia la etapa
     useEffect(() => {
-        if (!proyectoSeleccionado || !etapaSeleccionada) {
-            setTipos([]);
-            return;
+        if (etapaSeleccionada && !skipCascadeRef.current) {
+            setSectorSeleccionado('');
+            setUnidadSeleccionada('');
+            setUnidades([]);
         }
-
-        const fetchTipos = async () => {
-            setLoadingTipos(true);
-            try {
-                const tiposDisponibles = await getTiposPorProyectoYEtapa(proyectoSeleccionado, etapaSeleccionada);
-                setTipos(tiposDisponibles);
-
-                setTipoSeleccionado('');
-                setSectorSeleccionado('');
-                setUnidadSeleccionada('');
-                setSectores([]);
-                setUnidades([]);
-            } catch (error) {
-                console.error('Error al cargar tipos:', error);
-            } finally {
-                setLoadingTipos(false);
-            }
-        };
-
-        fetchTipos();
-    }, [proyectoSeleccionado, etapaSeleccionada]);
-
-    // Cargar sectores cuando cambia el tipo
-    useEffect(() => {
-        if (!proyectoSeleccionado || !etapaSeleccionada || !tipoSeleccionado) {
-            setSectores([]);
-            return;
-        }
-
-        const fetchSectores = async () => {
-            setLoadingSectores(true);
-            try {
-                const sectoresDisponibles = await getSectoresPorProyectoEtapaYTipo(
-                    proyectoSeleccionado,
-                    etapaSeleccionada,
-                    tipoSeleccionado
-                );
-                setSectores(sectoresDisponibles);
-
-                setSectorSeleccionado('');
-                setUnidadSeleccionada('');
-                setUnidades([]);
-            } catch (error) {
-                console.error('Error al cargar sectores:', error);
-            } finally {
-                setLoadingSectores(false);
-            }
-        };
-
-        fetchSectores();
-    }, [proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado]);
+    }, [etapaSeleccionada]);
 
     // Cargar unidades cuando cambia el sector
     useEffect(() => {
-        if (!proyectoSeleccionado || !etapaSeleccionada || !tipoSeleccionado || !sectorSeleccionado) {
+        if (!proyectoSeleccionado || !etapaSeleccionada || !sectorSeleccionado) {
             setUnidades([]);
             return;
         }
@@ -225,7 +126,7 @@ export const useUnidadFilters = (): UseUnidadFiltersReturn => {
                 setUnidades(unidadesDisponibles);
                 setUnidadSeleccionada('');
             } catch (error) {
-                console.error('Error al cargar unidades:', error);
+                setUnidades([]);
             } finally {
                 setLoadingUnidades(false);
             }
@@ -234,40 +135,58 @@ export const useUnidadFilters = (): UseUnidadFiltersReturn => {
         fetchUnidades();
     }, [proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado, sectorSeleccionado]);
 
+    const setAllFilters = (filters: {
+        tipo: string;
+        proyecto: string;
+        etapa: string;
+        sector: string;
+        unidad: string;
+    }) => {
+        skipCascadeRef.current = true;
+
+        setTipoSeleccionado(filters.tipo);
+        setProyectoSeleccionado(filters.proyecto);
+        setEtapaSeleccionada(filters.etapa);
+        setSectorSeleccionado(filters.sector);
+        setUnidadSeleccionada(filters.unidad);
+
+        // Reset the flag after a tick to allow normal cascade behavior afterwards
+        setTimeout(() => {
+            skipCascadeRef.current = false;
+        }, 0);
+    };
+
     const resetFilters = () => {
-        setNaturalezaSeleccionada('');
+        setTipoSeleccionado('');
         setProyectoSeleccionado('');
         setEtapaSeleccionada('');
-        setTipoSeleccionado('');
         setSectorSeleccionado('');
         setUnidadSeleccionada('');
+        setUnidades([]);
     };
 
     return {
-        naturalezas,
+        tiposDisponibles,
         proyectos,
         etapas,
-        tipos,
         sectores,
         unidades,
-        naturalezaSeleccionada,
+        tipoSeleccionado,
         proyectoSeleccionado,
         etapaSeleccionada,
-        tipoSeleccionado,
         sectorSeleccionado,
         unidadSeleccionada,
-        loadingNaturalezas,
+        loadingTiposDisponibles,
         loadingProyectos,
         loadingEtapas,
-        loadingTipos,
         loadingSectores,
         loadingUnidades,
-        setNaturalezaSeleccionada,
+        setTipoSeleccionado,
         setProyectoSeleccionado,
         setEtapaSeleccionada,
-        setTipoSeleccionado,
         setSectorSeleccionado,
         setUnidadSeleccionada,
+        setAllFilters,
         resetFilters
     };
 };

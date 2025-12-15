@@ -29,12 +29,10 @@ export const useCSRFValidation = () => {
     const token = getCSRFToken();
 
     if (!token) {
-      console.error('[CSRF] No se encontró token CSRF');
       return false;
     }
 
     if (token.length !== 64) {
-      console.error('[CSRF] Token CSRF inválido');
       return false;
     }
 

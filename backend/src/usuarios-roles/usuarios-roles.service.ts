@@ -5,52 +5,47 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+// ⚡ CACHE: Cache in-memory para roles de usuario (TTL: 5 minutos)
+interface UserRolesCache {
+    roles: any[];
+    cachedAt: number;
+}
+const ROLES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+const userRolesCache = new Map<string, UserRolesCache>();
+
 @Injectable()
 export class UsuariosRolesService {
     constructor(private readonly prisma: PrismaService) { }
 
     async assignRole(userId: string, roleId: string) {
-        // Verificar que el usuario existe
-        const user = await this.prisma.profiles.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user) {
-            throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
-        }
-
-        // Verificar que el rol existe
-        const role = await this.prisma.roles.findUnique({
-            where: { id: roleId },
-        });
-
-        if (!role) {
-            throw new NotFoundException(`Rol con ID ${roleId} no encontrado`);
-        }
-
-        // Verificar si ya existe la asignación
-        const existing = await this.prisma.usuarios_roles.findUnique({
-            where: {
-                idusuario_idrol: {
+        // OPTIMIZACIÓN: Dejar que Prisma valide FKs automáticamente
+        // Reducción: 3 queries → 1 query (67% mejora)
+        try {
+            const result = await this.prisma.usuarios_roles.create({
+                data: {
                     idusuario: userId,
                     idrol: roleId,
                 },
-            },
-        });
+                include: {
+                    roles: true,
+                },
+            });
 
-        if (existing) {
-            throw new ConflictException('El rol ya está asignado a este usuario');
+            // ⚡ Invalidar cache después de asignar rol
+            this.invalidateUserRolesCache(userId);
+
+            return result;
+        } catch (error) {
+            // P2002: Unique constraint violation (rol ya asignado)
+            if (error.code === 'P2002') {
+                throw new ConflictException('El rol ya está asignado a este usuario');
+            }
+            // P2003: Foreign key constraint violation (usuario o rol no existe)
+            if (error.code === 'P2003') {
+                throw new NotFoundException('Usuario o rol no encontrado');
+            }
+            throw error;
         }
-
-        return this.prisma.usuarios_roles.create({
-            data: {
-                idusuario: userId,
-                idrol: roleId,
-            },
-            include: {
-                roles: true,
-            },
-        });
     }
 
     async removeRole(userId: string, roleId: string) {
@@ -68,7 +63,7 @@ export class UsuariosRolesService {
             throw new NotFoundException('El rol no está asignado a este usuario');
         }
 
-        return this.prisma.usuarios_roles.delete({
+        const result = await this.prisma.usuarios_roles.delete({
             where: {
                 idusuario_idrol: {
                     idusuario: userId,
@@ -76,41 +71,56 @@ export class UsuariosRolesService {
                 },
             },
         });
+
+        // ⚡ Invalidar cache después de remover rol
+        this.invalidateUserRolesCache(userId);
+
+        return result;
     }
 
     async getUserRoles(userId: string) {
-        console.log(`Getting roles for user ${userId}`);
-        // Verificar que el usuario existe
-        const user = await this.prisma.profiles.findUnique({
-            where: { id: userId },
+        // ⚡ Verificar si hay cache válido
+        const cached = userRolesCache.get(userId);
+        const now = Date.now();
+
+        if (cached && (now - cached.cachedAt) < ROLES_CACHE_TTL_MS) {
+            return cached.roles;
+        }
+
+        // Si no hay cache o expiró, hacer la query
+        const userRoles = await this.prisma.usuarios_roles.findMany({
+            where: { idusuario: userId },
+            include: {
+                roles: true,
+            },
         });
 
-        if (!user) {
-            console.log(`User ${userId} not found`);
-            throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+        if (userRoles.length === 0) {
+            throw new NotFoundException(`Usuario sin roles o no encontrado`);
         }
 
-        console.log(`User found, fetching roles...`);
-        try {
-            const userRoles = await this.prisma.usuarios_roles.findMany({
-                where: { idusuario: userId },
-                include: {
-                    roles: true,
-                },
-            });
-            console.log(`Fetched ${userRoles.length} user roles`);
+        // Filter out any entries where the relation might be broken (null roles)
+        const roles = userRoles
+            .filter(ur => ur && ur.roles)
+            .map((ur) => ur.roles);
 
-            // Filter out any entries where the relation might be broken (null roles)
-            const result = userRoles
-                .filter(ur => ur && ur.roles)
-                .map((ur) => ur.roles);
+        // Guardar en cache
+        userRolesCache.set(userId, {
+            roles,
+            cachedAt: now,
+        });
 
-            console.log(`Returning ${result.length} valid roles`);
-            return result;
-        } catch (error) {
-            console.error('Error fetching user roles:', error);
-            throw error;
-        }
+        return roles;
+    }
+
+    // Método para invalidar cache de un usuario (llamar cuando cambien sus roles)
+    public invalidateUserRolesCache(userId: string): void {
+        userRolesCache.delete(userId);
+    }
+
+    // Método para limpiar todo el cache de roles
+    public clearAllRolesCache(): void {
+        userRolesCache.clear();
     }
 
     async getUsersByRole(roleId: string) {

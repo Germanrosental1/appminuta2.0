@@ -47,7 +47,6 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
           const datos = await getDatosMapaVentasByUnidadId(unidadId);
           setDatosMapaVentas(datos);
         } catch (error) {
-          console.error('Error al cargar datos del mapa de ventas:', error);
         } finally {
           setLoadingMapaVentas(false);
         }
@@ -99,7 +98,6 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
         navigate('/comercial/dashboard');
       }, 1500);
     } catch (error) {
-      console.error('Error al guardar la minuta:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",

@@ -66,10 +66,8 @@ export async function logAuthEvent(
         });
 
         if (!response.ok) {
-            console.error('Error al registrar evento de autenticación:', response.statusText);
         }
     } catch (error) {
-        console.error('Error al procesar registro de autenticación:', error);
     }
 }
 
@@ -85,7 +83,6 @@ export async function getRecentAuthEvents(
         const token = await getAuthToken();
 
         if (!token) {
-            console.error('No hay sesión activa para obtener eventos');
             return [];
         }
 
@@ -99,14 +96,12 @@ export async function getRecentAuthEvents(
         );
 
         if (!response.ok) {
-            console.error('Error al obtener eventos de autenticación:', response.statusText);
             return [];
         }
 
         const data = await response.json();
         return data.events as AuthLogEntry[];
     } catch (error) {
-        console.error('Error al procesar consulta de eventos:', error);
         return [];
     }
 }
@@ -121,7 +116,6 @@ export async function detectSuspiciousActivity(userId: string): Promise<boolean>
         const token = await getAuthToken();
 
         if (!token) {
-            console.error('No hay sesión activa para detectar actividad sospechosa');
             return false;
         }
 
@@ -135,14 +129,12 @@ export async function detectSuspiciousActivity(userId: string): Promise<boolean>
         );
 
         if (!response.ok) {
-            console.error('Error al detectar actividad sospechosa:', response.statusText);
             return false;
         }
 
         const data = await response.json();
         return data.isSuspicious;
     } catch (error) {
-        console.error('Error al detectar actividad sospechosa:', error);
         return false;
     }
 }

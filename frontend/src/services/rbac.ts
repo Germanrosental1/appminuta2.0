@@ -29,7 +29,6 @@ export const rbacApi = {
         try {
             return await apiFetch<Role[]>('/usuarios/me/roles');
         } catch (error) {
-            console.error('Error fetching my roles:', error);
             return [];
         }
     },
@@ -43,7 +42,6 @@ export const rbacApi = {
             const result = await apiFetch<{ hasRole: boolean }>(`/usuarios/me/check-role?role=${encodeURIComponent(role)}`);
             return result.hasRole;
         } catch (error) {
-            console.error(`Error checking role ${role}:`, error);
             return false;
         }
     },
@@ -56,7 +54,6 @@ export const rbacApi = {
         try {
             return await apiFetch<Permission[]>(`/usuarios/${userId}/permisos`);
         } catch (error) {
-            console.error('Error fetching user permissions:', error);
             return [];
         }
     },
@@ -69,7 +66,6 @@ export const rbacApi = {
         try {
             return await apiFetch<Role[]>('/roles');
         } catch (error) {
-            console.error('Error fetching all roles:', error);
             return [];
         }
     },
@@ -82,7 +78,6 @@ export const rbacApi = {
         try {
             return await apiFetch<Permission[]>('/permisos');
         } catch (error) {
-            console.error('Error fetching all permissions:', error);
             return [];
         }
     },

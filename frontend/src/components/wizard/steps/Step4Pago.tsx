@@ -109,11 +109,6 @@ export const Step4Pago: React.FC = () => {
       const anticipoArsB = data.anticipoArsB ?? 0;
       const anticipoUsdB = data.anticipoUsdB ?? 0;
 
-      console.log("Inicializando valores en Step4Pago:");
-      console.log("Anticipos ARS A:", anticipoArsA);
-      console.log("Anticipos USD A:", anticipoUsdA);
-      console.log("Anticipos ARS B:", anticipoArsB);
-      console.log("Anticipos USD B:", anticipoUsdB);
 
       updateData({
         valorArsConIVA: valorA,

@@ -68,7 +68,6 @@ export async function getProyectosDisponibles(): Promise<string[]> {
     const proyectos = await getProyectosActivos();
     return proyectos.map(p => p.nombre);
   } catch (error) {
-    console.error('Error al obtener proyectos disponibles:', error);
     return ['Arboria'];
   }
 }
@@ -81,7 +80,6 @@ export async function getUnidadesPorEstado(estado: string = 'disponible'): Promi
     const data = await apiFetch<UnidadTabla[]>(`/unidades?estado=${encodeURIComponent(estado)}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
-    console.error(`Error al obtener unidades con estado ${estado}:`, error);
     return [];
   }
 }
@@ -94,7 +92,6 @@ export async function getUnidadesPorProyecto(proyecto: string): Promise<UnidadRe
     const data = await apiFetch<UnidadTabla[]>(`/unidades?proyecto=${encodeURIComponent(proyecto)}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
-    console.error(`Error al obtener unidades del proyecto ${proyecto}:`, error);
     return [];
   }
 }
@@ -143,7 +140,38 @@ function formatearUnidadResumen(unidad: UnidadTabla): UnidadResumen {
  * Obtener todas las naturalezas de proyecto disponibles
  */
 export async function getNaturalezasProyecto(): Promise<string[]> {
-  return await apiFetch<string[]>('/unidades/metadata/naturalezas');
+  try {
+    const result = await apiFetch<string[]>('/unidades/metadata/naturalezas');
+    return result;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Obtener todos los tipos de unidad disponibles (Departamento, Cochera, etc.)
+ */
+export async function getTiposDisponibles(): Promise<string[]> {
+  try {
+    const result = await apiFetch<string[]>('/unidades/metadata/tipos-disponibles');
+    return result;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Obtener proyectos que tienen un tipo específico de unidad
+ */
+export async function getProyectosPorTipo(tipo: string): Promise<string[]> {
+  try {
+    const result = await apiFetch<string[]>(
+      `/unidades/metadata/proyectos?tipo=${encodeURIComponent(tipo)}`
+    );
+    return result;
+  } catch (error) {
+    throw error;
+  }
 }
 
 /**
@@ -154,7 +182,6 @@ export async function getEtapasPorProyecto(nombreProyecto: string): Promise<stri
     const data = await apiFetch<string[]>(`/unidades/metadata/etapas?proyecto=${encodeURIComponent(nombreProyecto)}`);
     return data.length > 0 ? data : ['Ninguna'];
   } catch (error) {
-    console.error(`Error al obtener etapas para proyecto ${nombreProyecto}:`, error);
     return ['Ninguna'];
   }
 }
@@ -181,7 +208,6 @@ export async function getProyectosPorNaturaleza(naturaleza: string): Promise<str
     // Let's assume fetching all projects is fine for now as distinct projects are limited.
     return proyectos.map(p => p.nombre);
   } catch (error) {
-    console.error('Error al obtener proyectos por naturaleza:', error);
     return [];
   }
 }
@@ -189,23 +215,26 @@ export async function getProyectosPorNaturaleza(naturaleza: string): Promise<str
 /**
  * Obtener todos los tipos disponibles para un proyecto y etapa específicos
  */
-export async function getTiposPorProyectoYEtapa(nombreProyecto: string, etapa: string): Promise<string[]> {
+export async function getTiposPorProyecto(nombreProyecto: string, etapa?: string): Promise<string[]> {
   try {
-    const params = new URLSearchParams({ proyecto: nombreProyecto });
-    if (etapa && etapa !== 'Ninguna') params.append('etapa', etapa);
-    return apiFetch<string[]>(`/unidades/metadata/tipos?${params.toString()}`);
+    let url = `/unidades/metadata/tipos?proyecto=${encodeURIComponent(nombreProyecto)}`;
+    if (etapa && etapa !== 'Ninguna') {
+      url += `&etapa=${encodeURIComponent(etapa)}`;
+    }
+    const data = await apiFetch<string[]>(url);
+    return data.length > 0 ? data : [];
   } catch (error) {
-    console.error(`Error al obtener tipos:`, error);
     return [];
   }
 }
 
 /**
- * Obtener todos los tipos disponibles para un proyecto específico
+ * Backward compatibility: getTiposPorProyectoYEtapa
  */
-export async function getTiposPorProyecto(nombreProyecto: string): Promise<string[]> {
-  return getTiposPorProyectoYEtapa(nombreProyecto, 'Ninguna');
+export async function getTiposPorProyectoYEtapa(nombreProyecto: string, etapa: string): Promise<string[]> {
+  return getTiposPorProyecto(nombreProyecto, etapa);
 }
+
 
 /**
  * Obtener todos los sectores disponibles para un proyecto, etapa y tipo específicos
@@ -217,7 +246,6 @@ export async function getSectoresPorProyectoEtapaYTipo(nombreProyecto: string, e
     if (tipo) params.append('tipo', tipo);
     return apiFetch<string[]>(`/unidades/metadata/sectores?${params.toString()}`);
   } catch (error) {
-    console.error(`Error al obtener sectores:`, error);
     return [];
   }
 }
@@ -230,10 +258,22 @@ export async function getSectoresPorProyectoYTipo(nombreProyecto: string, tipo: 
 }
 
 /**
- * Obtener todos los sectores disponibles de un proyecto
+ * Obtener todos los sectores disponibles para un proyecto, etapa y tipo específicos
  */
-export async function getSectoresProyecto(nombreProyecto: string): Promise<string[]> {
-  return getSectoresPorProyectoEtapaYTipo(nombreProyecto, 'Ninguna', '');
+export async function getSectoresProyecto(nombreProyecto: string, etapa?: string, tipo?: string): Promise<string[]> {
+  try {
+    let url = `/unidades/metadata/sectores?proyecto=${encodeURIComponent(nombreProyecto)}`;
+    if (etapa && etapa !== 'Ninguna') {
+      url += `&etapa=${encodeURIComponent(etapa)}`;
+    }
+    if (tipo) {
+      url += `&tipo=${encodeURIComponent(tipo)}`;
+    }
+    const data = await apiFetch<string[]>(url);
+    return data.length > 0 ? data : [];
+  } catch (error) {
+    return [];
+  }
 }
 
 /**
@@ -258,7 +298,6 @@ export async function getUnidadesPorEtapaTipoYSector(nombreProyecto: string, eta
     const data = await apiFetch<UnidadTabla[]>(`/unidades?${params.toString()}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
-    console.error(`Error al obtener unidades filtradas:`, error);
     return [];
   }
 }
@@ -276,7 +315,6 @@ export async function getUnidadesPorTipoYSector(nombreProyecto: string, tipo: st
     const data = await apiFetch<UnidadTabla[]>(`/unidades?${params.toString()}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
-    console.error(`Error al obtener unidades:`, error);
     return [];
   }
 }
@@ -293,7 +331,6 @@ export async function getUnidadesPorSector(nombreProyecto: string, sector: strin
     const data = await apiFetch<UnidadTabla[]>(`/unidades?${params.toString()}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
-    console.error(`Error al obtener unidades:`, error);
     return [];
   }
 }

@@ -14,9 +14,20 @@ export class UnidadesController {
         return this.unidadesService.create(createUnidadDto);
     }
 
+    // Metadata endpoints - MUST come before generic GET routes
     @Get('metadata/naturalezas')
     getNaturalezas() {
         return this.unidadesService.getNaturalezas();
+    }
+
+    @Get('metadata/tipos-disponibles')
+    getTiposDisponibles() {
+        return this.unidadesService.getTiposDisponibles();
+    }
+
+    @Get('metadata/proyectos')
+    getProyectosPorTipo(@Query('tipo') tipo: string) {
+        return this.unidadesService.getProyectosPorTipo(tipo);
     }
 
     @Get('metadata/etapas')
@@ -38,6 +49,7 @@ export class UnidadesController {
         return this.unidadesService.getSectores(proyecto, etapa, tipo);
     }
 
+    // Generic routes - come after specific routes
     @Get()
     findAll(@Query() query: any) {
         return this.unidadesService.findAll(query);

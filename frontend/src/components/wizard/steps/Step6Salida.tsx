@@ -61,7 +61,6 @@ export const Step6Salida: React.FC = () => {
       pdf.save(fileName);
 
     } catch (error) {
-      console.error('Error al generar el PDF:', error);
       alert('Hubo un error al generar el PDF. Por favor, inténtelo de nuevo.');
     } finally {
       setIsGeneratingPDF(false);

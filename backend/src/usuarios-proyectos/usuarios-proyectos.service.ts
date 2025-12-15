@@ -14,61 +14,33 @@ export class UsuariosProyectosService {
         projectId: string,
         roleId: string,
     ) {
-        // Verificar que el usuario existe
-        const user = await this.prisma.profiles.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user) {
-            throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
-        }
-
-        // Verificar que el proyecto existe
-        const project = await this.prisma.proyectos.findUnique({
-            where: { id: projectId },
-        });
-
-        if (!project) {
-            throw new NotFoundException(`Proyecto con ID ${projectId} no encontrado`);
-        }
-
-        // Verificar que el rol existe
-        const role = await this.prisma.roles.findUnique({
-            where: { id: roleId },
-        });
-
-        if (!role) {
-            throw new NotFoundException(`Rol con ID ${roleId} no encontrado`);
-        }
-
-        // Verificar si ya existe la asignación
-        const existing = await this.prisma.usuarios_proyectos.findUnique({
-            where: {
-                idusuario_idproyecto_idrol: {
+        // ⚡ OPTIMIZACIÓN: Dejar que Prisma valide FKs automáticamente
+        // Reducción: 4 queries → 1 query (75% mejora)
+        try {
+            return await this.prisma.usuarios_proyectos.create({
+                data: {
                     idusuario: userId,
                     idproyecto: projectId,
                     idrol: roleId,
                 },
-            },
-        });
-
-        if (existing) {
-            throw new ConflictException(
-                'El usuario ya está asignado a este proyecto con este rol',
-            );
+                include: {
+                    proyectos: true,
+                    roles: true,
+                },
+            });
+        } catch (error) {
+            // P2002: Unique constraint violation (ya asignado)
+            if (error.code === 'P2002') {
+                throw new ConflictException(
+                    'El usuario ya está asignado a este proyecto con este rol',
+                );
+            }
+            // P2003: Foreign key constraint violation (usuario, proyecto o rol no existe)
+            if (error.code === 'P2003') {
+                throw new NotFoundException('Usuario, proyecto o rol no encontrado');
+            }
+            throw error;
         }
-
-        return this.prisma.usuarios_proyectos.create({
-            data: {
-                idusuario: userId,
-                idproyecto: projectId,
-                idrol: roleId,
-            },
-            include: {
-                proyectos: true,
-                roles: true,
-            },
-        });
     }
 
     async removeUserFromProject(
@@ -105,15 +77,7 @@ export class UsuariosProyectosService {
     }
 
     async getUserProjects(userId: string) {
-        // Verificar que el usuario existe
-        const user = await this.prisma.profiles.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user) {
-            throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
-        }
-
+        // ⚡ OPTIMIZACIÓN: Eliminar query de validación previa
         const userProjects = await this.prisma.usuarios_proyectos.findMany({
             where: { idusuario: userId },
             include: {
@@ -121,6 +85,10 @@ export class UsuariosProyectosService {
                 roles: true,
             },
         });
+
+        if (userProjects.length === 0) {
+            throw new NotFoundException(`Usuario sin proyectos o no encontrado`);
+        }
 
         return userProjects.map((up) => ({
             proyecto: up.proyectos,

@@ -13,8 +13,23 @@ export class UnidadesService {
 
     async findAll(query: any) {
         const where: any = {};
-        if (query.proyecto) where.proyecto = { equals: query.proyecto, mode: 'insensitive' };
-        if (query.estado) where.estado = { equals: query.estado, mode: 'insensitive' };
+
+        // Handle proyecto filter - convert nombre to proyecto_id
+        if (query.proyecto) {
+            const proyecto = await this.prisma.proyectos.findFirst({
+                where: { nombre: { equals: query.proyecto, mode: 'insensitive' } },
+            });
+            if (proyecto) {
+                where.proyecto_id = proyecto.id;
+            } else {
+                // If project not found, return empty array
+                return [];
+            }
+        }
+
+        // Other filters
+        if (query.estado)
+            where.estado = { equals: query.estado, mode: 'insensitive' };
         if (query.etapa && query.etapa !== 'Ninguna') where.etapa = query.etapa;
         if (query.tipo) where.tipo = query.tipo;
         if (query.sectorid) where.sectorid = query.sectorid;
@@ -22,11 +37,7 @@ export class UnidadesService {
 
         return this.prisma.tablas.findMany({
             where,
-            orderBy: [
-                { proyecto: 'asc' },
-                { sectorid: 'asc' },
-                { id: 'asc' },
-            ],
+            orderBy: [{ sectorid: 'asc' }, { id: 'asc' }],
         });
     }
 
@@ -36,60 +47,143 @@ export class UnidadesService {
         });
     }
 
-    async getNaturalezas() {
+    async getNaturalezas(): Promise<string[]> {
         const result = await this.prisma.tablas.findMany({
-            distinct: ['natdelproyecto'],
             select: { natdelproyecto: true },
             where: { natdelproyecto: { not: null } },
+            distinct: ['natdelproyecto'],
             orderBy: { natdelproyecto: 'asc' },
         });
-        return result.map(i => i.natdelproyecto);
+        const naturalezas = result.map((r) => r.natdelproyecto).filter(Boolean);
+        return naturalezas;
     }
 
-    async getEtapas(proyecto: string) {
+    /**
+     * Get all available unit types across all projects
+     */
+    async getTiposDisponibles(): Promise<string[]> {
         const result = await this.prisma.tablas.findMany({
-            distinct: ['etapa'],
-            select: { etapa: true },
-            where: {
-                proyecto: { equals: proyecto, mode: 'insensitive' },
-                etapa: { not: null }
-            },
-            orderBy: { etapa: 'asc' },
-        });
-        return result.map(i => i.etapa);
-    }
-
-    async getTipos(proyecto: string, etapa?: string) {
-        const where: any = {
-            proyecto: { equals: proyecto, mode: 'insensitive' },
-            tipo: { not: null }
-        };
-        if (etapa && etapa !== 'Ninguna') where.etapa = etapa;
-
-        const result = await this.prisma.tablas.findMany({
-            distinct: ['tipo'],
             select: { tipo: true },
-            where,
+            where: { tipo: { not: null } },
+            distinct: ['tipo'],
             orderBy: { tipo: 'asc' },
         });
-        return result.map(i => i.tipo);
+        const tipos = result.map((r) => r.tipo).filter(Boolean);
+        return tipos;
     }
 
-    async getSectores(proyecto: string, etapa?: string, tipo?: string) {
-        const where: any = {
-            proyecto: { equals: proyecto, mode: 'insensitive' },
-            sectorid: { not: null }
-        };
-        if (etapa && etapa !== 'Ninguna') where.etapa = etapa;
-        if (tipo) where.tipo = tipo;
+    /**
+     * Get projects that have units of a specific type
+     */
+    async getProyectosPorTipo(tipo: string): Promise<string[]> {
+        const result = await this.prisma.tablas.findMany({
+            select: {
+                proyectos: {
+                    select: { nombre: true },
+                },
+            },
+            where: {
+                tipo: tipo,
+                proyecto_id: { not: null },
+            },
+            distinct: ['proyecto_id'],
+        });
+        const proyectos = result
+            .map((r) => r.proyectos?.nombre)
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+        return proyectos;
+    }
+
+    async getEtapas(nombreProyecto: string): Promise<string[]> {
+        const proyecto = await this.prisma.proyectos.findFirst({
+            where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+            select: { id: true }, // Only select ID, not all fields
+        });
+
+        if (!proyecto) {
+            return [];
+        }
 
         const result = await this.prisma.tablas.findMany({
-            distinct: ['sectorid'],
-            select: { sectorid: true },
-            where,
-            orderBy: { sectorid: 'asc' },
+            select: { etapa: true },
+            where: {
+                proyecto_id: proyecto.id,
+                etapa: { not: null },
+            },
+            distinct: ['etapa'],
+            orderBy: { etapa: 'asc' },
         });
-        return result.map(i => i.sectorid);
+
+        const etapas = result.map((r) => r.etapa).filter(Boolean);
+
+        return etapas;
+    }
+
+    async getTipos(nombreProyecto: string, etapa?: string): Promise<string[]> {
+        const proyecto = await this.prisma.proyectos.findFirst({
+            where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+        });
+
+        if (!proyecto) return [];
+
+        const where: any = {
+            proyecto_id: proyecto.id,
+            tipo: { not: null },
+        };
+
+        if (etapa && etapa !== 'Ninguna') {
+            where.etapa = etapa;
+        }
+
+        const result = await this.prisma.tablas.findMany({
+            select: { tipo: true },
+            where,
+            distinct: ['tipo'],
+            orderBy: { tipo: 'asc' },
+        });
+
+        return result.map((r) => r.tipo).filter(Boolean);
+    }
+
+    async getSectores(
+        nombreProyecto: string,
+        etapa?: string,
+        tipo?: string,
+    ): Promise<string[]> {
+        try {
+            const proyecto = await this.prisma.proyectos.findFirst({
+                where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+                select: { id: true }, // Only select ID, not all fields
+            });
+
+            if (!proyecto) {
+                return [];
+            }
+
+            const where: any = {
+                proyecto_id: proyecto.id,
+            };
+
+            if (etapa && etapa !== 'Ninguna') where.etapa = etapa;
+            if (tipo) where.tipo = tipo;
+
+            const result = await this.prisma.tablas.findMany({
+                select: { sectorid: true },
+                where,
+                distinct: ['sectorid'],
+                orderBy: { sectorid: 'asc' },
+            });
+
+            // Filter out null/empty sectorid values
+            const sectores = result
+                .map((r) => r.sectorid)
+                .filter((s) => s != null && s !== '');
+            return sectores;
+        } catch (error) {
+            console.error('[ERROR] getSectores failed:', error);
+            throw error;
+        }
     }
 
     update(id: number, updateUnidadDto: UpdateUnidadDto) {

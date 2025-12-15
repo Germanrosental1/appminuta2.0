@@ -51,7 +51,6 @@ export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({
         onSuccess();
       }
     } catch (error) {
-      console.error('Error al guardar la minuta:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",

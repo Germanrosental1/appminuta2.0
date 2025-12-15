@@ -68,7 +68,6 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
       const { error: updateError } = await updatePassword(sanitizedPassword);
 
       if (updateError) {
-        console.error('❌ Error al cambiar contraseña:', updateError);
         throw updateError;
       }
 
@@ -85,7 +84,6 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
 
     } catch (err: any) {
       setError(err.message || 'Error al cambiar la contraseña');
-      console.error('Error changing password:', err);
     } finally {
       setIsLoading(false);
     }

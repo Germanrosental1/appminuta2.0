@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Search } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface FilterSelectProps {
     label: string;
@@ -14,6 +16,7 @@ interface FilterSelectProps {
     required?: boolean;
     id: string;
     isUnidadSelect?: boolean;
+    searchable?: boolean; // New prop for searchable dropdowns
 }
 
 export const FilterSelect: React.FC<FilterSelectProps> = ({
@@ -26,26 +29,46 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
     placeholder,
     required = true,
     id,
-    isUnidadSelect = false
+    isUnidadSelect = false,
+    searchable = false
 }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    // ⚡ OPTIMIZACIÓN: Debounce search to reduce re-renders
+    const debouncedSearch = useDebounce(searchTerm, 300);
+
+    // Filter options based on debounced search term
+    const filteredOptions = useMemo(() => {
+        if (!searchable || !debouncedSearch) return options;
+
+        if (isUnidadSelect) {
+            return (options as Array<{ id: number; descripcion: string }>).filter((item) =>
+                item.descripcion.toLowerCase().includes(debouncedSearch.toLowerCase())
+            );
+        }
+
+        return (options as string[]).filter((option) =>
+            option.toLowerCase().includes(debouncedSearch.toLowerCase())
+        );
+    }, [options, debouncedSearch, searchable, isUnidadSelect]);
+
     const renderOptions = () => {
-        if (options.length === 0) {
+        if (filteredOptions.length === 0) {
             return (
                 <div className="p-2 text-center text-sm text-muted-foreground">
-                    No hay opciones disponibles
+                    {debouncedSearch ? 'No se encontraron resultados' : 'No hay opciones disponibles'}
                 </div>
             );
         }
 
         if (isUnidadSelect) {
-            return (options as Array<{ id: number; descripcion: string }>).map((item) => (
+            return (filteredOptions as Array<{ id: number; descripcion: string }>).map((item) => (
                 <SelectItem key={item.id} value={item.id.toString()}>
                     {item.descripcion}
                 </SelectItem>
             ));
         }
 
-        return (options as string[]).map((option) => (
+        return (filteredOptions as string[]).map((option) => (
             <SelectItem key={option} value={option}>
                 {option}
             </SelectItem>
@@ -69,6 +92,21 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
                     )}
                 </SelectTrigger>
                 <SelectContent>
+                    {searchable && options.length > 5 && (
+                        <div className="p-2 border-b sticky top-0 bg-background z-10">
+                            <div className="relative">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder={`Buscar ${label.toLowerCase()}...`}
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-8"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                        </div>
+                    )}
                     {renderOptions()}
                 </SelectContent>
             </Select>

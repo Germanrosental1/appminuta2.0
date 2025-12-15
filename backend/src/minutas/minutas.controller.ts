@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { MinutasService } from './minutas.service';
 import { CreateMinutaDto } from './dto/create-minuta.dto';
 import { UpdateMinutaDto } from './dto/update-minuta.dto';
@@ -17,24 +18,28 @@ export class MinutasController {
 
   @Post()
   @Permissions('generarMinuta')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 🔒 5 requests per minute (más restrictivo)
   create(@Body() createMinutaDto: CreateMinutaDto, @CurrentUser() user: any) {
     return this.minutasService.create(createMinutaDto, user.id);
   }
 
   @Post('provisoria')
   @Permissions('generarMinuta')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 🔒 5 requests per minute
   createProvisoria(@Body() data: any, @CurrentUser() user: any) {
     return this.minutasService.createProvisoria(data, user.id);
   }
 
   @Patch('provisoria/:id')
   @Permissions('editarMinuta')
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
   updateProvisoria(@Param('id') id: string, @Body() data: any) {
     return this.minutasService.updateProvisoria(id, data);
   }
 
   @Post('generar')
   @Permissions('generarMinuta')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute (resource intensive)
   async generar(@Body() data: any, @Res() res: Response) {
     const { buffer, contentType } = await this.minutasService.generate(data);
     res.set('Content-Type', contentType);
@@ -42,28 +47,32 @@ export class MinutasController {
   }
 
   @Get()
-  findAll(@Query() query: FindAllMinutasQueryDto) {
-    // Ver minutas no requiere permisos específicos - todos los roles pueden ver
-    return this.minutasService.findAll(query);
+  @Permissions('verMinutas') // Requiere permiso específico
+  findAll(@Query() query: FindAllMinutasQueryDto, @CurrentUser() user: any) {
+    // Filtrar minutas por proyectos asignados al usuario
+    return this.minutasService.findAll(query, user.id);
   }
 
   @Get(':id')
+  @Permissions('verMinutas') // Requiere permiso específico
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    // Ver minuta no requiere permisos específicos - todos los roles pueden ver
+    // Validar acceso a la minuta (propiedad o acceso a proyecto)
     return this.minutasService.findOne(id, user.id);
   }
 
   @Patch(':id')
   @Permissions('editarMinuta', 'aprobarRechazarMinuta')
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
   async update(@Param('id') id: string, @Body() updateMinutaDto: UpdateMinutaDto, @CurrentUser() user: any) {
     // El servicio manejará la lógica de qué puede hacer cada rol
     // editarMinuta: puede editar campos generales
     // aprobarRechazarMinuta: puede cambiar estado a Definitiva/Rechazada
-    return this.minutasService.update(id, updateMinutaDto, user.id);
+    return this.minutasService.update(id, updateMinutaDto, user.id, user.role);
   }
 
   @Delete(':id')
   @Permissions('editarMinuta')
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.minutasService.remove(id, user.id);
   }

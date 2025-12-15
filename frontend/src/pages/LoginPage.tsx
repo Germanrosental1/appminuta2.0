@@ -21,7 +21,6 @@ export const LoginPage: React.FC = () => {
     } else if (hasRole(roles, 'comercial')) {
       return '/comercial/dashboard';
     } else {
-      console.error('[LoginPage] User has no recognized roles');
       return '/perfil-incompleto';
     }
   };
@@ -38,7 +37,6 @@ export const LoginPage: React.FC = () => {
       const redirectPath = getRedirectPath(roles);
       navigate(redirectPath, { replace: true });
     } catch (error) {
-      console.error('[LoginPage] Error in performRedirect:', error);
       navigate('/perfil-incompleto', { replace: true });
     } finally {
       setVerifyingRoles(false);

@@ -58,13 +58,11 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
       .single();
 
     if (error) {
-      console.error('Error al obtener perfil:', error);
       return null;
     }
 
     return profile as UserProfile;
   } catch (error) {
-    console.error('Error al obtener perfil del usuario:', error);
     return null;
   }
 };
@@ -168,7 +166,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setPermissions(fetchedPermissions);
       return fetchedRoles;
     } catch (e) {
-      console.error('Error al cargar roles:', e);
       return [];
     }
   }, []);
@@ -179,7 +176,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const enrichedUser = await enrichUserWithProfile(authUser);
       setUser(enrichedUser);
     } catch (error) {
-      console.error('Error al cargar perfil en segundo plano:', error);
     }
   }, []);
 
@@ -197,7 +193,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const enrichedUser = await enrichUserWithProfile(session.user);
         setUser(enrichedUser);
       } catch (error) {
-        console.error('Error al obtener el usuario actual:', error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -209,7 +204,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       (event, session) => {
         // Handle sign out
         if (event === 'SIGNED_OUT') {
-          console.log('[AuthContext] SIGNED_OUT event');
           setUser(null);
           setLoading(false);
           return;
@@ -272,7 +266,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Si requiere cambio, no hacer nada más - el middleware redirigirá
         // Si requiere cambio, el middleware se encargará de redirigir
         if (profile?.require_password_change) {
-          console.log('Usuario requiere cambio de contraseña');
         }
       }
 
@@ -305,7 +298,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { error: rpcError } = await supabase.rpc('update_password_flags');
 
         if (rpcError) {
-          console.error('Error al actualizar flags de perfil vía RPC:', rpcError);
           // Intentar fallback directo por si acaso (aunque probablemente falle si RLS lo bloquea)
           await supabase
             .from('profiles')

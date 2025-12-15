@@ -139,7 +139,7 @@ model oauth_authorizations {
   client_id             String                     @db.Uuid
   user_id               String?                    @db.Uuid
   redirect_uri          String
-  scope                 String?
+  scope                 String
   state                 String?
   resource              String?
   code_challenge        String?
@@ -154,6 +154,17 @@ model oauth_authorizations {
   oauth_clients         oauth_clients              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users                 users?                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model oauth_client_states {
+  id            String   @id @db.Uuid
+  provider_type String
+  code_verifier String?
+  created_at    DateTime @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_oauth_client_states_created_at")
   @@schema("auth")
 }
 
@@ -396,7 +407,6 @@ model users {
   sessions                    sessions[]
   auth_logs                   auth_logs[]
   minutas_definitivas         minutas_definitivas[]
-  minutas_provisorias         minutas_provisorias[]
   profiles                    profiles?
 
   @@index([instance_id])
@@ -423,99 +433,139 @@ model auth_logs {
   @@schema("public")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model mapadeventas {
-  ID                                     BigInt  @id(map: "Arboria_pkey") @unique(map: "Arboria_ID_key")
-  Sector                                 String?
-  Etapa                                  BigInt?
-  Tipo                                   String?
-  N__Unidad                              BigInt? @map("N° Unidad")
-  Edificio                               String?
-  Piso                                   String?
-  Dormitorios                            BigInt?
-  Tama_o                                 String? @map("Tamaño")
-  M2_Totales                             Float?  @map("M2 Totales")
-  M2_Terraza                             Float?  @map("M2 Terraza")
-  Tipo_1                                 String?
-  M2_Exclusivos                          String? @map("M2 Exclusivos")
-  M2_Comunes                             String? @map("M2 Comunes")
-  M2_para_c_lculo                        String? @map("M2 para cálculo")
-  Precio_USD                             String? @map("Precio USD")
-  USD_M2                                 String? @map("USD/M2")
-  ESTADO                                 String?
-  Motivo_No_disponibilidad               String? @map("Motivo No disponibilidad")
-  Observaciones                          String?
-  Fecha_Reserva                          String? @map("Fecha Reserva")
-  Comercial                              String?
-  Cliente_Interesado                     String? @map("Cliente Interesado")
-  Fecha_Firma_Boleto                     String? @map("Fecha Firma Boleto")
-  ClienteTitular_Boleto                  String? @map("ClienteTitular Boleto")
-  Fecha_Posesi_n_por_Boleto_Compra_Venta String? @map("Fecha Posesión por Boleto Compra-Venta")
-  proyecto                               String  @default("Arboria")
+model comerciales {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre        String          @unique @db.VarChar(255)
+  detallesventa detallesventa[]
 
-  @@index([proyecto])
-  @@index([ESTADO])
-  @@index([Sector])
-  @@index([N__Unidad])
-  @@index([proyecto, N__Unidad])
-  @@index([proyecto, ESTADO])
+  @@schema("public")
+}
+
+model detallesventa {
+  unidad_id                                           String           @id @db.Uuid
+  estado_id                                           String?          @db.Uuid
+  comercial_id                                        String?          @db.Uuid
+  motivonodisp_id                                     String?          @db.Uuid
+  preciousd                                           Decimal?         @db.Decimal(12, 2)
+  usdm2                                               Decimal?         @db.Decimal(10, 2)
+  clienteinteresado                                   String?          @db.VarChar(255)
+  clientetitularboleto                                String?          @db.VarChar(255)
+  fechareserva                                        DateTime?        @db.Date
+  fechafirmaboleto                                    DateTime?        @db.Date
+  fechaposesion                                       DateTime?        @db.Date
+  obs                                                 String?
+  tipocochera_id                                      String?          @db.Uuid
+  unidadcomprador_id                                  String?          @db.Uuid
+  comerciales                                         comerciales?     @relation(fields: [comercial_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  estadocomercial                                     estadocomercial? @relation(fields: [estado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  motivosnodisp                                       motivosnodisp?   @relation(fields: [motivonodisp_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  unidades_detallesventa_unidad_idTounidades          unidades         @relation("detallesventa_unidad_idTounidades", fields: [unidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tiposcochera                                        tiposcochera?    @relation(fields: [tipocochera_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipocochera")
+  unidades_detallesventa_unidadcomprador_idTounidades unidades?        @relation("detallesventa_unidadcomprador_idTounidades", fields: [unidadcomprador_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_unidad_comprador")
+
+  @@schema("public")
+}
+
+model edificios {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proyecto_id    String     @db.Uuid
+  nombreedificio String     @db.VarChar(50)
+  proyectos      proyectos  @relation(fields: [proyecto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  unidades       unidades[]
+
+  @@schema("public")
+}
+
+model estadocomercial {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombreestado  String          @unique @db.VarChar(100)
+  detallesventa detallesventa[]
+
+  @@schema("public")
+}
+
+model etapas {
+  id       String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre   String     @unique @db.VarChar(100)
+  unidades unidades[]
+
   @@schema("public")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model minutas_definitivas {
-  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  usuario_id        String    @db.Uuid
-  fecha_creacion    DateTime? @default(now()) @db.Timestamptz(6)
+  id                String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuario_id        String     @db.Uuid
+  fecha_creacion    DateTime?  @default(now()) @db.Timestamptz(6)
   datos             Json
   datos_adicionales Json?
   estado            String
   url_documento     String?
-  created_at        DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
-  proyecto          String    @default("Sin proyecto")
+  created_at        DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?  @default(now()) @db.Timestamptz(6)
   comentarios       String?
   datos_mapa_ventas Json?
-  users             users     @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proyecto          String?    @db.Uuid
+  version           Int        @default(1) // 🔒 Optimistic locking
+  proyectos         proyectos? @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users             users      @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([usuario_id])
-  @@index([estado])
-  @@index([proyecto])
-  @@index([usuario_id, estado])
-  @@index([proyecto, estado])
-  @@index([created_at(sort: Desc)])
-  @@index([fecha_creacion(sort: Desc)])
+  @@index([created_at(sort: Desc)], map: "idx_minutas_definitivas_created_at")
+  @@index([estado], map: "idx_minutas_definitivas_estado")
+  @@index([fecha_creacion(sort: Desc)], map: "idx_minutas_definitivas_fecha_creacion")
+  @@index([usuario_id, estado], map: "idx_minutas_definitivas_usuario_estado")
+  @@index([usuario_id], map: "idx_minutas_definitivas_usuario_id")
+  @@index([proyecto], map: "idx_minutas_definitivas_proyecto")
+  @@index([proyecto, estado, fecha_creacion(sort: Desc)], map: "idx_minutas_definitivas_proyecto_estado_fecha")
   @@schema("public")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model motivosnodisp {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre        String          @unique @db.VarChar(255)
+  detallesventa detallesventa[]
+
+  @@schema("public")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model minutas_provisorias {
-  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  proyecto       String
-  unidad_id      BigInt
-  usuario_id     String    @db.Uuid
-  fecha_creacion DateTime? @default(now()) @db.Timestamptz(6)
-  datos          Json
-  estado         String
-  comentarios    String?
-  created_at     DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
-  users          users     @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model naturalezas {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  proyectos  proyectos[]
 
-  @@index([usuario_id])
-  @@index([proyecto])
-  @@index([estado])
-  @@index([unidad_id])
-  @@index([proyecto, unidad_id])
-  @@index([usuario_id, estado])
-  @@index([proyecto, estado])
-  @@index([created_at(sort: Desc)])
   @@schema("public")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model permisos {
+  id             String           @id(map: "permissions_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  nombre         String?
+  descripcion    String?
+  roles_permisos roles_permisos[]
+
+  @@index([nombre], map: "idx_permisos_nombre")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model permisos_extras {
+  idrolusuario String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  idpermiso    String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  descripcion  String?
+
+  @@id([idrolusuario, idpermiso])
+  @@index([idpermiso], map: "idx_permisos_extras_idpermiso")
+  @@index([idrolusuario], map: "idx_permisos_extras_idrolusuario")
+  @@map("permisos-extras")
+  @@schema("public")
+}
+
 model profiles {
   id                      String               @id @db.Uuid
   email                   String
@@ -527,32 +577,47 @@ model profiles {
   require_password_change Boolean?             @default(true)
   first_login             Boolean?             @default(true)
   users                   users                @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios_roles          usuarios_roles[]
   usuarios_proyectos      usuarios_proyectos[]
+  usuarios_roles          usuarios_roles[]
 
-  @@index([email])
-  @@index([activo])
-  @@index([require_password_change])
+  @@index([activo], map: "idx_profiles_activo")
+  @@index([email], map: "idx_profiles_email")
   @@schema("public")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model proyectos {
-  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  nombre             String               @unique
-  tabla_nombre       String
-  descripcion        String?
-  direccion          String?
-  localidad          String?
-  provincia          String?
-  activo             Boolean?             @default(true)
-  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  tablas             tablas[]
-  usuarios_proyectos usuarios_proyectos[]
+  id                   String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nombre               String                 @unique
+  tabla_nombre         String
+  descripcion          String?
+  direccion            String?
+  localidad            String?
+  provincia            String?
+  activo               Boolean?               @default(true)
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  naturaleza           String?                @db.Uuid
+  edificios            edificios[]
+  minutas_definitivas  minutas_definitivas[]
+  naturalezas          naturalezas?           @relation(fields: [naturaleza], references: [id], onUpdate: NoAction)
+  proyectostiposunidad proyectostiposunidad[]
+  tablas               tablas[]
+  usuarios_proyectos   usuarios_proyectos[]
 
-  @@index([activo])
-  @@index([nombre])
+  @@index([activo], map: "idx_proyectos_activo")
+  @@schema("public")
+}
+
+model proyectostiposunidad {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proyecto_id   String      @db.Uuid
+  tipounidad_id String      @db.Uuid
+  created_at    DateTime?   @default(now()) @db.Timestamp(6)
+  proyectos     proyectos   @relation(fields: [proyecto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tiposunidad   tiposunidad @relation(fields: [tipounidad_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([proyecto_id, tipounidad_id])
   @@schema("public")
 }
 
@@ -562,60 +627,10 @@ model roles {
   nombre             String               @default("")
   created_at         DateTime             @default(now()) @db.Timestamptz(6)
   roles_permisos     roles_permisos[]
-  usuarios_roles     usuarios_roles[]
   usuarios_proyectos usuarios_proyectos[]
+  usuarios_roles     usuarios_roles[]
 
-  @@index([nombre])
-  @@map("roles")
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model permisos {
-  id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime?         @default(now()) @db.Timestamptz(6)
-  nombre          String?
-  descripcion     String?
-  roles_permisos  roles_permisos[]
-  permisos_extras permisos_extras[]
-
-  @@index([nombre])
-  @@map("permisos")
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model usuarios_roles {
-  idusuario  String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  profiles   profiles @relation(fields: [idusuario], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([idusuario, idrol])
-  @@index([idusuario])
-  @@index([idrol])
-  @@map("usuarios-roles")
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model usuarios_proyectos {
-  idusuario  String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  idproyecto String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  idrol      String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  profiles   profiles  @relation(fields: [idusuario], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  proyectos  proyectos @relation(fields: [idproyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  roles      roles     @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([idusuario, idproyecto, idrol])
-  @@index([idusuario])
-  @@index([idproyecto])
-  @@index([idrol])
-  @@index([idusuario, idproyecto])
-  @@map("usuarios-proyectos")
+  @@index([nombre], map: "idx_roles_nombre")
   @@schema("public")
 }
 
@@ -624,70 +639,13 @@ model roles_permisos {
   idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   idpermiso  String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   created_at DateTime @default(now()) @db.Timestamptz(6)
-  permisos   permisos @relation(fields: [idpermiso], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  permisos   permisos @relation(fields: [idpermiso], references: [id], onDelete: NoAction)
+  roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction)
 
   @@id([idrol, idpermiso])
-  @@index([idrol])
-  @@index([idpermiso])
+  @@index([idpermiso], map: "idx_roles_permisos_idpermiso")
+  @@index([idrol], map: "idx_roles_permisos_idrol")
   @@map("roles-permisos")
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model permisos_extras {
-  idrolusuario String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  idpermiso    String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  descripcion  String?
-  permisos     permisos @relation(fields: [idpermiso], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([idrolusuario, idpermiso])
-  @@index([idrolusuario])
-  @@index([idpermiso])
-  @@map("permisos-extras")
-  @@schema("public")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model tablaaasss {
-  id                                Int     @id(map: "tablas_duplicate_pkey") @db.SmallInt
-  natdelproyecto                    String?
-  proyecto                          String?
-  etapa                             String?
-  tipo                              String?
-  sectorid                          String
-  edificiotorre                     String?
-  piso                              String?
-  nrounidad                         String?
-  dormitorios                       String?
-  frente                            String?
-  manzana                           String?
-  destino                           String?
-  tipocochera                       String?
-  tamano                            String?
-  m2cubiertos                       Float?
-  m2semicubiertos                   Float?
-  m2exclusivos                      Float?
-  m2patioterraza                    Float?
-  patioterraza                      String?
-  m2comunes                         Float?
-  m2calculo                         Float?
-  m2totales                         Float?
-  preciousd                         Float?
-  usdm2                             Float?
-  estado                            String?
-  motivonodisp                      String?
-  obs                               String?
-  fechareserva                      String?
-  comercial                         String?
-  clienteinteresado                 String?
-  fechafirmaboleto                  String?
-  clientetitularboleto              String?
-  fechaposesionporboletocompraventa String?
-  deptocomprador                    String?
-
   @@schema("public")
 }
 
@@ -695,7 +653,6 @@ model tablaaasss {
 model tablas {
   id                                Int        @id @db.SmallInt
   natdelproyecto                    String?
-  proyecto                          String?
   etapa                             String?
   tipo                              String?
   sectorid                          String
@@ -729,15 +686,78 @@ model tablas {
   fechaposesionporboletocompraventa String?
   deptocomprador                    String?
   proyecto_id                       String?    @db.Uuid
-  proyectos                         proyectos? @relation(fields: [proyecto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proyectos                         proyectos? @relation(fields: [proyecto_id], references: [id], onDelete: NoAction)
 
-  @@index([proyecto_id])
-  @@index([proyecto])
-  @@index([estado])
-  @@index([sectorid])
-  @@index([nrounidad])
-  @@index([proyecto, nrounidad])
-  @@index([proyecto, estado])
+  @@index([estado], map: "idx_tablas_estado")
+  @@index([natdelproyecto], map: "idx_tablas_natdelproyecto")
+  @@index([natdelproyecto, estado], map: "idx_tablas_natdelproyecto_estado")
+  @@index([natdelproyecto, nrounidad], map: "idx_tablas_natdelproyecto_nrounidad")
+  @@index([nrounidad], map: "idx_tablas_nrounidad")
+  @@index([proyecto_id], map: "idx_tablas_proyecto_id")
+  @@index([sectorid], map: "idx_tablas_sectorid")
+  @@schema("public")
+}
+
+model tiposcochera {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre        String          @unique @db.VarChar(100)
+  detallesventa detallesventa[]
+
+  @@schema("public")
+}
+
+model tipospatioterraza {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre           String             @unique @db.VarChar(100)
+  unidadesmetricas unidadesmetricas[]
+
+  @@schema("public")
+}
+
+model tiposunidad {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre               String                 @unique @db.VarChar(100)
+  proyectostiposunidad proyectostiposunidad[]
+  unidades             unidades[]
+
+  @@schema("public")
+}
+
+model unidades {
+  id                                                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  edificio_id                                              String?           @db.Uuid
+  tipounidad_id                                            String            @db.Uuid
+  etapa_id                                                 String?           @db.Uuid
+  sectorid                                                 String            @unique @db.VarChar(50)
+  piso                                                     String?           @db.VarChar(50)
+  nrounidad                                                String?           @db.VarChar(50)
+  dormitorios                                              Int?
+  manzana                                                  String?           @db.VarChar(50)
+  destino                                                  String?           @db.VarChar(100)
+  frente                                                   String?           @db.VarChar
+  detallesventa_detallesventa_unidad_idTounidades          detallesventa?    @relation("detallesventa_unidad_idTounidades")
+  detallesventa_detallesventa_unidadcomprador_idTounidades detallesventa[]   @relation("detallesventa_unidadcomprador_idTounidades")
+  edificios                                                edificios?        @relation(fields: [edificio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  etapas                                                   etapas?           @relation(fields: [etapa_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tiposunidad                                              tiposunidad       @relation(fields: [tipounidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  unidadesmetricas                                         unidadesmetricas?
+
+  @@schema("public")
+}
+
+model unidadesmetricas {
+  unidad_id         String             @id @db.Uuid
+  m2exclusivos      Decimal?           @db.Decimal(10, 2)
+  m2patioterraza    Decimal?           @db.Decimal(10, 2)
+  tipopatio_id      String?            @db.Uuid
+  m2comunes         Decimal?           @db.Decimal(10, 2)
+  m2calculo         Decimal?           @db.Decimal(10, 2)
+  m2totales         Decimal?           @db.Decimal(10, 2)
+  m2cubiertos       Decimal?           @db.Decimal(10, 2)
+  m2semicubiertos   Decimal?           @db.Decimal(10, 2)
+  tipospatioterraza tipospatioterraza? @relation(fields: [tipopatio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  unidades          unidades           @relation(fields: [unidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@schema("public")
 }
 
@@ -746,6 +766,40 @@ model user_exists {
   exists Boolean?
 
   @@ignore
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios_proyectos {
+  idusuario  String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idproyecto String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idrol      String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  proyectos  proyectos @relation(fields: [idproyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles      roles     @relation(fields: [idrol], references: [id], onDelete: NoAction)
+  profiles   profiles  @relation(fields: [idusuario], references: [id], onDelete: NoAction)
+
+  @@id([idusuario, idproyecto, idrol])
+  @@index([idproyecto], map: "idx_usuarios_proyectos_idproyecto")
+  @@index([idrol], map: "idx_usuarios_proyectos_idrol")
+  @@index([idusuario], map: "idx_usuarios_proyectos_idusuario")
+  @@index([idusuario, idproyecto], map: "idx_usuarios_proyectos_usuario_proyecto")
+  @@map("usuarios-proyectos")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios_roles {
+  idusuario  String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  roles      roles    @relation(fields: [idrol], references: [id], onDelete: NoAction)
+  profiles   profiles @relation(fields: [idusuario], references: [id], onDelete: NoAction)
+
+  @@id([idusuario, idrol])
+  @@index([idrol], map: "idx_usuarios_roles_idrol")
+  @@index([idusuario], map: "idx_usuarios_roles_idusuario")
+  @@map("usuarios-roles")
   @@schema("public")
 }
 

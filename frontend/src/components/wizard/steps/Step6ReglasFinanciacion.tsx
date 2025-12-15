@@ -20,7 +20,6 @@ const parseDate = (dateString: string): Date => {
     // Intentar parsear en formato d/MM/yy
     return parse(dateString, "d/MM/yy", new Date());
   } catch (error) {
-    console.error("Error parsing date:", error);
     return new Date();
   }
 };
@@ -128,9 +127,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
       if (siguienteFecha <= fechaLimite) {
         cuotasPagadas++;
-        console.log(`Cuota #${i + 1} pagada, total pagadas:`, cuotasPagadas);
       } else {
-        console.log(`Cuota #${i + 1} posterior a posesión, no se cuenta`);
         break;
       }
     }
@@ -140,34 +137,27 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
   // Función para calcular cuánto se habrá pagado de una regla a la fecha de posesión
   const calcularMontoPagadoAFechaPosesion = (regla: ReglaFinanciacion, fechaPosesion: Date): number => {
-    console.log("Calculando monto pagado para regla:", regla.id, "con saldo:", regla.saldoFinanciar);
-    console.log("Primer vencimiento:", regla.primerVencimiento, "Fecha posesión:", fechaPosesion);
 
     try {
       // Parsear fecha de primer vencimiento
       const fechaPrimerVencimiento = parseFechaVencimiento(regla.primerVencimiento);
 
       if (!fechaPrimerVencimiento || Number.isNaN(fechaPrimerVencimiento.getTime())) {
-        console.error("Fecha de primer vencimiento inválida:", regla.primerVencimiento);
         return 0;
       }
 
-      console.log("Fecha primer vencimiento parseada:", fechaPrimerVencimiento);
 
       // Early return: vencimiento posterior a posesión
       if (fechaPrimerVencimiento > fechaPosesion) {
-        console.log("Primer vencimiento posterior a fecha posesión, no se paga nada");
         return 0;
       }
 
       // Early return: pago único
       if (regla.periodicidad === "Pago Único") {
-        console.log("Es pago único y vence antes de posesión, se paga todo:", regla.saldoFinanciar);
         return regla.saldoFinanciar;
       }
 
       // Calcular cuotas pagadas para pagos periódicos
-      console.log("Primera cuota pagada, fecha:", fechaPrimerVencimiento);
       const cuotasPagadas = contarCuotasPagadas(
         fechaPrimerVencimiento,
         regla.periodicidad,
@@ -177,11 +167,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
       // Calcular monto total pagado
       const montoPagado = Math.min(regla.saldoFinanciar, cuotasPagadas * regla.importeCuota);
-      console.log("Monto pagado calculado:", montoPagado, "(", cuotasPagadas, "cuotas de", regla.importeCuota, ")");
 
       return montoPagado;
     } catch (error) {
-      console.error("Error al calcular monto pagado:", error);
       return 0;
     }
   };
@@ -195,8 +183,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     const anticipoUsdTotal = (data.anticipoUsdA || 0) + (data.anticipoUsdB || 0);
     const anticiposUsdEnArs = anticipoUsdTotal * (data.tcValor || 1);
 
-    console.log("Anticipos en ARS:", anticipoArsTotal);
-    console.log("Anticipos en USD convertidos a ARS:", anticiposUsdEnArs);
 
     return anticipoArsTotal + anticiposUsdEnArs;
   };
@@ -205,11 +191,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
   const convertirATotalesEnMonedaBase = (): number => {
     if (data.monedaB === "USD") {
       const totalBEnArs = totalFinanciarUsd * (data.tcValor || 1);
-      console.log("Total A (ARS):", totalFinanciarArs, "+ Total B (USD→ARS):", totalBEnArs);
       return totalFinanciarArs + totalBEnArs;
     }
 
-    console.log("Total A (ARS):", totalFinanciarArs, "+ Total B (ARS):", totalFinanciarUsd);
     return totalFinanciarArs + totalFinanciarUsd;
   };
 
@@ -219,17 +203,11 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     const reglasFinanciacionA = reglasA || data.reglasFinanciacionA || [];
     const reglasFinanciacionB = reglasB || data.reglasFinanciacionB || [];
 
-    console.log("Calculando porcentaje pagado con:", {
-      reglasA: reglasFinanciacionA.length,
-      reglasB: reglasFinanciacionB.length
-    });
-
     // Early return: sin financiación ni anticipos
     const hayAnticipos = (data.anticipoArsA || 0) > 0 || (data.anticipoArsB || 0) > 0 ||
       (data.anticipoUsdA || 0) > 0 || (data.anticipoUsdB || 0) > 0;
 
     if (!hayAnticipos && reglasFinanciacionA.length === 0 && reglasFinanciacionB.length === 0) {
-      console.log("No hay anticipos ni reglas de financiación, devolviendo 0%");
       return 0;
     }
 
@@ -244,7 +222,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       // Fallback: fecha un año en el futuro
       const fechaFutura = new Date();
       fechaFutura.setFullYear(fechaFutura.getFullYear() + 1);
-      console.log("Fecha de posesión inválida, usando fecha futura");
     }
 
     // Early return: posesión ya pasó
@@ -254,102 +231,70 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     const totalFinanciar = convertirATotalesEnMonedaBase();
     if (totalFinanciar === 0) return 100;
 
-    console.log("=== CALCULANDO PORCENTAJE PAGADO A FECHA POSESIÓN ===");
-    console.log("Fecha posesión:", fechaPosesion);
-    console.log("Total a financiar:", totalFinanciar);
 
     // Calcular anticipos
     const totalAnticipos = calcularTotalAnticipos();
-    console.log("Total anticipos:", totalAnticipos);
 
     // Calcular el total pagado a fecha de posesión para las reglas de la parte A
-    console.log("Procesando reglas de la parte A:", reglasFinanciacionA);
     let totalPagadoA = 0;
 
     // Procesar cada regla de la parte A
     reglasFinanciacionA.forEach(regla => {
       if (!regla.activa) {
-        console.log("Regla inactiva, ignorando:", regla.id);
         return;
       }
 
-      console.log("Procesando regla A:", regla.id, "con saldo:", regla.saldoFinanciar, "moneda:", regla.moneda);
 
       // Calcular cuánto se pagará de esta regla antes de la fecha de posesión
       const montoPagado = calcularMontoPagadoAFechaPosesion(regla, fechaPosesion);
-      console.log("Monto pagado calculado para regla A:", montoPagado);
 
       // Si la regla está en USD, convertir a ARS usando el tipo de cambio
       if (regla.moneda === "USD") {
         const montoPagadoConvertido = montoPagado * (data.tcValor || 1);
-        console.log("Monto pagado convertido a ARS:", montoPagadoConvertido);
         totalPagadoA += montoPagadoConvertido;
       } else {
         totalPagadoA += montoPagado;
       }
     });
 
-    console.log("Total pagado parte A:", totalPagadoA);
 
     // Calcular el total pagado a fecha de posesión para las reglas de la parte B
-    console.log("Procesando reglas de la parte B:", reglasFinanciacionB);
     let totalPagadoB = 0;
 
     // Procesar cada regla de la parte B
     reglasFinanciacionB.forEach(regla => {
       if (!regla.activa) {
-        console.log("Regla inactiva, ignorando:", regla.id);
         return;
       }
 
-      console.log("Procesando regla B:", regla.id, "con saldo:", regla.saldoFinanciar, "moneda:", regla.moneda);
 
       // Calcular cuánto se pagará de esta regla antes de la fecha de posesión
       const montoPagado = calcularMontoPagadoAFechaPosesion(regla, fechaPosesion);
-      console.log("Monto pagado calculado para regla B:", montoPagado);
 
       // Convertir todos los montos a ARS para tener una base común
       if (regla.moneda === "USD") {
         // Si la regla está en USD, convertir a ARS
         const montoPagadoConvertido = montoPagado * (data.tcValor || 1);
-        console.log("Monto pagado en USD convertido a ARS:", montoPagadoConvertido);
         totalPagadoB += montoPagadoConvertido;
       } else {
         // Si la regla está en ARS, usar directamente
-        console.log("Monto pagado en ARS:", montoPagado);
         totalPagadoB += montoPagado;
       }
     });
 
-    console.log("Total pagado parte B (convertido a ARS):", totalPagadoB);
 
     // Sumar los anticipos a los pagos de las reglas
     const totalPagado = totalPagadoA + totalPagadoB + totalAnticipos;
-    console.log("Total pagado (Anticipos + Reglas A + Reglas B):", totalPagado);
-    console.log("Desglose del total pagado:");
-    console.log(" - Anticipos:", totalAnticipos);
-    console.log(" - Reglas A:", totalPagadoA);
-    console.log(" - Reglas B:", totalPagadoB);
-    console.log(" - Total:", totalPagado);
 
     // Verificar si los valores son números
-    console.log("¿Es totalPagado un número?", typeof totalPagado === 'number');
-    console.log("¿Es totalFinanciar un número?", typeof totalFinanciar === 'number');
 
     // El porcentaje pagado es lo que se pagará antes de la fecha de posesión dividido por el total a financiar
     let porcentajePagado = 0;
     if (totalFinanciar > 0 && typeof totalPagado === 'number' && typeof totalFinanciar === 'number') {
       porcentajePagado = (totalPagado / totalFinanciar) * 100;
-      console.log("Cálculo: (" + totalPagado + " / " + totalFinanciar + ") * 100 = " + porcentajePagado);
     } else {
-      console.log("No se pudo calcular el porcentaje porque los valores no son válidos.");
-      console.log("totalPagado:", totalPagado, "tipo:", typeof totalPagado);
-      console.log("totalFinanciar:", totalFinanciar, "tipo:", typeof totalFinanciar);
     }
 
-    console.log("Porcentaje pagado calculado:", porcentajePagado, "%");
-    console.log("Fórmula: (" + totalPagado + " / " + totalFinanciar + ") * 100 = " + porcentajePagado + "%");
-    console.log("Desglose del total pagado: Anticipos (" + totalAnticipos + ") + Reglas A (" + totalPagadoA + ") + Reglas B (" + totalPagadoB + ") = " + totalPagado);
 
     // Asegurarse de que el porcentaje esté entre 0 y 100
     return Math.max(0, Math.min(100, Math.round(porcentajePagado * 100) / 100));
@@ -377,7 +322,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
       return `${day}/${month}/${year}`;
     } catch (error) {
-      console.error("Error al formatear fecha de posesión:", error);
       return fechaIso;
     }
   };
@@ -476,7 +420,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     setMostrarFormA(false);
 
     // Log para depuración
-    console.log("Nueva regla A agregada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
 
   // Agregar nueva regla B
@@ -578,7 +521,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     setMostrarFormB(false);
 
     // Log para depuración
-    console.log("Nueva regla B agregada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
 
   // Eliminar regla
@@ -596,7 +538,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     });
 
     // Log para depuración
-    console.log("Regla A eliminada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
 
   const eliminarReglaB = (id: string) => {
@@ -613,7 +554,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     });
 
     // Log para depuración
-    console.log("Regla B eliminada, recalculando porcentaje pagado:", calcularPorcentajePagado());
   };
 
   // Actualizar porcentaje pagado cuando cambian las reglas, la fecha de posesión o los anticipos
@@ -625,12 +565,6 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       return;
     }
 
-    console.log("Recalculando porcentaje pagado debido a cambios en reglas, fecha de posesión o anticipos");
-    console.log("Anticipos actuales:");
-    console.log("- ARS A:", data.anticipoArsA || 0);
-    console.log("- ARS B:", data.anticipoArsB || 0);
-    console.log("- USD A:", data.anticipoUsdA || 0);
-    console.log("- USD B:", data.anticipoUsdB || 0);
 
     // Convertir la fecha de posesión a un objeto Date
     let fechaPosesion;
@@ -651,11 +585,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
       // Verificar si la fecha es válida
       if (Number.isNaN(fechaPosesion.getTime())) {
-        console.error("Fecha de posesión inválida:", data.fechaPosesion);
         return;
       }
     } catch (error) {
-      console.error("Error al parsear fecha de posesión:", error);
       return;
     }
 
@@ -696,26 +628,13 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     const porcentajeCalculado = calcularPorcentajePagado();
 
     // Registrar para depuración
-    console.log("=== DETALLE DE PORCENTAJE PAGADO A FECHA POSESIÓN ===");
-    console.log("Fecha posesión:", data.fechaPosesion);
-    console.log("Porcentaje pagado calculado:", porcentajeCalculado, "%");
-    console.log("Total a financiar ARS:", totalFinanciarArs);
-    console.log("Total a financiar USD:", totalFinanciarUsd);
 
     // Mostrar información sobre anticipos
-    console.log("Anticipo ARS A:", data.anticipoArsA || 0);
-    console.log("Anticipo ARS B:", data.anticipoArsB || 0);
-    console.log("Anticipo USD A:", data.anticipoUsdA || 0);
-    console.log("Anticipo USD B:", data.anticipoUsdB || 0);
 
-    console.log("Detalle reglas parte A:", detalleReglasA);
-    console.log("Detalle reglas parte B:", detalleReglasB);
 
     // Actualizar el estado solo si el porcentaje ha cambiado
     if (porcentajeCalculado === data.porcentajePagadoFechaPosesion) {
-      console.log("El porcentaje pagado no ha cambiado:", porcentajeCalculado, "%");
     } else {
-      console.log("Actualizando porcentaje pagado de", data.porcentajePagadoFechaPosesion, "% a", porcentajeCalculado, "%");
       updateData({ porcentajePagadoFechaPosesion: porcentajeCalculado });
     }
   }, [data.reglasFinanciacionA, data.reglasFinanciacionB, data.fechaPosesion, totalFinanciarArs, totalFinanciarUsd, data.anticipoArsA, data.anticipoArsB, data.anticipoUsdA, data.anticipoUsdB, data.tcValor, data.porcentajePagadoFechaPosesion]);
