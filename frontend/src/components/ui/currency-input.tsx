@@ -86,7 +86,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         }
     }, [value, formatNumber, isFocused]);
 
-    // Manejar cambio de input - completamente fluido
+    // Manejar cambio de input - completamente fluid
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputValue = e.target.value;
 
