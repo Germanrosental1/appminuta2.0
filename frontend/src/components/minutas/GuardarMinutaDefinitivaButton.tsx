@@ -64,7 +64,6 @@ export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButt
       }, 1500);
       
     } catch (error) {
-      console.error('Error al guardar la minuta:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",

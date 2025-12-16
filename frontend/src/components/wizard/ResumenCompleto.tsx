@@ -29,7 +29,39 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
     return dateString;
   };
 
+  // Calcular precio total de todas las unidades seleccionadas
+  const calcularPrecioTotal = () => {
+    let total = 0;
+
+    // Sumar precios de todas las unidades en el nuevo modelo
+    if (displayData.unidades && displayData.unidades.length > 0) {
+      displayData.unidades.forEach(unidad => {
+        total += unidad.precioNegociado || 0;
+      });
+      return total;
+    }
+
+    // Fallback al modelo antiguo si no hay unidades en el nuevo modelo
+    total = displayData.precioNegociado || 0;
+
+    // Sumar precios de cocheras del modelo antiguo
+    const cocheras = displayData.cocheras || [];
+    if (cocheras.length > 0) {
+      cocheras.forEach(cochera => {
+        total += cochera.precioNegociado || 0;
+      });
+    }
+
+    // Sumar precio de baulera si existe
+    if (displayData.baulera) {
+      total += displayData.baulera.precioNegociado || 0;
+    }
+
+    return total;
+  };
+
   // Cálculos
+  const precioTotal = calcularPrecioTotal();
   const porcB = 100 - (displayData.porcA || 0);
 
   const cocherasCant = displayData.cocheras?.length || 0;
@@ -37,25 +69,68 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
   const totalReglasA = (displayData.reglasFinanciacionA || []).reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
   const totalReglasB = (displayData.reglasFinanciacionB || []).reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
 
+
   return (
     <div className={`space-y-6 ${forPDF ? 'pdf-content bg-white p-8' : ''}`}>
 
-      {/* Paso 1: Proyecto & Unidad */}
+      {/* Paso 1: Proyecto & Unidades */}
       <Card>
         <CardHeader className="bg-primary/10">
-          <CardTitle className="text-lg">1. Proyecto & Unidad</CardTitle>
+          <CardTitle className="text-lg">1. Proyecto & Unidades</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Proyecto:</p>
-              <p className="font-medium">{displayData.proyecto || "-"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Unidad:</p>
-              <p className="font-medium">{displayData.unidadDescripcion || displayData.unidad || "-"}</p>
-            </div>
-            <div>
+          <div className="space-y-4">
+            {/* Mostrar todas las unidades seleccionadas */}
+            {displayData.unidades && displayData.unidades.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Unidades seleccionadas ({displayData.unidades.length}):
+                </p>
+                {displayData.unidades.map((unidad, index) => (
+                  <div key={unidad.id || index} className="border rounded-md p-3 bg-muted/30">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline">{unidad.tipo}</Badge>
+                      <span className="font-medium">{unidad.descripcion}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Proyecto: </span>
+                        <span className="font-medium">{unidad.proyecto || displayData.proyecto}</span>
+                      </div>
+                      {unidad.etapa && (
+                        <div>
+                          <span className="text-muted-foreground">Etapa: </span>
+                          <span className="font-medium">{unidad.etapa}</span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-muted-foreground">Precio Lista: </span>
+                        <span className="font-medium">${formatCurrency(unidad.precioLista)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Precio Negociado: </span>
+                        <span className="font-medium">${formatCurrency(unidad.precioNegociado)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Fallback para compatibilidad con datos antiguos
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Proyecto:</p>
+                  <p className="font-medium">{displayData.proyecto || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Unidad:</p>
+                  <p className="font-medium">{displayData.unidadDescripcion || displayData.unidad || "-"}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Fecha de posesión siempre visible */}
+            <div className="pt-2 border-t">
               <p className="text-sm text-muted-foreground">Fecha de Posesión:</p>
               <p className="font-medium">{formatDate(displayData.fechaPosesion)}</p>
             </div>
@@ -69,21 +144,37 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
           <CardTitle className="text-lg">2. Estructura Comercial</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Precio Negociado:</p>
-              <p className="font-medium">${formatCurrency(displayData.precioNegociado)}</p>
+          <div className="space-y-4">
+            {/* Precio total de todas las unidades */}
+            <div className="rounded-lg bg-primary/5 p-3">
+              <p className="text-sm text-muted-foreground">Precio Total Negociado (todas las unidades):</p>
+              <p className="text-xl font-bold text-primary">${formatCurrency(precioTotal)}</p>
+              {displayData.unidades && displayData.unidades.length > 1 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Suma de {displayData.unidades.length} unidades seleccionadas
+                </p>
+              )}
             </div>
-            {cocherasCant > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground">Cocheras ({cocherasCant}):</p>
-                <p className="font-medium">${formatCurrency(totalCocheras)}</p>
-              </div>
-            )}
-            {displayData.baulera && (
-              <div>
-                <p className="text-sm text-muted-foreground">Baulera:</p>
-                <p className="font-medium">${formatCurrency(displayData.baulera.precioNegociado)}</p>
+
+            {/* Detalle por tipo si hay modelo antiguo con cocheras/baulera separadas */}
+            {(cocherasCant > 0 || displayData.baulera) && !displayData.unidades?.length && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Unidad Principal:</p>
+                  <p className="font-medium">${formatCurrency(displayData.precioNegociado)}</p>
+                </div>
+                {cocherasCant > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Cocheras ({cocherasCant}):</p>
+                    <p className="font-medium">${formatCurrency(totalCocheras)}</p>
+                  </div>
+                )}
+                {displayData.baulera && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Baulera:</p>
+                    <p className="font-medium">${formatCurrency(displayData.baulera.precioNegociado)}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -111,11 +202,19 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Valor F ({displayData.monedaA}):</p>
-              <p className="font-medium">${formatCurrency(displayData.valorArsConIVA)}</p>
+              <p className="font-medium">${formatCurrency(
+                displayData.modoA === "porcentaje"
+                  ? (precioTotal * (displayData.porcA || 0)) / 100
+                  : displayData.impA || displayData.valorArsConIVA
+              )}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Valor SB ({displayData.monedaB}):</p>
-              <p className="font-medium">${formatCurrency(displayData.valorUsdConIVA)}</p>
+              <p className="font-medium">${formatCurrency(
+                displayData.modoA === "porcentaje"
+                  ? (precioTotal * porcB) / 100
+                  : (precioTotal - (displayData.impA || 0)) || displayData.valorUsdConIVA
+              )}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Moneda F:</p>

@@ -22,6 +22,8 @@ export const LoginForm: React.FC = () => {
       toast.error('Credenciales inválidas');
       setIsLoading(false);
     }
+    // If successful, LoginPage will redirect and this component will unmount
+    // No need to reset isLoading on success
   };
 
   return (

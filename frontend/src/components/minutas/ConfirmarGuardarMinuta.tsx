@@ -70,7 +70,6 @@ export const ConfirmarGuardarMinuta: React.FC<ConfirmarGuardarMinutaProps> = ({
         navigate('/comercial/dashboard');
       }, 1500);
     } catch (error) {
-      console.error('Error al guardar la minuta:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",

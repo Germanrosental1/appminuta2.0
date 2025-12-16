@@ -26,7 +26,6 @@ export const useRequirePasswordChange = () => {
           navigate('/change-password', { replace: true });
         }
       } catch (err) {
-        console.error('Error checking password change requirement:', err);
       }
     };
 

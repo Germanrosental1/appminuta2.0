@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateStep } from "@/utils/validation";
 import { DollarSign, Check, CreditCard } from "lucide-react";
@@ -99,9 +100,23 @@ export const Step4Pago: React.FC = () => {
     const precioTotal = calcularPrecioTotal();
     const { valorA, valorB } = calcularComposicionAB(precioTotal);
 
+    // Función auxiliar para calcular total a financiar SB según moneda
+    const calcularTotalFinanciarSB = (valorSB: number, anticipoArs: number, anticipoUsd: number, tc: number, moneda: string) => {
+      if (moneda === "ARS") {
+        // Si SB está en ARS, convertir anticipos USD a ARS
+        const anticipoUsdEnArs = anticipoUsd * tc;
+        return Math.max(valorSB - anticipoArs - anticipoUsdEnArs, 0);
+      } else {
+        // Si SB está en USD, convertir anticipos ARS a USD
+        const anticipoArsEnUsd = anticipoArs / tc;
+        return Math.max(valorSB - anticipoUsd - anticipoArsEnUsd, 0);
+      }
+    };
+
     // Solo inicializar si no hay valores previos o si es la primera vez
     if (!initialized) {
       const tcValorDefault = 1100; // Valor por defecto si no hay uno configurado
+      const tc = data.tcValor || tcValorDefault;
 
       // Preservar los anticipos existentes o inicializar a cero si no existen
       const anticipoArsA = data.anticipoArsA ?? 0;
@@ -109,35 +124,30 @@ export const Step4Pago: React.FC = () => {
       const anticipoArsB = data.anticipoArsB ?? 0;
       const anticipoUsdB = data.anticipoUsdB ?? 0;
 
-      console.log("Inicializando valores en Step4Pago:");
-      console.log("Anticipos ARS A:", anticipoArsA);
-      console.log("Anticipos USD A:", anticipoUsdA);
-      console.log("Anticipos ARS B:", anticipoArsB);
-      console.log("Anticipos USD B:", anticipoUsdB);
-
       updateData({
         valorArsConIVA: valorA,
         valorUsdConIVA: valorB,
-        tcValor: data.tcValor || tcValorDefault,
+        tcValor: tc,
         // Preservar los anticipos existentes
         anticipoArsA,
         anticipoUsdA,
         anticipoArsB,
         anticipoUsdB,
-        // Inicializar totales a financiar considerando los anticipos
-        totalFinanciarArs: Math.max(valorA - anticipoArsA - (anticipoUsdA * (data.tcValor || tcValorDefault)), 0),
-        totalFinanciarUsd: Math.max(valorB - anticipoUsdB - (anticipoArsB / (data.tcValor || tcValorDefault)), 0)
+        // Inicializar totales a financiar considerando los anticipos y la moneda
+        totalFinanciarArs: Math.max(valorA - anticipoArsA - (anticipoUsdA * tc), 0),
+        totalFinanciarUsd: calcularTotalFinanciarSB(valorB, anticipoArsB, anticipoUsdB, tc, data.monedaB)
       });
 
       setInitialized(true);
     } else if (data.valorArsConIVA !== valorA || data.valorUsdConIVA !== valorB) {
+      const tc = data.tcValor || 1;
       // Si los valores han cambiado debido a cambios en la composición, actualizarlos
       updateData({
         valorArsConIVA: valorA,
         valorUsdConIVA: valorB,
         // Actualizar totales a financiar
-        totalFinanciarArs: Math.max(valorA - (data.anticipoArsA || 0) - ((data.anticipoUsdA || 0) * (data.tcValor || 1)), 0),
-        totalFinanciarUsd: Math.max(valorB - (data.anticipoUsdB || 0) - ((data.anticipoArsB || 0) / (data.tcValor || 1)), 0)
+        totalFinanciarArs: Math.max(valorA - (data.anticipoArsA || 0) - ((data.anticipoUsdA || 0) * tc), 0),
+        totalFinanciarUsd: calcularTotalFinanciarSB(valorB, data.anticipoArsB || 0, data.anticipoUsdB || 0, tc, data.monedaB)
       });
     }
   }, [data.precioNegociado, data.cocheras, data.baulera, data.modoA, data.porcA, data.impA, data.monedaB, data.tcValor, data.unidades, initialized]);
@@ -147,13 +157,29 @@ export const Step4Pago: React.FC = () => {
 
   // Calcular totales a financiar en tiempo real
   useEffect(() => {
-    // Convertir anticipos en USD a ARS para la parte A
-    const anticipoUsdAEnArs = (data.anticipoUsdA || 0) * (data.tcValor || 1);
-    // Convertir anticipos en ARS a USD para la parte B
-    const anticipoArsBEnUsd = (data.anticipoArsB || 0) / (data.tcValor || 1);
+    const tcValor = data.tcValor || 1;
 
-    const totalArs = Math.max(data.valorArsConIVA - (data.anticipoArsA || 0) - anticipoUsdAEnArs, 0);
-    const totalUsd = Math.max(data.valorUsdConIVA - (data.anticipoUsdB || 0) - anticipoArsBEnUsd, 0);
+    // Para la parte F (siempre en ARS):
+    // - Restar anticipo en ARS directamente
+    // - Convertir anticipo en USD a ARS y restarlo
+    const anticipoUsdAEnArs = (data.anticipoUsdA || 0) * tcValor;
+    const totalArs = Math.max((data.valorArsConIVA || 0) - (data.anticipoArsA || 0) - anticipoUsdAEnArs, 0);
+
+    // Para la parte SB: depende de la moneda seleccionada
+    let totalUsd = 0;
+    if (data.monedaB === "ARS") {
+      // Si SB está en ARS, trabajamos todo en ARS
+      // - Restar anticipo en ARS directamente
+      // - Convertir anticipo en USD a ARS y restarlo
+      const anticipoUsdBEnArs = (data.anticipoUsdB || 0) * tcValor;
+      totalUsd = Math.max((data.valorUsdConIVA || 0) - (data.anticipoArsB || 0) - anticipoUsdBEnArs, 0);
+    } else {
+      // Si SB está en USD (o MIX), trabajamos en USD
+      // - Convertir anticipo en ARS a USD y restarlo
+      // - Restar anticipo en USD directamente
+      const anticipoArsBEnUsd = (data.anticipoArsB || 0) / tcValor;
+      totalUsd = Math.max((data.valorUsdConIVA || 0) - (data.anticipoUsdB || 0) - anticipoArsBEnUsd, 0);
+    }
 
     if (totalArs !== data.totalFinanciarArs || totalUsd !== data.totalFinanciarUsd) {
       updateData({
@@ -161,7 +187,7 @@ export const Step4Pago: React.FC = () => {
         totalFinanciarUsd: totalUsd,
       });
     }
-  }, [data.valorArsConIVA, data.valorUsdConIVA, data.anticipoArsA, data.anticipoUsdA, data.anticipoArsB, data.anticipoUsdB, data.tcValor]);
+  }, [data.valorArsConIVA, data.valorUsdConIVA, data.anticipoArsA, data.anticipoUsdA, data.anticipoArsB, data.anticipoUsdB, data.tcValor, data.monedaB]);
 
   return (
     <div className="space-y-6">
@@ -257,17 +283,13 @@ export const Step4Pago: React.FC = () => {
             <Label htmlFor="tcValor">
               Valor ($/USD) <span className="text-destructive">*</span>
             </Label>
-            <Input
+            <CurrencyInput
               id="tcValor"
-              type="number"
-              min="0"
-              step="0.01"
-              value={data.tcValor || ""}
-              onChange={(e) => handleChange("tcValor", Number.parseFloat(e.target.value) || 0)}
+              value={data.tcValor}
+              onChange={(value) => handleChange("tcValor", value)}
               onBlur={handleBlur}
-              className={errors.tcValor ? "border-destructive" : ""}
-              placeholder="0.00"
-              onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
+              error={!!errors.tcValor}
+              decimals={0}
             />
             {errors.tcValor && <p className="text-sm text-destructive">{errors.tcValor}</p>}
           </div>
@@ -286,19 +308,17 @@ export const Step4Pago: React.FC = () => {
             <Label htmlFor="valorArsConIVA" className="flex items-center gap-2">
               Valor F <span className="text-muted-foreground">(ARS)</span>
             </Label>
-            <Input
+            <CurrencyInput
               id="valorArsConIVA"
-              type="number"
-              min="0"
-              step="0.01"
-              value={data.valorArsConIVA || ""}
+              value={data.valorArsConIVA}
+              onChange={() => { }}
               disabled={true}
+              prefix="$"
               className="opacity-100 cursor-default"
-              onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>IVA incluido</span>
-              <span className="font-medium">{data.modoA === "porcentaje" ? `${data.porcA}%` : ""}</span>
+              <span className="font-medium">{data.modoA === "porcentaje" ? `${data.porcA}% ` : ""}</span>
             </div>
           </div>
 
@@ -306,19 +326,18 @@ export const Step4Pago: React.FC = () => {
             <Label htmlFor="valorUsdConIVA" className="flex items-center gap-2">
               Valor SB <span className="text-muted-foreground">({data.monedaB})</span>
             </Label>
-            <Input
+            <CurrencyInput
               id="valorUsdConIVA"
-              type="number"
-              min="0"
-              step="0.01"
-              value={data.valorUsdConIVA || ""}
+              value={data.valorUsdConIVA}
+              onChange={() => { }}
               disabled={true}
+              prefix="$"
+              suffix={data.monedaB}
               className="opacity-100 cursor-default"
-              onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>IVA incluido</span>
-              <span className="font-medium">{data.modoA === "porcentaje" ? `${100 - data.porcA}%` : ""}</span>
+              <span className="font-medium">{data.modoA === "porcentaje" ? `${100 - data.porcA}% ` : ""}</span>
             </div>
           </div>
         </div>
@@ -344,17 +363,13 @@ export const Step4Pago: React.FC = () => {
                   <td className="p-2 font-medium text-muted-foreground">ARS</td>
                   <td className="p-2">
                     <div className="space-y-2">
-                      <Input
+                      <CurrencyInput
                         id="anticipoArsA"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={data.anticipoArsA || ""}
-                        onChange={(e) => handleChange("anticipoArsA", Number.parseFloat(e.target.value) || 0)}
+                        value={data.anticipoArsA}
+                        onChange={(value) => handleChange("anticipoArsA", value)}
                         onBlur={handleBlur}
-                        className={errors.anticipoArsA ? "border-destructive" : ""}
-                        placeholder="0.00"
-                        onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
+                        error={!!errors.anticipoArsA}
+                        prefix="$"
                       />
                       {errors.anticipoArsA && <p className="text-sm text-destructive">{errors.anticipoArsA}</p>}
                       {data.anticipoArsA > 0 && data.tcValor > 0 && (
@@ -366,17 +381,13 @@ export const Step4Pago: React.FC = () => {
                   </td>
                   <td className="p-2">
                     <div className="space-y-2">
-                      <Input
+                      <CurrencyInput
                         id="anticipoArsB"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={data.anticipoArsB || ""}
-                        onChange={(e) => handleChange("anticipoArsB", Number.parseFloat(e.target.value) || 0)}
+                        value={data.anticipoArsB}
+                        onChange={(value) => handleChange("anticipoArsB", value)}
                         onBlur={handleBlur}
-                        className={errors.anticipoArsB ? "border-destructive" : ""}
-                        placeholder="0.00"
-                        onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
+                        error={!!errors.anticipoArsB}
+                        prefix="$"
                       />
                       {errors.anticipoArsB && <p className="text-sm text-destructive">{errors.anticipoArsB}</p>}
                       {data.anticipoArsB > 0 && data.tcValor > 0 && (
@@ -393,17 +404,14 @@ export const Step4Pago: React.FC = () => {
                   <td className="p-2 font-medium text-muted-foreground">USD</td>
                   <td className="p-2">
                     <div className="space-y-2">
-                      <Input
+                      <CurrencyInput
                         id="anticipoUsdA"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={data.anticipoUsdA || ""}
-                        onChange={(e) => handleChange("anticipoUsdA", Number.parseFloat(e.target.value) || 0)}
+                        value={data.anticipoUsdA}
+                        onChange={(value) => handleChange("anticipoUsdA", value)}
                         onBlur={handleBlur}
-                        className={errors.anticipoUsdA ? "border-destructive" : ""}
-                        placeholder="0.00"
-                        onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
+                        error={!!errors.anticipoUsdA}
+                        prefix="$"
+                        suffix="USD"
                       />
                       {errors.anticipoUsdA && <p className="text-sm text-destructive">{errors.anticipoUsdA}</p>}
                       {data.anticipoUsdA > 0 && data.tcValor > 0 && (
@@ -415,17 +423,14 @@ export const Step4Pago: React.FC = () => {
                   </td>
                   <td className="p-2">
                     <div className="space-y-2">
-                      <Input
+                      <CurrencyInput
                         id="anticipoUsdB"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={data.anticipoUsdB || ""}
-                        onChange={(e) => handleChange("anticipoUsdB", Number.parseFloat(e.target.value) || 0)}
+                        value={data.anticipoUsdB}
+                        onChange={(value) => handleChange("anticipoUsdB", value)}
                         onBlur={handleBlur}
-                        className={errors.anticipoUsdB ? "border-destructive" : ""}
-                        placeholder="0.00"
-                        onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
+                        error={!!errors.anticipoUsdB}
+                        prefix="$"
+                        suffix="USD"
                       />
                       {errors.anticipoUsdB && <p className="text-sm text-destructive">{errors.anticipoUsdB}</p>}
                       {data.anticipoUsdB > 0 && data.tcValor > 0 && (

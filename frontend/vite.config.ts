@@ -60,4 +60,25 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // ⚡ OPTIMIZACIÓN: Bundle splitting para mejor caché
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React ecosystem
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+
+          // React Query
+          'vendor-query': ['@tanstack/react-query'],
+
+          // Supabase
+          'vendor-supabase': ['@supabase/supabase-js'],
+
+          // PDF generation (solo se carga cuando se usa)
+          'vendor-pdf': ['jspdf', 'html2canvas'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 }));

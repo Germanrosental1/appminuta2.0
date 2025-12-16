@@ -78,7 +78,6 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
         setDatosMapaVentas(minutaData.datos_mapa_ventas || null);
 
       } catch (err) {
-        console.error('Error al cargar datos:', err);
         setError('No se pudieron cargar los datos de la minuta');
       } finally {
         setLoading(false);
@@ -104,7 +103,6 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       setMinuta((prev: any) => ({ ...prev, comentarios }));
 
     } catch (error) {
-      console.error('Error al guardar comentarios:', error);
       toast({
         title: "Error",
         description: "No se pudieron guardar los comentarios",
@@ -149,7 +147,6 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       setEditandoDatos(false);
 
     } catch (error) {
-      console.error('Error al actualizar datos:', error);
       toast({
         title: "Error",
         description: "No se pudieron actualizar los datos de la minuta",
@@ -182,7 +179,6 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       setDialogOpen(false);
 
     } catch (error) {
-      console.error('Error al cambiar estado:', error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la minuta",

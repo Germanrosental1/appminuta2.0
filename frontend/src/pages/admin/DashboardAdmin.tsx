@@ -102,3 +102,5 @@ export const DashboardAdmin: React.FC = () => {
     </div>
   );
 };
+
+export default DashboardAdmin;

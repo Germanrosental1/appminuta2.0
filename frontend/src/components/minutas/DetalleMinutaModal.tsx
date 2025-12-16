@@ -67,7 +67,6 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           const data = await getMinutaDefinitivaById(minutaId);
           setMinuta(data);
         } catch (err) {
-          console.error('Error al cargar minuta:', err);
           setError('No se pudo cargar la información de la minuta');
         } finally {
           setLoading(false);
@@ -109,7 +108,6 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
       });
 
     } catch (error) {
-      console.error('Error al cambiar estado:', error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la minuta",
@@ -177,7 +175,6 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
         description: "El PDF consolidado ha sido generado exitosamente",
       });
     } catch (error) {
-      console.error('Error al generar el PDF consolidado:', error);
       toast({
         title: "Error",
         description: "Hubo un error al generar el PDF consolidado. Por favor, inténtelo de nuevo.",
@@ -472,7 +469,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
               <div>
                 <span className="font-medium">Proyecto: </span>
-                <span>{minuta.proyecto}</span>
+                <span>{minuta.proyectos?.nombre || minuta.proyecto}</span>
               </div>
               <div>
                 <span className="font-medium">Unidad: </span>

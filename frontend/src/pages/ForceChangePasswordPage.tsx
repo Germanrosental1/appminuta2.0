@@ -11,7 +11,7 @@ export const ForceChangePasswordPage: React.FC = () => {
 
   const handleSuccess = () => {
     // Redirigir al dashboard correcto según el rol del usuario
-    if (user?.role === 'administracion') {
+    if (user?.role === 'administrador') {
       navigate('/admin/dashboard', { replace: true });
     } else {
       navigate('/comercial/dashboard', { replace: true });

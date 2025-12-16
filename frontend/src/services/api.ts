@@ -21,7 +21,6 @@ export const postGenerarMinuta = async (payload: WizardData): Promise<ApiRespons
       contentType,
     };
   } catch (error) {
-    console.error("API Error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Error desconocido al generar minuta",

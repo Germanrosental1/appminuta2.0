@@ -19,7 +19,6 @@ export const useDownloadBlob = () => {
 
         return { blob, url };
       } catch (error) {
-        console.error("Error downloading file:", error);
         throw error;
       }
     },

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useMinutas } from '@/hooks/useMinutas';
+import { StaggerTableBody, TableRowStagger } from '@/components/animated/StaggerList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getMinutasDefinitivasByUsuario } from '@/services/minutas';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
 import {
   Table,
@@ -29,31 +30,19 @@ export const DashboardComercial: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('nueva');
-  const [minutas, setMinutas] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedMinutaId, setSelectedMinutaId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   // Verificar si requiere cambio de contraseña
   useRequirePasswordChange();
 
-  useEffect(() => {
-    if (activeTab === 'historial' && user?.id) {
-      const fetchMinutas = async () => {
-        try {
-          setLoading(true);
-          const data = await getMinutasDefinitivasByUsuario(user.id);
-          setMinutas(data);
-        } catch (error) {
-          console.error('Error al cargar minutas:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchMinutas();
-    }
-  }, [activeTab, user?.id]);
+  // ⚡ OPTIMIZACIÓN: Usar React Query en lugar de useEffect + useState
+  // Solo fetch cuando el tab es 'historial'
+  const { data: minutas = [], isLoading } = useMinutas(
+    user?.id,
+    undefined,
+    { enabled: activeTab === 'historial' && !!user?.id }
+  );
 
   const handleNuevaCalculadora = () => {
     // Navegar directamente al wizard sin seleccionar unidad
@@ -86,7 +75,7 @@ export const DashboardComercial: React.FC = () => {
   };
 
   const renderMinutasContent = () => {
-    if (loading) {
+    if (isLoading) {
       return (
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -114,11 +103,11 @@ export const DashboardComercial: React.FC = () => {
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <StaggerTableBody>
             {minutas.map((minuta) => (
-              <TableRow key={minuta.id}>
+              <TableRowStagger key={minuta.id}>
                 <TableCell>{minuta.proyecto || 'Sin proyecto'}</TableCell>
-                <TableCell>{minuta.datos?.unidadDescripcion || minuta.unidad_id || 'Sin unidad'}</TableCell>
+                <TableCell>{minuta.datos?.unidadDescripcion || 'Sin unidad'}</TableCell>
                 <TableCell>
                   {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
                 </TableCell>
@@ -135,11 +124,11 @@ export const DashboardComercial: React.FC = () => {
                     </Button>
                   </div>
                 </TableCell>
-              </TableRow>
+              </TableRowStagger>
             ))}
-          </TableBody>
+          </StaggerTableBody>
         </Table>
-      </div>
+      </div >
     );
   };
 
@@ -220,3 +209,5 @@ export const DashboardComercial: React.FC = () => {
     </div>
   );
 };
+
+export default DashboardComercial;

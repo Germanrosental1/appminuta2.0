@@ -1,6 +1,10 @@
 // CSRF Token Management
 // Genera y valida tokens CSRF para prevenir Cross-Site Request Forgery
 
+// Nombre de la cookie que espera el backend
+const CSRF_COOKIE_NAME = 'XSRF-TOKEN';
+const CSRF_STORAGE_KEY = 'xsrf_token';
+
 // Genera un token CSRF criptográficamente seguro
 export const generateCSRFToken = (): string => {
   const array = new Uint8Array(32);
@@ -11,37 +15,38 @@ export const generateCSRFToken = (): string => {
 // Almacena el token CSRF en sessionStorage y cookie
 export const setCSRFToken = (): string => {
   const token = generateCSRFToken();
-  
+
   // Guardar en sessionStorage
-  sessionStorage.setItem('csrf_token', token);
-  
-  // Guardar en cookie con HttpOnly simulation (SameSite para seguridad)
-  document.cookie = `csrf_token=${token}; path=/; SameSite=Strict; Secure`;
-  
+  sessionStorage.setItem(CSRF_STORAGE_KEY, token);
+
+  // Guardar en cookie (debe coincidir con lo que espera el backend)
+  // HttpOnly: false para que JS pueda leerla
+  document.cookie = `${CSRF_COOKIE_NAME}=${token}; path=/; SameSite=Strict`;
+
   return token;
 };
 
 // Obtiene el token CSRF actual
 export const getCSRFToken = (): string | null => {
   // Intentar desde sessionStorage primero
-  let token = sessionStorage.getItem('csrf_token');
-  
+  let token = sessionStorage.getItem(CSRF_STORAGE_KEY);
+
   // Si no existe, intentar desde cookie
   if (!token) {
     const cookies = document.cookie.split(';');
-    const csrfCookie = cookies.find(c => c.trim().startsWith('csrf_token='));
+    const csrfCookie = cookies.find(c => c.trim().startsWith(`${CSRF_COOKIE_NAME}=`));
     if (csrfCookie) {
       token = csrfCookie.split('=')[1];
       // Sincronizar con sessionStorage
-      sessionStorage.setItem('csrf_token', token);
+      sessionStorage.setItem(CSRF_STORAGE_KEY, token);
     }
   }
-  
+
   // Si aún no existe, generar uno nuevo
   if (!token) {
     token = setCSRFToken();
   }
-  
+
   return token;
 };
 
@@ -53,8 +58,8 @@ export const validateCSRFToken = (token: string): boolean => {
 
 // Elimina el token CSRF (usar en logout)
 export const clearCSRFToken = (): void => {
-  sessionStorage.removeItem('csrf_token');
-  document.cookie = 'csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict; Secure';
+  sessionStorage.removeItem(CSRF_STORAGE_KEY);
+  document.cookie = `${CSRF_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict`;
 };
 
 // Refresca el token CSRF (usar después de operaciones sensibles)

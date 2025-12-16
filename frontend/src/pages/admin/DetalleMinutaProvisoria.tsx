@@ -56,7 +56,6 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         // Cargar datos del mapa de ventas relacionados con esta unidad
         fetchDatosMapaVentas(data.unidad_id);
       } catch (err) {
-        console.error('Error al cargar minuta:', err);
         setError('No se pudo cargar la información de la minuta');
       } finally {
         setLoading(false);
@@ -91,7 +90,6 @@ export const DetalleMinutaProvisoria: React.FC = () => {
       }, 1000);
 
     } catch (err) {
-      console.error('Error al cargar datos del mapa de ventas:', err);
       setLoadingMapaVentas(false);
     }
   };
@@ -136,7 +134,6 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         }, 1500);
       }
     } catch (error) {
-      console.error('Error al actualizar estado:', error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la minuta",
@@ -159,7 +156,6 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         description: "Los comentarios han sido guardados correctamente",
       });
     } catch (error) {
-      console.error('Error al guardar comentarios:', error);
       toast({
         title: "Error",
         description: "No se pudieron guardar los comentarios",

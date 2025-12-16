@@ -9,6 +9,7 @@ import { Plus, Trash, Building, Car, Package, Store, Warehouse, Pencil } from "l
 import { UnidadSeleccionada, TipoUnidad } from "@/types/wizard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUnidadFilters } from "@/hooks/useUnidadFilters";
+import { useTiposDisponibles } from "@/hooks/useUnidades";
 import { UnidadFormulario } from "./UnidadFormulario";
 
 export const Step1ProyectoUnidad: React.FC = () => {
@@ -17,6 +18,9 @@ export const Step1ProyectoUnidad: React.FC = () => {
 
   // Custom hook para manejar filtros en cascada
   const filters = useUnidadFilters();
+
+  // Load tipos from database
+  const { data: tiposDisponibles = [], isLoading: loadingTipos } = useTiposDisponibles();
 
   // Estados para la selección múltiple de unidades
   const [tipoUnidadSeleccionado, setTipoUnidadSeleccionado] = useState<TipoUnidad>("Departamento");
@@ -27,11 +31,6 @@ export const Step1ProyectoUnidad: React.FC = () => {
   const [mostrarFormularioUnidad, setMostrarFormularioUnidad] = useState<boolean>(false);
 
   const clearAllErrors = () => setErrors({});
-
-  const handleNaturalezaChange = (value: string) => {
-    filters.setNaturalezaSeleccionada(value);
-    clearAllErrors();
-  };
 
   const handleProyectoChange = (value: string) => {
     filters.setProyectoSeleccionado(value);
@@ -54,8 +53,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
         precioLista: unidad.precioUSD || 0,
         precioNegociado: unidad.precioUSD || 0,
         tipoDescuento: "ninguno",
-        valorDescuento: 0,
-        naturaleza: filters.naturalezaSeleccionada
+        valorDescuento: 0
       });
 
       updateData({
@@ -74,7 +72,11 @@ export const Step1ProyectoUnidad: React.FC = () => {
     setMostrarFormularioUnidad(true);
     setModoEdicion(false);
     setIndiceEdicion(-1);
+
+    // Pre-select tipo in filters for type-first flow
     filters.resetFilters();
+    filters.setTipoSeleccionado(tipo);
+
     setUnidadActual(null);
   };
 
@@ -121,12 +123,14 @@ export const Step1ProyectoUnidad: React.FC = () => {
     setMostrarFormularioUnidad(true);
     setTipoUnidadSeleccionado(unidad.tipo);
 
-    filters.setNaturalezaSeleccionada(unidad.naturaleza);
-    filters.setProyectoSeleccionado(unidad.proyecto);
-    filters.setEtapaSeleccionada(unidad.etapa);
-    filters.setTipoSeleccionado(unidad.tipo);
-    filters.setSectorSeleccionado(unidad.sector);
-    filters.setUnidadSeleccionada(unidad.id);
+    // Set all filters atomically to prevent cascade resets
+    filters.setAllFilters({
+      tipo: unidad.tipo,
+      proyecto: unidad.proyecto,
+      etapa: unidad.etapa,
+      sector: unidad.sector,
+      unidad: unidad.id
+    });
   };
 
   const eliminarUnidad = (indice: number) => {
@@ -158,22 +162,24 @@ export const Step1ProyectoUnidad: React.FC = () => {
             <Select
               value={tipoUnidadSeleccionado}
               onValueChange={(value: TipoUnidad) => setTipoUnidadSeleccionado(value)}
+              disabled={loadingTipos || mostrarFormularioUnidad}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Tipo de unidad" />
+                <SelectValue placeholder={loadingTipos ? "Cargando..." : "Tipo de unidad"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Departamento">Departamento</SelectItem>
-                <SelectItem value="Cochera">Cochera</SelectItem>
-                <SelectItem value="Baulera">Baulera</SelectItem>
-                <SelectItem value="Local">Local</SelectItem>
-                <SelectItem value="Nave">Nave</SelectItem>
+                {tiposDisponibles.map((tipo) => (
+                  <SelectItem key={tipo} value={tipo}>
+                    {tipo}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button
               variant="outline"
               onClick={() => mostrarFormulario(tipoUnidadSeleccionado)}
               className="flex items-center gap-1"
+              disabled={mostrarFormularioUnidad}
             >
               <Plus className="w-4 h-4" />
               {getIconForTipoUnidad(tipoUnidadSeleccionado)}
@@ -230,9 +236,6 @@ export const Step1ProyectoUnidad: React.FC = () => {
                         <span className="font-medium">Etapa:</span> {unidad.etapa}
                       </div>
                       <div>
-                        <span className="font-medium">Sector:</span> {unidad.sector}
-                      </div>
-                      <div>
                         <span className="font-medium">Precio Lista:</span> ${unidad.precioLista.toLocaleString()}
                       </div>
                     </div>
@@ -248,29 +251,17 @@ export const Step1ProyectoUnidad: React.FC = () => {
       {/* Formulario para agregar unidad */}
       {mostrarFormularioUnidad && (
         <UnidadFormulario
-          naturalezas={filters.naturalezas}
           proyectos={filters.proyectos}
           etapas={filters.etapas}
-          tipos={filters.tipos}
-          sectores={filters.sectores}
           unidades={filters.unidades}
-          naturalezaSeleccionada={filters.naturalezaSeleccionada}
           proyectoSeleccionado={filters.proyectoSeleccionado}
           etapaSeleccionada={filters.etapaSeleccionada}
-          tipoSeleccionado={filters.tipoSeleccionado}
-          sectorSeleccionado={filters.sectorSeleccionado}
           unidadSeleccionada={filters.unidadSeleccionada}
-          loadingNaturalezas={filters.loadingNaturalezas}
           loadingProyectos={filters.loadingProyectos}
           loadingEtapas={filters.loadingEtapas}
-          loadingTipos={filters.loadingTipos}
-          loadingSectores={filters.loadingSectores}
           loadingUnidades={filters.loadingUnidades}
-          onNaturalezaChange={handleNaturalezaChange}
           onProyectoChange={handleProyectoChange}
           onEtapaChange={(value) => filters.setEtapaSeleccionada(value)}
-          onTipoChange={(value) => filters.setTipoSeleccionado(value)}
-          onSectorChange={(value) => filters.setSectorSeleccionado(value)}
           onUnidadChange={handleUnidadChange}
           tipoUnidad={tipoUnidadSeleccionado}
           modoEdicion={modoEdicion}
@@ -279,6 +270,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
           onCancelar={cancelarAgregarUnidad}
         />
       )}
+
 
       {/* Fecha de Posesión */}
       <div className="space-y-2">
