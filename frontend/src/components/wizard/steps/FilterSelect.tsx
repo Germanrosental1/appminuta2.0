@@ -8,7 +8,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 interface FilterSelectProps {
     label: string;
     value: string;
-    options: string[] | Array<{ id: number; descripcion: string }>;
+    options: string[] | Array<{ id: string; descripcion: string }>;
     onChange: (value: string) => void;
     loading?: boolean;
     error?: string;
@@ -41,7 +41,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
         if (!searchable || !debouncedSearch) return options;
 
         if (isUnidadSelect) {
-            return (options as Array<{ id: number; descripcion: string }>).filter((item) =>
+            return (options as Array<{ id: string; descripcion: string }>).filter((item) =>
                 item.descripcion.toLowerCase().includes(debouncedSearch.toLowerCase())
             );
         }
@@ -61,8 +61,8 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
         }
 
         if (isUnidadSelect) {
-            return (filteredOptions as Array<{ id: number; descripcion: string }>).map((item) => (
-                <SelectItem key={item.id} value={item.id.toString()}>
+            return (filteredOptions as Array<{ id: string; descripcion: string }>).map((item) => (
+                <SelectItem key={item.id} value={item.id}>
                     {item.descripcion}
                 </SelectItem>
             ));

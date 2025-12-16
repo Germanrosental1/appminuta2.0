@@ -21,16 +21,16 @@ export class ProyectosController {
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-        return this.proyectosService.findOne(+id);
+        return this.proyectosService.findOne(id);
     }
 
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateProyectoDto: UpdateProyectoDto) {
-        return this.proyectosService.update(+id, updateProyectoDto);
+        return this.proyectosService.update(id, updateProyectoDto);
     }
 
     @Delete(':id')
     remove(@Param('id') id: string) {
-        return this.proyectosService.remove(+id);
+        return this.proyectosService.remove(id);
     }
 }

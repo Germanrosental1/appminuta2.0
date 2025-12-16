@@ -101,15 +101,14 @@ export const useUnidadFilters = (): UseUnidadFiltersReturn => {
     // Reset cuando cambia la etapa
     useEffect(() => {
         if (etapaSeleccionada && !skipCascadeRef.current) {
-            setSectorSeleccionado('');
             setUnidadSeleccionada('');
             setUnidades([]);
         }
     }, [etapaSeleccionada]);
 
-    // Cargar unidades cuando cambia el sector
+    // Cargar unidades cuando cambia la etapa (sector ya no se usa en el filtro principal)
     useEffect(() => {
-        if (!proyectoSeleccionado || !etapaSeleccionada || !sectorSeleccionado) {
+        if (!proyectoSeleccionado || !etapaSeleccionada) {
             setUnidades([]);
             return;
         }
@@ -117,11 +116,12 @@ export const useUnidadFilters = (): UseUnidadFiltersReturn => {
         const fetchUnidades = async () => {
             setLoadingUnidades(true);
             try {
+                // Cargar TODAS las unidades de la etapa (sin filtrar por sector)
                 const unidadesDisponibles = await getUnidadesPorEtapaTipoYSector(
                     proyectoSeleccionado,
                     etapaSeleccionada,
                     tipoSeleccionado,
-                    sectorSeleccionado
+                    '' // Sin sector - traer todas las unidades
                 );
                 setUnidades(unidadesDisponibles);
                 setUnidadSeleccionada('');
@@ -133,7 +133,7 @@ export const useUnidadFilters = (): UseUnidadFiltersReturn => {
         };
 
         fetchUnidades();
-    }, [proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado, sectorSeleccionado]);
+    }, [proyectoSeleccionado, etapaSeleccionada, tipoSeleccionado]);
 
     const setAllFilters = (filters: {
         tipo: string;

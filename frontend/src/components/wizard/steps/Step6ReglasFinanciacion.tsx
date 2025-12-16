@@ -877,22 +877,57 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Label htmlFor="valorBienA">Valor bien (opcional)</Label>
-                  <Input
-                    id="valorBienA"
-                    placeholder="Descripción del bien"
-                    value={nuevaReglaA.valorBien || ""}
-                    onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, valorBien: e.target.value })}
-                  />
+                  <div>
+                    <Label htmlFor="primerVencimientoA">Primer vencimiento</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !nuevaReglaA.primerVencimiento && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {nuevaReglaA.primerVencimiento ? nuevaReglaA.primerVencimiento : <span>Seleccionar fecha</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={nuevaReglaA.primerVencimiento ? parseDate(nuevaReglaA.primerVencimiento) : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              const formattedDate = format(date, "d/MM/yy");
+                              setNuevaReglaA({ ...nuevaReglaA, primerVencimiento: formattedDate });
+                            }
+                          }}
+                          initialFocus
+                          locale={es}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="cargoA">Cargo (opcional)</Label>
-                  <Input
-                    id="cargoA"
-                    placeholder="Descripción del cargo"
-                    value={nuevaReglaA.cargo || ""}
-                    onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, cargo: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="valorBienA">Valor bien (opcional)</Label>
+                    <Input
+                      id="valorBienA"
+                      placeholder="Descripción del bien"
+                      value={nuevaReglaA.valorBien || ""}
+                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, valorBien: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cargoA">Cargo (opcional)</Label>
+                    <Input
+                      id="cargoA"
+                      placeholder="Descripción del cargo"
+                      value={nuevaReglaA.cargo || ""}
+                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, cargo: e.target.value })}
+                    />
+                  </div>
                 </div>
 
 

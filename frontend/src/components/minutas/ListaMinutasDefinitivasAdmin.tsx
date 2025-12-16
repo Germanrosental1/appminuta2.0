@@ -199,7 +199,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="bg-green-50 hover:bg-green-100"
+                                      className="bg-green-50 hover:bg-green-100 w-[100px]"
                                       onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
                                     >
                                       <CheckCircle className="h-4 w-4 mr-1" />
@@ -208,7 +208,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="bg-red-50 hover:bg-red-100"
+                                      className="bg-red-50 hover:bg-red-100 w-[100px]"
                                       onClick={() => handleChangeEstado(minuta.id, 'cancelada')}
                                     >
                                       <XCircle className="h-4 w-4 mr-1" />
@@ -221,7 +221,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="bg-blue-50 hover:bg-blue-100"
+                                    className="bg-blue-50 hover:bg-blue-100 w-[208px]"
                                     onClick={() => handleChangeEstado(minuta.id, 'firmada')}
                                   >
                                     <CheckCircle className="h-4 w-4 mr-1" />

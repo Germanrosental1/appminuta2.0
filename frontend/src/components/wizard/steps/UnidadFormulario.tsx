@@ -9,25 +9,21 @@ interface UnidadFormularioProps {
     // Filter state
     proyectos: string[];
     etapas: string[];
-    sectores: string[];
-    unidades: Array<{ id: number; descripcion: string; precioUSD?: number }>;
+    unidades: Array<{ id: string; descripcion: string; precioUSD?: number }>;
 
     // Selected values
     proyectoSeleccionado: string;
     etapaSeleccionada: string;
-    sectorSeleccionado: string;
     unidadSeleccionada: string;
 
     // Loading states
     loadingProyectos: boolean;
     loadingEtapas: boolean;
-    loadingSectores: boolean;
     loadingUnidades: boolean;
 
     // Handlers
     onProyectoChange: (value: string) => void;
     onEtapaChange: (value: string) => void;
-    onSectorChange: (value: string) => void;
     onUnidadChange: (value: string) => void;
 
     // Form state
@@ -42,13 +38,13 @@ interface UnidadFormularioProps {
 
 export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
     const {
-        proyectos, etapas, sectores, unidades,
+        proyectos, etapas, unidades,
         proyectoSeleccionado, etapaSeleccionada,
-        sectorSeleccionado, unidadSeleccionada,
+        unidadSeleccionada,
         loadingProyectos, loadingEtapas,
-        loadingSectores, loadingUnidades,
+        loadingUnidades,
         onProyectoChange, onEtapaChange,
-        onSectorChange, onUnidadChange,
+        onUnidadChange,
         tipoUnidad, modoEdicion, errors,
         onAgregar, onCancelar
     } = props;
@@ -92,22 +88,8 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                     />
                 )}
 
-                {/* SECTOR - Only show after etapa selected */}
+                {/* UNIDAD - Show after etapa selected (sector removed) */}
                 {etapaSeleccionada && (
-                    <FilterSelect
-                        id="sector"
-                        label="Sector"
-                        value={sectorSeleccionado}
-                        options={sectores}
-                        onChange={onSectorChange}
-                        loading={loadingSectores}
-                        error={errors.sector}
-                        searchable={true}
-                    />
-                )}
-
-                {/* UNIDAD - Only show after sector selected */}
-                {sectorSeleccionado && (
                     <FilterSelect
                         id="unidad"
                         label="Unidad"
@@ -117,6 +99,7 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                         loading={loadingUnidades}
                         error={errors.unidad}
                         isUnidadSelect
+                        searchable={true}
                     />
                 )}
             </CardContent>

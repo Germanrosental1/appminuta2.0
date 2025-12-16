@@ -236,9 +236,6 @@ export const Step1ProyectoUnidad: React.FC = () => {
                         <span className="font-medium">Etapa:</span> {unidad.etapa}
                       </div>
                       <div>
-                        <span className="font-medium">Sector:</span> {unidad.sector}
-                      </div>
-                      <div>
                         <span className="font-medium">Precio Lista:</span> ${unidad.precioLista.toLocaleString()}
                       </div>
                     </div>
@@ -256,19 +253,15 @@ export const Step1ProyectoUnidad: React.FC = () => {
         <UnidadFormulario
           proyectos={filters.proyectos}
           etapas={filters.etapas}
-          sectores={filters.sectores}
           unidades={filters.unidades}
           proyectoSeleccionado={filters.proyectoSeleccionado}
           etapaSeleccionada={filters.etapaSeleccionada}
-          sectorSeleccionado={filters.sectorSeleccionado}
           unidadSeleccionada={filters.unidadSeleccionada}
           loadingProyectos={filters.loadingProyectos}
           loadingEtapas={filters.loadingEtapas}
-          loadingSectores={filters.loadingSectores}
           loadingUnidades={filters.loadingUnidades}
           onProyectoChange={handleProyectoChange}
           onEtapaChange={(value) => filters.setEtapaSeleccionada(value)}
-          onSectorChange={(value) => filters.setSectorSeleccionado(value)}
           onUnidadChange={handleUnidadChange}
           tipoUnidad={tipoUnidadSeleccionado}
           modoEdicion={modoEdicion}

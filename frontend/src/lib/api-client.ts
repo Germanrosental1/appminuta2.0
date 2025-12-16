@@ -1,6 +1,7 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 import { supabase } from './supabase';
+import { getCSRFToken } from '@/utils/csrf';
 
 export async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
     // 🔒 SEGURIDAD: Validar sesión antes de cada request
@@ -8,8 +9,8 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
 
     // Si no hay sesión o hay error, redirigir a login
     if (sessionError || !session) {
-        console.warn('🔒 No valid session found, redirecting to login');
-        window.location.href = '/login';
+        console.warn('No valid session found, redirecting to login');
+        globalThis.location.href = '/login';
         throw new Error('Authentication required');
     }
 
@@ -21,13 +22,13 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
 
     // Si el token está próximo a expirar (menos de 5 minutos), refrescar
     if (expiresAt && (expiresAt - now) < 300) {
-        console.log('🔄 Token expiring soon, refreshing session...');
+        console.log('Token expiring soon, refreshing session...');
 
         const { data: { session: refreshedSession }, error: refreshError } =
             await supabase.auth.refreshSession();
 
         if (refreshError || !refreshedSession) {
-            console.error('🔒 Session refresh failed, logging out');
+            console.error('Session refresh failed, logging out');
             await supabase.auth.signOut();
             globalThis.location.href = '/login';
             throw new Error('Session expired');
@@ -36,9 +37,15 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
         token = refreshedSession.access_token;
     }
 
+    // Obtener CSRF token para métodos que modifican datos
+    const method = (options?.method || 'GET').toUpperCase();
+    const csrfToken = getCSRFToken();
+    const needsCSRF = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
     const headers = {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(needsCSRF && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         ...options?.headers,
     } as HeadersInit;
 
@@ -47,12 +54,13 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
         headers,
     });
 
+
     if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
 
-        // 🔒 SEGURIDAD: Handle 401 Unauthorized - sesión inválida
+        // Handle 401 Unauthorized - sesión inválida
         if (response.status === 401) {
-            console.error('🔒 Unauthorized request, logging out');
+            console.error('Unauthorized request, logging out');
             await supabase.auth.signOut();
             globalThis.location.href = '/login';
             throw new Error('Session invalid or expired');

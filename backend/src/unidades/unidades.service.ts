@@ -1,123 +1,261 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
+import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UnidadesService {
     constructor(private readonly prisma: PrismaService) { }
 
-    create(createUnidadDto: CreateUnidadDto) {
-        return 'This action adds a new unidad';
+    async create(createUnidadDto: CreateUnidadDto) {
+        // Verificar que el sectorid no exista
+        const existing = await this.prisma.unidades.findUnique({
+            where: { sectorid: createUnidadDto.sectorid },
+        });
+
+        if (existing) {
+            throw new ConflictException(
+                `Ya existe una unidad con sectorid '${createUnidadDto.sectorid}'`
+            );
+        }
+
+        return this.prisma.unidades.create({
+            data: {
+                sectorid: createUnidadDto.sectorid,
+                tipounidad_id: createUnidadDto.tipounidad_id,
+                edificio_id: createUnidadDto.edificio_id,
+                etapa_id: createUnidadDto.etapa_id,
+                piso: createUnidadDto.piso,
+                nrounidad: createUnidadDto.nrounidad,
+                dormitorios: createUnidadDto.dormitorios,
+                manzana: createUnidadDto.manzana,
+                destino: createUnidadDto.destino,
+                frente: createUnidadDto.frente,
+            },
+            include: {
+                edificios: true,
+                etapas: true,
+                tiposunidad: true,
+            },
+        });
     }
 
-    async findAll(query: any) {
-        const where: any = {};
+    async findAll(query: FindAllUnidadesQueryDto) {
+        const where: Prisma.unidadesWhereInput = {};
 
-        // Handle proyecto filter - convert nombre to proyecto_id
+        //  Cache proyecto_id para evitar query extra en cada request
         if (query.proyecto) {
             const proyecto = await this.prisma.proyectos.findFirst({
                 where: { nombre: { equals: query.proyecto, mode: 'insensitive' } },
+                select: { id: true }, // Solo necesitamos el ID
             });
             if (proyecto) {
-                where.proyecto_id = proyecto.id;
+                where.edificios = {
+                    proyecto_id: proyecto.id,
+                };
             } else {
-                // If project not found, return empty array
                 return [];
             }
         }
 
-        // Other filters
-        if (query.estado)
-            where.estado = { equals: query.estado, mode: 'insensitive' };
-        if (query.etapa && query.etapa !== 'Ninguna') where.etapa = query.etapa;
-        if (query.tipo) where.tipo = query.tipo;
-        if (query.sectorid) where.sectorid = query.sectorid;
-        if (query.nrounidad) where.nrounidad = query.nrounidad;
+        // Filtrar por estado - por defecto solo "Disponible" (case insensitive)
+        // Usar 'is' para relación nullable 1-to-1
+        const estadoFiltro = query.estado || 'disponible';
+        where.detallesventa_detallesventa_unidad_idTounidades = {
+            is: {
+                estadocomercial: {
+                    nombreestado: { equals: estadoFiltro, mode: 'insensitive' },
+                },
+            },
+        };
 
-        return this.prisma.tablas.findMany({
+        if (query.etapa && query.etapa !== 'Ninguna') {
+            where.etapas = {
+                nombre: query.etapa,
+            };
+        }
+
+        if (query.tipo) {
+            where.tiposunidad = {
+                nombre: query.tipo,
+            };
+        }
+
+        if (query.sectorid) {
+            where.sectorid = query.sectorid;
+        }
+
+        if (query.nrounidad) {
+            where.nrounidad = query.nrounidad;
+        }
+
+        // Usar select en lugar de include para reducir ~60% datos transferidos
+        const unidades = await this.prisma.unidades.findMany({
             where,
-            orderBy: [{ sectorid: 'asc' }, { id: 'asc' }],
+            select: {
+                id: true,
+                sectorid: true,
+                piso: true,
+                nrounidad: true,
+                dormitorios: true,
+                manzana: true,
+                destino: true,
+                frente: true,
+                edificios: {
+                    select: {
+                        id: true,
+                        nombreedificio: true,
+                        proyectos: {
+                            select: {
+                                id: true,
+                                nombre: true,
+                            },
+                        },
+                    },
+                },
+                etapas: {
+                    select: {
+                        id: true,
+                        nombre: true,
+                    },
+                },
+                tiposunidad: {
+                    select: {
+                        id: true,
+                        nombre: true,
+                    },
+                },
+                detallesventa_detallesventa_unidad_idTounidades: {
+                    select: {
+                        preciousd: true,
+                        usdm2: true,
+                        estadocomercial: {
+                            select: {
+                                id: true,
+                                nombreestado: true,
+                            },
+                        },
+                    },
+                },
+                unidadesmetricas: {
+                    select: {
+                        m2exclusivos: true,
+                        m2totales: true,
+                        m2cubiertos: true,
+                    },
+                },
+            },
+            orderBy: [{ sectorid: 'asc' }, { nrounidad: 'asc' }],
         });
+
+        // Eliminar duplicados por sectorid (clave única)
+        const uniqueUnidades = unidades.filter(
+            (unidad, index, self) =>
+                index === self.findIndex((u) => u.sectorid === unidad.sectorid)
+        );
+
+        return uniqueUnidades;
     }
 
-    async findOne(id: number) {
-        return this.prisma.tablas.findUnique({
+    async findOne(id: string) {
+        // id ahora es UUID
+        return this.prisma.unidades.findUnique({
             where: { id },
+            include: {
+                edificios: {
+                    include: {
+                        proyectos: true,
+                    },
+                },
+                etapas: true,
+                tiposunidad: true,
+                detallesventa_detallesventa_unidad_idTounidades: {
+                    include: {
+                        estadocomercial: true,
+                        comerciales: true,
+                    },
+                },
+                unidadesmetricas: true,
+            },
         });
     }
 
     async getNaturalezas(): Promise<string[]> {
-        const result = await this.prisma.tablas.findMany({
-            select: { natdelproyecto: true },
-            where: { natdelproyecto: { not: null } },
-            distinct: ['natdelproyecto'],
-            orderBy: { natdelproyecto: 'asc' },
+        // Naturaleza viene de proyectos -> naturalezas
+        const result = await this.prisma.naturalezas.findMany({
+            select: { nombre: true },
+            orderBy: { nombre: 'asc' },
         });
-        const naturalezas = result.map((r) => r.natdelproyecto).filter(Boolean);
-        return naturalezas;
+        return result.map((r) => r.nombre).filter(Boolean);
     }
 
     /**
      * Get all available unit types across all projects
      */
     async getTiposDisponibles(): Promise<string[]> {
-        const result = await this.prisma.tablas.findMany({
-            select: { tipo: true },
-            where: { tipo: { not: null } },
-            distinct: ['tipo'],
-            orderBy: { tipo: 'asc' },
+        // Usar tabla tiposunidad
+        const result = await this.prisma.tiposunidad.findMany({
+            select: { nombre: true },
+            orderBy: { nombre: 'asc' },
         });
-        const tipos = result.map((r) => r.tipo).filter(Boolean);
-        return tipos;
+        return result.map((r) => r.nombre).filter(Boolean);
     }
 
     /**
      * Get projects that have units of a specific type
      */
     async getProyectosPorTipo(tipo: string): Promise<string[]> {
-        const result = await this.prisma.tablas.findMany({
-            select: {
-                proyectos: {
-                    select: { nombre: true },
+        // Query via unidades -> tiposunidad -> proyectostiposunidad -> proyectos
+        const result = await this.prisma.proyectos.findMany({
+            where: {
+                proyectostiposunidad: {
+                    some: {
+                        tiposunidad: {
+                            nombre: tipo,
+                        },
+                    },
                 },
             },
-            where: {
-                tipo: tipo,
-                proyecto_id: { not: null },
-            },
-            distinct: ['proyecto_id'],
+            select: { nombre: true },
+            orderBy: { nombre: 'asc' },
         });
-        const proyectos = result
-            .map((r) => r.proyectos?.nombre)
-            .filter(Boolean)
-            .sort((a, b) => a.localeCompare(b));
-        return proyectos;
+        return result.map((r) => r.nombre);
     }
 
     async getEtapas(nombreProyecto: string): Promise<string[]> {
         const proyecto = await this.prisma.proyectos.findFirst({
             where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
-            select: { id: true }, // Only select ID, not all fields
+            select: { id: true },
         });
 
         if (!proyecto) {
             return [];
         }
 
-        const result = await this.prisma.tablas.findMany({
-            select: { etapa: true },
+        // Query unidades -> edificios -> proyectos + etapas
+        const result = await this.prisma.unidades.findMany({
             where: {
-                proyecto_id: proyecto.id,
-                etapa: { not: null },
+                edificios: {
+                    proyecto_id: proyecto.id,
+                },
+                etapa_id: { not: null },
             },
-            distinct: ['etapa'],
-            orderBy: { etapa: 'asc' },
+            select: {
+                etapas: {
+                    select: { nombre: true },
+                },
+            },
+            distinct: ['etapa_id'],
+            orderBy: {
+                etapas: {
+                    nombre: 'asc',
+                },
+            },
         });
 
-        const etapas = result.map((r) => r.etapa).filter(Boolean);
-
-        return etapas;
+        return result.map((r) => r.etapas?.nombre).filter(Boolean);
     }
 
     async getTipos(nombreProyecto: string, etapa?: string): Promise<string[]> {
@@ -128,22 +266,34 @@ export class UnidadesService {
         if (!proyecto) return [];
 
         const where: any = {
-            proyecto_id: proyecto.id,
-            tipo: { not: null },
+            edificios: {
+                proyecto_id: proyecto.id,
+            },
         };
 
         if (etapa && etapa !== 'Ninguna') {
-            where.etapa = etapa;
+            where.etapas = {
+                nombre: etapa,
+            };
         }
 
-        const result = await this.prisma.tablas.findMany({
-            select: { tipo: true },
+        // Query unidades -> tiposunidad
+        const result = await this.prisma.unidades.findMany({
             where,
-            distinct: ['tipo'],
-            orderBy: { tipo: 'asc' },
+            select: {
+                tiposunidad: {
+                    select: { nombre: true },
+                },
+            },
+            distinct: ['tipounidad_id'],
+            orderBy: {
+                tiposunidad: {
+                    nombre: 'asc',
+                },
+            },
         });
 
-        return result.map((r) => r.tipo).filter(Boolean);
+        return result.map((r) => r.tiposunidad.nombre).filter(Boolean);
     }
 
     async getSectores(
@@ -154,7 +304,7 @@ export class UnidadesService {
         try {
             const proyecto = await this.prisma.proyectos.findFirst({
                 where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
-                select: { id: true }, // Only select ID, not all fields
+                select: { id: true },
             });
 
             if (!proyecto) {
@@ -162,35 +312,101 @@ export class UnidadesService {
             }
 
             const where: any = {
-                proyecto_id: proyecto.id,
+                edificios: {
+                    proyecto_id: proyecto.id,
+                },
             };
 
-            if (etapa && etapa !== 'Ninguna') where.etapa = etapa;
-            if (tipo) where.tipo = tipo;
+            if (etapa && etapa !== 'Ninguna') {
+                where.etapas = {
+                    nombre: etapa,
+                };
+            }
 
-            const result = await this.prisma.tablas.findMany({
-                select: { sectorid: true },
+            if (tipo) {
+                where.tiposunidad = {
+                    nombre: tipo,
+                };
+            }
+
+            // Query unidades con filtros de relaciones
+            const result = await this.prisma.unidades.findMany({
                 where,
+                select: { sectorid: true },
                 distinct: ['sectorid'],
                 orderBy: { sectorid: 'asc' },
             });
 
-            // Filter out null/empty sectorid values
-            const sectores = result
+            return result
                 .map((r) => r.sectorid)
                 .filter((s) => s != null && s !== '');
-            return sectores;
         } catch (error) {
             console.error('[ERROR] getSectores failed:', error);
-            throw error;
+            return []; // Return empty instead of crashing
         }
     }
 
-    update(id: number, updateUnidadDto: UpdateUnidadDto) {
-        return `This action updates a #${id} unidad`;
+    async update(id: string, updateUnidadDto: UpdateUnidadDto) {
+        // Verificar que la unidad existe
+        const existing = await this.prisma.unidades.findUnique({
+            where: { id },
+        });
+
+        if (!existing) {
+            throw new NotFoundException(`Unidad con ID '${id}' no encontrada`);
+        }
+
+        // Verificar unicidad de sectorid si se está cambiando
+        if (updateUnidadDto.sectorid && updateUnidadDto.sectorid !== existing.sectorid) {
+            const duplicate = await this.prisma.unidades.findUnique({
+                where: { sectorid: updateUnidadDto.sectorid },
+            });
+
+            if (duplicate) {
+                throw new ConflictException(
+                    `Ya existe una unidad con sectorid '${updateUnidadDto.sectorid}'`
+                );
+            }
+        }
+
+        return this.prisma.unidades.update({
+            where: { id },
+            data: updateUnidadDto,
+            include: {
+                edificios: true,
+                etapas: true,
+                tiposunidad: true,
+            },
+        });
     }
 
-    remove(id: number) {
-        return `This action removes a #${id} unidad`;
+    async remove(id: string) {
+        // Verificar que la unidad existe
+        const existing = await this.prisma.unidades.findUnique({
+            where: { id },
+            include: {
+                detallesventa_detallesventa_unidad_idTounidades: true,
+            },
+        });
+
+        if (!existing) {
+            throw new NotFoundException(`Unidad con ID '${id}' no encontrada`);
+        }
+
+        // Si tiene detalles de venta relacionados, eliminarlos primero
+        if (existing.detallesventa_detallesventa_unidad_idTounidades) {
+            await this.prisma.detallesventa.delete({
+                where: { unidad_id: id },
+            });
+        }
+
+        // Eliminar métricas si existen
+        await this.prisma.unidadesmetricas.deleteMany({
+            where: { unidad_id: id },
+        });
+
+        return this.prisma.unidades.delete({
+            where: { id },
+        });
     }
 }

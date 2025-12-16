@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } f
 import { UnidadesService } from './unidades.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
+import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
 @Controller('unidades')
@@ -51,22 +52,22 @@ export class UnidadesController {
 
     // Generic routes - come after specific routes
     @Get()
-    findAll(@Query() query: any) {
+    findAll(@Query() query: FindAllUnidadesQueryDto) {
         return this.unidadesService.findAll(query);
     }
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-        return this.unidadesService.findOne(+id);
+        return this.unidadesService.findOne(id);
     }
 
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateUnidadDto: UpdateUnidadDto) {
-        return this.unidadesService.update(+id, updateUnidadDto);
+        return this.unidadesService.update(id, updateUnidadDto);
     }
 
     @Delete(':id')
     remove(@Param('id') id: string) {
-        return this.unidadesService.remove(+id);
+        return this.unidadesService.remove(id);
     }
 }

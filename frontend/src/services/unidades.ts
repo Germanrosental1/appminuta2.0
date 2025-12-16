@@ -1,9 +1,9 @@
 import { apiFetch } from '../lib/api-client';
 import { getProyectosActivos } from './proyectos';
 
-// Interfaz para la tabla tablas
+// Interfaz para la nueva estructura de unidades normalizadas
 export interface UnidadTabla {
-  id: number;
+  id: number | string;
   natdelproyecto?: string;
   proyecto?: string;
   etapa?: string;
@@ -12,7 +12,7 @@ export interface UnidadTabla {
   edificiotorre?: string;
   piso?: string;
   nrounidad?: string;
-  dormitorios?: string;
+  dormitorios?: string | number;
   frente?: string;
   manzana?: string;
   destino?: string;
@@ -38,6 +38,36 @@ export interface UnidadTabla {
   clientetitularboleto?: string;
   fechaposesionporboletocompraventa?: string;
   deptocomprador?: string;
+  // Nested structure from new normalized DB
+  edificios?: {
+    id: string;
+    nombreedificio: string;
+    proyectos?: {
+      id: string;
+      nombre: string;
+    };
+  };
+  etapas?: {
+    id: string;
+    nombre: string;
+  };
+  tiposunidad?: {
+    id: string;
+    nombre: string;
+  };
+  detallesventa_detallesventa_unidad_idTounidades?: {
+    preciousd?: number;
+    usdm2?: number;
+    estadocomercial?: {
+      id: string;
+      nombreestado: string;
+    };
+  };
+  unidadesmetricas?: {
+    m2exclusivos?: number;
+    m2totales?: number;
+    m2cubiertos?: number;
+  };
 }
 
 // Alias para mantener compatibilidad con código existente
@@ -46,9 +76,10 @@ export type UnidadArboria = UnidadTabla;
 
 // Interfaz simplificada para mostrar en listas
 export interface UnidadResumen {
-  id: number;
+  id: string; // UUID string from database
   proyecto: string;
   sector?: string;
+  etapa?: string;
   tipo?: string;
   numero?: string;
   edificio?: string;
@@ -111,7 +142,8 @@ function formatearUnidadResumen(unidad: UnidadTabla): UnidadResumen {
   let descripcion = '';
 
   if (unidad.sectorid) descripcion += `${unidad.sectorid} - `;
-  if (unidad.edificiotorre) descripcion += `${unidad.edificiotorre} - `;
+  if (unidad.edificios?.nombreedificio) descripcion += `${unidad.edificios.nombreedificio} - `;
+  else if (unidad.edificiotorre) descripcion += `${unidad.edificiotorre} - `;
   if (unidad.piso) descripcion += `Piso ${unidad.piso} - `;
   if (unidad.nrounidad) descripcion += `Unidad ${unidad.nrounidad}`;
 
@@ -120,18 +152,37 @@ function formatearUnidadResumen(unidad: UnidadTabla): UnidadResumen {
     descripcion += `ID: ${unidad.id}`;
   }
 
+  // Get price from nested structure or fallback to flat field
+  const precio = unidad.detallesventa_detallesventa_unidad_idTounidades?.preciousd
+    ?? unidad.preciousd
+    ?? 0;
+
+  // Get estado from nested structure or fallback
+  const estado = unidad.detallesventa_detallesventa_unidad_idTounidades?.estadocomercial?.nombreestado
+    ?? unidad.estado;
+
+  // Get proyecto from nested structure or fallback
+  const proyecto = unidad.edificios?.proyectos?.nombre ?? unidad.proyecto ?? '';
+
+  // Get etapa from nested structure or fallback
+  const etapa = unidad.etapas?.nombre ?? unidad.etapa;
+
+  // Get tipo from nested structure or fallback
+  const tipo = unidad.tiposunidad?.nombre ?? unidad.tipo;
+
   return {
-    id: unidad.id,
-    proyecto: unidad.proyecto || '',
+    id: String(unidad.id), // Keep as string for UUID support
+    proyecto,
     sector: unidad.sectorid,
-    tipo: unidad.tipo,
+    etapa,
+    tipo,
     numero: unidad.nrounidad,
-    edificio: unidad.edificiotorre,
+    edificio: unidad.edificios?.nombreedificio ?? unidad.edificiotorre,
     piso: unidad.piso,
-    dormitorios: unidad.dormitorios,
-    metrosTotales: unidad.m2totales,
-    precioUSD: unidad.preciousd,
-    estado: unidad.estado,
+    dormitorios: String(unidad.dormitorios ?? ''),
+    metrosTotales: unidad.unidadesmetricas?.m2totales ?? unidad.m2totales,
+    precioUSD: Number(precio),
+    estado,
     descripcion: descripcion.trim()
   };
 }
@@ -190,22 +241,8 @@ export async function getEtapasPorProyecto(nombreProyecto: string): Promise<stri
  * Obtener todos los proyectos disponibles para una naturaleza específica
  */
 export async function getProyectosPorNaturaleza(naturaleza: string): Promise<string[]> {
-  // Assuming frontend filtered distinct projects by nature from 'tablas'
-  // We can use the generic Unidades findAll or Proyectos findAll?
-  // Use metadata/proyectos endpoint? 
-  // Let's implement a quick workaround: fetch all proyectos and filter?
-  // Or fetch from /unidades?natdelproyecto=X and distinct?
-  // Backend doesn't have `metadata/proyectos` endpoint yet.
-  // Reusing logic:
   try {
-    // Actually, getting all active projects is usually enough in the new system
     const proyectos = await getProyectosActivos();
-    // But if we need filtering by nature, let's just return all for now or filter client side
-    // Since 'natdelproyecto' is on 'tablas', not 'proyectos' table (usually), this is tricky.
-    // Proyectos table does NOT have 'natdelproyecto'.
-    // So this relies on 'tablas'.
-    // I should probably add a backend endpoint for this or just fetch all units and filter (heavy).
-    // Let's assume fetching all projects is fine for now as distinct projects are limited.
     return proyectos.map(p => p.nombre);
   } catch (error) {
     return [];
@@ -291,13 +328,14 @@ export async function getUnidadesPorEtapaTipoYSector(nombreProyecto: string, eta
     const params = new URLSearchParams({
       proyecto: nombreProyecto,
       tipo: tipo,
-      sectorid: sector
     });
     if (etapa && etapa !== 'Ninguna') params.append('etapa', etapa);
+    if (sector) params.append('sectorid', sector);
 
     const data = await apiFetch<UnidadTabla[]>(`/unidades?${params.toString()}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
+    console.error('Error fetching unidades:', error);
     return [];
   }
 }
