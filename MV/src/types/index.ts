@@ -1,0 +1,37 @@
+export interface SalesMapItem {
+  id: string;
+  natdelproyecto: string | null;
+  proyecto: string | null;
+  etapa: string | null;
+  tipo: string | null;
+  sectorid: string;
+  edificiotorre: string | null;
+  piso: string | null;
+  nrounidad: string | null;
+  dormitorios: string | null;
+  frente: string | null;
+  manzana: string | null;
+  destino: string | null;
+  tipocochera: string | null;
+  tamano: string | null;
+  m2cubiertos: number | null;
+  m2semicubiertos: number | null;
+  m2exclusivos: number | null;
+  m2patioterraza: number | null;
+  patioterraza: string | null;
+  m2comunes: number | null;
+  m2calculo: number | null;
+  m2totales: number | null;
+  preciousd: number | null;
+  usdm2: number | null;
+  estado: string | null;
+  motivono_disp: string | null;
+  obs: string | null;
+  fechareserva: string | null;
+  comercial: string | null;
+  clienteinteresado: string | null;
+  fechafirmaboleto: string | null;
+  clientetitularboleto: string | null;
+  fechaposesionporboletocompraventa: string | null;
+  deptocomprador: string | null;
+}
