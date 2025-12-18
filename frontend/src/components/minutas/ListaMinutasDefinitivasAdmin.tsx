@@ -5,7 +5,6 @@ import { StaggerTableBody, TableRowStagger } from '@/components/animated/Stagger
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -18,12 +17,19 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Edit,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
+import { CancelarMinutaModal } from '@/components/minutas/CancelarMinutaModal';
 
-export const ListaMinutasDefinitivasAdmin: React.FC = () => {
+interface ListaMinutasDefinitivasAdminProps {
+  readOnly?: boolean;
+}
+
+export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdminProps> = ({ readOnly = false }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('todas');
   const { toast } = useToast();
@@ -32,29 +38,38 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Estados para el modal
+  // Estados para el modal de detalles
   const [selectedMinutaId, setSelectedMinutaId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Usar React Query con paginación
-  const { data, isLoading, error } = useAllMinutas(
+  // Estados para el modal de cancelación
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [minutaToCancel, setMinutaToCancel] = useState<string | null>(null);
+
+  // Usar React Query - traer TODAS las minutas y filtrar en frontend
+  const { data, isLoading, error, refetch } = useAllMinutas(
     currentPage,
-    pageSize,
-    activeTab === 'todas' ? undefined : { estado: activeTab }
+    pageSize
+    // Sin filtro de estado - se filtra en frontend
   );
   const updateEstadoMutation = useUpdateMinutaEstado();
 
   // Debounce search para evitar filtrado en cada tecla
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // ⚡ OPTIMIZACIÓN: Filtrado solo por búsqueda (estado se filtra en backend)
+  // ⚡ FILTRADO EN FRONTEND: Por estado y por búsqueda
   const filteredMinutas = useMemo(() => {
-    const minutas = data?.data || [];
+    let minutas = data?.data || [];
+
+    // Filtrar por estado (si no es 'todas')
+    if (activeTab !== 'todas') {
+      minutas = minutas.filter(m => m.estado === activeTab);
+    }
 
     // Filtrar por término de búsqueda (usa debounced value)
     if (debouncedSearchTerm) {
       const term = debouncedSearchTerm.toLowerCase();
-      return minutas.filter(m =>
+      minutas = minutas.filter(m =>
         m.proyectos?.nombre?.toLowerCase().includes(term) ||
         m.datos?.unidadDescripcion?.toLowerCase().includes(term) ||
         m.users?.email?.toLowerCase().includes(term)
@@ -62,32 +77,44 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
     }
 
     return minutas;
-  }, [debouncedSearchTerm, data]);
+  }, [debouncedSearchTerm, data, activeTab]);
 
   const handleVerMinuta = (id: string) => {
     setSelectedMinutaId(id);
     setModalOpen(true);
   };
 
-  const handleChangeEstado = async (id: string, nuevoEstado: 'pendiente' | 'aprobada' | 'firmada' | 'cancelada') => {
+  const handleChangeEstado = async (
+    id: string,
+    nuevoEstado: 'pendiente' | 'aprobada' | 'firmada' | 'cancelada' | 'en_edicion',
+    comentarios?: string
+  ) => {
     try {
-      await updateEstadoMutation.mutateAsync({ id, estado: nuevoEstado });
-
+      await updateEstadoMutation.mutateAsync({ id, estado: nuevoEstado, comentarios });
       toast({
-        title: "Estado actualizado",
-        description: `La minuta ha sido marcada como ${nuevoEstado}`,
+        title: "Éxito",
+        description: `Estado actualizado a ${nuevoEstado}`,
       });
-    } catch (err) {
-      // Log error for debugging purposes
-      if (err instanceof Error) {
-        // Error updating estado - show toast notification with error details
-      }
+    } catch (err: any) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar el estado de la minuta",
+        description: err?.message || "No se pudo actualizar el estado de la minuta",
         variant: "destructive",
       });
     }
+  };
+
+  // Handler para abrir modal de cancelación
+  const handleOpenCancelModal = (id: string) => {
+    setMinutaToCancel(id);
+    setCancelModalOpen(true);
+  };
+
+  // Handler para confirmar cancelación con motivo
+  const handleConfirmCancel = async (motivo: string) => {
+    if (!minutaToCancel) return;
+    await handleChangeEstado(minutaToCancel, 'cancelada', motivo);
+    setMinutaToCancel(null);
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -100,6 +127,8 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
         return <Badge variant="outline" className="bg-blue-100 text-blue-800">Firmada</Badge>;
       case 'cancelada':
         return <Badge variant="outline" className="bg-red-100 text-red-800">Cancelada</Badge>;
+      case 'en_edicion':
+        return <Badge variant="outline" className="bg-orange-100 text-orange-800">En Edición</Badge>;
       default:
         return <Badge variant="outline">{estado}</Badge>;
     }
@@ -111,6 +140,15 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Minutas Definitivas</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              className="h-8 w-8"
+              title="Refrescar lista"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </CardTitle>
           <CardDescription>
             Gestiona las minutas definitivas creadas por los comerciales
@@ -119,15 +157,23 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-                <TabsList>
-                  <TabsTrigger value="todas">Todas</TabsTrigger>
-                  <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
-                  <TabsTrigger value="aprobada">Aprobadas</TabsTrigger>
-                  <TabsTrigger value="firmada">Firmadas</TabsTrigger>
-                  <TabsTrigger value="cancelada">Canceladas</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              {/* Dropdown filter for estado */}
+              <div className="flex items-center gap-2">
+                <label htmlFor="estado-filter" className="text-sm font-medium text-muted-foreground">Estado:</label>
+                <select
+                  id="estado-filter"
+                  value={activeTab}
+                  onChange={(e) => setActiveTab(e.target.value)}
+                  className="h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="todas">Todas</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="en_edicion">En Edición</option>
+                  <option value="aprobada">Aprobadas</option>
+                  <option value="firmada">Firmadas</option>
+                  <option value="cancelada">Canceladas</option>
+                </select>
+              </div>
 
               <div className="w-full sm:w-64">
                 <Input
@@ -184,7 +230,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                             </TableCell>
                             <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
+                              <div className="flex justify-end gap-2 flex-wrap">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -194,12 +240,13 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                   Ver
                                 </Button>
 
-                                {minuta.estado === 'pendiente' && (
+                                {/* Botones para minutas PENDIENTES (solo si no es readOnly) */}
+                                {!readOnly && minuta.estado === 'pendiente' && (
                                   <>
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="bg-green-50 hover:bg-green-100 w-[100px]"
+                                      className="bg-green-50 hover:bg-green-100"
                                       onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
                                     >
                                       <CheckCircle className="h-4 w-4 mr-1" />
@@ -208,8 +255,17 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="bg-red-50 hover:bg-red-100 w-[100px]"
-                                      onClick={() => handleChangeEstado(minuta.id, 'cancelada')}
+                                      className="bg-orange-50 hover:bg-orange-100"
+                                      onClick={() => handleChangeEstado(minuta.id, 'en_edicion')}
+                                    >
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Editar
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="bg-red-50 hover:bg-red-100"
+                                      onClick={() => handleOpenCancelModal(minuta.id)}
                                     >
                                       <XCircle className="h-4 w-4 mr-1" />
                                       Cancelar
@@ -217,16 +273,18 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
                                   </>
                                 )}
 
+                                {/* Minutas APROBADAS - Admin no puede hacer nada, el firmante se encarga */}
                                 {minuta.estado === 'aprobada' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="bg-blue-50 hover:bg-blue-100 w-[208px]"
-                                    onClick={() => handleChangeEstado(minuta.id, 'firmada')}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Marcar como Firmada
-                                  </Button>
+                                  <span className="text-xs text-muted-foreground italic">
+                                    Pendiente de firma
+                                  </span>
+                                )}
+
+                                {/* Estados finales - nadie puede hacer nada */}
+                                {(minuta.estado === 'firmada' || minuta.estado === 'cancelada') && (
+                                  <span className="text-xs text-muted-foreground italic">
+                                    Estado final
+                                  </span>
                                 )}
                               </div>
                             </TableCell>
@@ -325,6 +383,14 @@ export const ListaMinutasDefinitivasAdmin: React.FC = () => {
         minutaId={selectedMinutaId}
         open={modalOpen}
         onOpenChange={setModalOpen}
+      />
+
+      {/* Modal para cancelar minuta con motivo */}
+      <CancelarMinutaModal
+        open={cancelModalOpen}
+        onOpenChange={setCancelModalOpen}
+        onConfirm={handleConfirmCancel}
+        isLoading={updateEstadoMutation.isPending}
       />
     </div>
   );

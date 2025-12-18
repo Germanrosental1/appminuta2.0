@@ -485,6 +485,7 @@ export const Step4Pago: React.FC = () => {
               value={data.fechaFirmaBoleto}
               onChange={(e) => handleChange("fechaFirmaBoleto", e.target.value)}
               onBlur={handleBlur}
+              min={new Date().toISOString().split('T')[0]}
               className={errors.fechaFirmaBoleto ? "border-destructive" : ""}
               onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
             />

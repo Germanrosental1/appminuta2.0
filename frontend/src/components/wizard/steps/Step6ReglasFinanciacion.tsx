@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -822,13 +823,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                   <div>
                     <Label htmlFor="saldoFinanciarA">Saldo a Financiar</Label>
                     <div className="flex gap-2">
-                      <Input
+                      <CurrencyInput
                         id="saldoFinanciarA"
-                        type="number"
-                        placeholder="0.00"
-                        value={nuevaReglaA.saldoFinanciar || ""}
-                        onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, saldoFinanciar: Number(e.target.value) })}
+                        value={nuevaReglaA.saldoFinanciar}
+                        onChange={(value) => setNuevaReglaA({ ...nuevaReglaA, saldoFinanciar: value })}
                         max={calcularSaldoRestanteA()}
+                        prefix="$"
                         className="flex-1"
                       />
                       <Select
@@ -1079,13 +1079,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                   <div>
                     <Label htmlFor="saldoFinanciarB">Saldo a Financiar</Label>
                     <div className="flex gap-2">
-                      <Input
+                      <CurrencyInput
                         id="saldoFinanciarB"
-                        type="number"
-                        placeholder="0.00"
-                        value={nuevaReglaB.saldoFinanciar || ""}
-                        onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, saldoFinanciar: Number(e.target.value) })}
+                        value={nuevaReglaB.saldoFinanciar}
+                        onChange={(value) => setNuevaReglaB({ ...nuevaReglaB, saldoFinanciar: value })}
                         max={calcularSaldoRestanteB()}
+                        prefix="$"
                         className="flex-1"
                       />
                       <Select

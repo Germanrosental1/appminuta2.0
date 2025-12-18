@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useTiposDisponibles, useProyectosPorTipo, useEtapas, useSectores } from './useUnidades';
+import { useTiposDisponibles, useProyectosPorTipo, useEtapas, useSectores, usePrefetchProjectData } from './useUnidades';
 import {
     UnidadResumen,
     getUnidadesPorEtapaTipoYSector
@@ -76,6 +76,17 @@ export const useUnidadFilters = (): UseUnidadFiltersReturn => {
         etapaSeleccionada,
         tipoSeleccionado // Pass tipo to filter sectores correctly
     );
+
+    // ⚡ OPTIMIZACIÓN: Prefetch datos del siguiente proyecto cuando hay opciones
+    const { prefetchProjectData } = usePrefetchProjectData();
+
+    // Prefetch datos de proyectos disponibles al cambiar tipo
+    useEffect(() => {
+        if (proyectos.length > 0 && tipoSeleccionado) {
+            // Prefetch datos del primer proyecto disponible
+            prefetchProjectData(proyectos[0], tipoSeleccionado);
+        }
+    }, [proyectos, tipoSeleccionado, prefetchProjectData]);
 
     // Reset cuando cambia el TIPO
     useEffect(() => {

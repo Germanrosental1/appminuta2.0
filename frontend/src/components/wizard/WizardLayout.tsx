@@ -12,6 +12,7 @@ interface WizardLayoutProps {
   onBack?: () => void;
   hideNavigation?: boolean;
   finalStep?: boolean;
+  isEditMode?: boolean; // En modo edición, no puede volver al paso 1
 }
 
 const STEP_TITLES = [
@@ -40,6 +41,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   onBack,
   hideNavigation = false,
   finalStep = false,
+  isEditMode = false,
 }) => {
   const { currentStep, setCurrentStep, resetWizard, data } = useWizard();
 
@@ -50,6 +52,12 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   const progress = ((currentStep + 1) / titles.length) * 100;
 
   const handleBack = () => {
+    // En modo edición, no permitir volver al paso 1 (index 0)
+    if (isEditMode && currentStep === 1) {
+      toast.error("En modo edición no puedes cambiar el proyecto/unidad");
+      return;
+    }
+
     if (onBack) {
       onBack();
     } else if (currentStep > 0) {
@@ -118,7 +126,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             <Button
               variant="outline"
               onClick={handleBack}
-              disabled={currentStep === 0}
+              disabled={currentStep === 0 || (isEditMode && currentStep === 1)}
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Volver

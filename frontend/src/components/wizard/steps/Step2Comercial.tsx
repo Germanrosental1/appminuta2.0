@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DollarSign, Car, Package, Percent, Building, Store, Warehouse } from "lucide-react";
 import { TipoDescuento, UnidadSeleccionada } from "@/types/wizard";
@@ -161,21 +162,29 @@ export const Step2Comercial: React.FC = () => {
                       </Label>
                       <div className="relative">
                         {unidad.tipoDescuento === "porcentaje" ? (
-                          <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <>
+                            <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              id={`valorDescuento-${index}`}
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={unidad.valorDescuento || ""}
+                              onChange={(e) => handleValorDescuentoChange(index, e.target.value)}
+                              className="pl-9"
+                              placeholder="0.00"
+                              onWheel={(e) => e.currentTarget.blur()}
+                            />
+                          </>
                         ) : (
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <CurrencyInput
+                            id={`valorDescuento-${index}`}
+                            value={unidad.valorDescuento}
+                            onChange={(value) => handleValorDescuentoChange(index, value.toString())}
+                            prefix="$"
+                            min={0}
+                          />
                         )}
-                        <Input
-                          id={`valorDescuento-${index}`}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={unidad.valorDescuento || ""}
-                          onChange={(e) => handleValorDescuentoChange(index, e.target.value)}
-                          className="pl-9"
-                          placeholder="0.00"
-                          onWheel={(e) => e.currentTarget.blur()}
-                        />
                       </div>
                     </div>
                   )}

@@ -1,15 +1,30 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTipoUnidadDto, UpdateTipoUnidadDto } from './dto/create-tipounidad.dto';
 import { Prisma } from '@prisma/client';
+// ⚡ OPTIMIZACIÓN: Cache para catálogos
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+const CACHE_KEY = 'tiposunidad:all';
 
 @Injectable()
 export class TiposUnidadService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    ) { }
+
+    // ⚡ Invalidar cache
+    private async invalidateCache(): Promise<void> {
+        await this.cacheManager.del(CACHE_KEY);
+    }
 
     async create(dto: CreateTipoUnidadDto) {
         try {
-            return await this.prisma.tiposunidad.create({ data: dto });
+            const result = await this.prisma.tiposunidad.create({ data: dto });
+            await this.invalidateCache();
+            return result;
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un tipo de unidad con el nombre "${dto.nombre}"`);
@@ -18,8 +33,14 @@ export class TiposUnidadService {
         }
     }
 
+    // ⚡ OPTIMIZACIÓN: Cache en findAll()
     async findAll() {
-        return await this.prisma.tiposunidad.findMany({ orderBy: { nombre: 'asc' } });
+        const cached = await this.cacheManager.get(CACHE_KEY);
+        if (cached) return cached;
+
+        const data = await this.prisma.tiposunidad.findMany({ orderBy: { nombre: 'asc' } });
+        await this.cacheManager.set(CACHE_KEY, data);
+        return data;
     }
 
     async findOne(id: string) {
@@ -33,7 +54,9 @@ export class TiposUnidadService {
 
     async update(id: string, dto: UpdateTipoUnidadDto) {
         try {
-            return await this.prisma.tiposunidad.update({ where: { id }, data: dto });
+            const result = await this.prisma.tiposunidad.update({ where: { id }, data: dto });
+            await this.invalidateCache();
+            return result;
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Tipo de unidad con ID "${id}" no encontrado`);
@@ -45,7 +68,9 @@ export class TiposUnidadService {
 
     async remove(id: string) {
         try {
-            return await this.prisma.tiposunidad.delete({ where: { id } });
+            const result = await this.prisma.tiposunidad.delete({ where: { id } });
+            await this.invalidateCache();
+            return result;
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Tipo de unidad con ID "${id}" no encontrado`);

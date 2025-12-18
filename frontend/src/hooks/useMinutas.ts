@@ -82,7 +82,7 @@ export function useAllMinutas(
 
 /**
  * Hook para actualizar el estado de una minuta
- * Invalida automáticamente el caché de minutas
+ * ⚡ OPTIMISTIC UI: Actualiza inmediatamente el caché, revierte si hay error
  */
 export function useUpdateMinutaEstado() {
     const queryClient = useQueryClient();
@@ -98,12 +98,59 @@ export function useUpdateMinutaEstado() {
             comentarios?: string;
         }) => actualizarEstadoMinutaDefinitiva(id, estado, comentarios),
 
-        onSuccess: (_, variables) => {
-            // Invalidar lista de minutas
+        // ⚡ OPTIMISTIC UI: Actualizar caché antes de que termine la mutación
+        onMutate: async (variables) => {
+            // Cancelar queries en curso para evitar sobreescribir nuestra actualización optimista
+            await queryClient.cancelQueries({ queryKey: ['minutas'] });
+
+            // Guardar el estado anterior para poder revertir
+            const previousAllMinutas = queryClient.getQueriesData({ queryKey: ['minutas', 'all'] });
+            const previousMinuta = queryClient.getQueryData(['minutas', 'definitiva', variables.id]);
+
+            // Actualizar optimistamente el caché de la lista
+            queryClient.setQueriesData(
+                { queryKey: ['minutas', 'all'] },
+                (old: any) => {
+                    if (!old?.data) return old;
+                    return {
+                        ...old,
+                        data: old.data.map((m: any) =>
+                            m.id === variables.id ? { ...m, estado: variables.estado } : m
+                        ),
+                    };
+                }
+            );
+
+            // Actualizar optimistamente el caché de la minuta individual
+            queryClient.setQueryData(
+                ['minutas', 'definitiva', variables.id],
+                (old: any) => old ? { ...old, estado: variables.estado } : old
+            );
+
+            // Retornar contexto con datos anteriores para rollback
+            return { previousAllMinutas, previousMinuta };
+        },
+
+        // ⚡ OPTIMISTIC UI: Revertir en caso de error
+        onError: (_err, variables, context) => {
+            // Restaurar datos anteriores
+            if (context?.previousAllMinutas) {
+                context.previousAllMinutas.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
+            if (context?.previousMinuta) {
+                queryClient.setQueryData(
+                    ['minutas', 'definitiva', variables.id],
+                    context.previousMinuta
+                );
+            }
+        },
+
+        // Siempre refetch después de completar (éxito o error) para sincronizar con servidor
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['minutas', 'definitivas'] });
             queryClient.invalidateQueries({ queryKey: ['minutas', 'all'] });
-            // Invalidar minuta específica
-            queryClient.invalidateQueries({ queryKey: ['minutas', 'definitiva', variables.id] });
         },
     });
 }

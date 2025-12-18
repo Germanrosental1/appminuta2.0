@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { guardarMinutaDefinitiva, getDatosMapaVentasByUnidadId } from '@/services/minutas';
+import { guardarMinutaDefinitiva, getDatosMapaVentasByUnidadId, actualizarDatosMinutaDefinitiva, actualizarEstadoMinutaDefinitiva } from '@/services/minutas';
 import { useAuth } from '@/hooks/useAuth';
 import { WizardData } from '@/types/wizard';
 import { Save, Loader2, X } from 'lucide-react';
@@ -38,6 +39,7 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Cargar datos del mapa de ventas para TODAS las unidades cuando se abre el diálogo
   useEffect(() => {
@@ -100,23 +102,48 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
         unidadCodigo: unidadId, // Agregar el código de la unidad a los datos
       };
 
-      await guardarMinutaDefinitiva({
-        proyecto: wizardData.proyecto || 'Sin proyecto',
-        usuario_id: user.id,
-        datos: datosCompletos,
-        estado: 'pendiente'
-      });
+      // Detectar modo edición por la presencia de minutaId
+      const isEditMode = !!(wizardData as any).minutaId;
 
-      toast({
-        title: "Minuta guardada",
-        description: "La minuta definitiva ha sido guardada exitosamente",
-      });
+      if (isEditMode) {
+        // MODO EDICIÓN: Actualizar minuta existente
+        const minutaId = (wizardData as any).minutaId;
+
+        await actualizarDatosMinutaDefinitiva(minutaId, {
+          datos: datosCompletos,
+        });
+
+        // Cambiar estado de vuelta a pendiente para revisión
+        await actualizarEstadoMinutaDefinitiva(minutaId, 'pendiente');
+
+        toast({
+          title: "Minuta actualizada",
+          description: "La minuta ha sido actualizada y enviada para revisión",
+        });
+      } else {
+        // MODO CREACIÓN: Crear nueva minuta
+        await guardarMinutaDefinitiva({
+          proyecto: wizardData.proyecto || 'Sin proyecto',
+          usuario_id: user.id,
+          datos: datosCompletos,
+          estado: 'pendiente'
+        });
+
+        toast({
+          title: "Minuta guardada",
+          description: "La minuta definitiva ha sido guardada exitosamente",
+        });
+      }
 
       setOpen(false);
 
       if (onSuccess) {
         onSuccess();
       }
+
+      // Invalidar cache de minutas para forzar refresh
+      queryClient.invalidateQueries({ queryKey: ['minutas'] });
+      queryClient.invalidateQueries({ queryKey: ['minutasDefinitivas'] });
 
       // Redirigir al dashboard comercial después de un breve retraso
       setTimeout(() => {

@@ -742,6 +742,9 @@ model unidades {
   tiposunidad                                              tiposunidad       @relation(fields: [tipounidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   unidadesmetricas                                         unidadesmetricas?
 
+  // ⚡ OPTIMIZACIÓN: Índices para queries frecuentes
+  @@index([edificio_id, tipounidad_id], map: "idx_unidades_edificio_tipo")
+  @@index([etapa_id], map: "idx_unidades_etapa")
   @@schema("public")
 }
 

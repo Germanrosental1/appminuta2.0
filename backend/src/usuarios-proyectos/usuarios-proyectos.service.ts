@@ -23,7 +23,11 @@ export class UsuariosProyectosService {
                     idproyecto: projectId,
                     idrol: roleId,
                 },
-                include: {
+                select: {
+                    // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
+                    idproyecto: true,
+                    idrol: true,
+                    created_at: true,
                     proyectos: true,
                     roles: true,
                 },
@@ -108,8 +112,17 @@ export class UsuariosProyectosService {
 
         const projectUsers = await this.prisma.usuarios_proyectos.findMany({
             where: { idproyecto: projectId },
-            include: {
-                profiles: true,
+            select: {
+                // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
+                profiles: {
+                    select: {
+                        email: true,
+                        nombre: true,
+                        apellido: true,
+                        activo: true,
+                        // id: EXCLUIDO por seguridad
+                    },
+                },
                 roles: true,
             },
         });

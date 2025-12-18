@@ -182,6 +182,31 @@ export class UnidadesService {
         });
     }
 
+    // ⚡ OPTIMIZACIÓN: Batch query para múltiples unidades (elimina N+1)
+    async findByIds(ids: string[]) {
+        if (!ids.length) return [];
+
+        return this.prisma.unidades.findMany({
+            where: { id: { in: ids } },
+            include: {
+                edificios: {
+                    include: {
+                        proyectos: true,
+                    },
+                },
+                etapas: true,
+                tiposunidad: true,
+                detallesventa_detallesventa_unidad_idTounidades: {
+                    include: {
+                        estadocomercial: true,
+                        comerciales: true,
+                    },
+                },
+                unidadesmetricas: true,
+            },
+        });
+    }
+
     async getNaturalezas(): Promise<string[]> {
         // Naturaleza viene de proyectos -> naturalezas
         const result = await this.prisma.naturalezas.findMany({

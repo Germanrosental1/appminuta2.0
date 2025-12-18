@@ -22,6 +22,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 const Wizard = lazy(() => import("./pages/Wizard"));
 const DashboardComercial = lazy(() => import("./pages/comercial/DashboardComercial"));
 const DashboardAdmin = lazy(() => import("./pages/admin/DashboardAdmin"));
+const DashboardFirmante = lazy(() => import("./pages/firmante/DashboardFirmante"));
 
 // Helper functions to reduce complexity
 async function verifyRole(
@@ -44,7 +45,15 @@ async function verifyRole(
 
 async function determineRedirect(): Promise<string> {
   const isComercial = await rbacApi.checkRole('comercial');
-  return isComercial ? "/comercial/dashboard" : "/admin/dashboard";
+  if (isComercial) return "/comercial/dashboard";
+
+  const isFirmante = await rbacApi.checkRole('firmante');
+  if (isFirmante) return "/firmante/dashboard";
+
+  const isViewer = await rbacApi.checkRole('viewer');
+  if (isViewer) return "/viewer/dashboard";
+
+  return "/admin/dashboard";
 }
 
 // Componente de protección para rutas que requieren autenticación
@@ -97,6 +106,7 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
         }
 
       } catch (err) {
+        console.error('Error checking requirements:', err);
         setRequiresPasswordChange(false);
         setIsAuthorized(false);
       } finally {
@@ -258,6 +268,36 @@ const routes: RouteObject[] = [
         element: (
           <ProtectedRoute requiredRole="administrador">
             <div>Crear Minuta Definitiva (Pendiente)</div>
+          </ProtectedRoute>
+        )
+      }
+    ]
+  },
+  {
+    path: "/firmante",
+    children: [
+      {
+        path: "dashboard",
+        element: (
+          <ProtectedRoute requiredRole="firmante">
+            <Suspense fallback={<LoadingSpinner />}>
+              <DashboardFirmante />
+            </Suspense>
+          </ProtectedRoute>
+        )
+      }
+    ]
+  },
+  {
+    path: "/viewer",
+    children: [
+      {
+        path: "dashboard",
+        element: (
+          <ProtectedRoute requiredRole="viewer">
+            <Suspense fallback={<LoadingSpinner />}>
+              <DashboardAdmin readOnly={true} />
+            </Suspense>
           </ProtectedRoute>
         )
       }

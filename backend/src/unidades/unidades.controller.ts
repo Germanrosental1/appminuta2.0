@@ -50,6 +50,13 @@ export class UnidadesController {
         return this.unidadesService.getSectores(proyecto, etapa, tipo);
     }
 
+    // ⚡ OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades
+    @Get('batch')
+    findByIds(@Query('ids') ids: string) {
+        const idArray = ids ? ids.split(',').filter(Boolean) : [];
+        return this.unidadesService.findByIds(idArray);
+    }
+
     // Generic routes - come after specific routes
     @Get()
     findAll(@Query() query: FindAllUnidadesQueryDto) {

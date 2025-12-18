@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,13 +14,20 @@ import {
   BarChart
 } from 'lucide-react';
 
-export const DashboardAdmin: React.FC = () => {
+interface DashboardAdminProps {
+  readOnly?: boolean;
+}
+
+export const DashboardAdmin: React.FC<DashboardAdminProps> = ({ readOnly = false }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('minutas');
 
   // Verificar si requiere cambio de contraseña
   useRequirePasswordChange();
+
+  // 📡 WebSocket para actualizaciones en tiempo real
+  useWebSocket();
 
   const handleLogout = async () => {
     await signOut();
@@ -30,9 +38,12 @@ export const DashboardAdmin: React.FC = () => {
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard Administración</h1>
+          <h1 className="text-3xl font-bold">
+            {readOnly ? 'Dashboard Viewer' : 'Dashboard Administración'}
+          </h1>
           <p className="text-muted-foreground">
             Bienvenido, {user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email}
+            {readOnly && <span className="ml-2 text-xs">(Solo lectura)</span>}
           </p>
         </div>
         <Button variant="outline" onClick={handleLogout}>
@@ -58,7 +69,7 @@ export const DashboardAdmin: React.FC = () => {
         </TabsList>
 
         <TabsContent value="minutas" className="mt-6">
-          <ListaMinutasDefinitivasAdmin />
+          <ListaMinutasDefinitivasAdmin readOnly={readOnly} />
         </TabsContent>
 
         <TabsContent value="definitivas" className="mt-6">

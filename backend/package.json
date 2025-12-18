@@ -19,14 +19,20 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
+    "@nestjs/jwt": "^10.2.0",
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.4.20",
     "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^10.4.20",
     "@prisma/client": "^5.10.2",
     "@types/cookie-parser": "^1.4.10",
+    "cache-manager": "^7.2.7",
+    "cache-manager-redis-store": "^3.0.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "compression": "^1.8.1",
@@ -34,9 +40,11 @@
     "helmet": "^8.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "redis": "^5.10.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
-    "sanitize-html": "^2.17.0"
+    "sanitize-html": "^2.17.0",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

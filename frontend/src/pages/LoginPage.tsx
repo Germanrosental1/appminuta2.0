@@ -20,6 +20,10 @@ export const LoginPage: React.FC = () => {
       return '/admin/dashboard';
     } else if (hasRole(roles, 'comercial')) {
       return '/comercial/dashboard';
+    } else if (hasRole(roles, 'firmante')) {
+      return '/firmante/dashboard';
+    } else if (hasRole(roles, 'viewer')) {
+      return '/viewer/dashboard';
     } else {
       return '/perfil-incompleto';
     }
@@ -37,6 +41,7 @@ export const LoginPage: React.FC = () => {
       const redirectPath = getRedirectPath(roles);
       navigate(redirectPath, { replace: true });
     } catch (error) {
+      console.error('Error verifying roles:', error);
       navigate('/perfil-incompleto', { replace: true });
     } finally {
       setVerifyingRoles(false);

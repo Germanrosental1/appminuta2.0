@@ -27,9 +27,40 @@ import { EdificiosModule } from './edificios/edificios.module';
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+// ⚡ OPTIMIZACIÓN: Cache para catálogos con soporte Redis
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
+
+// ⚡ Factory para configuración de cache (Redis o memoria)
+const getCacheConfig = (): any => {
+    const redisUrl = process.env.REDIS_URL;
+
+    if (redisUrl) {
+        // Producción: Usar Redis para cache distribuido
+        console.log('⚡ Cache: Using Redis store');
+        return {
+            store: redisStore,
+            url: redisUrl,
+            ttl: 300, // 5 minutos en segundos
+            max: 100,
+        };
+    }
+
+    // Desarrollo: Cache en memoria
+    console.log('⚡ Cache: Using in-memory store (set REDIS_URL for production)');
+    return {
+        ttl: 300000, // 5 minutos en ms
+        max: 100,
+    };
+};
 
 @Module({
     imports: [
+        // ⚡ OPTIMIZACIÓN: Cache global con soporte Redis
+        CacheModule.registerAsync({
+            useFactory: getCacheConfig,
+            isGlobal: true,
+        }),
         AuthModule,
         PrismaModule,
         MinutasModule,

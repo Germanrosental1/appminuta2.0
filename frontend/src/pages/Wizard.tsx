@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useWizard } from "@/context/WizardContext";
 import { WizardLayout } from "@/components/wizard/WizardLayout";
 import { Step1ProyectoUnidad } from "@/components/wizard/steps/Step1ProyectoUnidad";
@@ -10,6 +11,7 @@ import { Step6ReglasFinanciacion } from "@/components/wizard/steps/Step6ReglasFi
 import { Step6Salida as Step7Salida } from "@/components/wizard/steps/Step6Salida";
 import { validateStep } from "@/utils/validation";
 import { toast } from "sonner";
+import { getMinutaDefinitivaById } from "@/services/minutas";
 
 import { WizardData } from "@/types/wizard";
 
@@ -73,7 +75,41 @@ function validateStep5ReglasFinanciacion(data: WizardData): boolean {
 }
 
 const Wizard: React.FC = () => {
-  const { currentStep, data } = useWizard();
+  const { currentStep, data, updateData, setCurrentStep } = useWizard();
+  const [searchParams] = useSearchParams();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Detectar modo edición y cargar minuta
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId) {
+      setIsLoading(true);
+      setIsEditMode(true);
+
+      getMinutaDefinitivaById(editId)
+        .then((minuta) => {
+          if (minuta?.datos) {
+            // Cargar datos de la minuta en el wizard
+            updateData({
+              ...minuta.datos,
+              // Mantener el ID de la minuta para actualizar en lugar de crear
+              minutaId: editId,
+            });
+            // Empezar desde el paso 2 (index 1)
+            setCurrentStep(1);
+            toast.success("Minuta cargada para edición");
+          }
+        })
+        .catch((err) => {
+          toast.error("Error al cargar la minuta");
+          console.error(err);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [searchParams]);
 
   const handleNext = () => {
     // Step 0: Proyecto y Unidad
@@ -138,8 +174,17 @@ const Wizard: React.FC = () => {
   // Determinar si estamos en el paso final
   const isFinalStep = currentStep === 6 || (data.tipoPago === "contado" && currentStep === 5);
 
+  // Loading state mientras carga la minuta
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <WizardLayout onNext={handleNext} finalStep={isFinalStep}>
+    <WizardLayout onNext={handleNext} finalStep={isFinalStep} isEditMode={isEditMode}>
       {renderStep()}
     </WizardLayout>
   );

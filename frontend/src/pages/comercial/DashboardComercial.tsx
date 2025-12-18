@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { useMinutas } from '@/hooks/useMinutas';
 import { StaggerTableBody, TableRowStagger } from '@/components/animated/StaggerList';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,8 @@ import {
   Calculator,
   ClipboardList,
   Eye,
+  RefreshCw,
+  Edit,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -36,9 +39,12 @@ export const DashboardComercial: React.FC = () => {
   // Verificar si requiere cambio de contraseña
   useRequirePasswordChange();
 
+  // 📡 WebSocket para actualizaciones en tiempo real
+  useWebSocket();
+
   // ⚡ OPTIMIZACIÓN: Usar React Query en lugar de useEffect + useState
   // Solo fetch cuando el tab es 'historial'
-  const { data: minutas = [], isLoading } = useMinutas(
+  const { data: minutas = [], isLoading, refetch } = useMinutas(
     user?.id,
     undefined,
     { enabled: activeTab === 'historial' && !!user?.id }
@@ -63,10 +69,16 @@ export const DashboardComercial: React.FC = () => {
     switch (estado) {
       case 'pendiente':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+      case 'en_edicion':
+        return <Badge variant="outline" className="bg-orange-100 text-orange-800">En Edición</Badge>;
       case 'revisada':
         return <Badge variant="outline" className="bg-blue-100 text-blue-800">Revisada</Badge>;
       case 'aprobada':
         return <Badge variant="outline" className="bg-green-100 text-green-800">Aprobada</Badge>;
+      case 'firmada':
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Firmada</Badge>;
+      case 'cancelada':
+        return <Badge variant="outline" className="bg-red-100 text-red-800">Cancelada</Badge>;
       case 'rechazada':
         return <Badge variant="outline" className="bg-red-100 text-red-800">Rechazada</Badge>;
       default:
@@ -106,7 +118,7 @@ export const DashboardComercial: React.FC = () => {
           <StaggerTableBody>
             {minutas.map((minuta) => (
               <TableRowStagger key={minuta.id}>
-                <TableCell>{minuta.proyecto || 'Sin proyecto'}</TableCell>
+                <TableCell>{minuta.datos?.proyecto || minuta.proyectos?.nombre || 'Sin proyecto'}</TableCell>
                 <TableCell>{minuta.datos?.unidadDescripcion || 'Sin unidad'}</TableCell>
                 <TableCell>
                   {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
@@ -122,6 +134,17 @@ export const DashboardComercial: React.FC = () => {
                       <Eye className="h-4 w-4 mr-1" />
                       Ver
                     </Button>
+                    {minuta.estado === 'en_edicion' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-orange-50 hover:bg-orange-100"
+                        onClick={() => navigate(`/wizard?edit=${minuta.id}`)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRowStagger>
@@ -186,9 +209,20 @@ export const DashboardComercial: React.FC = () => {
         <TabsContent value="historial" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="mr-2 h-5 w-5" />
-                Historial de Minutas
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="mr-2 h-5 w-5" />
+                  Historial de Minutas
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => refetch()}
+                  className="h-8 w-8"
+                  title="Refrescar lista"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               </CardTitle>
               <CardDescription>
                 Minutas provisorias creadas anteriormente
