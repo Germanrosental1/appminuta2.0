@@ -22,6 +22,7 @@ const STEP_TITLES = [
   "Pago F/SB",
   "Cargos & Extras",
   "Reglas de Financiación F/SB",
+  "Datos del Cliente",
   "Tipo de Cambio & Salida",
 ];
 
@@ -32,6 +33,7 @@ const STEP_TITLES_CONTADO = [
   "Composición F/SB",
   "Pago F/SB",
   "Cargos & Extras",
+  "Datos del Cliente",
   "Tipo de Cambio & Salida",
 ];
 
@@ -68,10 +70,10 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   const handleNext = () => {
     if (onNext) {
       const canProceed = onNext();
-      if (canProceed && currentStep < STEP_TITLES.length - 1) {
+      if (canProceed && currentStep < titles.length - 1) {
         setCurrentStep(currentStep + 1);
       }
-    } else if (currentStep < STEP_TITLES.length - 1) {
+    } else if (currentStep < titles.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };

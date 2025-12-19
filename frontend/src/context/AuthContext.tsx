@@ -216,10 +216,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Handle sign in
         if (event === 'SIGNED_IN' && session?.user) {
-          // CRITICAL: Immediately enrich with JWT roles for instant redirect
+          // FAST PATH: Set user immediately with JWT roles for instant redirect
+          const jwtRoles = session.user.app_metadata?.roles as any[];
+          const quickUser = {
+            ...session.user,
+            roles: jwtRoles || [],
+            permissions: [],
+          } as AuthUser;
+          setUser(quickUser);
+          setRoles(jwtRoles || []);
+          setLoading(false);
+
+          // BACKGROUND: Enrich with profile data (nombre, apellido, require_password_change)
           enrichUserWithProfile(session.user).then(enrichedUser => {
             setUser(enrichedUser);
-            setLoading(false);
           });
           return;
         }
@@ -250,23 +260,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Clear any existing session first to ensure clean state
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession) {
+        // Clear local state
+        setUser(null);
+        setRoles([]);
+        setPermissions([]);
+        clearCSRFToken();
+        // Sign out from Supabase silently
+        await supabase.auth.signOut();
+      }
+
+      // Now sign in with new credentials
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
 
       if (!error && data.user) {
         // Generar CSRF token tras login exitoso
         setCSRFToken();
-
-        // Verificar si requiere cambio de contraseña
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('require_password_change, first_login')
-          .eq('id', data.user.id)
-          .single();
-
-        // Si requiere cambio, no hacer nada más - el middleware redirigirá
-        // Si requiere cambio, el middleware se encargará de redirigir
-        if (profile?.require_password_change) {
-        }
+        // Profile check will be handled by onAuthStateChange - no duplicate query needed
       }
 
       return { error };
@@ -276,8 +288,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
+    // Clear all auth state immediately
+    setUser(null);
+    setRoles([]);
+    setPermissions([]);
+
     // Limpiar CSRF token al cerrar sesión
     clearCSRFToken();
+
+    // Sign out from Supabase
     await supabase.auth.signOut();
   };
 

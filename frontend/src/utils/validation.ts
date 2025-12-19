@@ -67,7 +67,7 @@ export const step2Schema = z
 // Función auxiliar para calcular el precio total
 const calcularPrecioTotal = (data: any) => {
   let total = 0;
-  
+
   // Sumar precios de todas las unidades en el nuevo modelo
   if (data.unidades && data.unidades.length > 0) {
     data.unidades.forEach((unidad: any) => {
@@ -75,11 +75,11 @@ const calcularPrecioTotal = (data: any) => {
     });
     return total;
   }
-  
+
   // Fallback al modelo antiguo si no hay unidades en el nuevo modelo
   // Precio de la unidad principal
   total = data.precioNegociado || 0;
-  
+
   // Sumar precios de cocheras
   const cocheras = data.cocheras || [];
   if (cocheras.length > 0) {
@@ -87,12 +87,12 @@ const calcularPrecioTotal = (data: any) => {
       total += cochera.precioNegociado || 0;
     });
   }
-  
+
   // Sumar precio de baulera si existe
   if (data.baulera) {
     total += data.baulera.precioNegociado || 0;
   }
-  
+
   return total;
 };
 
@@ -220,16 +220,16 @@ export const step6Schema = z.object({
         }
         return sum + regla.saldoFinanciar;
       }, 0);
-    
+
     const saldoRestanteA = Math.max(data.totalFinanciarArs - totalReglasA, 0);
-    
+
     // Calcular saldo restante B
     const totalReglasB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
       .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
-    
+
     const saldoRestanteB = Math.max(data.totalFinanciarUsd - totalReglasB, 0);
-    
+
     // Verificar que ambos saldos restantes sean 0
     return saldoRestanteA === 0 && saldoRestanteB === 0;
   },
@@ -261,11 +261,13 @@ const validateSchema = (schema: any, data: any) => {
   }
 };
 
-export const validateStep = (step: number, data: any) => {
+export const validateStep = (step: number, data: any, tipoPago?: string) => {
   try {
     switch (step) {
       case 6:
-        return validateSchema(step6Schema, data);
+        // Step 6 para financiado = Step7 (Salida), pero el schema no tiene validación real
+        // Step 6 para contado = Salida (skippeamos validación de formato)
+        return { valid: true, errors: {} };
       case 7:
         return validateSchema(step7Schema, data);
       case 0:
@@ -284,6 +286,10 @@ export const validateStep = (step: number, data: any) => {
         step5Schema.parse(data);
         return { valid: true, errors: {} };
       case 5:
+        // Si el pago es contado, no validar reglas de financiación
+        if (tipoPago === "contado") {
+          return { valid: true, errors: {} };
+        }
         step6Schema.parse(data);
         return { valid: true, errors: {} };
       default:

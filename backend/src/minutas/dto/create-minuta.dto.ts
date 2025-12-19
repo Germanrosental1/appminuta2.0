@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsObject, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsObject, IsUUID, IsNumber } from 'class-validator';
 
 export class CreateMinutaDto {
     // proyecto puede ser null cuando no se tiene el UUID
@@ -29,5 +29,10 @@ export class CreateMinutaDto {
     @IsString()
     @IsOptional()
     url_documento?: string;
+
+    // DNI del cliente interesado
+    @IsNumber()
+    @IsOptional()
+    clienteInteresadoDni?: number;
 }
 

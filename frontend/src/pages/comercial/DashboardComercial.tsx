@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useMinutas } from '@/hooks/useMinutas';
 import { StaggerTableBody, TableRowStagger } from '@/components/animated/StaggerList';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -19,22 +18,24 @@ import {
 } from '@/components/ui/table';
 import {
   FileText,
-  LogOut,
-  PlusCircle,
   Calculator,
-  ClipboardList,
   Eye,
   RefreshCw,
   Edit,
+  Clock,
+  CheckCircle2,
+  Plus,
+  Filter,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import '@/components/dashboard/dashboard.css';
 
 export const DashboardComercial: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('nueva');
   const [selectedMinutaId, setSelectedMinutaId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   // Verificar si requiere cambio de contraseña
   useRequirePasswordChange();
@@ -42,16 +43,30 @@ export const DashboardComercial: React.FC = () => {
   // 📡 WebSocket para actualizaciones en tiempo real
   useWebSocket();
 
-  // ⚡ OPTIMIZACIÓN: Usar React Query en lugar de useEffect + useState
-  // Solo fetch cuando el tab es 'historial'
+  // ⚡ OPTIMIZACIÓN: Usar React Query - siempre habilitado ya que siempre mostramos historial
   const { data: minutas = [], isLoading, refetch } = useMinutas(
     user?.id,
     undefined,
-    { enabled: activeTab === 'historial' && !!user?.id }
+    { enabled: !!user?.id }
   );
 
+  // Filter minutas by status
+  const filteredMinutas = useMemo(() => {
+    if (!statusFilter) return minutas;
+    return minutas.filter(m => m.estado === statusFilter);
+  }, [minutas, statusFilter]);
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const total = minutas.length;
+    const pendientes = minutas.filter(m => m.estado === 'pendiente').length;
+    const enEdicion = minutas.filter(m => m.estado === 'en_edicion').length;
+    const aprobadas = minutas.filter(m => m.estado === 'aprobada' || m.estado === 'firmada').length;
+
+    return { total, pendientes, enEdicion, aprobadas };
+  }, [minutas]);
+
   const handleNuevaCalculadora = () => {
-    // Navegar directamente al wizard sin seleccionar unidad
     navigate('/wizard');
   };
 
@@ -97,14 +112,26 @@ export const DashboardComercial: React.FC = () => {
 
     if (minutas.length === 0) {
       return (
-        <div className="text-center py-8 text-muted-foreground">
-          No has creado ninguna minuta provisoria aún
+        <div className="text-center py-16 text-muted-foreground">
+          <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+          <p className="text-lg font-medium">No has creado ninguna minuta provisoria aún</p>
+          <p className="text-sm mt-2">Haz clic en el botón "+" para crear tu primera minuta</p>
+        </div>
+      );
+    }
+
+    if (filteredMinutas.length === 0) {
+      return (
+        <div className="text-center py-16 text-muted-foreground">
+          <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+          <p className="text-lg font-medium">No hay minutas con el estado seleccionado</p>
+          <p className="text-sm mt-2">Prueba con otro filtro</p>
         </div>
       );
     }
 
     return (
-      <div className="rounded-md border">
+      <div className="rounded-md border dashboard-table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -116,7 +143,7 @@ export const DashboardComercial: React.FC = () => {
             </TableRow>
           </TableHeader>
           <StaggerTableBody>
-            {minutas.map((minuta) => (
+            {filteredMinutas.map((minuta) => (
               <TableRowStagger key={minuta.id}>
                 <TableCell>{minuta.datos?.proyecto || minuta.proyectos?.nombre || 'Sin proyecto'}</TableCell>
                 <TableCell>{minuta.datos?.unidadDescripcion || 'Sin unidad'}</TableCell>
@@ -155,85 +182,105 @@ export const DashboardComercial: React.FC = () => {
     );
   };
 
+  const userName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email || 'Usuario';
+
   return (
     <div className="container mx-auto py-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Comercial</h1>
-          <p className="text-muted-foreground">
-            Bienvenido, {user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email}
-          </p>
+      <DashboardHeader
+        title="Mis Minutas"
+        userName={userName}
+        onLogout={handleLogout}
+      />
+
+      {/* Historial de Minutas Card */}
+      <Card className="border shadow-sm">
+        <CardHeader className="bg-slate-50 border-b">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FileText className="mr-2 h-5 w-5 text-blue-600" />
+              Historial de Minutas
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              className="h-8 w-8 hover:bg-blue-50"
+              title="Refrescar lista"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </CardTitle>
+          <CardDescription>
+            Minutas provisorias creadas anteriormente
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Status Filter */}
+          <div className="status-filter mb-4">
+            <button
+              className={`status-filter-btn ${!statusFilter ? 'active' : ''}`}
+              onClick={() => setStatusFilter(null)}
+            >
+              <Filter className="h-4 w-4" />
+              Todas
+              <span className="filter-count">{stats.total}</span>
+            </button>
+            <button
+              className={`status-filter-btn ${statusFilter === 'pendiente' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('pendiente')}
+            >
+              <Clock className="h-4 w-4" />
+              Pendientes
+              <span className="filter-count">{stats.pendientes}</span>
+            </button>
+            <button
+              className={`status-filter-btn ${statusFilter === 'en_edicion' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('en_edicion')}
+            >
+              <Edit className="h-4 w-4" />
+              En Edición
+              <span className="filter-count">{stats.enEdicion}</span>
+            </button>
+            <button
+              className={`status-filter-btn ${statusFilter === 'aprobada' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('aprobada')}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Aprobadas
+              <span className="filter-count">{stats.aprobadas}</span>
+            </button>
+          </div>
+
+          {renderMinutasContent()}
+        </CardContent>
+      </Card>
+
+      {/* Floating Action Button with Menu */}
+      <div className="fab-container">
+        <div className="fab-menu">
+          <button
+            className="fab-menu-item fab-menu-item-calculator"
+            onClick={handleNuevaCalculadora}
+          >
+            <Calculator className="h-5 w-5" />
+            Nueva Calculadora
+          </button>
+          <button
+            className="fab-menu-item fab-menu-item-document"
+            onClick={() => {
+              // TODO: Implementar acción para nuevo documento
+              console.log('Nuevo documento clicked');
+            }}
+          >
+            <FileText className="h-5 w-5" />
+            Nuevo Documento
+          </button>
         </div>
-        <Button variant="outline" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Cerrar Sesión
-        </Button>
+        <button className="fab-button" title="Opciones">
+          <Plus className="h-6 w-6" />
+        </button>
       </div>
 
-      <Tabs defaultValue="nueva" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="nueva" className="flex items-center">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nueva Calculadora
-          </TabsTrigger>
-          <TabsTrigger value="historial" className="flex items-center">
-            <ClipboardList className="mr-2 h-4 w-4" />
-            Historial de Minutas
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="nueva" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Calculator className="mr-2 h-5 w-5" />
-                Nueva Calculadora Comercial
-              </CardTitle>
-              <CardDescription>
-                Inicia una nueva calculadora para generar una minuta provisoria
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center pt-6 pb-8">
-              <Button
-                size="lg"
-                className="px-8 py-6 text-lg"
-                onClick={handleNuevaCalculadora}
-              >
-                <Calculator className="mr-3 h-6 w-6" />
-                Iniciar Nueva Calculadora
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="historial" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <FileText className="mr-2 h-5 w-5" />
-                  Historial de Minutas
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => refetch()}
-                  className="h-8 w-8"
-                  title="Refrescar lista"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                Minutas provisorias creadas anteriormente
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {renderMinutasContent()}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
       {/* Modal para ver detalles de la minuta */}
       <DetalleMinutaModal
         minutaId={selectedMinutaId}

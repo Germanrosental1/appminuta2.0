@@ -23,6 +23,7 @@ import { TiposUnidadModule } from './tiposunidad/tiposunidad.module';
 
 // Business modules
 import { EdificiosModule } from './edificios/edificios.module';
+import { ClientesModule } from './clientes/clientes.module';
 
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -82,6 +83,7 @@ const getCacheConfig = (): any => {
         TiposUnidadModule,
         // Business modules
         EdificiosModule,
+        ClientesModule,
         ThrottlerModule.forRoot([{
             ttl: 60000,
             limit: 100,

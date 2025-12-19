@@ -433,6 +433,18 @@ model auth_logs {
   @@schema("public")
 }
 
+model clientes {
+  dni                 BigInt                @id
+  nombreApellido      String?
+  telefono            BigInt?
+  unidadesInteresadas Json?
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  detallesventa       detallesventa[]
+  minutas_definitivas minutas_definitivas[]
+
+  @@schema("public")
+}
+
 model comerciales {
   id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre        String          @unique @db.VarChar(255)
@@ -448,7 +460,6 @@ model detallesventa {
   motivonodisp_id                                     String?          @db.Uuid
   preciousd                                           Decimal?         @db.Decimal(12, 2)
   usdm2                                               Decimal?         @db.Decimal(10, 2)
-  clienteinteresado                                   String?          @db.VarChar(255)
   clientetitularboleto                                String?          @db.VarChar(255)
   fechareserva                                        DateTime?        @db.Date
   fechafirmaboleto                                    DateTime?        @db.Date
@@ -456,6 +467,8 @@ model detallesventa {
   obs                                                 String?
   tipocochera_id                                      String?          @db.Uuid
   unidadcomprador_id                                  String?          @db.Uuid
+  clienteinteresado                                   BigInt?
+  clientes                                            clientes?        @relation(fields: [clienteinteresado], references: [dni], onUpdate: NoAction)
   comerciales                                         comerciales?     @relation(fields: [comercial_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   estadocomercial                                     estadocomercial? @relation(fields: [estado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   motivosnodisp                                       motivosnodisp?   @relation(fields: [motivonodisp_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -507,7 +520,10 @@ model minutas_definitivas {
   comentarios       String?
   datos_mapa_ventas Json?
   proyecto          String?    @db.Uuid
-  version           Int        @default(1) // 🔒 Optimistic locking
+  version           Int        @default(1)
+  motivo            String?
+  clienteinteresado BigInt?
+  clientes          clientes?  @relation(fields: [clienteinteresado], references: [dni], onUpdate: NoAction)
   proyectos         proyectos? @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users             users      @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -518,6 +534,8 @@ model minutas_definitivas {
   @@index([usuario_id], map: "idx_minutas_definitivas_usuario_id")
   @@index([proyecto], map: "idx_minutas_definitivas_proyecto")
   @@index([proyecto, estado, fecha_creacion(sort: Desc)], map: "idx_minutas_definitivas_proyecto_estado_fecha")
+  @@index([estado], map: "idx_minutas_estado")
+  @@index([usuario_id], map: "idx_minutas_usuario")
   @@schema("public")
 }
 
@@ -586,6 +604,7 @@ model profiles {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model proyectos {
   id                   String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   nombre               String                 @unique
@@ -598,6 +617,7 @@ model proyectos {
   created_at           DateTime?              @default(now()) @db.Timestamptz(6)
   updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
   naturaleza           String?                @db.Uuid
+  id_org               String?                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   edificios            edificios[]
   minutas_definitivas  minutas_definitivas[]
   naturalezas          naturalezas?           @relation(fields: [naturaleza], references: [id], onUpdate: NoAction)
@@ -728,7 +748,7 @@ model unidades {
   edificio_id                                              String?           @db.Uuid
   tipounidad_id                                            String            @db.Uuid
   etapa_id                                                 String?           @db.Uuid
-  sectorid                                                 String            @unique @db.VarChar(50)
+  sectorid                                                 String            @unique
   piso                                                     String?           @db.VarChar(50)
   nrounidad                                                String?           @db.VarChar(50)
   dormitorios                                              Int?
@@ -742,9 +762,8 @@ model unidades {
   tiposunidad                                              tiposunidad       @relation(fields: [tipounidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   unidadesmetricas                                         unidadesmetricas?
 
-  // ⚡ OPTIMIZACIÓN: Índices para queries frecuentes
   @@index([edificio_id, tipounidad_id], map: "idx_unidades_edificio_tipo")
-  @@index([etapa_id], map: "idx_unidades_etapa")
+  @@index([etapa_id], map: "idx_unidades_etapa_id")
   @@schema("public")
 }
 
@@ -758,6 +777,7 @@ model unidadesmetricas {
   m2totales         Decimal?           @db.Decimal(10, 2)
   m2cubiertos       Decimal?           @db.Decimal(10, 2)
   m2semicubiertos   Decimal?           @db.Decimal(10, 2)
+  tamano            String?
   tipospatioterraza tipospatioterraza? @relation(fields: [tipopatio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   unidades          unidades           @relation(fields: [unidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -787,6 +807,7 @@ model usuarios_proyectos {
   @@index([idrol], map: "idx_usuarios_proyectos_idrol")
   @@index([idusuario], map: "idx_usuarios_proyectos_idusuario")
   @@index([idusuario, idproyecto], map: "idx_usuarios_proyectos_usuario_proyecto")
+  @@index([idusuario], map: "idx_usuarios_proyectos_usuario")
   @@map("usuarios-proyectos")
   @@schema("public")
 }
@@ -802,7 +823,42 @@ model usuarios_roles {
   @@id([idusuario, idrol])
   @@index([idrol], map: "idx_usuarios_roles_idrol")
   @@index([idusuario], map: "idx_usuarios_roles_idusuario")
+  @@index([idusuario], map: "idx_usuarios_roles_usuario")
   @@map("usuarios-roles")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model changes_logs {
+  id             BigInt   @id @default(autoincrement())
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  motivo         String?
+  descripcion    String?
+  impacto        String?
+  tablaaftectada String?
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model organizaciones {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?
+  creador    String?  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios_organizaciones {
+  userid     String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idorg      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([userid, idorg, idrol])
+  @@map("usuarios-organizaciones")
   @@schema("public")
 }
 

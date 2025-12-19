@@ -20,6 +20,10 @@ import {
   AlertCircle,
   RefreshCw,
   Edit,
+  Filter,
+  Clock,
+  CheckCircle2,
+  FileText,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
@@ -78,6 +82,19 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
 
     return minutas;
   }, [debouncedSearchTerm, data, activeTab]);
+
+  // Calculate statistics for filter counts
+  const stats = useMemo(() => {
+    const allMinutas = data?.data || [];
+    return {
+      todas: allMinutas.length,
+      pendiente: allMinutas.filter(m => m.estado === 'pendiente').length,
+      en_edicion: allMinutas.filter(m => m.estado === 'en_edicion').length,
+      aprobada: allMinutas.filter(m => m.estado === 'aprobada').length,
+      firmada: allMinutas.filter(m => m.estado === 'firmada').length,
+      cancelada: allMinutas.filter(m => m.estado === 'cancelada').length,
+    };
+  }, [data]);
 
   const handleVerMinuta = (id: string) => {
     setSelectedMinutaId(id);
@@ -156,23 +173,57 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between">
-              {/* Dropdown filter for estado */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="estado-filter" className="text-sm font-medium text-muted-foreground">Estado:</label>
-                <select
-                  id="estado-filter"
-                  value={activeTab}
-                  onChange={(e) => setActiveTab(e.target.value)}
-                  className="h-9 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            {/* Filter Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
+              <div className="status-filter">
+                <button
+                  className={`status-filter-btn ${activeTab === 'todas' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('todas')}
                 >
-                  <option value="todas">Todas</option>
-                  <option value="pendiente">Pendientes</option>
-                  <option value="en_edicion">En Edición</option>
-                  <option value="aprobada">Aprobadas</option>
-                  <option value="firmada">Firmadas</option>
-                  <option value="cancelada">Canceladas</option>
-                </select>
+                  <Filter className="h-4 w-4" />
+                  Todas
+                  <span className="filter-count">{stats.todas}</span>
+                </button>
+                <button
+                  className={`status-filter-btn ${activeTab === 'pendiente' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('pendiente')}
+                >
+                  <Clock className="h-4 w-4" />
+                  Pendientes
+                  <span className="filter-count">{stats.pendiente}</span>
+                </button>
+                <button
+                  className={`status-filter-btn ${activeTab === 'en_edicion' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('en_edicion')}
+                >
+                  <Edit className="h-4 w-4" />
+                  En Edición
+                  <span className="filter-count">{stats.en_edicion}</span>
+                </button>
+                <button
+                  className={`status-filter-btn ${activeTab === 'aprobada' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('aprobada')}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Aprobadas
+                  <span className="filter-count">{stats.aprobada}</span>
+                </button>
+                <button
+                  className={`status-filter-btn ${activeTab === 'firmada' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('firmada')}
+                >
+                  <FileText className="h-4 w-4" />
+                  Firmadas
+                  <span className="filter-count">{stats.firmada}</span>
+                </button>
+                <button
+                  className={`status-filter-btn ${activeTab === 'cancelada' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('cancelada')}
+                >
+                  <XCircle className="h-4 w-4" />
+                  Canceladas
+                  <span className="filter-count">{stats.cancelada}</span>
+                </button>
               </div>
 
               <div className="w-full sm:w-64">
@@ -199,7 +250,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
 
             {!isLoading && !error && (
               <>
-                <div className="rounded-md border">
+                <div className="rounded-md border dashboard-table">
                   <Table>
                     <TableHeader>
                       <TableRow>

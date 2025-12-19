@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { Button } from '@/components/ui/button';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListaMinutasDefinitivasAdmin } from '@/components/minutas/ListaMinutasDefinitivasAdmin';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
 import {
-  LogOut,
   FileText,
   Users,
-  BarChart
+  BarChart,
 } from 'lucide-react';
+import '@/components/dashboard/dashboard.css';
 
 interface DashboardAdminProps {
   readOnly?: boolean;
@@ -34,25 +34,19 @@ export const DashboardAdmin: React.FC<DashboardAdminProps> = ({ readOnly = false
     navigate('/login');
   };
 
+  const userName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email || 'Usuario';
+  const dashboardTitle = readOnly ? 'Visualización de Minutas' : 'Control de Minutas';
+
   return (
     <div className="container mx-auto py-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">
-            {readOnly ? 'Dashboard Viewer' : 'Dashboard Administración'}
-          </h1>
-          <p className="text-muted-foreground">
-            Bienvenido, {user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email}
-            {readOnly && <span className="ml-2 text-xs">(Solo lectura)</span>}
-          </p>
-        </div>
-        <Button variant="outline" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Cerrar Sesión
-        </Button>
-      </div>
+      <DashboardHeader
+        title={dashboardTitle}
+        userName={userName}
+        onLogout={handleLogout}
+        subtitle={readOnly ? `Bienvenido, ${userName} (Solo lectura)` : undefined}
+      />
 
-      <Tabs defaultValue="minutas" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="minutas" value={activeTab} onValueChange={setActiveTab} className="dashboard-tabs">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="minutas" className="flex items-center">
             <FileText className="mr-2 h-4 w-4" />
@@ -73,38 +67,42 @@ export const DashboardAdmin: React.FC<DashboardAdminProps> = ({ readOnly = false
         </TabsContent>
 
         <TabsContent value="definitivas" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart className="mr-2 h-5 w-5" />
+          <Card className="border shadow-sm">
+            <CardHeader className="bg-slate-50 border-b">
+              <CardTitle className="flex items-center text-xl">
+                <BarChart className="mr-3 h-6 w-6 text-blue-600" />
                 Estadísticas
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Estadísticas y reportes del sistema
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Funcionalidad en desarrollo
+            <CardContent className="pt-10 pb-12">
+              <div className="text-center py-12 text-muted-foreground">
+                <BarChart className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium">Funcionalidad en desarrollo</p>
+                <p className="text-sm mt-2">Próximamente: reportes detallados y analytics</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="usuarios" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="mr-2 h-5 w-5" />
+          <Card className="border shadow-sm">
+            <CardHeader className="bg-slate-50 border-b">
+              <CardTitle className="flex items-center text-xl">
+                <Users className="mr-3 h-6 w-6 text-blue-600" />
                 Gestión de Usuarios
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Administración de usuarios del sistema
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Funcionalidad en desarrollo
+            <CardContent className="pt-10 pb-12">
+              <div className="text-center py-12 text-muted-foreground">
+                <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium">Funcionalidad en desarrollo</p>
+                <p className="text-sm mt-2">Próximamente: gestión completa de usuarios y permisos</p>
               </div>
             </CardContent>
           </Card>
@@ -115,3 +113,4 @@ export const DashboardAdmin: React.FC<DashboardAdminProps> = ({ readOnly = false
 };
 
 export default DashboardAdmin;
+

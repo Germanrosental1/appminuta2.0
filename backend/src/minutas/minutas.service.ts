@@ -127,13 +127,17 @@ export class MinutasService {
 
     console.log('💾 Guardando con proyectoId:', proyectoId);
 
+    // Exclude clienteInteresadoDni from spread - it's not a valid Prisma field
+    const { clienteInteresadoDni: _dniToExclude, ...dataForPrisma } = sanitizedData;
+
     const minuta = await this.prisma.minutas_definitivas.create({
       data: {
-        ...sanitizedData,
+        ...dataForPrisma,
         proyecto: proyectoId,
         usuario_id: userId,
         fecha_creacion: new Date(),
         updated_at: new Date(),
+        clienteinteresado: createMinutaDto.clienteInteresadoDni || null,
       } as any,
     });
 
@@ -142,6 +146,44 @@ export class MinutasService {
     if (unidadIds.length > 0) {
       await this.unitStateService.reservarUnidades(unidadIds);
     }
+
+    // 🧑 Actualizar detallesventa con el DNI del cliente interesado
+    if (createMinutaDto.clienteInteresadoDni && unidadIds.length > 0) {
+      console.log('👤 Actualizando detallesventa con cliente DNI:', createMinutaDto.clienteInteresadoDni);
+
+      for (const unidadId of unidadIds) {
+        await this.prisma.detallesventa.upsert({
+          where: { unidad_id: unidadId },
+          update: {
+            clienteinteresado: createMinutaDto.clienteInteresadoDni,
+          } as any,
+          create: {
+            unidad_id: unidadId,
+            clienteinteresado: createMinutaDto.clienteInteresadoDni,
+          } as any,
+        });
+      }
+
+      // 📊 Actualizar unidadesInteresadas del cliente para estadísticas
+      const cliente = await this.prisma.clientes.findUnique({
+        where: { dni: createMinutaDto.clienteInteresadoDni },
+        select: { unidadesInteresadas: true },
+      });
+
+      // Obtener array existente o inicializar vacío
+      const unidadesActuales = (cliente?.unidadesInteresadas as string[]) || [];
+
+      // Agregar nuevas unidades sin duplicados
+      const unidadesActualizadas = [...new Set([...unidadesActuales, ...unidadIds])];
+
+      await this.prisma.clientes.update({
+        where: { dni: createMinutaDto.clienteInteresadoDni },
+        data: { unidadesInteresadas: unidadesActualizadas },
+      });
+
+      console.log('📊 Unidades interesadas actualizadas para cliente:', unidadesActualizadas);
+    }
+
 
     // 📡 Emitir evento WebSocket a admins
     if (this.gateway) {
@@ -445,6 +487,14 @@ export class MinutasService {
         if (estadoNuevo === 'cancelada') {
           // Al cancelar, liberar unidades (vuelven a Disponible)
           await this.unitStateService.liberarUnidades(unidadIds);
+
+          // Limpiar el cliente interesado de los detalles de venta
+          for (const unidadId of unidadIds) {
+            await this.prisma.detallesventa.updateMany({
+              where: { unidad_id: unidadId },
+              data: { clienteinteresado: null } as any,
+            });
+          }
         }
         // Al firmar, las unidades se mantienen como "Reservada" - no se hace nada
       }

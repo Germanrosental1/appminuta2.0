@@ -34,8 +34,16 @@ export const LoginPage: React.FC = () => {
     if (!currentUser) return;
 
     hasRedirected.current = true;
-    setVerifyingRoles(true);
 
+    // FAST PATH: Use roles already in user object (from JWT)
+    if (currentUser.roles && currentUser.roles.length > 0) {
+      const redirectPath = getRedirectPath(currentUser.roles);
+      navigate(redirectPath, { replace: true });
+      return;
+    }
+
+    // FALLBACK: Fetch roles from API only if not in JWT
+    setVerifyingRoles(true);
     try {
       const roles = await refreshRoles(currentUser);
       const redirectPath = getRedirectPath(roles);

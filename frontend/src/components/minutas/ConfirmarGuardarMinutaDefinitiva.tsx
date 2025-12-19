@@ -96,6 +96,37 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
     try {
       setSaving(true);
 
+      let clienteInteresadoDni: number | undefined;
+
+      // 👤 Verificar/crear cliente interesado si los datos están presentes
+      if (wizardData.clienteInteresado?.dni && wizardData.clienteInteresado?.nombreApellido) {
+        try {
+          const { verificarOCrearCliente } = await import('@/services/clientes');
+          const clienteResponse = await verificarOCrearCliente({
+            dni: wizardData.clienteInteresado.dni,
+            nombreApellido: wizardData.clienteInteresado.nombreApellido,
+            telefono: wizardData.clienteInteresado.telefono,
+          });
+
+          clienteInteresadoDni = clienteResponse.dni;
+
+          if (clienteResponse.created) {
+            toast({
+              title: "Cliente creado",
+              description: `Se creó un nuevo cliente: ${clienteResponse.nombreApellido}`,
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Error con cliente",
+            description: "No se pudo verificar/crear el cliente. Intente nuevamente.",
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+      }
+
       // Asegurarnos de que el código de la unidad esté incluido en los datos
       const datosCompletos = {
         ...wizardData,
@@ -111,6 +142,7 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
 
         await actualizarDatosMinutaDefinitiva(minutaId, {
           datos: datosCompletos,
+          clienteInteresadoDni,
         });
 
         // Cambiar estado de vuelta a pendiente para revisión
@@ -126,7 +158,8 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
           proyecto: wizardData.proyecto || 'Sin proyecto',
           usuario_id: user.id,
           datos: datosCompletos,
-          estado: 'pendiente'
+          estado: 'pendiente',
+          clienteInteresadoDni,
         });
 
         toast({

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllMinutasDefinitivasForAdmin, actualizarEstadoMinutaDefinitiva } from '@/services/minutas';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { CancelarMinutaModal } from '@/components/minutas/CancelarMinutaModal';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,14 +20,14 @@ import {
 } from '@/components/ui/table';
 import {
     FileText,
-    LogOut,
     Eye,
     RefreshCw,
     CheckCircle,
     Edit,
     XCircle,
-    Loader2
+    Loader2,
 } from 'lucide-react';
+import '@/components/dashboard/dashboard.css';
 
 export const DashboardFirmante: React.FC = () => {
     const { user, signOut } = useAuth();
@@ -137,26 +138,20 @@ export const DashboardFirmante: React.FC = () => {
 
     return (
         <div className="container mx-auto py-8 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold">Dashboard Firmante</h1>
-                    <p className="text-muted-foreground">
-                        Bienvenido, {displayName}
-                    </p>
-                </div>
-                <Button variant="outline" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Cerrar Sesión
-                </Button>
-            </div>
+            <DashboardHeader
+                title="Mis Firmas"
+                userName={displayName}
+                onLogout={handleLogout}
+            />
 
-            <Card>
-                <CardHeader>
+            {/* Minutas Pendientes de Firma Card */}
+            <Card className="border shadow-sm">
+                <CardHeader className="bg-slate-50 border-b">
                     <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center">
-                            <FileText className="mr-2 h-5 w-5" />
-                            Minutas Pendientes de Firma
-                            <Badge variant="secondary" className="ml-2">
+                            <FileText className="mr-3 h-6 w-6 text-blue-600" />
+                            <span className="text-xl">Minutas Pendientes de Firma</span>
+                            <Badge variant="secondary" className="ml-3 text-base px-3 py-1">
                                 {minutasAprobadas.length}
                             </Badge>
                         </div>
@@ -164,29 +159,31 @@ export const DashboardFirmante: React.FC = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => refetch()}
-                            className="h-8 w-8"
+                            className="h-10 w-10 hover:bg-blue-50"
                             title="Refrescar lista"
                         >
-                            <RefreshCw className="h-4 w-4" />
+                            <RefreshCw className="h-5 w-5" />
                         </Button>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-base mt-2">
                         Minutas aprobadas que requieren firma para completar el proceso
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     {isLoading && (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                        <div className="flex justify-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                         </div>
                     )}
                     {!isLoading && minutasAprobadas.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                            No hay minutas pendientes de firma
+                        <div className="text-center py-16 text-muted-foreground">
+                            <CheckCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                            <p className="text-lg font-medium">No hay minutas pendientes de firma</p>
+                            <p className="text-sm mt-2">Todas las minutas están al día</p>
                         </div>
                     )}
                     {!isLoading && minutasAprobadas.length > 0 && (
-                        <div className="rounded-md border">
+                        <div className="rounded-md border dashboard-table">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -201,7 +198,7 @@ export const DashboardFirmante: React.FC = () => {
                                 <TableBody>
                                     {minutasAprobadas.map((minuta: any) => (
                                         <TableRow key={minuta.id}>
-                                            <TableCell>{minuta.datos?.proyecto || minuta.proyectos?.nombre || 'Sin proyecto'}</TableCell>
+                                            <TableCell className="font-medium">{minuta.datos?.proyecto || minuta.proyectos?.nombre || 'Sin proyecto'}</TableCell>
                                             <TableCell>{minuta.datos?.unidadDescripcion || 'Sin unidad'}</TableCell>
                                             <TableCell>{minuta.users?.email || 'Sin asignar'}</TableCell>
                                             <TableCell>
@@ -225,7 +222,7 @@ export const DashboardFirmante: React.FC = () => {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="bg-orange-50 hover:bg-orange-100"
+                                                        className="bg-orange-50 hover:bg-orange-100 border-orange-200"
                                                         onClick={() => handleEnviarAEdicion(minuta.id)}
                                                         disabled={updateEstadoMutation.isPending}
                                                     >
@@ -235,7 +232,7 @@ export const DashboardFirmante: React.FC = () => {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="bg-red-50 hover:bg-red-100 text-red-700"
+                                                        className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                                                         onClick={() => handleOpenCancelModal(minuta.id)}
                                                         disabled={updateEstadoMutation.isPending}
                                                     >
@@ -244,7 +241,7 @@ export const DashboardFirmante: React.FC = () => {
                                                     </Button>
                                                     <Button
                                                         size="sm"
-                                                        className="bg-blue-600 hover:bg-blue-700"
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white"
                                                         onClick={() => handleFirmar(minuta.id)}
                                                         disabled={updateEstadoMutation.isPending}
                                                     >
@@ -285,3 +282,4 @@ export const DashboardFirmante: React.FC = () => {
 };
 
 export default DashboardFirmante;
+

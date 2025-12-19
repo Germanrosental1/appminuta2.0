@@ -33,6 +33,7 @@ export interface MinutaDefinitiva {
   created_at: string;
   updated_at: string;
   proyecto?: string;
+  clienteInteresadoDni?: number; // DNI del cliente interesado
   // Relaciones agregadas por el backend
   users?: {
     email: string;
@@ -328,6 +329,7 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id
       datos_mapa_ventas: datosMapaVentas,
       estado: minuta.estado || 'pendiente',
       comentarios: minuta.comentarios || null,
+      clienteInteresadoDni: minuta.clienteInteresadoDni || null,
     };
 
     console.log('📤 Enviando minuta al backend:', minutaParaGuardar);
