@@ -1,18 +1,30 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UnidadesService } from './unidades.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
 import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
+import { UnidadesImportService } from './unidades-import.service';
+
 @Controller('unidades')
 @UseGuards(SupabaseAuthGuard)
 export class UnidadesController {
-    constructor(private readonly unidadesService: UnidadesService) { }
+    constructor(
+        private readonly unidadesService: UnidadesService,
+        private readonly importService: UnidadesImportService
+    ) { }
 
     @Post()
     create(@Body() createUnidadDto: CreateUnidadDto) {
         return this.unidadesService.create(createUnidadDto);
+    }
+
+    @Post('import')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadFile(@UploadedFile() file: Express.Multer.File) {
+        return this.importService.importFromExcel(file.buffer);
     }
 
     // Metadata endpoints - MUST come before generic GET routes

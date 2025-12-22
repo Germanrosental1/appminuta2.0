@@ -7,12 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListaMinutasDefinitivasAdmin } from '@/components/minutas/ListaMinutasDefinitivasAdmin';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
+import '@/components/dashboard/dashboard.css';
 import {
   FileText,
   Users,
   BarChart,
 } from 'lucide-react';
-import '@/components/dashboard/dashboard.css';
 
 interface DashboardAdminProps {
   readOnly?: boolean;

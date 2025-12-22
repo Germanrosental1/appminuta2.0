@@ -5,6 +5,7 @@ import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
+
 @Injectable()
 export class UnidadesService {
     constructor(private readonly prisma: PrismaService) { }
@@ -434,4 +435,5 @@ export class UnidadesService {
             where: { id },
         });
     }
+
 }

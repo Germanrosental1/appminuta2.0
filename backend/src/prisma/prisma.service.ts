@@ -70,8 +70,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         }
 
         // Add version increment and updated_at
-        setClauses.push(`version = version + 1`);
-        setClauses.push(`updated_at = NOW()`);
+        setClauses.push(`version = version + 1`, `updated_at = NOW()`);
 
         const query = `
             UPDATE ${table}
