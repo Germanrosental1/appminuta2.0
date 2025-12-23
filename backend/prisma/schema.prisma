@@ -594,9 +594,11 @@ model profiles {
   updated_at              DateTime?            @default(now()) @db.Timestamptz(6)
   require_password_change Boolean?             @default(true)
   first_login             Boolean?             @default(true)
+  changes_logs            changes_logs[]
   users                   users                @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   usuarios_proyectos      usuarios_proyectos[]
   usuarios_roles          usuarios_roles[]
+  usuarios_organizaciones usuarios_organizaciones[]
 
   @@index([activo], map: "idx_profiles_activo")
   @@index([email], map: "idx_profiles_email")
@@ -624,6 +626,7 @@ model proyectos {
   proyectostiposunidad proyectostiposunidad[]
   tablas               tablas[]
   usuarios_proyectos   usuarios_proyectos[]
+  organizacion         organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([activo], map: "idx_proyectos_activo")
   @@schema("public")
@@ -648,7 +651,8 @@ model roles {
   created_at         DateTime             @default(now()) @db.Timestamptz(6)
   roles_permisos     roles_permisos[]
   usuarios_proyectos usuarios_proyectos[]
-  usuarios_roles     usuarios_roles[]
+  usuarios_roles          usuarios_roles[]
+  usuarios_organizaciones usuarios_organizaciones[]
 
   @@index([nombre], map: "idx_roles_nombre")
   @@schema("public")
@@ -755,6 +759,7 @@ model unidades {
   manzana                                                  String?           @db.VarChar(50)
   destino                                                  String?           @db.VarChar(100)
   frente                                                   String?           @db.VarChar
+  titular                                                  String?
   detallesventa_detallesventa_unidad_idTounidades          detallesventa?    @relation("detallesventa_unidad_idTounidades")
   detallesventa_detallesventa_unidadcomprador_idTounidades detallesventa[]   @relation("detallesventa_unidadcomprador_idTounidades")
   edificios                                                edificios?        @relation(fields: [edificio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -838,6 +843,7 @@ model changes_logs {
   tablaaftectada String?
   usuarioID      String   @db.Uuid
   usuriomail     String
+  profiles       profiles @relation(fields: [usuarioID], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -847,7 +853,9 @@ model organizaciones {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre     String?
   creador    String?  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  proyectos               proyectos[]
+  usuarios_organizaciones usuarios_organizaciones[]
 
   @@schema("public")
 }
@@ -856,8 +864,11 @@ model organizaciones {
 model usuarios_organizaciones {
   userid     String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   idorg      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  idrol      String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  profiles   profiles     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizacion organizaciones @relation(fields: [idorg], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles      roles        @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([userid, idorg, idrol])
   @@map("usuarios-organizaciones")
