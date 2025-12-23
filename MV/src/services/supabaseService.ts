@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { backendAPI } from './backendAPI';
 import { TablaItem, TablaInsert, TablaUpdate, Unit, mapTablaToUnit, mapUnitToTabla, EstadoUnidad, normalizeEstado } from '@/types/supabase-types';
 
-const TABLE_NAME = 'vista_buscador_final';
+const TABLE_NAME = 'vista_buscador_propiedades';
 
 export const supabaseService = {
   /**
@@ -224,7 +224,7 @@ export const supabaseService = {
 
   /**
    * Obtiene proyectos agrupados por naturaleza
-   * Nota: vista_buscador_final no tiene la columna 'natdelproyecto',
+   * Nota: vista_buscador_propiedades no tiene la columna 'natdelproyecto',
    * por lo que todos los proyectos se agrupan bajo "Proyectos"
    */
   async getProjectsByNaturaleza(): Promise<{ naturaleza: string, proyectos: string[] }[]> {

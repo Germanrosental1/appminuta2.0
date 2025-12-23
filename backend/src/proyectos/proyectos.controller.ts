@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
@@ -12,6 +12,12 @@ export class ProyectosController {
     @Post()
     create(@Body() createProyectoDto: CreateProyectoDto) {
         return this.proyectosService.create(createProyectoDto);
+    }
+
+    @Get('my-projects')
+    getMyProjects(@Request() req) {
+        const userId = req.user?.sub || req.user?.id;
+        return this.proyectosService.findByUserId(userId);
     }
 
     @Get()

@@ -75,7 +75,7 @@ export default function UnitsListPage() {
     // Verificar conexión con Supabase
     const checkConnection = async () => {
       try {
-        const { data, error } = await supabase.from('vista_buscador_final').select('count').limit(1);
+        const { data, error } = await supabase.from('vista_buscador_propiedades').select('count').limit(1);
         if (error) {
           console.error('Error al conectar con Supabase:', error);
           toast.error(`Error de conexión: ${error.message}`);

@@ -9,7 +9,7 @@ import { useState } from 'react';
 export function SetupInstructions() {
   const [copied, setCopied] = useState(false);
 
-  const sqlScript = `-- La aplicación ahora utiliza la vista 'vista_buscador_final'
+  const sqlScript = `-- La aplicación ahora utiliza la vista 'vista_buscador_propiedades'
 -- Esta vista debe existir en tu base de datos de Supabase
 
 -- Crear la tabla si no existe
@@ -69,7 +69,7 @@ CREATE POLICY "Permitir lectura a usuarios anónimos"
   TO anon 
   USING (true);
 
--- IMPORTANTE: Asegúrate de que la vista 'vista_buscador_final' existe en tu base de datos
+-- IMPORTANTE: Asegúrate de que la vista 'vista_buscador_propiedades' existe en tu base de datos
 -- La aplicación consume datos de esta vista.
 -- Si necesitas crear datos de prueba, consulta con el administrador de la base de datos.`;
 
@@ -87,7 +87,7 @@ CREATE POLICY "Permitir lectura a usuarios anónimos"
           Configuración de la Base de Datos
         </CardTitle>
         <CardDescription>
-          Sigue estas instrucciones para verificar la vista 'vista_buscador_final' en tu proyecto de Supabase
+          Sigue estas instrucciones para verificar la vista 'vista_buscador_propiedades' en tu proyecto de Supabase
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -99,9 +99,9 @@ CREATE POLICY "Permitir lectura a usuarios anónimos"
 
           <TabsContent value="instructions" className="space-y-4">
             <Alert>
-              <AlertTitle>La vista 'vista_buscador_final' debe existir en tu base de datos</AlertTitle>
+              <AlertTitle>La vista 'vista_buscador_propiedades' debe existir en tu base de datos</AlertTitle>
               <AlertDescription>
-                Esta aplicación consume datos de la vista 'vista_buscador_final'. Verifica que exista en tu proyecto de Supabase.
+                Esta aplicación consume datos de la vista 'vista_buscador_propiedades'. Verifica que exista en tu proyecto de Supabase.
               </AlertDescription>
             </Alert>
 
@@ -132,7 +132,7 @@ CREATE POLICY "Permitir lectura a usuarios anónimos"
                 </li>
 
                 <li>
-                  <p>Verifica que la vista 'vista_buscador_final' esté creada en la sección <strong>Database</strong> → <strong>Views</strong> del menú lateral</p>
+                  <p>Verifica que la vista 'vista_buscador_propiedades' esté creada en la sección <strong>Database</strong> → <strong>Views</strong> del menú lateral</p>
                 </li>
 
                 <li>

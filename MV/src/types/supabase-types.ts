@@ -1,4 +1,4 @@
-// Definición de tipos basada en el esquema de vista_buscador_final
+// Definición de tipos basada en el esquema de vista_buscador_propiedades
 // NOTA: esta vista NO tiene natdelproyecto ni algunos otros campos de la tabla original
 export interface TablaItem {
   id: string | null;

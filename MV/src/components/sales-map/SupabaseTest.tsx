@@ -17,9 +17,9 @@ export function SupabaseTest() {
       setLoading(true);
       setError(null);
 
-      // Intentar verificar directamente la vista 'vista_buscador_final'
+      // Intentar verificar directamente la vista 'vista_buscador_propiedades'
       const { count, error: countError } = await supabase
-        .from('vista_buscador_final')
+        .from('vista_buscador_propiedades')
         .select('*', { count: 'exact', head: true });
 
       if (countError) {
@@ -28,7 +28,7 @@ export function SupabaseTest() {
           setIsConnected(true); // La conexión funciona, pero la tabla no existe
           setTables([]);
           setTablasCount(0);
-          throw new Error('La vista "vista_buscador_final" no existe en la base de datos');
+          throw new Error('La vista "vista_buscador_propiedades" no existe en la base de datos');
         } else {
           throw countError;
         }
@@ -36,12 +36,12 @@ export function SupabaseTest() {
 
       // Si llegamos aquí, la conexión funciona y la tabla existe
       setIsConnected(true);
-      setTables(['vista_buscador_final']); // Sabemos que al menos esta vista existe
+      setTables(['vista_buscador_propiedades']); // Sabemos que al menos esta vista existe
       setTablasCount(count);
 
       // Intentar obtener una lista de proyectos para mostrar más información
       const { data: proyectosData, error: proyectosError } = await supabase
-        .from('vista_buscador_final')
+        .from('vista_buscador_propiedades')
         .select('proyecto')
         .limit(10);
 
@@ -105,8 +105,8 @@ export function SupabaseTest() {
                     {tables.length > 0 ? (
                       <ul className="list-disc pl-5 space-y-1">
                         {tables.map(table => (
-                          <li key={table} className={table === 'vista_buscador_final' ? 'font-semibold' : ''}>
-                            {table} {table === 'vista_buscador_final' && '✓'}
+                          <li key={table} className={table === 'vista_buscador_propiedades' ? 'font-semibold' : ''}>
+                            {table} {table === 'vista_buscador_propiedades' && '✓'}
                           </li>
                         ))}
                       </ul>
@@ -116,8 +116,8 @@ export function SupabaseTest() {
                   </div>
 
                   <div className="border p-4 rounded-md">
-                    <h3 className="font-medium mb-2">Vista 'vista_buscador_final' (Mapas de Ventas):</h3>
-                    {tables.includes('vista_buscador_final') ? (
+                    <h3 className="font-medium mb-2">Vista 'vista_buscador_propiedades' (Mapas de Ventas):</h3>
+                    {tables.includes('vista_buscador_propiedades') ? (
                       <p>
                         {tablasCount !== null ? (
                           <>
@@ -129,7 +129,7 @@ export function SupabaseTest() {
                       </p>
                     ) : (
                       <p className="text-red-600">
-                        ⚠️ La vista 'vista_buscador_final' no existe en la base de datos
+                        ⚠️ La vista 'vista_buscador_propiedades' no existe en la base de datos
                       </p>
                     )}
                   </div>

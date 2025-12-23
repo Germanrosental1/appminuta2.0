@@ -14,7 +14,7 @@ export default function DiagnosticPage() {
       try {
         setLoading(true);
         const { count, error } = await supabase
-          .from('vista_buscador_final')
+          .from('vista_buscador_propiedades')
           .select('*', { count: 'exact', head: true });
 
         if (error && error.code === 'PGRST205') {

@@ -52,6 +52,39 @@ export class ProyectosService {
         return proyectos;
     }
 
+    async findByUserId(userId: string) {
+        // Get projects assigned to the user via usuarios_proyectos table
+        const userProjects = await this.prisma.usuarios_proyectos.findMany({
+            where: { idusuario: userId },
+            select: {
+                proyectos: {
+                    select: {
+                        id: true,
+                        nombre: true,
+                        descripcion: true,
+                        naturaleza: true,
+                        direccion: true,
+                        localidad: true,
+                        provincia: true,
+                        activo: true,
+                    },
+                },
+            },
+        });
+
+        // Extract unique projects (user might have multiple roles in same project)
+        const projectsMap = new Map();
+        for (const up of userProjects) {
+            if (up.proyectos && up.proyectos.activo) {
+                projectsMap.set(up.proyectos.id, up.proyectos);
+            }
+        }
+
+        return Array.from(projectsMap.values()).sort((a, b) =>
+            a.nombre.localeCompare(b.nombre)
+        );
+    }
+
     async findOne(id: string) {
         const proyecto = await this.prisma.proyectos.findUnique({
             where: { id },
