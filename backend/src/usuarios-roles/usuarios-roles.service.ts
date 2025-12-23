@@ -26,7 +26,10 @@ export class UsuariosRolesService {
                     idusuario: userId,
                     idrol: roleId,
                 },
-                include: {
+                select: {
+                    // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
+                    idrol: true,
+                    created_at: true,
                     roles: true,
                 },
             });
@@ -135,8 +138,17 @@ export class UsuariosRolesService {
 
         const usersWithRole = await this.prisma.usuarios_roles.findMany({
             where: { idrol: roleId },
-            include: {
-                profiles: true,
+            select: {
+                // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
+                profiles: {
+                    select: {
+                        email: true,
+                        nombre: true,
+                        apellido: true,
+                        activo: true,
+                        // id: EXCLUIDO por seguridad
+                    },
+                },
             },
         });
 

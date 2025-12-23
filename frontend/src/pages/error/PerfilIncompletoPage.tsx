@@ -29,20 +29,11 @@ export const PerfilIncompletoPage: React.FC = () => {
         <CardContent className="pt-6">
           <div className="space-y-4">
             <p>
-              Tu cuenta ha sido autenticada correctamente, pero no tiene un perfil asociado
-              o no tiene un rol asignado en el sistema.
+              Tu cuenta ha sido autenticada correctamente, pero su perfil esta incompleto.
             </p>
             <p>
-              Por favor, contacta al administrador del sistema para que complete tu perfil
-              y asigne el rol correspondiente (comercial o administrador).
+              Por favor, contacta al administrador del sistema para que complete tu perfil.
             </p>
-            <div className="bg-amber-50 p-4 rounded-md text-sm">
-              <p className="font-medium">Información técnica:</p>
-              <p>
-                Es necesario asignar un rol en la tabla <code>usuarios-roles</code> para tu usuario
-                con el rol 'comercial' o 'administrador'.
-              </p>
-            </div>
           </div>
         </CardContent>
         <CardFooter>

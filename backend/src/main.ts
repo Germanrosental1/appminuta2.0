@@ -17,14 +17,15 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
     // 🔒 SEGURIDAD: Headers de seguridad con Helmet
+    const isDevelopment = process.env.NODE_ENV !== 'production';
     app.use(helmet({
-        contentSecurityPolicy: {
+        contentSecurityPolicy: isDevelopment ? false : {
             directives: {
                 defaultSrc: ["'self'"],
                 scriptSrc: ["'self'"],
                 styleSrc: ["'self'", "'unsafe-inline'"], // Para estilos inline necesarios
                 imgSrc: ["'self'", 'data:', 'https:'],
-                connectSrc: ["'self'"],
+                connectSrc: ["'self'", "ws:", "wss:"],
                 fontSrc: ["'self'"],
                 objectSrc: ["'none'"],
                 mediaSrc: ["'self'"],
@@ -65,8 +66,16 @@ async function bootstrap() {
     // Enable Global Validation Pipe
     app.useGlobalPipes(new ValidationPipe({
         whitelist: true,
-        forbidNonWhitelisted: true,
+        forbidNonWhitelisted: false, // Permitir propiedades extra (se ignoran)
         transform: true,
+        // Debug: Mostrar errores detallados
+        exceptionFactory: (errors) => {
+            const messages = errors.map(err =>
+                `${err.property}: ${Object.values(err.constraints || {}).join(', ')}`
+            );
+            console.error('Validation errors:', messages);
+            return new (require('@nestjs/common').BadRequestException)(messages);
+        },
     }));
 
     // 🔒 SEGURIDAD: CSRF Protection
@@ -100,7 +109,7 @@ async function bootstrap() {
         },
         credentials: true,
         methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
         maxAge: 3600,
     });
 

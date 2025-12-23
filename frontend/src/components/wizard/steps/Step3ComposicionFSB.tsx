@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { validateStep } from "@/utils/validation";
@@ -190,16 +191,13 @@ export const Step3ComposicionFSB: React.FC = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="impA">Importe F</Label>
-            <Input
+            <CurrencyInput
               id="impA"
-              type="number"
-              min="0"
+              value={data.impA}
+              onChange={(value) => handleImpAChange(value.toString())}
               max={precioTotal}
-              step="0.01"
-              value={data.impA || ""}
-              onChange={(e) => handleImpAChange(e.target.value)}
-              className={errors.impA ? "border-destructive" : ""}
-              placeholder="0.00"
+              error={!!errors.impA}
+              prefix="$"
             />
             {errors.impA && <p className="text-sm text-destructive">{errors.impA}</p>}
             <p className="text-xs text-muted-foreground">

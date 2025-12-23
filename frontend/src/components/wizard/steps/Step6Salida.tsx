@@ -2,9 +2,11 @@ import React, { useRef } from "react";
 import { ResumenCompleto } from "../ResumenCompleto";
 import { useWizard } from "@/context/WizardContext";
 import { ConfirmarGuardarMinutaDefinitiva } from "@/components/minutas/ConfirmarGuardarMinutaDefinitiva";
+import { useToast } from "@/components/ui/use-toast";
 
 export const Step6Salida: React.FC = () => {
   const { data } = useWizard();
+  const { toast } = useToast();
   const resumenRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -78,7 +80,13 @@ export const Step6Salida: React.FC = () => {
             unidadId={data.unidad}
             wizardData={data}
             onSuccess={() => {
-              alert('Minuta guardada exitosamente. Puedes verla en tu dashboard.');
+              toast({
+                title: "Éxito",
+                description: "Minuta guardada exitosamente. Puedes verla en tu dashboard.",
+                duration: 3000,
+              });
+              // Opcional: Redirigir al dashboard si se desea flujo automático
+              // navigate('/comercial/dashboard');
             }}
           />
           {/* Botón de descarga de PDF temporalmente deshabilitado

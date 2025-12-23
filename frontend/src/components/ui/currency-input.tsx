@@ -42,6 +42,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
     const [displayValue, setDisplayValue] = useState<string>('');
     const [isFocused, setIsFocused] = useState(false);
     const lastExternalValueRef = React.useRef<number | undefined | null>(value);
+    const formatTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     // Formatear número a string con formato argentino
     const formatNumber = useCallback((num: number | undefined | null): string => {
@@ -86,13 +87,18 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         }
     }, [value, formatNumber, isFocused]);
 
-    // Manejar cambio de input - completamente fluido
+    // Manejar cambio de input - fluido con formateo automático rápido
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputValue = e.target.value;
 
         // Permitir solo números, puntos, comas y guiones
         const validChars = /^[\d.,-]*$/;
         if (!validChars.test(inputValue)) return;
+
+        // Limpiar timeout anterior
+        if (formatTimeoutRef.current) {
+            clearTimeout(formatTimeoutRef.current);
+        }
 
         // Mostrar exactamente lo que el usuario escribe
         setDisplayValue(inputValue);
@@ -117,6 +123,11 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
 
         // Notificar el cambio
         onChange(finalValue);
+
+        // Formatear después de 200ms de inactividad
+        formatTimeoutRef.current = setTimeout(() => {
+            setDisplayValue(formatNumber(finalValue));
+        }, 500);
     };
 
     // Manejar focus
@@ -126,6 +137,11 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
 
     // Manejar blur - formatear solo al salir del campo
     const handleBlur = () => {
+        // Limpiar timeout si existe
+        if (formatTimeoutRef.current) {
+            clearTimeout(formatTimeoutRef.current);
+        }
+
         setIsFocused(false);
 
         // Formatear el valor
@@ -135,6 +151,16 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         // Llamar al onBlur externo si existe
         onBlur?.();
     };
+
+    // Cleanup del timeout al desmontar
+    useEffect(() => {
+        return () => {
+            if (formatTimeoutRef.current) {
+                clearTimeout(formatTimeoutRef.current);
+            }
+        };
+    }, []);
+
     return (
         <div className="relative">
             {prefix && (

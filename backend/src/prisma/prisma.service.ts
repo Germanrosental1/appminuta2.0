@@ -7,6 +7,20 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     private readonly maxRetries = 5;
     private readonly retryDelay = 3000; // 3 seconds
 
+    constructor() {
+        super({
+            // ⚡ OPTIMIZATION: Connection pool settings
+            datasources: {
+                db: {
+                    url: process.env.DATABASE_URL,
+                },
+            },
+            log: process.env.NODE_ENV === 'development'
+                ? ['warn', 'error']
+                : ['error'],
+        });
+    }
+
     async onModuleInit() {
         await this.connectWithRetry();
     }
@@ -29,8 +43,44 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
             this.logger.error(
                 'Failed to connect to database after maximum retries. Starting without DB connection.'
             );
-            // Don't throw - let the app start anyway
-            // Individual queries will fail with proper error messages
         }
+    }
+
+    // ⚡ OPTIMIZATION: Método para ejecutar updates rápidos con raw SQL
+    async executeRawUpdate(
+        table: string,
+        id: string,
+        data: Record<string, any>,
+        version: number
+    ): Promise<number> {
+        const setClauses: string[] = [];
+        const values: any[] = [];
+        let paramIndex = 1;
+
+        for (const [key, value] of Object.entries(data)) {
+            if (value !== undefined) {
+                setClauses.push(`${key} = $${paramIndex}`);
+                values.push(value);
+                paramIndex++;
+            }
+        }
+
+        if (setClauses.length === 0) {
+            return 0;
+        }
+
+        // Add version increment and updated_at
+        setClauses.push(`version = version + 1`, `updated_at = NOW()`);
+
+        const query = `
+            UPDATE ${table}
+            SET ${setClauses.join(', ')}
+            WHERE id = $${paramIndex}::uuid AND version = $${paramIndex + 1}
+        `;
+
+        values.push(id, version);
+
+        const result = await this.$executeRawUnsafe(query, ...values);
+        return result;
     }
 }

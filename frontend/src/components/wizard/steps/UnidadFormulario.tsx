@@ -34,6 +34,9 @@ interface UnidadFormularioProps {
     // Actions
     onAgregar: () => void;
     onCancelar: () => void;
+
+    // Optional: Project is locked at top level
+    proyectoBloqueado?: boolean;
 }
 
 export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
@@ -46,7 +49,8 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
         onProyectoChange, onEtapaChange,
         onUnidadChange,
         tipoUnidad, modoEdicion, errors,
-        onAgregar, onCancelar
+        onAgregar, onCancelar,
+        proyectoBloqueado = false
     } = props;
 
     return (
@@ -64,16 +68,25 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
             </CardHeader>
 
             <CardContent className="space-y-4">
-                {/* Start directly with PROYECTO - tipo is already selected above */}
-                <FilterSelect
-                    id="proyecto"
-                    label="Proyecto"
-                    value={proyectoSeleccionado}
-                    options={proyectos}
-                    onChange={onProyectoChange}
-                    loading={loadingProyectos}
-                    error={errors.proyecto}
-                />
+                {/* PROYECTO - Show as text if locked, otherwise dropdown */}
+                {proyectoBloqueado ? (
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Proyecto</label>
+                        <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
+                            <span>{proyectoSeleccionado}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <FilterSelect
+                        id="proyecto"
+                        label="Proyecto"
+                        value={proyectoSeleccionado}
+                        options={proyectos}
+                        onChange={onProyectoChange}
+                        loading={loadingProyectos}
+                        error={errors.proyecto}
+                    />
+                )}
 
                 {/* ETAPA - Only show after proyecto selected */}
                 {proyectoSeleccionado && (
@@ -88,7 +101,7 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                     />
                 )}
 
-                {/* UNIDAD - Show after etapa selected (sector removed) */}
+                {/* UNIDAD - Show after etapa selected */}
                 {etapaSeleccionada && (
                     <FilterSelect
                         id="unidad"
@@ -115,3 +128,4 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
         </Card>
     );
 };
+

@@ -1,30 +1,26 @@
-import { IsNotEmpty, IsString, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { DatosMinutaDto } from './datos-minuta.dto';
+import { IsNotEmpty, IsString, IsOptional, IsObject, IsUUID, IsNumber } from 'class-validator';
 
 export class CreateMinutaDto {
-    @IsString()
-    @IsNotEmpty()
-    proyecto: string;
+    // proyecto puede ser null cuando no se tiene el UUID
+    @IsUUID()
+    @IsOptional()
+    proyecto?: string | null;
 
     @IsString()
     @IsNotEmpty()
     estado: string;
 
-    @ValidateNested()
-    @Type(() => DatosMinutaDto)
+    // 📝 datos contiene la estructura flexible del wizard
+    @IsObject()
     @IsNotEmpty()
-    datos: DatosMinutaDto;
+    datos: Record<string, any>;
 
-    @ValidateNested()
-    @Type(() => DatosMinutaDto)
+    @IsObject()
     @IsOptional()
-    datos_adicionales?: DatosMinutaDto;
+    datos_adicionales?: Record<string, any>;
 
-    @ValidateNested()
-    @Type(() => DatosMinutaDto)
     @IsOptional()
-    datos_mapa_ventas?: DatosMinutaDto;
+    datos_mapa_ventas?: any;
 
     @IsString()
     @IsOptional()
@@ -33,4 +29,10 @@ export class CreateMinutaDto {
     @IsString()
     @IsOptional()
     url_documento?: string;
+
+    // DNI del cliente interesado
+    @IsNumber()
+    @IsOptional()
+    clienteInteresadoDni?: number;
 }
+

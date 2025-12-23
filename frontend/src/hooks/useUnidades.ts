@@ -1,4 +1,4 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import {
     getUnidadesPorEstado,
     getUnidadesPorProyecto,
@@ -12,6 +12,40 @@ import {
     type UnidadResumen,
     type UnidadMapaVentas,
 } from '@/services/unidades';
+
+// ⚡ OPTIMIZACIÓN: Hook para prefetch de datos relacionados a un proyecto
+export function usePrefetchProjectData() {
+    const queryClient = useQueryClient();
+
+    return {
+        prefetchProjectData: async (proyecto: string, tipo?: string) => {
+            if (!proyecto) return;
+
+            // Prefetch etapas
+            queryClient.prefetchQuery({
+                queryKey: ['proyectos', proyecto, 'etapas'],
+                queryFn: () => getEtapasPorProyecto(proyecto),
+                staleTime: 2 * 60 * 60 * 1000,
+            });
+
+            // Prefetch tipos
+            queryClient.prefetchQuery({
+                queryKey: ['proyectos', proyecto, 'etapas', undefined, 'tipos'],
+                queryFn: () => getTiposPorProyecto(proyecto),
+                staleTime: 60 * 60 * 1000,
+            });
+
+            // Prefetch sectores si hay tipo
+            if (tipo) {
+                queryClient.prefetchQuery({
+                    queryKey: ['proyectos', proyecto, 'etapas', undefined, 'tipos', tipo, 'sectores'],
+                    queryFn: () => getSectoresProyecto(proyecto, undefined, tipo),
+                    staleTime: 60 * 60 * 1000,
+                });
+            }
+        },
+    };
+}
 
 
 /**

@@ -5,6 +5,7 @@ import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
+
 @Injectable()
 export class UnidadesService {
     constructor(private readonly prisma: PrismaService) { }
@@ -163,6 +164,31 @@ export class UnidadesService {
         // id ahora es UUID
         return this.prisma.unidades.findUnique({
             where: { id },
+            include: {
+                edificios: {
+                    include: {
+                        proyectos: true,
+                    },
+                },
+                etapas: true,
+                tiposunidad: true,
+                detallesventa_detallesventa_unidad_idTounidades: {
+                    include: {
+                        estadocomercial: true,
+                        comerciales: true,
+                    },
+                },
+                unidadesmetricas: true,
+            },
+        });
+    }
+
+    // ⚡ OPTIMIZACIÓN: Batch query para múltiples unidades (elimina N+1)
+    async findByIds(ids: string[]) {
+        if (!ids.length) return [];
+
+        return this.prisma.unidades.findMany({
+            where: { id: { in: ids } },
             include: {
                 edificios: {
                     include: {
@@ -409,4 +435,5 @@ export class UnidadesService {
             where: { id },
         });
     }
+
 }
