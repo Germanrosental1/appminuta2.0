@@ -27,21 +27,28 @@ export class CsrfInterceptor implements NestInterceptor {
         const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
         if (writeMethods.includes(method)) {
+            // 🔒 En producción: CSRF es obligatorio
+            // 🛠️ En desarrollo: CSRF es opcional para facilitar el desarrollo
+            const isProduction = process.env.NODE_ENV === 'production';
+
             // Obtener token de cookie y header
             const cookieToken = request.cookies?.[this.CSRF_COOKIE_NAME];
             const headerToken = request.headers[this.CSRF_HEADER_NAME];
 
-            // Validar que ambos existan y coincidan
-            if (!cookieToken || !headerToken) {
-                throw new UnauthorizedException(
-                    'CSRF token missing. Please refresh the page.'
-                );
-            }
+            // Solo validar en producción
+            if (isProduction) {
+                // Validar que ambos existan y coincidan
+                if (!cookieToken || !headerToken) {
+                    throw new UnauthorizedException(
+                        'CSRF token missing. Please refresh the page.'
+                    );
+                }
 
-            if (cookieToken !== headerToken) {
-                throw new UnauthorizedException(
-                    'CSRF token mismatch. Possible CSRF attack detected.'
-                );
+                if (cookieToken !== headerToken) {
+                    throw new UnauthorizedException(
+                        'CSRF token mismatch. Possible CSRF attack detected.'
+                    );
+                }
             }
         }
 

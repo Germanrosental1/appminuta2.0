@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useWizard } from "@/context/WizardContext";
 import { WizardLayout } from "@/components/wizard/WizardLayout";
 import { Step1ProyectoUnidad } from "@/components/wizard/steps/Step1ProyectoUnidad";
@@ -7,9 +8,11 @@ import { Step3ComposicionFSB } from "@/components/wizard/steps/Step3ComposicionF
 import { Step4Pago } from "@/components/wizard/steps/Step4Pago";
 import { Step5Cargos } from "@/components/wizard/steps/Step5Cargos";
 import { Step6ReglasFinanciacion } from "@/components/wizard/steps/Step6ReglasFinanciacion";
+import { Step6DatosCliente } from "@/components/wizard/steps/Step6DatosCliente";
 import { Step6Salida as Step7Salida } from "@/components/wizard/steps/Step6Salida";
 import { validateStep } from "@/utils/validation";
 import { toast } from "sonner";
+import { getMinutaDefinitivaById } from "@/services/minutas";
 
 import { WizardData } from "@/types/wizard";
 
@@ -72,8 +75,57 @@ function validateStep5ReglasFinanciacion(data: WizardData): boolean {
   return true;
 }
 
+// Helper: Validate Step 6 (Datos del Cliente)
+function validateStep6DatosCliente(data: WizardData): boolean {
+  if (!data.clienteInteresado?.dni || data.clienteInteresado.dni < 1000000 || data.clienteInteresado.dni > 99999999) {
+    toast.error("Debe ingresar un DNI válido del cliente interesado");
+    return false;
+  }
+
+  if (!data.clienteInteresado?.nombreApellido || data.clienteInteresado.nombreApellido.trim().length < 3) {
+    toast.error("Debe ingresar el nombre y apellido del cliente interesado");
+    return false;
+  }
+
+  return true;
+}
+
 const Wizard: React.FC = () => {
-  const { currentStep, data } = useWizard();
+  const { currentStep, data, updateData, setCurrentStep } = useWizard();
+  const [searchParams] = useSearchParams();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Detectar modo edición y cargar minuta
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId) {
+      setIsLoading(true);
+      setIsEditMode(true);
+
+      getMinutaDefinitivaById(editId)
+        .then((minuta) => {
+          if (minuta?.datos) {
+            // Cargar datos de la minuta en el wizard
+            updateData({
+              ...minuta.datos,
+              // Mantener el ID de la minuta para actualizar en lugar de crear
+              minutaId: editId,
+            });
+            // Empezar desde el paso 2 (index 1)
+            setCurrentStep(1);
+            toast.success("Minuta cargada para edición");
+          }
+        })
+        .catch((err) => {
+          toast.error("Error al cargar la minuta");
+          console.error(err);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [searchParams]);
 
   const handleNext = () => {
     // Step 0: Proyecto y Unidad
@@ -92,13 +144,18 @@ const Wizard: React.FC = () => {
       return true;
     }
 
-    // Step 5: Reglas de Financiación
-    if (currentStep === 5) {
+    // Step 5: Reglas de Financiación (SOLO si el pago es financiado)
+    if (currentStep === 5 && data.tipoPago !== "contado") {
       if (!validateStep5ReglasFinanciacion(data)) return false;
     }
 
+    // Step 6: Datos del Cliente
+    if (currentStep === 6) {
+      if (!validateStep6DatosCliente(data)) return false;
+    }
+
     // General validation for all steps
-    const validation = validateStep(currentStep, data);
+    const validation = validateStep(currentStep, data, data.tipoPago);
     if (!validation.valid) {
       const firstError = Object.values(validation.errors)[0];
       toast.error(firstError || "Por favor complete todos los campos requeridos");
@@ -110,8 +167,14 @@ const Wizard: React.FC = () => {
 
   const renderStep = () => {
     // Si el tipo de pago es "contado" y estamos en el paso 5 (que normalmente sería Reglas de Financiación),
-    // mostrar directamente el paso 7 (Salida)
+    // saltar a paso 6 (Datos del Cliente)
     if (data.tipoPago === "contado" && currentStep === 5) {
+      return <Step6DatosCliente />;
+    }
+
+    // Si el tipo de pago es "contado" y estamos en el paso 6 (normalmente Datos del Cliente después de saltar),
+    // mostrar Step7 (Salida)
+    if (data.tipoPago === "contado" && currentStep === 6) {
       return <Step7Salida />;
     }
 
@@ -129,6 +192,8 @@ const Wizard: React.FC = () => {
       case 5:
         return <Step6ReglasFinanciacion />;
       case 6:
+        return <Step6DatosCliente />;
+      case 7:
         return <Step7Salida />;
       default:
         return <Step1ProyectoUnidad />;
@@ -136,10 +201,19 @@ const Wizard: React.FC = () => {
   };
 
   // Determinar si estamos en el paso final
-  const isFinalStep = currentStep === 6 || (data.tipoPago === "contado" && currentStep === 5);
+  const isFinalStep = currentStep === 7 || (data.tipoPago === "contado" && currentStep === 6);
+
+  // Loading state mientras carga la minuta
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <WizardLayout onNext={handleNext} finalStep={isFinalStep}>
+    <WizardLayout onNext={handleNext} finalStep={isFinalStep} isEditMode={isEditMode}>
       {renderStep()}
     </WizardLayout>
   );

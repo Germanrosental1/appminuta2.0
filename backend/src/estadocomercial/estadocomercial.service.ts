@@ -1,18 +1,33 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEstadoComercialDto } from './dto/create-estadocomercial.dto';
 import { UpdateEstadoComercialDto } from './dto/update-estadocomercial.dto';
 import { Prisma } from '@prisma/client';
+// ⚡ OPTIMIZACIÓN: Cache para catálogos
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+const CACHE_KEY = 'estadocomercial:all';
 
 @Injectable()
 export class EstadoComercialService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    ) { }
+
+    // ⚡ Invalidar cache
+    private async invalidateCache(): Promise<void> {
+        await this.cacheManager.del(CACHE_KEY);
+    }
 
     async create(createEstadoComercialDto: CreateEstadoComercialDto) {
         try {
-            return await this.prisma.estadocomercial.create({
+            const result = await this.prisma.estadocomercial.create({
                 data: createEstadoComercialDto,
             });
+            await this.invalidateCache();
+            return result;
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
@@ -25,10 +40,16 @@ export class EstadoComercialService {
         }
     }
 
+    // ⚡ OPTIMIZACIÓN: Cache en findAll()
     async findAll() {
-        return await this.prisma.estadocomercial.findMany({
+        const cached = await this.cacheManager.get(CACHE_KEY);
+        if (cached) return cached;
+
+        const data = await this.prisma.estadocomercial.findMany({
             orderBy: { nombreestado: 'asc' },
         });
+        await this.cacheManager.set(CACHE_KEY, data);
+        return data;
     }
 
     async findOne(id: string) {
@@ -54,10 +75,12 @@ export class EstadoComercialService {
 
     async update(id: string, updateEstadoComercialDto: UpdateEstadoComercialDto) {
         try {
-            return await this.prisma.estadocomercial.update({
+            const result = await this.prisma.estadocomercial.update({
                 where: { id },
                 data: updateEstadoComercialDto,
             });
+            await this.invalidateCache();
+            return result;
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
@@ -75,9 +98,11 @@ export class EstadoComercialService {
 
     async remove(id: string) {
         try {
-            return await this.prisma.estadocomercial.delete({
+            const result = await this.prisma.estadocomercial.delete({
                 where: { id },
             });
+            await this.invalidateCache();
+            return result;
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {

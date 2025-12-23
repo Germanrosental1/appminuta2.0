@@ -19,12 +19,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
             : 'Error interno del servidor';
 
         // Log completo del error (sin exponer datos sensibles)
+        // En desarrollo: mostrar error completo para debugging
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        if (!isProduction && !(exception instanceof HttpException)) {
+            // Log detallado para errores no-HTTP en desarrollo
+            console.error('🔥 Unhandled error:', exception);
+        }
+
         this.logger.error({
             statusCode: status,
             timestamp: new Date().toISOString(),
             path: request.url,
             method: request.method,
             message: message,
+            // En desarrollo, incluir stack trace
+            ...((!isProduction && exception instanceof Error) ? { stack: exception.stack } : {}),
             // NO incluir: req.headers.authorization, req.body con passwords, etc.
         });
 

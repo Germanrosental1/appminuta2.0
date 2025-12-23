@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           font-src 'self' https://fonts.gstatic.com data:;
           img-src 'self' data: https: blob:;
-          connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ipify.org http://localhost:3000;
+          connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ipify.org http://localhost:3000 ws://localhost:3000;
           frame-ancestors 'none';
           base-uri 'self';
           form-action 'self';

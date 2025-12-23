@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { validateStep } from "@/utils/validation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -220,13 +221,12 @@ export const Step5Cargos: React.FC = () => {
               <tr className="border-b border-border">
                 <td className="p-4 font-medium">Certificación Firmas:</td>
                 <td className="p-4">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={data.certificacionFirmas || ""}
-                    onChange={(e) => handleChange("certificacionFirmas", e.target.value)}
+                  <CurrencyInput
+                    value={data.certificacionFirmas}
+                    onChange={(value) => handleChange("certificacionFirmas", value.toString())}
                     onBlur={handleBlur}
+                    prefix="$"
+                    min={0}
                   />
                 </td>
                 <td className="p-4 text-right font-medium">
@@ -334,13 +334,12 @@ export const Step5Cargos: React.FC = () => {
                 <td className="p-4 font-medium">Planos Unidad:</td>
                 <td className="p-4">
                   <div className="flex gap-2 items-center">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={data.planosUnidadValorM2 || ""}
-                      onChange={(e) => handleChange("planosUnidadValorM2", e.target.value)}
+                    <CurrencyInput
+                      value={data.planosUnidadValorM2}
+                      onChange={(value) => handleChange("planosUnidadValorM2", value.toString())}
                       onBlur={handleBlur}
+                      prefix="$"
+                      min={0}
                     />
                     <span>USD</span>
                   </div>
@@ -386,13 +385,12 @@ export const Step5Cargos: React.FC = () => {
                 <td className="p-4 font-medium">Planos Cochera:</td>
                 <td className="p-4">
                   <div className="flex gap-2 items-center">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={data.planosCocheraValor || ""}
-                      onChange={(e) => handleChange("planosCocheraValor", e.target.value)}
+                    <CurrencyInput
+                      value={data.planosCocheraValor}
+                      onChange={(value) => handleChange("planosCocheraValor", value.toString())}
                       onBlur={handleBlur}
+                      prefix="$"
+                      min={0}
                     />
                     <span>USD</span>
                   </div>
@@ -430,13 +428,12 @@ export const Step5Cargos: React.FC = () => {
               <tr className="border-b border-border">
                 <td className="p-4 font-medium">Otros gastos</td>
                 <td className="p-4">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={data.otrosGastos || ""}
-                    onChange={(e) => handleChange("otrosGastos", e.target.value)}
+                  <CurrencyInput
+                    value={data.otrosGastos}
+                    onChange={(value) => handleChange("otrosGastos", value.toString())}
                     onBlur={handleBlur}
+                    prefix="$"
+                    min={0}
                   />
                 </td>
                 <td className="p-4 text-right font-medium">

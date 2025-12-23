@@ -120,6 +120,13 @@ export interface WizardData {
   reglasFinanciacionB: ReglaFinanciacion[];
   porcentajePagadoFechaPosesion: number;
 
+  // Cliente interesado
+  clienteInteresado?: {
+    dni: number;
+    nombreApellido: string;
+    telefono?: string;
+  };
+
   // Paso 7: Tipo de cambio & salida
   dolarRef: number;
   formatoSalida: FormatoSalida;

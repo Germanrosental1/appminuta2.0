@@ -7,6 +7,7 @@ export enum AuthEventType {
     TOKEN_REFRESHED = 'token_refreshed',
     SESSION_EXPIRED = 'session_expired',
     AUTH_ERROR = 'auth_error',
+    PASSWORD_CHANGED = 'password_changed',
 }
 
 export class LogAuthEventDto {

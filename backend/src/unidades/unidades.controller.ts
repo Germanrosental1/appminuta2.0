@@ -1,18 +1,31 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, Request } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UnidadesService } from './unidades.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
 import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
+import { UnidadesImportService } from './unidades-import.service';
+
 @Controller('unidades')
 @UseGuards(SupabaseAuthGuard)
 export class UnidadesController {
-    constructor(private readonly unidadesService: UnidadesService) { }
+    constructor(
+        private readonly unidadesService: UnidadesService,
+        private readonly importService: UnidadesImportService
+    ) { }
 
     @Post()
     create(@Body() createUnidadDto: CreateUnidadDto) {
         return this.unidadesService.create(createUnidadDto);
+    }
+
+
+    @Post('import')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadFile(@UploadedFile() file: Express.Multer.File, @Request() req) {
+        return this.importService.importFromExcel(file.buffer, req.user);
     }
 
     // Metadata endpoints - MUST come before generic GET routes
@@ -48,6 +61,13 @@ export class UnidadesController {
         @Query('tipo') tipo?: string,
     ) {
         return this.unidadesService.getSectores(proyecto, etapa, tipo);
+    }
+
+    // ⚡ OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades
+    @Get('batch')
+    findByIds(@Query('ids') ids: string) {
+        const idArray = ids ? ids.split(',').filter(Boolean) : [];
+        return this.unidadesService.findByIds(idArray);
     }
 
     // Generic routes - come after specific routes

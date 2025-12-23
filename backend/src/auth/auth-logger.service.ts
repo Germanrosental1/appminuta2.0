@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthEventType } from './dto/log-auth-event.dto';
+import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class AuthLoggerService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly logger: LoggerService
+    ) { }
 
     /**
      * Registra eventos de autenticación en la base de datos
@@ -28,6 +32,18 @@ export class AuthLoggerService {
                     user_agent: userAgent,
                 },
             });
+
+            // 📝 AUDIT LOG para cambios de contraseña
+            if (eventType === AuthEventType.PASSWORD_CHANGED) {
+                await this.logger.agregarLog({
+                    motivo: 'Cambio de Contraseña',
+                    descripcion: 'El usuario ha cambiado su contraseña.',
+                    impacto: 'Alto',
+                    tablaafectada: 'users',
+                    usuarioID: userId,
+                    usuarioemail: email || 'unknown',
+                });
+            }
         } catch (error) {
             console.error('Error al registrar evento de autenticación:', error);
             // No lanzar error para no interrumpir el flujo de autenticación

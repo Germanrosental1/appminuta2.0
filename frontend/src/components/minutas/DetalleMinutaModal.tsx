@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Loader2, CheckCircle, XCircle, Download } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import jsPDF from 'jspdf';
@@ -81,10 +81,16 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
     switch (estado) {
       case 'pendiente':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+      case 'en_edicion':
+        return <Badge variant="outline" className="bg-orange-100 text-orange-800">En Edición</Badge>;
       case 'revisada':
         return <Badge variant="outline" className="bg-blue-100 text-blue-800">Revisada</Badge>;
       case 'aprobada':
         return <Badge variant="outline" className="bg-green-100 text-green-800">Aprobada</Badge>;
+      case 'firmada':
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Firmada</Badge>;
+      case 'cancelada':
+        return <Badge variant="outline" className="bg-red-100 text-red-800">Cancelada</Badge>;
       case 'rechazada':
         return <Badge variant="outline" className="bg-red-100 text-red-800">Rechazada</Badge>;
       default:
@@ -93,24 +99,27 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
   };
 
   const handleChangeEstado = async (nuevoEstado: 'pendiente' | 'aprobada' | 'firmada' | 'cancelada') => {
-    if (!minutaId) return;
+    if (!minutaId || !minuta) return;
+
+    // ⚡ OPTIMISTIC UI: Guardar estado anterior para poder revertir
+    const estadoAnterior = minuta.estado;
+
+    // ⚡ OPTIMISTIC UI: Actualizar UI inmediatamente (sin esperar al backend)
+    setMinuta(prev => ({ ...prev, estado: nuevoEstado }));
+    setProcesandoEstado(true);
 
     try {
-      setProcesandoEstado(true);
+      // Llamar al backend en segundo plano
       await actualizarEstadoMinutaDefinitiva(minutaId, nuevoEstado);
-
-      // Actualizar el estado local
-      setMinuta(prev => ({ ...prev, estado: nuevoEstado }));
-
-      toast({
-        title: "Estado actualizado",
-        description: `La minuta ha sido ${getEstadoDescription(nuevoEstado)} exitosamente`,
-      });
+      // No mostrar toast de éxito - la UI ya se actualizó
 
     } catch (error) {
+      // ⚡ OPTIMISTIC UI: Revertir al estado anterior en caso de error
+      setMinuta(prev => ({ ...prev, estado: estadoAnterior }));
+
       toast({
         title: "Error",
-        description: "No se pudo actualizar el estado de la minuta",
+        description: "No se pudo actualizar el estado de la minuta. Se revirtió el cambio.",
         variant: "destructive",
       });
     } finally {
@@ -234,98 +243,98 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
               {minuta.datos_mapa_ventas && (
                 <div className="mb-6">
                   <h2 className="text-xl font-bold mb-4">Datos del Mapa de Ventas</h2>
-                  <div className="bg-white border rounded-md p-4 shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Sección de Información General */}
-                      <div className="space-y-4">
-                        <div className="bg-slate-50 p-3 rounded-md">
-                          <h3 className="text-md font-semibold mb-2 text-slate-800">Información General</h3>
-                          <div className="space-y-2">
-                            {['proyecto', 'torre', 'piso', 'unidad', 'tipo_unidad', 'superficie_total'].map(key => (
-                              minuta.datos_mapa_ventas[key] && (
-                                <div key={key} className="flex justify-between border-b border-slate-200 pb-1 last:border-0">
-                                  <span className="font-medium capitalize">{key.replace('_', ' ')}: </span>
-                                  <span className="text-slate-700">{String(minuta.datos_mapa_ventas[key])}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                  <div className="space-y-4">
+                    {(() => {
+                      let mapData = minuta.datos_mapa_ventas;
+                      if (typeof mapData === 'string') {
+                        try { mapData = JSON.parse(mapData); } catch (e) { /* ignore */ }
+                      }
+                      const mapas = Array.isArray(mapData) ? mapData : [mapData];
 
-                      {/* Sección de Precios y Pagos */}
-                      <div className="space-y-4">
-                        <div className="bg-slate-50 p-3 rounded-md">
-                          <h3 className="text-md font-semibold mb-2 text-slate-800">Precios y Pagos</h3>
-                          <div className="space-y-2">
-                            {['precio_lista', 'precio_final', 'forma_pago', 'descuento', 'monto_reserva'].map(key => (
-                              minuta.datos_mapa_ventas[key] && (
-                                <div key={key} className="flex justify-between border-b border-slate-200 pb-1 last:border-0">
-                                  <span className="font-medium capitalize">{key.replaceAll('_', ' ')}: </span>
-                                  <span className="text-slate-700">{String(minuta.datos_mapa_ventas[key])}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                      return mapas.map((item: any, index: number) => {
+                        const proyecto = item.edificios?.proyectos?.nombre || '-';
+                        const etapa = item.etapas?.nombre || '-';
+                        const edificio = item.edificios?.nombreedificio || '-';
+                        const tipoUnidad = item.tiposunidad?.nombre || '-';
+                        const sector = item.sectorid || '-';
+                        const nroUnidad = item.nrounidad || '-';
+                        const piso = item.piso || '-';
+                        const dormitorios = item.dormitorios || '-';
 
-                      {/* Sección de Cliente */}
-                      <div className="space-y-4">
-                        <div className="bg-slate-50 p-3 rounded-md">
-                          <h3 className="text-md font-semibold mb-2 text-slate-800">Información del Cliente</h3>
-                          <div className="space-y-2">
-                            {['nombre_cliente', 'apellido_cliente', 'email_cliente', 'telefono_cliente'].map(key => (
-                              minuta.datos_mapa_ventas[key] && (
-                                <div key={key} className="flex justify-between border-b border-slate-200 pb-1 last:border-0">
-                                  <span className="font-medium capitalize">{key.replaceAll('_', ' ')}: </span>
-                                  <span className="text-slate-700">{String(minuta.datos_mapa_ventas[key])}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                        const metricas = item.unidadesmetricas || {};
+                        const m2Totales = metricas.m2totales || '-';
+                        const m2Cubiertos = metricas.m2cubiertos || '-';
+                        const m2Exclusivos = metricas.m2exclusivos || '-';
+                        const m2Semicubiertos = metricas.m2semicubiertos || '-';
+                        const m2PatioTerraza = metricas.m2patioterraza || '-';
 
-                      {/* Sección de Fechas */}
-                      <div className="space-y-4">
-                        <div className="bg-slate-50 p-3 rounded-md">
-                          <h3 className="text-md font-semibold mb-2 text-slate-800">Fechas Importantes</h3>
-                          <div className="space-y-2">
-                            {['fecha_reserva', 'fecha_promesa', 'fecha_escritura', 'fecha_entrega'].map(key => (
-                              minuta.datos_mapa_ventas[key] && (
-                                <div key={key} className="flex justify-between border-b border-slate-200 pb-1 last:border-0">
-                                  <span className="font-medium capitalize">{key.replaceAll('_', ' ')}: </span>
-                                  <span className="text-slate-700">{String(minuta.datos_mapa_ventas[key])}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                        const detallesVenta = item.detallesventa_detallesventa_unidad_idTounidades || {};
+                        const precioUsd = detallesVenta.preciousd ? `USD ${Number(detallesVenta.preciousd).toLocaleString('es-AR')}` : '-';
+                        const usdM2 = detallesVenta.usdm2 ? `USD ${Number(detallesVenta.usdm2).toLocaleString('es-AR')}` : '-';
+                        const estado = detallesVenta.estadocomercial?.nombreestado || '-';
 
-                      {/* Otros datos que no encajan en las categorías anteriores */}
-                      <div className="md:col-span-2 space-y-4">
-                        <div className="bg-slate-50 p-3 rounded-md">
-                          <h3 className="text-md font-semibold mb-2 text-slate-800">Información Adicional</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.entries(minuta.datos_mapa_ventas)
-                              .filter(([key]) => ![
-                                'proyecto', 'torre', 'piso', 'unidad', 'tipo_unidad', 'superficie_total',
-                                'precio_lista', 'precio_final', 'forma_pago', 'descuento', 'monto_reserva',
-                                'nombre_cliente', 'apellido_cliente', 'email_cliente', 'telefono_cliente',
-                                'fecha_reserva', 'fecha_promesa', 'fecha_escritura', 'fecha_entrega'
-                              ].includes(key))
-                              .map(([key, value]) => (
-                                <div key={key} className="flex justify-between border-b border-slate-200 pb-1 last:border-0">
-                                  <span className="font-medium capitalize">{key.replaceAll('_', ' ')}: </span>
-                                  <span className="text-slate-700">{formatDisplayValue(value)}</span>
+                        const descripcionUnidad = item._unidad_descripcion || `${sector} - ${edificio} - Unidad ${nroUnidad}`;
+
+                        return (
+                          <div key={item.id || index} className="border rounded-lg overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 border-b">
+                              <h3 className="font-semibold flex items-center gap-2">
+                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Unidad {index + 1}</span>
+                                {descripcionUnidad}
+                              </h3>
+                            </div>
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              {/* Ubicación */}
+                              <div>
+                                <h4 className="font-semibold text-muted-foreground mb-2">📍 Ubicación</h4>
+                                <div className="space-y-1">
+                                  <div><span className="font-medium">Proyecto:</span> {proyecto}</div>
+                                  <div><span className="font-medium">Etapa:</span> {etapa}</div>
+                                  <div><span className="font-medium">Edificio:</span> {edificio}</div>
+                                  <div><span className="font-medium">Sector:</span> {sector}</div>
+                                  <div><span className="font-medium">Piso:</span> {piso}</div>
+                                  <div><span className="font-medium">Nro Unidad:</span> {nroUnidad}</div>
                                 </div>
-                              ))}
+                              </div>
+                              {/* Características */}
+                              <div>
+                                <h4 className="font-semibold text-muted-foreground mb-2">🏠 Características</h4>
+                                <div className="space-y-1">
+                                  <div><span className="font-medium">Tipo:</span> {tipoUnidad}</div>
+                                  <div><span className="font-medium">Dormitorios:</span> {dormitorios}</div>
+                                </div>
+                              </div>
+                              {/* Superficies */}
+                              <div>
+                                <h4 className="font-semibold text-muted-foreground mb-2">📐 Superficies</h4>
+                                <div className="space-y-1">
+                                  <div><span className="font-medium">Total:</span> {m2Totales} m²</div>
+                                  <div><span className="font-medium">Cubiertos:</span> {m2Cubiertos} m²</div>
+                                  <div><span className="font-medium">Exclusivos:</span> {m2Exclusivos} m²</div>
+                                  <div><span className="font-medium">Semicubiertos:</span> {m2Semicubiertos} m²</div>
+                                  <div><span className="font-medium">Patio/Terraza:</span> {m2PatioTerraza} m²</div>
+                                </div>
+                              </div>
+                              {/* Info Comercial */}
+                              <div className="md:col-span-3 mt-2 pt-2 border-t">
+                                <h4 className="font-semibold text-muted-foreground mb-2">💰 Información Comercial</h4>
+                                <div className="flex flex-wrap gap-4">
+                                  <div className="bg-green-50 px-3 py-1 rounded">
+                                    <span className="text-green-700 font-medium">Precio:</span> <span className="font-bold text-green-800">{precioUsd}</span>
+                                  </div>
+                                  <div className="bg-blue-50 px-3 py-1 rounded">
+                                    <span className="text-blue-700 font-medium">USD/m²:</span> <span className="font-bold text-blue-800">{usdM2}</span>
+                                  </div>
+                                  <div className="bg-purple-50 px-3 py-1 rounded">
+                                    <span className="text-purple-700 font-medium">Estado:</span> <span className="font-bold text-purple-800">{estado}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               )}
@@ -346,27 +355,144 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           </TabsContent>
 
           <TabsContent value="mapa-ventas">
-            <Card>
-              <CardContent className="pt-6">
-                {minuta.datos_mapa_ventas ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Datos del Mapa de Ventas</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {Object.entries(minuta.datos_mapa_ventas).map(([key, value]) => (
-                        <div key={key} className="border-b pb-2">
-                          <span className="font-medium">{key}: </span>
-                          <span>{formatDisplayValue(value)}</span>
+            <div className="space-y-6">
+              {(() => {
+                let mapData = minuta.datos_mapa_ventas;
+
+                // Parse strings if necessary (fallback)
+                if (typeof mapData === 'string') {
+                  try { mapData = JSON.parse(mapData); } catch (e) { /* ignore */ }
+                }
+
+                if (!mapData || (Array.isArray(mapData) && mapData.length === 0)) {
+                  return (
+                    <Card>
+                      <CardContent className="pt-6 text-center text-muted-foreground">
+                        No hay datos del mapa de ventas disponibles
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                const mapas = Array.isArray(mapData) ? mapData : [mapData];
+
+                // Helper para extraer valor legible de un campo
+                const getReadableValue = (obj: any, field: string): string => {
+                  const val = obj?.[field];
+                  if (val === null || val === undefined) return '-';
+                  if (typeof val === 'object') {
+                    // Extraer nombre de objetos anidados
+                    if (val.nombre) return val.nombre;
+                    if (val.nombreedificio) return val.nombreedificio;
+                    if (val.nombreestado) return val.nombreestado;
+                    if (val.descripcion) return val.descripcion;
+                    return JSON.stringify(val);
+                  }
+                  return String(val);
+                };
+
+                return mapas.map((item: any, index: number) => {
+                  // Extraer datos de forma estructurada
+                  const proyecto = item.edificios?.proyectos?.nombre || '-';
+                  const etapa = item.etapas?.nombre || '-';
+                  const edificio = item.edificios?.nombreedificio || '-';
+                  const tipoUnidad = item.tiposunidad?.nombre || '-';
+                  const sector = item.sectorid || '-';
+                  const nroUnidad = item.nrounidad || '-';
+                  const piso = item.piso || '-';
+                  const dormitorios = item.dormitorios || '-';
+                  const frente = item.frente || '-';
+                  const destino = item.destino || '-';
+                  const manzana = item.manzana || '-';
+
+                  // Datos métricos
+                  const metricas = item.unidadesmetricas || {};
+                  const m2Totales = metricas.m2totales || '-';
+                  const m2Cubiertos = metricas.m2cubiertos || '-';
+                  const m2Exclusivos = metricas.m2exclusivos || '-';
+                  const m2Semicubiertos = metricas.m2semicubiertos || '-';
+                  const m2PatioTerraza = metricas.m2patioterraza || '-';
+
+                  // Datos de venta
+                  const detallesVenta = item.detallesventa_detallesventa_unidad_idTounidades || {};
+                  const precioUsd = detallesVenta.preciousd ? `USD ${Number(detallesVenta.preciousd).toLocaleString('es-AR')}` : '-';
+                  const usdM2 = detallesVenta.usdm2 ? `USD ${Number(detallesVenta.usdm2).toLocaleString('es-AR')}` : '-';
+                  const estado = detallesVenta.estadocomercial?.nombreestado || '-';
+
+                  const descripcionUnidad = item._unidad_descripcion || `${sector} - ${edificio} - Unidad ${nroUnidad}`;
+
+                  return (
+                    <Card key={item.id || index} className="overflow-hidden border-2">
+                      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-3">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Badge variant="outline" className="bg-white">Unidad {index + 1}</Badge>
+                          <span className="text-primary">{descripcionUnidad}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {/* Información General */}
+                          <div className="space-y-2">
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">📍 Ubicación</h4>
+                            <div className="grid grid-cols-2 gap-1 text-sm">
+                              <span className="font-medium">Proyecto:</span><span>{proyecto}</span>
+                              <span className="font-medium">Etapa:</span><span>{etapa}</span>
+                              <span className="font-medium">Edificio:</span><span>{edificio}</span>
+                              <span className="font-medium">Sector:</span><span>{sector}</span>
+                              <span className="font-medium">Piso:</span><span>{piso}</span>
+                              <span className="font-medium">Nro Unidad:</span><span>{nroUnidad}</span>
+                              <span className="font-medium">Manzana:</span><span>{manzana}</span>
+                              <span className="font-medium">Frente:</span><span>{frente}</span>
+                            </div>
+                          </div>
+
+                          {/* Características */}
+                          <div className="space-y-2">
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">🏠 Características</h4>
+                            <div className="grid grid-cols-2 gap-1 text-sm">
+                              <span className="font-medium">Tipo:</span><span>{tipoUnidad}</span>
+                              <span className="font-medium">Dormitorios:</span><span>{dormitorios}</span>
+                              <span className="font-medium">Destino:</span><span>{destino}</span>
+                            </div>
+                          </div>
+
+                          {/* Superficies */}
+                          <div className="space-y-2">
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">📐 Superficies</h4>
+                            <div className="grid grid-cols-2 gap-1 text-sm">
+                              <span className="font-medium">Total:</span><span>{m2Totales} m²</span>
+                              <span className="font-medium">Cubiertos:</span><span>{m2Cubiertos} m²</span>
+                              <span className="font-medium">Exclusivos:</span><span>{m2Exclusivos} m²</span>
+                              <span className="font-medium">Semicubiertos:</span><span>{m2Semicubiertos} m²</span>
+                              <span className="font-medium">Patio/Terraza:</span><span>{m2PatioTerraza} m²</span>
+                            </div>
+                          </div>
+
+                          {/* Precios */}
+                          <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">💰 Información Comercial</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div className="p-2 bg-green-50 rounded">
+                                <span className="block font-medium text-green-700">Precio</span>
+                                <span className="text-lg font-bold text-green-800">{precioUsd}</span>
+                              </div>
+                              <div className="p-2 bg-blue-50 rounded">
+                                <span className="block font-medium text-blue-700">Precio/m²</span>
+                                <span className="text-lg font-bold text-blue-800">{usdM2}</span>
+                              </div>
+                              <div className="p-2 bg-purple-50 rounded">
+                                <span className="block font-medium text-purple-700">Estado</span>
+                                <Badge variant={estado === 'Disponible' ? 'default' : 'secondary'}>{estado}</Badge>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No hay datos del mapa de ventas disponibles
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      </CardContent>
+                    </Card>
+                  );
+                });
+              })()}
+            </div>
           </TabsContent>
 
           <TabsContent value="json">
@@ -466,18 +592,91 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           </DialogDescription>
 
           {minuta && (
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
-              <div>
-                <span className="font-medium">Proyecto: </span>
-                <span>{minuta.proyectos?.nombre || minuta.proyecto}</span>
+            <div className="flex flex-col gap-3 mt-4">
+              {/* Proyecto y Fecha */}
+              <div className="flex justify-between items-center text-sm">
+                <div>
+                  <span className="font-medium">Proyecto: </span>
+                  <span>{minuta.proyectos?.nombre || minuta.proyecto}</span>
+                </div>
+                <div>
+                  <span className="font-medium">Fecha: </span>
+                  <span>{new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</span>
+                </div>
               </div>
-              <div>
-                <span className="font-medium">Unidad: </span>
-                <span>{minuta.datos?.unidadDescripcion || minuta.datos?.unidadCodigo || 'Sin unidad'}</span>
-              </div>
-              <div>
-                <span className="font-medium">Fecha: </span>
-                <span>{new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</span>
+
+              {/* Status Progress Indicator */}
+              <div className="flex items-center justify-center py-2">
+                {(() => {
+                  const estados = ['en_edicion', 'pendiente', 'aprobada', 'firmada'];
+                  const estadoLabels: Record<string, string> = {
+                    'en_edicion': 'En Edición',
+                    'pendiente': 'Pendiente',
+                    'aprobada': 'Aprobada',
+                    'firmada': 'Firmada'
+                  };
+                  const estadoActual = minuta.estado;
+                  const indexActual = estados.indexOf(estadoActual);
+
+                  // Si está cancelada/rechazada, mostrar diferente
+                  if (estadoActual === 'cancelada' || estadoActual === 'rechazada') {
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
+                          <XCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-red-600 font-medium capitalize">{estadoActual}</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex items-center">
+                      {estados.map((estado, idx) => {
+                        const isPast = idx < indexActual;
+                        const isCurrent = idx === indexActual;
+                        const isFuture = idx > indexActual;
+
+                        return (
+                          <div key={estado} className="flex items-center">
+                            {/* Bubble */}
+                            <div className="flex flex-col items-center">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isCurrent
+                                  ? 'bg-green-500 text-white ring-2 ring-green-300 ring-offset-2'
+                                  : isPast
+                                    ? 'bg-gray-400 text-white'
+                                    : 'bg-gray-200 text-gray-400'
+                                  }`}
+                              >
+                                {isPast ? (
+                                  <CheckCircle className="w-4 h-4" />
+                                ) : isCurrent ? (
+                                  <span>●</span>
+                                ) : (
+                                  <span className="text-[10px]">{idx + 1}</span>
+                                )}
+                              </div>
+                              <span
+                                className={`text-[10px] mt-1 ${isCurrent ? 'text-green-600 font-semibold' : 'text-gray-500'
+                                  }`}
+                              >
+                                {estadoLabels[estado] || estado}
+                              </span>
+                            </div>
+                            {/* Connecting line */}
+                            {idx < estados.length - 1 && (
+                              <div
+                                className={`w-8 h-0.5 mx-1 -mt-6 ${idx < indexActual ? 'bg-gray-400' : 'bg-gray-200'
+                                  }`}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}

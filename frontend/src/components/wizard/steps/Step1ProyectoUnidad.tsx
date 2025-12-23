@@ -1,15 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash, Building, Car, Package, Store, Warehouse, Pencil } from "lucide-react";
+import { Plus, Trash, Building, Car, Package, Store, Warehouse, Pencil, Lock } from "lucide-react";
 import { UnidadSeleccionada, TipoUnidad } from "@/types/wizard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUnidadFilters } from "@/hooks/useUnidadFilters";
-import { useTiposDisponibles } from "@/hooks/useUnidades";
+import { useProyectos, useTipos } from "@/hooks/useUnidades";
 import { UnidadFormulario } from "./UnidadFormulario";
 
 export const Step1ProyectoUnidad: React.FC = () => {
@@ -19,22 +19,40 @@ export const Step1ProyectoUnidad: React.FC = () => {
   // Custom hook para manejar filtros en cascada
   const filters = useUnidadFilters();
 
-  // Load tipos from database
-  const { data: tiposDisponibles = [], isLoading: loadingTipos } = useTiposDisponibles();
+  // Cargar proyectos disponibles
+  const { data: proyectosDisponibles = [], isLoading: loadingProyectos } = useProyectos();
+
+  // Estado para el proyecto seleccionado a nivel global
+  const [proyectoGlobal, setProyectoGlobal] = useState<string>(data.proyecto || "");
+
+  // Cargar tipos disponibles para el proyecto seleccionado
+  const { data: tiposDelProyecto = [], isLoading: loadingTipos } = useTipos(proyectoGlobal);
 
   // Estados para la selección múltiple de unidades
-  const [tipoUnidadSeleccionado, setTipoUnidadSeleccionado] = useState<TipoUnidad>("Departamento");
+  const [tipoUnidadSeleccionado, setTipoUnidadSeleccionado] = useState<string>("");
   const [unidadesSeleccionadas, setUnidadesSeleccionadas] = useState<UnidadSeleccionada[]>(data.unidades || []);
   const [unidadActual, setUnidadActual] = useState<UnidadSeleccionada | null>(null);
   const [modoEdicion, setModoEdicion] = useState<boolean>(false);
   const [indiceEdicion, setIndiceEdicion] = useState<number>(-1);
   const [mostrarFormularioUnidad, setMostrarFormularioUnidad] = useState<boolean>(false);
 
+  // Determinar si el proyecto está bloqueado (hay unidades agregadas)
+  const proyectoBloqueado = unidadesSeleccionadas.length > 0;
+
+  // Actualizar tipo seleccionado cuando cambian los tipos disponibles
+  useEffect(() => {
+    if (tiposDelProyecto.length > 0 && !tipoUnidadSeleccionado) {
+      setTipoUnidadSeleccionado(tiposDelProyecto[0]);
+    }
+  }, [tiposDelProyecto, tipoUnidadSeleccionado]);
+
   const clearAllErrors = () => setErrors({});
 
-  const handleProyectoChange = (value: string) => {
-    filters.setProyectoSeleccionado(value);
+  const handleProyectoGlobalChange = (value: string) => {
+    setProyectoGlobal(value);
     updateData({ proyecto: value });
+    // Resetear tipo cuando cambia el proyecto
+    setTipoUnidadSeleccionado("");
     clearAllErrors();
   };
 
@@ -45,9 +63,9 @@ export const Step1ProyectoUnidad: React.FC = () => {
     if (unidad) {
       setUnidadActual({
         id: unidadId,
-        tipo: tipoUnidadSeleccionado,
+        tipo: tipoUnidadSeleccionado as TipoUnidad,
         descripcion: unidad.descripcion,
-        proyecto: filters.proyectoSeleccionado,
+        proyecto: proyectoGlobal,
         etapa: filters.etapaSeleccionada,
         sector: filters.sectorSeleccionado,
         precioLista: unidad.precioUSD || 0,
@@ -67,15 +85,28 @@ export const Step1ProyectoUnidad: React.FC = () => {
     }
   };
 
-  const mostrarFormulario = (tipo: TipoUnidad) => {
-    setTipoUnidadSeleccionado(tipo);
+  const mostrarFormulario = () => {
+    if (!proyectoGlobal) {
+      setErrors({ proyecto: "Seleccione un proyecto primero" });
+      return;
+    }
+    if (!tipoUnidadSeleccionado) {
+      setErrors({ tipo: "Seleccione un tipo de unidad" });
+      return;
+    }
+
     setMostrarFormularioUnidad(true);
     setModoEdicion(false);
     setIndiceEdicion(-1);
 
-    // Pre-select tipo in filters for type-first flow
-    filters.resetFilters();
-    filters.setTipoSeleccionado(tipo);
+    // Pre-seleccionar proyecto y tipo en los filtros SIN cascade reset
+    filters.setAllFilters({
+      tipo: tipoUnidadSeleccionado,
+      proyecto: proyectoGlobal,
+      etapa: '',
+      sector: '',
+      unidad: ''
+    });
 
     setUnidadActual(null);
   };
@@ -141,10 +172,13 @@ export const Step1ProyectoUnidad: React.FC = () => {
     updateData({ unidades: nuevasUnidades });
   };
 
-  const getIconForTipoUnidad = (tipo: TipoUnidad) => {
-    const icons = {
+  const getIconForTipoUnidad = (tipo: string) => {
+    const icons: Record<string, React.ReactNode> = {
       Departamento: <Building className="w-5 h-5" />,
       Cochera: <Car className="w-5 h-5" />,
+      "Cochera Cubierta": <Car className="w-5 h-5" />,
+      "Cochera Semicubierta": <Car className="w-5 h-5" />,
+      "Cochera Descubierta": <Car className="w-5 h-5" />,
       Baulera: <Package className="w-5 h-5" />,
       Local: <Store className="w-5 h-5" />,
       Nave: <Warehouse className="w-5 h-5" />
@@ -154,45 +188,101 @@ export const Step1ProyectoUnidad: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Lista de unidades seleccionadas */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Unidades Seleccionadas</h2>
-          <div className="flex items-center gap-2">
+      {/* Selección de Proyecto y Tipo - Barra superior */}
+      <div className="rounded-lg border border-border p-4 space-y-4">
+        <h2 className="text-xl font-semibold">Seleccione Proyecto y Tipo de Unidad</h2>
+
+        <div className="flex items-center gap-4">
+          {/* Dropdown de Proyecto */}
+          <div className="flex-1">
+            <Label htmlFor="proyectoGlobal" className="flex items-center gap-2">
+              Proyecto <span className="text-destructive">*</span>
+              {proyectoBloqueado && <Lock className="w-4 h-4 text-muted-foreground" />}
+            </Label>
             <Select
-              value={tipoUnidadSeleccionado}
-              onValueChange={(value: TipoUnidad) => setTipoUnidadSeleccionado(value)}
-              disabled={loadingTipos || mostrarFormularioUnidad}
+              value={proyectoGlobal}
+              onValueChange={handleProyectoGlobalChange}
+              disabled={loadingProyectos || mostrarFormularioUnidad || proyectoBloqueado}
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder={loadingTipos ? "Cargando..." : "Tipo de unidad"} />
+              <SelectTrigger id="proyectoGlobal" className="w-full">
+                <SelectValue placeholder={loadingProyectos ? "Cargando..." : "Seleccione proyecto"} />
               </SelectTrigger>
               <SelectContent>
-                {tiposDisponibles.map((tipo) => (
+                {proyectosDisponibles.map((proyecto) => (
+                  <SelectItem key={proyecto} value={proyecto}>
+                    {proyecto}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {proyectoBloqueado && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Elimine todas las unidades para cambiar de proyecto
+              </p>
+            )}
+            {errors.proyecto && <p className="text-sm text-destructive">{errors.proyecto}</p>}
+          </div>
+
+          {/* Dropdown de Tipo de Unidad */}
+          <div className="flex-1">
+            <Label htmlFor="tipoUnidad">
+              Tipo de Unidad <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={tipoUnidadSeleccionado}
+              onValueChange={setTipoUnidadSeleccionado}
+              disabled={!proyectoGlobal || loadingTipos || mostrarFormularioUnidad}
+            >
+              <SelectTrigger id="tipoUnidad" className="w-full">
+                <SelectValue placeholder={
+                  !proyectoGlobal
+                    ? "Seleccione proyecto primero"
+                    : loadingTipos
+                      ? "Cargando..."
+                      : "Tipo de unidad"
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {tiposDelProyecto.map((tipo) => (
                   <SelectItem key={tipo} value={tipo}>
                     {tipo}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {errors.tipo && <p className="text-sm text-destructive">{errors.tipo}</p>}
+          </div>
+
+          {/* Botón Agregar Unidad */}
+          <div className="pt-6">
             <Button
-              variant="outline"
-              onClick={() => mostrarFormulario(tipoUnidadSeleccionado)}
-              className="flex items-center gap-1"
-              disabled={mostrarFormularioUnidad}
+              variant="default"
+              onClick={mostrarFormulario}
+              className="flex items-center gap-2"
+              disabled={!proyectoGlobal || !tipoUnidadSeleccionado || mostrarFormularioUnidad}
             >
               <Plus className="w-4 h-4" />
-              {getIconForTipoUnidad(tipoUnidadSeleccionado)}
+              {tipoUnidadSeleccionado && getIconForTipoUnidad(tipoUnidadSeleccionado)}
               Agregar Unidad
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Lista de unidades seleccionadas */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Unidades Seleccionadas ({unidadesSeleccionadas.length})</h3>
 
         {unidadesSeleccionadas.length === 0 ? (
           <div className="text-center py-8 border border-dashed rounded-lg">
             <Building className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
             <p className="text-muted-foreground">No hay unidades agregadas</p>
-            <p className="text-sm text-muted-foreground mt-2">Seleccione un tipo de unidad y haga clic en "Agregar Unidad"</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {proyectoGlobal
+                ? "Seleccione un tipo y haga clic en \"Agregar Unidad\""
+                : "Seleccione un proyecto para comenzar"
+              }
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -228,15 +318,15 @@ export const Step1ProyectoUnidad: React.FC = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <span className="font-medium">Proyecto:</span> {unidad.proyecto}
                       </div>
                       <div>
-                        <span className="font-medium">Etapa:</span> {unidad.etapa}
+                        <span className="font-medium">Etapa:</span> {unidad.etapa || "-"}
                       </div>
                       <div>
-                        <span className="font-medium">Precio Lista:</span> ${unidad.precioLista.toLocaleString()}
+                        <span className="font-medium">Precio:</span> ${unidad.precioLista.toLocaleString()}
                       </div>
                     </div>
                   </CardContent>
@@ -251,26 +341,26 @@ export const Step1ProyectoUnidad: React.FC = () => {
       {/* Formulario para agregar unidad */}
       {mostrarFormularioUnidad && (
         <UnidadFormulario
-          proyectos={filters.proyectos}
+          proyectos={[proyectoGlobal]} // Solo el proyecto seleccionado
           etapas={filters.etapas}
           unidades={filters.unidades}
-          proyectoSeleccionado={filters.proyectoSeleccionado}
+          proyectoSeleccionado={proyectoGlobal}
           etapaSeleccionada={filters.etapaSeleccionada}
           unidadSeleccionada={filters.unidadSeleccionada}
-          loadingProyectos={filters.loadingProyectos}
+          loadingProyectos={false}
           loadingEtapas={filters.loadingEtapas}
           loadingUnidades={filters.loadingUnidades}
-          onProyectoChange={handleProyectoChange}
+          onProyectoChange={() => { }} // Proyecto bloqueado
           onEtapaChange={(value) => filters.setEtapaSeleccionada(value)}
           onUnidadChange={handleUnidadChange}
-          tipoUnidad={tipoUnidadSeleccionado}
+          tipoUnidad={tipoUnidadSeleccionado as TipoUnidad}
           modoEdicion={modoEdicion}
           errors={errors}
           onAgregar={agregarUnidad}
           onCancelar={cancelarAgregarUnidad}
+          proyectoBloqueado={true}
         />
       )}
-
 
       {/* Fecha de Posesión */}
       <div className="space-y-2">
@@ -282,6 +372,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
           type="date"
           value={data.fechaPosesion || ''}
           onChange={(e) => updateData({ fechaPosesion: e.target.value })}
+          min={new Date().toISOString().split('T')[0]}
           className={errors.fechaPosesion ? 'border-destructive' : ''}
         />
         {errors.fechaPosesion && <p className="text-sm text-destructive">{errors.fechaPosesion}</p>}

@@ -42,7 +42,7 @@ export const MonedaEnum = z.enum(['USD', 'ARS', 'MIX', 'CLP', 'UF'], {
   errorMap: () => ({ message: 'Moneda inválida' })
 });
 
-export const EstadoMinutaEnum = z.enum(['borrador', 'pendiente', 'aprobada', 'rechazada', 'firmada', 'cancelada'], {
+export const EstadoMinutaEnum = z.enum(['borrador', 'pendiente', 'en_edicion', 'aprobada', 'rechazada', 'firmada', 'cancelada'], {
   errorMap: () => ({ message: 'Estado inválido' })
 });
 
@@ -79,9 +79,17 @@ export const PeriodicidadCuotaEnum = z.enum([
 export const TipoUnidadEnum = z.enum([
   'Departamento',
   'Cochera',
+  'Cochera Cubierta',
+  'Cochera Semicubierta',
+  'Cochera Descubierta',
   'Baulera',
   'Local',
-  'Nave'
+  'Nave',
+  'Oficina',
+  'Lote',
+  'Casa',
+  'PH',
+  'Otro'
 ], {
   errorMap: () => ({ message: 'Tipo de unidad inválido' })
 });
@@ -90,33 +98,19 @@ export const TipoUnidadEnum = z.enum([
 // SCHEMAS DE SUB-OBJETOS
 // ============================================
 
-// Schema para Unidad Seleccionada
+// Schema para Unidad Seleccionada (más permisivo para aceptar datos de BD)
 export const unidadSeleccionadaSchema = z.object({
   id: z.string().min(1, 'ID de unidad es requerido'),
-  tipo: TipoUnidadEnum,
-  descripcion: z.string().min(1, 'Descripción es requerida').max(200, 'Descripción muy larga'),
+  tipo: z.string().min(1, 'Tipo es requerido'), // Acepta cualquier tipo de unidad de la BD
+  descripcion: z.string().min(1, 'Descripción es requerida').max(500, 'Descripción muy larga'),
   proyecto: z.string().min(1, 'Proyecto es requerido'),
-  etapa: z.string().max(100, 'Etapa muy larga').optional(),
-  sector: z.string().max(100, 'Sector muy largo').optional(),
-  precioLista: priceSchema,
-  precioNegociado: priceSchema,
-  tipoDescuento: TipoDescuentoEnum,
-  valorDescuento: positiveNumberSchema,
-  naturaleza: z.string().max(100, 'Naturaleza muy larga').optional(),
-})
-.refine((data) => data.precioNegociado <= data.precioLista, {
-  message: 'El precio negociado no puede ser mayor al precio de lista',
-  path: ['precioNegociado'],
-})
-.refine((data) => {
-  if (data.tipoDescuento === 'porcentaje') {
-    const expectedDiscount = ((data.precioLista - data.precioNegociado) / data.precioLista) * 100;
-    return Math.abs(expectedDiscount - data.valorDescuento) < 0.1;
-  }
-  return true;
-}, {
-  message: 'El descuento porcentual no coincide con la diferencia de precios',
-  path: ['valorDescuento'],
+  etapa: z.string().max(100).optional().nullable(),
+  sector: z.string().max(100).optional().nullable(),
+  precioLista: positiveNumberSchema,
+  precioNegociado: positiveNumberSchema,
+  tipoDescuento: TipoDescuentoEnum.optional().default('ninguno'),
+  valorDescuento: positiveNumberSchema.optional().default(0),
+  naturaleza: z.string().max(100).optional().nullable(),
 });
 
 // Schema para Cochera/Baulera
@@ -124,10 +118,10 @@ export const itemSchema = z.object({
   precioLista: priceSchema,
   precioNegociado: priceSchema,
 })
-.refine((data) => data.precioNegociado <= data.precioLista, {
-  message: 'El precio negociado no puede superar el precio de lista',
-  path: ['precioNegociado'],
-});
+  .refine((data) => data.precioNegociado <= data.precioLista, {
+    message: 'El precio negociado no puede superar el precio de lista',
+    path: ['precioNegociado'],
+  });
 
 // Schema para Regla de Financiación
 export const reglaFinanciacionSchema = z.object({
@@ -152,14 +146,14 @@ export const reglaFinanciacionSchema = z.object({
   porcentajeDeudaParte: percentageSchema,
   activa: z.boolean().default(true),
 })
-.refine((data) => {
-  const primer = new Date(data.primerVencimiento);
-  const ultimo = new Date(data.ultimoVencimiento);
-  return primer < ultimo;
-}, {
-  message: 'La fecha de primer vencimiento debe ser anterior a la última',
-  path: ['ultimoVencimiento'],
-});
+  .refine((data) => {
+    const primer = new Date(data.primerVencimiento);
+    const ultimo = new Date(data.ultimoVencimiento);
+    return primer < ultimo;
+  }, {
+    message: 'La fecha de primer vencimiento debe ser anterior a la última',
+    path: ['ultimoVencimiento'],
+  });
 
 // Schema para Composición A/B
 export const composicionSchema = z.object({
@@ -177,7 +171,7 @@ export const composicionSchema = z.object({
 const minutaBaseSchema = z.object({
   // Identificación
   id: uuidSchema.optional(),
-  
+
   // Paso 1: Proyecto & Unidad
   proyecto: z.string().min(1, 'Proyecto es requerido').max(200, 'Proyecto muy largo'),
   unidad: z.string().max(100, 'Unidad muy larga').optional(),
@@ -185,12 +179,12 @@ const minutaBaseSchema = z.object({
   fechaPosesion: z.string()
     .min(1, 'Fecha de posesión es requerida')
     .regex(/^\d{4}-\d{2}-\d{2}/, 'Formato de fecha inválido (YYYY-MM-DD)'),
-  
+
   // Múltiples unidades
   unidades: z.array(unidadSeleccionadaSchema)
     .min(1, 'Debe seleccionar al menos una unidad')
     .max(10, 'Máximo 10 unidades permitidas'),
-  
+
   // Paso 2: Datos comerciales
   precioLista: priceSchema,
   precioNegociado: priceSchema,
@@ -198,14 +192,14 @@ const minutaBaseSchema = z.object({
   valorDescuento: positiveNumberSchema,
   cocheras: z.array(itemSchema).max(3, 'Máximo 3 cocheras permitidas').optional().default([]),
   baulera: itemSchema.nullable().optional(),
-  
+
   // Paso 3: Composición A/B
   modoA: z.enum(['porcentaje', 'importe']),
   porcA: percentageSchema,
   impA: positiveNumberSchema,
   monedaA: MonedaEnum,
   monedaB: MonedaEnum,
-  
+
   // Paso 4: Financiamiento
   tipoPago: TipoPagoEnum,
   tcFuente: z.enum(['MEP', 'BNA', 'Acordado', 'Otro']),
@@ -226,7 +220,7 @@ const minutaBaseSchema = z.object({
   fechaBaseCAC: z.string()
     .regex(/^\d{4}-\d{2}-\d{2}/, 'Formato de fecha inválido (YYYY-MM-DD)')
     .optional(),
-  
+
   // Paso 5: Cargos y extras
   certificacionFirmas: positiveNumberSchema.optional().default(80000),
   certificacionFirmasPago: FormaPagoEnum.optional().default('Firma de Boleto'),
@@ -247,53 +241,53 @@ const minutaBaseSchema = z.object({
   otrosGastosPago: FormaPagoEnum.optional().default('-'),
   totalCargosArs: positiveNumberSchema.optional().default(0),
   totalCargosUsd: positiveNumberSchema.optional().default(0),
-  
+
   // Paso 6: Reglas de financiación
   reglasFinanciacionA: z.array(reglaFinanciacionSchema).optional().default([]),
   reglasFinanciacionB: z.array(reglaFinanciacionSchema).optional().default([]),
   porcentajePagadoFechaPosesion: percentageSchema.optional().default(85),
-  
+
   // Paso 7: Tipo de cambio
   dolarRef: positiveNumberSchema.optional().default(0),
   formatoSalida: z.enum(['PDF', 'XLSX']).optional().default('PDF'),
-  
+
   // Metadata
   estado: EstadoMinutaEnum.default('borrador'),
   observaciones: z.string().max(1000, 'Observaciones muy largas').optional(),
   comentarios: z.string().max(1000, 'Comentarios muy largos').optional(),
-  
+
   // Auditoría
   usuario_id: uuidSchema.optional(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
 })
-// Validaciones cruzadas
-.refine((data) => data.precioNegociado <= data.precioLista, {
-  message: 'El precio negociado no puede ser mayor al precio de lista',
-  path: ['precioNegociado'],
-})
-.refine((data) => {
-  // Si modo es porcentaje, validar que porcA + (100-porcA) = 100
-  if (data.modoA === 'porcentaje') {
-    return data.porcA >= 0 && data.porcA <= 100;
-  }
-  return true;
-}, {
-  message: 'El porcentaje de la parte A debe estar entre 0 y 100',
-  path: ['porcA'],
-})
-.refine((data) => {
-  // Validar que las fechas sean coherentes
-  if (data.fechaFirmaBoleto && data.fechaPosesion) {
-    const firmaBoleto = new Date(data.fechaFirmaBoleto);
-    const posesion = new Date(data.fechaPosesion);
-    return firmaBoleto <= posesion;
-  }
-  return true;
-}, {
-  message: 'La fecha de firma de boleto debe ser anterior o igual a la fecha de posesión',
-  path: ['fechaFirmaBoleto'],
-});
+  // Validaciones cruzadas
+  .refine((data) => data.precioNegociado <= data.precioLista, {
+    message: 'El precio negociado no puede ser mayor al precio de lista',
+    path: ['precioNegociado'],
+  })
+  .refine((data) => {
+    // Si modo es porcentaje, validar que porcA + (100-porcA) = 100
+    if (data.modoA === 'porcentaje') {
+      return data.porcA >= 0 && data.porcA <= 100;
+    }
+    return true;
+  }, {
+    message: 'El porcentaje de la parte A debe estar entre 0 y 100',
+    path: ['porcA'],
+  })
+  .refine((data) => {
+    // Validar que las fechas sean coherentes
+    if (data.fechaFirmaBoleto && data.fechaPosesion) {
+      const firmaBoleto = new Date(data.fechaFirmaBoleto);
+      const posesion = new Date(data.fechaPosesion);
+      return firmaBoleto <= posesion;
+    }
+    return true;
+  }, {
+    message: 'La fecha de firma de boleto debe ser anterior o igual a la fecha de posesión',
+    path: ['fechaFirmaBoleto'],
+  });
 
 // Schema principal exportado con todas las validaciones
 export const minutaSchema = minutaBaseSchema
