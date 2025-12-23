@@ -1,7 +1,7 @@
 
 import * as jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 
 // Cargar variables de entorno
 if (fs.existsSync('.env')) {

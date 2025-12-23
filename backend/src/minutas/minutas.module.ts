@@ -9,6 +9,7 @@ import { PrismaMinutasRepository } from './repositories/prisma-minutas.repositor
 import { DocumentGenerationService } from './services/document-generation/document-generation.service';
 import { N8nDocumentGenerator } from './services/document-generation/n8n-generator.service';
 import { UnitStateService } from './services/unit-state.service';
+import { LoggerModule } from '../logger/logger.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UnitStateService } from './services/unit-state.service';
     JwtModule.register({
       secret: process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET,
     }),
+    LoggerModule,
   ],
   controllers: [MinutasController],
   providers: [

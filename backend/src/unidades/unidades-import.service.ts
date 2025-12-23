@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LoggerService } from '../logger/logger.service';
 import * as XLSX from 'xlsx';
 
 @Injectable()
 export class UnidadesImportService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly logger: LoggerService
+    ) { }
 
-    async importFromExcel(buffer: Buffer) {
+    async importFromExcel(buffer: Buffer, user?: any) {
         const workbook = XLSX.read(buffer, { type: 'buffer', raw: false });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
@@ -34,6 +38,26 @@ export class UnidadesImportService {
                 console.error(`Error processing row ${index + 2}:`, error);
                 results.details.push({ row: index + 2, error: error.message || 'Unknown error' });
             }
+        }
+
+        if (results.errors === 0) {
+            await this.logger.agregarLog({
+                motivo: 'Importación Masiva',
+                descripcion: `Se importaron ${results.success} unidades exitosamente.`,
+                impacto: 'Alto',
+                tablaafectada: 'unidades',
+                usuarioID: user?.sub || user?.id,
+                usuarioemail: user?.email
+            });
+        } else {
+            await this.logger.agregarLog({
+                motivo: 'Importación Masiva con Errores',
+                descripcion: `Se importaron ${results.success} unidades. Fallaron ${results.errors}.`,
+                impacto: 'Medio',
+                tablaafectada: 'unidades',
+                usuarioID: user?.sub || user?.id,
+                usuarioemail: user?.email
+            });
         }
 
         return results;

@@ -28,7 +28,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                     <div className="dashboard-title-section">
                         <h1 className="dashboard-title">{title}</h1>
                         <p className="dashboard-subtitle">
-                            {subtitle || `Bienvenido, ${userName}`}
+                            {subtitle}
                         </p>
                     </div>
                 </div>

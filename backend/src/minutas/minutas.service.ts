@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MinutasGateway } from './minutas.gateway';
 import { sanitizeString, sanitizeObject } from '../common/sanitize.helper';
 import { UnitStateService } from './services/unit-state.service';
+import { LoggerService } from '../logger/logger.service';
 
 // Definir transiciones de estado válidas (todo en minúsculas)
 const VALID_STATE_TRANSITIONS: Record<string, string[]> = {
@@ -40,6 +41,7 @@ export class MinutasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly unitStateService: UnitStateService,
+    private readonly logger: LoggerService,
     @Optional() @Inject(forwardRef(() => MinutasGateway)) private readonly gateway?: MinutasGateway,
   ) { }
 
@@ -118,14 +120,14 @@ export class MinutasService {
         select: { id: true }
       });
 
-      console.log('✅ Proyecto encontrado:', proyecto);
+      console.log('Proyecto encontrado:', proyecto);
 
       if (proyecto) {
         proyectoId = proyecto.id;
       }
     }
 
-    console.log('💾 Guardando con proyectoId:', proyectoId);
+    console.log('Guardando con proyectoId:', proyectoId);
 
     // Exclude clienteInteresadoDni from spread - it's not a valid Prisma field
     const { clienteInteresadoDni: _dniToExclude, ...dataForPrisma } = sanitizedData;
@@ -141,15 +143,15 @@ export class MinutasService {
       } as any,
     });
 
-    // 📦 Reservar unidades asociadas a la minuta
+    // Reservar unidades asociadas a la minuta
     const unidadIds = sanitizedData.datos?.unidades?.map((u: { id: string }) => u.id).filter(Boolean) || [];
     if (unidadIds.length > 0) {
       await this.unitStateService.reservarUnidades(unidadIds);
     }
 
-    // 🧑 Actualizar detallesventa con el DNI del cliente interesado
+    // Actualizar detallesventa con el DNI del cliente interesado
     if (createMinutaDto.clienteInteresadoDni && unidadIds.length > 0) {
-      console.log('👤 Actualizando detallesventa con cliente DNI:', createMinutaDto.clienteInteresadoDni);
+      console.log('Actualizando detallesventa con cliente DNI:', createMinutaDto.clienteInteresadoDni);
 
       for (const unidadId of unidadIds) {
         await this.prisma.detallesventa.upsert({
@@ -164,7 +166,7 @@ export class MinutasService {
         });
       }
 
-      // 📊 Actualizar unidadesInteresadas del cliente para estadísticas
+      // Actualizar unidadesInteresadas del cliente para estadísticas
       const cliente = await this.prisma.clientes.findUnique({
         where: { dni: createMinutaDto.clienteInteresadoDni },
         select: { unidadesInteresadas: true },
@@ -181,11 +183,11 @@ export class MinutasService {
         data: { unidadesInteresadas: unidadesActualizadas },
       });
 
-      console.log('📊 Unidades interesadas actualizadas para cliente:', unidadesActualizadas);
+      console.log('Unidades interesadas actualizadas para cliente:', unidadesActualizadas);
     }
 
 
-    // 📡 Emitir evento WebSocket a admins
+    // Emitir evento WebSocket a admins
     if (this.gateway) {
       this.gateway.emitMinutaCreated({
         minutaId: minuta.id,
@@ -194,6 +196,21 @@ export class MinutasService {
         usuarioId: userId,
       });
     }
+
+    // AUDIT LOG: Creación de Minuta
+    const userEmailRaw = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
+
+    await this.logger.agregarLog({
+      motivo: 'Creación de Minuta',
+      descripcion: `Minuta creada exitosamente para proyecto ${sanitizedData.datos?.proyecto}. Unidades: ${unidadIds.length}`,
+      impacto: 'Alto',
+      tablaafectada: 'minutas_definitivas',
+      usuarioID: userId,
+      usuarioemail: userEmailRaw?.email || 'unknown',
+    });
 
     return minuta;
   }
@@ -336,7 +353,7 @@ export class MinutasService {
   async findOne(id: string, userId: string) {
     const minuta = await this.prisma.minutas_definitivas.findUnique({
       where: { id },
-      // 🔒 SEGURIDAD: Usar select para controlar exactamente qué campos devolver
+      // SEGURIDAD: Usar select para controlar exactamente qué campos devolver
       // El usuario_id se obtiene internamente para validación pero NO se expone al cliente
       select: {
         id: true,
@@ -367,7 +384,7 @@ export class MinutasService {
       throw new NotFoundException(`Minuta con ID ${id} no encontrada.`);
     }
 
-    // 🔒 SEGURIDAD: Verificar permisos usando userId antes de eliminarlo de la respuesta
+    // SEGURIDAD: Verificar permisos usando userId antes de eliminarlo de la respuesta
     const userPermissions = await this.getUserPermissions(userId);
     const canViewAll = userPermissions.some(p => p.nombre === 'verTodasMinutas');
 
@@ -398,7 +415,7 @@ export class MinutasService {
       }
     }
 
-    // 🔒 SEGURIDAD: Eliminar usuario_id de la respuesta - no debe exponerse al cliente
+    // SEGURIDAD: Eliminar usuario_id de la respuesta - no debe exponerse al cliente
     const { usuario_id: _, ...safeMinuta } = minuta;
     return safeMinuta;
   }
@@ -433,7 +450,7 @@ export class MinutasService {
       throw new ForbiddenException(`No tienes permiso para acceder a esta minuta.`);
     }
 
-    // 🔒 SEGURIDAD: Validar version para optimistic locking
+    // SEGURIDAD: Validar version para optimistic locking
     if (updateMinutaDto.version !== undefined && updateMinutaDto.version !== minuta.version) {
       throw new ConflictException(
         `La minuta ha sido modificada por otro usuario. Por favor, recarga la página y vuelve a intentar.`
@@ -461,10 +478,13 @@ export class MinutasService {
 
       // 🔒 VALIDACIÓN: Motivo obligatorio al cancelar
       const estadoLower = updateMinutaDto.estado.toLowerCase();
-      if (estadoLower === 'cancelada') {
+
+      // Validar motivo obligatorio para 'cancelada' y 'en_edicion'
+      if (['cancelada', 'en_edicion'].includes(estadoLower)) {
         if (!updateMinutaDto.comentarios || updateMinutaDto.comentarios.trim() === '') {
+          const accion = estadoLower === 'cancelada' ? 'cancelación' : 'edición';
           throw new BadRequestException(
-            'El motivo de cancelación es obligatorio. Por favor, proporcione un comentario.'
+            `El motivo de ${accion} es obligatorio. Por favor, proporcione un comentario.`
           );
         }
       }
@@ -572,6 +592,24 @@ export class MinutasService {
         estado: updateMinutaDto.estado,
         usuarioId: minuta.usuario_id,
       });
+
+      // 📝 AUDIT LOG: Cambio de Estado
+      const userEmailRaw = await this.prisma.users.findUnique({
+        where: { id: userId },
+        select: { email: true }
+      });
+
+      // Determinar impacto based on new state
+      const impacto = updateMinutaDto.estado === 'cancelada' ? 'Alto' : 'Medio';
+
+      await this.logger.agregarLog({
+        motivo: 'Cambio de Estado de Minuta',
+        descripcion: `Estado cambiado de '${minuta.estado}' a '${updateMinutaDto.estado}'.`,
+        impacto: impacto,
+        tablaafectada: 'minutas_definitivas',
+        usuarioID: userId,
+        usuarioemail: userEmailRaw?.email || 'unknown',
+      });
     }
 
     // 🔒 SEGURIDAD: Eliminar usuario_id de la respuesta
@@ -609,9 +647,26 @@ export class MinutasService {
     // Validar propiedad antes de eliminar
     await this.findOne(id, userId);
 
-    return this.prisma.minutas_definitivas.delete({
+    const deletedMinuta = await this.prisma.minutas_definitivas.delete({
       where: { id },
     });
+
+    // 📝 AUDIT LOG: Eliminación de minuta
+    const userEmailRaw = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
+
+    await this.logger.agregarLog({
+      motivo: 'Eliminación de Minuta',
+      descripcion: `Minuta ID ${id} eliminada permanentemente.`,
+      impacto: 'Alto',
+      tablaafectada: 'minutas_definitivas',
+      usuarioID: userId,
+      usuarioemail: userEmailRaw?.email || 'unknown',
+    });
+
+    return deletedMinuta;
   }
 
   async generate(data: any): Promise<{ buffer: Buffer; contentType: string }> {

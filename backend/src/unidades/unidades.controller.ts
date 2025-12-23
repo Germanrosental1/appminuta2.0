@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, Request } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UnidadesService } from './unidades.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
@@ -21,10 +21,11 @@ export class UnidadesController {
         return this.unidadesService.create(createUnidadDto);
     }
 
+
     @Post('import')
     @UseInterceptors(FileInterceptor('file'))
-    uploadFile(@UploadedFile() file: Express.Multer.File) {
-        return this.importService.importFromExcel(file.buffer);
+    uploadFile(@UploadedFile() file: Express.Multer.File, @Request() req) {
+        return this.importService.importFromExcel(file.buffer, req.user);
     }
 
     // Metadata endpoints - MUST come before generic GET routes

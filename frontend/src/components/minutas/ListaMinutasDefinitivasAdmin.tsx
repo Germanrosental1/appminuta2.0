@@ -281,49 +281,52 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
                             </TableCell>
                             <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-2 flex-wrap">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleVerMinuta(minuta.id || '')}
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  Ver
-                                </Button>
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="flex justify-end gap-2 flex-wrap">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleVerMinuta(minuta.id || '')}
+                                  >
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    Ver
+                                  </Button>
 
-                                {/* Botones para minutas PENDIENTES (solo si no es readOnly) */}
-                                {!readOnly && minuta.estado === 'pendiente' && (
-                                  <>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="bg-green-50 hover:bg-green-100"
-                                      onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                      Aprobar
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="bg-orange-50 hover:bg-orange-100"
-                                      onClick={() => handleChangeEstado(minuta.id, 'en_edicion')}
-                                    >
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Editar
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="bg-red-50 hover:bg-red-100"
-                                      onClick={() => handleOpenCancelModal(minuta.id)}
-                                    >
-                                      <XCircle className="h-4 w-4 mr-1" />
-                                      Cancelar
-                                    </Button>
-                                  </>
-                                )}
+                                  {/* Botones para minutas PENDIENTES (solo si no es readOnly) */}
+                                  {!readOnly && minuta.estado === 'pendiente' && (
+                                    <>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-green-50 hover:bg-green-100"
+                                        onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-1" />
+                                        Aprobar
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-orange-50 hover:bg-orange-100"
+                                        onClick={() => handleChangeEstado(minuta.id, 'en_edicion')}
+                                      >
+                                        <Edit className="h-4 w-4 mr-1" />
+                                        Editar
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-red-50 hover:bg-red-100"
+                                        onClick={() => handleOpenCancelModal(minuta.id)}
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" />
+                                        Cancelar
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
 
+                                {/* Textos informativos debajo de los botones */}
                                 {/* Minutas APROBADAS - Admin no puede hacer nada, el firmante se encarga */}
                                 {minuta.estado === 'aprobada' && (
                                   <span className="text-xs text-muted-foreground italic">

@@ -11,6 +11,8 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { UsuariosRolesModule } from './usuarios-roles/usuarios-roles.module';
 import { UsuariosProyectosModule } from './usuarios-proyectos/usuarios-proyectos.module';
 
+import { LoggerModule } from './logger/logger.module';
+
 // Catalog modules
 import { ComercialesModule } from './comerciales/comerciales.module';
 import { EtapasModule } from './etapas/etapas.module';
@@ -28,6 +30,7 @@ import { ClientesModule } from './clientes/clientes.module';
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { LoggingThrottlerGuard } from './common/guards/logging-throttler.guard';
 // ⚡ OPTIMIZACIÓN: Cache para catálogos con soporte Redis
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
@@ -64,6 +67,7 @@ const getCacheConfig = (): any => {
         }),
         AuthModule,
         PrismaModule,
+        LoggerModule,
         MinutasModule,
         ProyectosModule,
         UnidadesModule,
@@ -94,7 +98,7 @@ const getCacheConfig = (): any => {
         AppService,
         {
             provide: APP_GUARD,
-            useClass: ThrottlerGuard,
+            useClass: LoggingThrottlerGuard,
         },
     ],
 })

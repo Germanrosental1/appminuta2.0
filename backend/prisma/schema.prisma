@@ -836,6 +836,8 @@ model changes_logs {
   descripcion    String?
   impacto        String?
   tablaaftectada String?
+  usuarioID      String   @db.Uuid
+  usuriomail     String
 
   @@schema("public")
 }
