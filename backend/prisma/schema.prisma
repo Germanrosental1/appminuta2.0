@@ -622,6 +622,7 @@ model proyectos {
   id_org               String?                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   edificios            edificios[]
   minutas_definitivas  minutas_definitivas[]
+  organizaciones       organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
   naturalezas          naturalezas?           @relation(fields: [naturaleza], references: [id], onUpdate: NoAction)
   proyectostiposunidad proyectostiposunidad[]
   tablas               tablas[]
