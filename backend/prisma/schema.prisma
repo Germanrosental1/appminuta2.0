@@ -620,13 +620,8 @@ model proyectos {
   updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
   naturaleza           String?                @db.Uuid
   id_org               String?                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-<<<<<<< ger
-  iva                  String?
-=======
->>>>>>> main
   edificios            edificios[]
   minutas_definitivas  minutas_definitivas[]
-  organizaciones       organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
   naturalezas          naturalezas?           @relation(fields: [naturaleza], references: [id], onUpdate: NoAction)
   proyectostiposunidad proyectostiposunidad[]
   tablas               tablas[]
@@ -854,27 +849,6 @@ model changes_logs {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-<<<<<<< ger
-model clientes {
-  dni                 BigInt                @id
-  nombreApellido      String?
-  telefono            BigInt?
-  unidadesInteresadas Json?
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  detallesventa       detallesventa[]
-  minutas_definitivas minutas_definitivas[]
-
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model organizaciones {
-  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nombre     String?
-  creador    String?     @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime    @default(now()) @db.Timestamptz(6)
-  proyectos  proyectos[]
-=======
 model organizaciones {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre     String?
@@ -882,7 +856,6 @@ model organizaciones {
   created_at              DateTime                  @default(now()) @db.Timestamptz(6)
   proyectos               proyectos[]
   usuarios_organizaciones usuarios_organizaciones[]
->>>>>>> main
 
   @@schema("public")
 }
@@ -891,16 +864,11 @@ model organizaciones {
 model usuarios_organizaciones {
   userid     String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   idorg      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-<<<<<<< ger
-  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-=======
   idrol      String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   created_at DateTime     @default(now()) @db.Timestamptz(6)
   profiles   profiles     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
   organizacion organizaciones @relation(fields: [idorg], references: [id], onDelete: NoAction, onUpdate: NoAction)
   roles      roles        @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
->>>>>>> main
 
   @@id([userid, idorg, idrol])
   @@map("usuarios-organizaciones")
