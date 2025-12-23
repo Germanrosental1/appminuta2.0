@@ -622,7 +622,7 @@ model proyectos {
   iva                  String?
   edificios            edificios[]
   minutas_definitivas  minutas_definitivas[]
-  organizacion         organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizaciones       organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
   naturalezas          naturalezas?           @relation(fields: [naturaleza], references: [id], onUpdate: NoAction)
   proyectostiposunidad proyectostiposunidad[]
   tablas               tablas[]
