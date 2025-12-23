@@ -53,30 +53,113 @@ export class ProyectosService {
     }
 
     async findByUserId(userId: string) {
-        // Get projects assigned to the user via usuarios_proyectos table
-        const userProjects = await this.prisma.usuarios_proyectos.findMany({
+        const projectsMap = new Map();
+
+        // Helper function to add projects with organization
+        const addProjectsWithOrg = (projects: any[]) => {
+            for (const p of projects) {
+                if (!projectsMap.has(p.id)) {
+                    // Rename 'organizaciones' to 'organizacion' for frontend compatibility
+                    const { organizaciones, ...rest } = p;
+                    projectsMap.set(p.id, {
+                        ...rest,
+                        organizacion: organizaciones || null,
+                    });
+                }
+            }
+        };
+
+        // Project select fields including organization
+        const projectSelect = {
+            id: true,
+            nombre: true,
+            descripcion: true,
+            naturaleza: true,
+            direccion: true,
+            localidad: true,
+            provincia: true,
+            activo: true,
+            id_org: true,
+            created_at: true,
+            organizaciones: {
+                select: {
+                    id: true,
+                    nombre: true,
+                },
+            },
+        };
+
+        // 1. Get projects directly assigned via usuarios_proyectos
+        const directProjects = await this.prisma.usuarios_proyectos.findMany({
             where: { idusuario: userId },
             select: {
                 proyectos: {
-                    select: {
-                        id: true,
-                        nombre: true,
-                        descripcion: true,
-                        naturaleza: true,
-                        direccion: true,
-                        localidad: true,
-                        provincia: true,
-                        activo: true,
-                    },
+                    select: projectSelect,
                 },
             },
         });
 
-        // Extract unique projects (user might have multiple roles in same project)
-        const projectsMap = new Map();
-        for (const up of userProjects) {
+        for (const up of directProjects) {
             if (up.proyectos && up.proyectos.activo) {
-                projectsMap.set(up.proyectos.id, up.proyectos);
+                addProjectsWithOrg([up.proyectos]);
+            }
+        }
+
+        // 2. Get the superadminmv role ID
+        const superAdminRole = await this.prisma.roles.findFirst({
+            where: { nombre: 'superadminmv' },
+            select: { id: true },
+        });
+
+        // 3. If superadminmv role exists, check if user has it in any organization
+        if (superAdminRole) {
+            const userOrgs = await this.prisma.usuarios_organizaciones.findMany({
+                where: {
+                    userid: userId,
+                    idrol: superAdminRole.id,
+                },
+                select: { idorg: true },
+            });
+
+            // 4. For each org where user is superadmin, get ALL projects
+            for (const org of userOrgs) {
+                const orgProjects = await this.prisma.proyectos.findMany({
+                    where: {
+                        id_org: org.idorg,
+                        activo: true,
+                    },
+                    select: projectSelect,
+                });
+
+                addProjectsWithOrg(orgProjects);
+            }
+        }
+
+        // 5. Also check for adminmv role (they also see all org projects)
+        const adminRole = await this.prisma.roles.findFirst({
+            where: { nombre: 'adminmv' },
+            select: { id: true },
+        });
+
+        if (adminRole) {
+            const adminOrgs = await this.prisma.usuarios_organizaciones.findMany({
+                where: {
+                    userid: userId,
+                    idrol: adminRole.id,
+                },
+                select: { idorg: true },
+            });
+
+            for (const org of adminOrgs) {
+                const orgProjects = await this.prisma.proyectos.findMany({
+                    where: {
+                        id_org: org.idorg,
+                        activo: true,
+                    },
+                    select: projectSelect,
+                });
+
+                addProjectsWithOrg(orgProjects);
             }
         }
 

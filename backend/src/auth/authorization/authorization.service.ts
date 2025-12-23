@@ -144,12 +144,6 @@ export class AuthorizationService {
                 nombre: true,
                 created_at: true,
                 id_org: true,
-                organizacion: {
-                    select: {
-                        id: true,
-                        nombre: true,
-                    },
-                },
             },
             orderBy: {
                 nombre: 'asc',
@@ -221,9 +215,9 @@ export class AuthorizationService {
         const profile = await this.prisma.profiles.findUnique({
             where: { id: userId },
             include: {
-                usuarios_organizaciones: {
+                usuarios_roles: {
                     include: {
-                        organizacion: true,
+                        roles: true,
                     },
                 },
                 usuarios_proyectos: {
