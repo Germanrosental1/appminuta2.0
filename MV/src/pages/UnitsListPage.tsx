@@ -154,6 +154,14 @@ export default function UnitsListPage() {
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filtroTipo, filtroDormitorios, filtroPrecioMin, filtroPrecioMax, filtroEstado, selectedProject]);
+
   const filteredUnits = units.filter(unit => {
     // Filtro por término de búsqueda
     if (searchTerm) {
@@ -205,6 +213,13 @@ export default function UnitsListPage() {
 
     return true;
   });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredUnits.length / ITEMS_PER_PAGE);
+  const paginatedUnits = filteredUnits.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -341,70 +356,118 @@ export default function UnitsListPage() {
           <span className="ml-2">Cargando unidades...</span>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>Edificio/Torre</TableHead>
-                <TableHead>Piso</TableHead>
-                <TableHead>Unidad</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Etapa</TableHead>
-                <TableHead>Dormitorios</TableHead>
-                <TableHead className="text-right">M² Totales</TableHead>
-                <TableHead className="text-right">Precio USD</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUnits.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center py-4">
-                    No se encontraron unidades
-                  </TableCell>
+        <div className="space-y-4">
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Edificio/Torre</TableHead>
+                  <TableHead>Piso</TableHead>
+                  <TableHead>Unidad</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Etapa</TableHead>
+                  <TableHead>Dormitorios</TableHead>
+                  <TableHead className="text-right">M² Totales</TableHead>
+                  <TableHead className="text-right">Precio USD</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
-              ) : (
-                filteredUnits.map((unit) => (
-                  <TableRow key={unit.id}>
-                    <TableCell className="font-medium">{unit.edificioTorre || '-'}</TableCell>
-                    <TableCell>{unit.piso || '-'}</TableCell>
-                    <TableCell className="font-medium">{unit.numeroUnidad || '-'}</TableCell>
-                    <TableCell>{unit.tipo || '-'}</TableCell>
-                    <TableCell>{unit.etapa || '-'}</TableCell>
-                    <TableCell>{unit.dormitorios || '-'}</TableCell>
-                    <TableCell className="text-right">{unit.m2Totales?.toFixed(2) || '-'}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      ${unit.precioUSD?.toLocaleString() || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={cn("font-medium", getStatusColor(unit.estado))}>
-                        {unit.estado || 'Desconocido'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleEdit(unit.id)}
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDelete(unit.id)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {paginatedUnits.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-4">
+                      No se encontraron unidades
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  paginatedUnits.map((unit) => (
+                    <TableRow key={unit.id}>
+                      <TableCell className="font-medium">{unit.edificioTorre || '-'}</TableCell>
+                      <TableCell>{unit.piso || '-'}</TableCell>
+                      <TableCell className="font-medium">{unit.numeroUnidad || '-'}</TableCell>
+                      <TableCell>{unit.tipo || '-'}</TableCell>
+                      <TableCell>{unit.etapa || '-'}</TableCell>
+                      <TableCell>{unit.dormitorios || '-'}</TableCell>
+                      <TableCell className="text-right">{unit.m2Totales?.toFixed(2) || '-'}</TableCell>
+                      <TableCell className="text-right font-semibold">
+                        ${unit.precioUSD?.toLocaleString() || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={cn("font-medium", getStatusColor(unit.estado))}>
+                          {unit.estado || 'Desconocido'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEdit(unit.id)}
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDelete(unit.id)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-2">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredUnits.length)} de {filteredUnits.length} unidades
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  Primera
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm font-medium">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  Última
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
