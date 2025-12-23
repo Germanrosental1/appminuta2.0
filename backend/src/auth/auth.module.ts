@@ -8,7 +8,6 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { ProjectAccessGuard } from './guards/project-access.guard';
 import { UsuariosRolesModule } from '../usuarios-roles/usuarios-roles.module';
 import { UsuariosProyectosModule } from '../usuarios-proyectos/usuarios-proyectos.module';
-import { AuthorizationModule } from './authorization/authorization.module';
 
 @Module({
     imports: [
@@ -16,7 +15,6 @@ import { AuthorizationModule } from './authorization/authorization.module';
         PrismaModule,
         UsuariosRolesModule,
         UsuariosProyectosModule,
-        AuthorizationModule,
     ],
     controllers: [AuthLoggerController],
     providers: [

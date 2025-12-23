@@ -1,0 +1,46 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateNaturalezaDto } from './dto/create-naturaleza.dto';
+import { UpdateNaturalezaDto } from './dto/update-naturaleza.dto';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class NaturalezasService {
+    constructor(private readonly prisma: PrismaService) { }
+
+    async create(createNaturalezaDto: CreateNaturalezaDto) {
+        return await this.prisma.naturalezas.create({ data: createNaturalezaDto });
+    }
+
+    async findAll() {
+        return await this.prisma.naturalezas.findMany({ orderBy: { nombre: 'asc' } });
+    }
+
+    async findOne(id: string) {
+        const naturaleza = await this.prisma.naturalezas.findUnique({ where: { id } });
+        if (!naturaleza) throw new NotFoundException(`Naturaleza con ID "${id}" no encontrada`);
+        return naturaleza;
+    }
+
+    async update(id: string, updateNaturalezaDto: UpdateNaturalezaDto) {
+        try {
+            return await this.prisma.naturalezas.update({ where: { id }, data: updateNaturalezaDto });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+                throw new NotFoundException(`Naturaleza con ID "${id}" no encontrada`);
+            }
+            throw error;
+        }
+    }
+
+    async remove(id: string) {
+        try {
+            return await this.prisma.naturalezas.delete({ where: { id } });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+                throw new NotFoundException(`Naturaleza con ID "${id}" no encontrada`);
+            }
+            throw error;
+        }
+    }
+}

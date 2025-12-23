@@ -1,18 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
-import { AssignUserToProjectDto } from './dto/assign-user-to-project.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
-import { AuthorizationService } from '../auth/authorization';
 
 @Controller('proyectos')
 @UseGuards(SupabaseAuthGuard)
 export class ProyectosController {
-    constructor(
-        private readonly proyectosService: ProyectosService,
-        private readonly authorizationService: AuthorizationService,
-    ) { }
+    constructor(private readonly proyectosService: ProyectosService) { }
 
     @Post()
     create(@Body() createProyectoDto: CreateProyectoDto) {
@@ -22,29 +17,6 @@ export class ProyectosController {
     @Get()
     findAll() {
         return this.proyectosService.findAll();
-    }
-
-    // Nuevo endpoint: proyectos accesibles por el usuario autenticado
-    @Get('my-projects')
-    async getMyProjects(@Request() req) {
-        const userId = req.user.id;
-        return this.authorizationService.getUserProjectsDetailed(userId);
-    }
-
-    // Nuevo endpoint: asignar usuario a proyecto (solo owners)
-    @Post(':projectId/assign-user')
-    async assignUserToProject(
-        @Param('projectId') projectId: string,
-        @Body() assignDto: AssignUserToProjectDto,
-        @Request() req
-    ) {
-        const assignedBy = req.user.id;
-        return this.authorizationService.assignUserToProject(
-            assignDto.userId,
-            projectId,
-            assignDto.roleId,
-            assignedBy
-        );
     }
 
     @Get(':id')

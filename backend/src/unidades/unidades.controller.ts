@@ -1,26 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { UnidadesService } from './unidades.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
-import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
-import { UpdateUnidadAdminDto } from './dto/update-unidad-admin.dto';
-import { mapToLimitedResponse } from './dto/unidad-limited-response.dto';
 import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
-import { ProjectAccessGuard, RolesGuard, Roles, AuthorizationService } from '../auth/authorization';
-import { ROLES } from '../auth/authorization/roles.constants';
 
 @Controller('unidades')
-@UseGuards(SupabaseAuthGuard, ProjectAccessGuard)
+@UseGuards(SupabaseAuthGuard)
 export class UnidadesController {
-    constructor(
-        private readonly unidadesService: UnidadesService,
-        private readonly authorizationService: AuthorizationService,
-    ) { }
+    constructor(private readonly unidadesService: UnidadesService) { }
 
     @Post()
-    @Roles(ROLES.SUPER_ADMIN, ROLES.ADMIN)
-    @UseGuards(RolesGuard)
     create(@Body() createUnidadDto: CreateUnidadDto) {
         return this.unidadesService.create(createUnidadDto);
     }
@@ -62,23 +52,8 @@ export class UnidadesController {
 
     // Generic routes - come after specific routes
     @Get()
-    async findAll(@Query() query: FindAllUnidadesQueryDto, @Request() req) {
-        const units = await this.unidadesService.findAll(query);
-
-        // Filtrar respuesta según rol del usuario
-        if (query.proyecto) {
-            const userRole = await this.authorizationService.getUserRoleInProject(
-                req.user.id,
-                query.proyecto,
-            );
-
-            // Si es viewerinmobiliariamv, retornar solo campos limitados
-            if (userRole === ROLES.VIEWER_INMOBILIARIA) {
-                return units.map(unit => mapToLimitedResponse(unit));
-            }
-        }
-
-        return units;
+    findAll(@Query() query: FindAllUnidadesQueryDto) {
+        return this.unidadesService.findAll(query);
     }
 
     @Get(':id')
@@ -86,37 +61,12 @@ export class UnidadesController {
         return this.unidadesService.findOne(id);
     }
 
-    @Get('by-sectorid/:sectorid')
-    findBySectorId(@Param('sectorid') sectorid: string) {
-        return this.unidadesService.findBySectorId(sectorid);
-    }
-
     @Patch(':id')
-    @Roles(ROLES.SUPER_ADMIN, ROLES.ADMIN)
-    @UseGuards(RolesGuard)
     update(@Param('id') id: string, @Body() updateUnidadDto: UpdateUnidadDto) {
         return this.unidadesService.update(id, updateUnidadDto);
     }
 
-    // Endpoint específico para adminmv (solo estado)
-    @Patch(':id/status')
-    @Roles(ROLES.ADMIN)
-    @UseGuards(RolesGuard)
-    updateStatus(@Param('id') id: string, @Body() updateDto: UpdateUnidadAdminDto) {
-        return this.unidadesService.updateStatus(id, updateDto.estado_id);
-    }
-
-    // Endpoint completo solo para superadminmv
-    @Patch(':id/complete')
-    @Roles(ROLES.SUPER_ADMIN)
-    @UseGuards(RolesGuard)
-    updateComplete(@Param('id') id: string, @Body() updateDto: UpdateUnidadCompleteDto) {
-        return this.unidadesService.updateComplete(id, updateDto);
-    }
-
     @Delete(':id')
-    @Roles(ROLES.SUPER_ADMIN, ROLES.ADMIN)
-    @UseGuards(RolesGuard)
     remove(@Param('id') id: string) {
         return this.unidadesService.remove(id);
     }

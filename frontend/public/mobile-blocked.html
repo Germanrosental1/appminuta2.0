@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Restringido - Solo Escritorio</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f9fafb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 500px;
+            text-align: center;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #dc2626;
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+
+        .message {
+            background-color: #fef2f2;
+            border: 1px solid #fee2e2;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .primary-text {
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .secondary-text {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .icon {
+            color: #dc2626;
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .desktop-icon {
+            margin-top: 24px;
+            font-size: 2rem;
+            color: #4b5563;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="icon">⚠️</div>
+        <h1>Acceso Restringido</h1>
+        <div class="message">
+            <p class="primary-text">
+                Esta aplicación está diseñada exclusivamente para uso en computadoras de escritorio.
+            </p>
+            <p class="secondary-text">
+                Por favor, accede desde un dispositivo desktop para continuar.
+            </p>
+        </div>
+        <div class="desktop-icon">💻</div>
+    </div>
+</body>
+
+</html>
