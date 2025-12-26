@@ -7,6 +7,7 @@ import { Unit } from "@/types/supabase-types";
 import { Building2, Home, DollarSign, Layers, BarChart3, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { motion } from "framer-motion";
 
 // Componente de Tooltip personalizado
 const CustomTooltip = ({ active, payload, totalUnits }: any) => {
@@ -23,15 +24,61 @@ const CustomTooltip = ({ active, payload, totalUnits }: any) => {
   return null;
 };
 
+// Animation Variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10
+    }
+  }
+};
+
+const cardHoverEffects = {
+  scale: 1.02,
+  transition: { duration: 0.2 }
+};
+
+import { usePersistentProject } from "@/hooks/usePersistentProject";
+
+// ... existing imports
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [units, setUnits] = useState<Unit[]>([]);
   const [projects, setProjects] = useState<string[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>("all");
+
+  // Use persistent hook instead of simple state
+  const [selectedProject, setSelectedProject] = usePersistentProject("all");
+
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedDorms, setSelectedDorms] = useState<string | null>(null);
   const [showTotalValue, setShowTotalValue] = useState(false);
+
+  // State to force re-animation on mount/return
+  const [animationKey, setAnimationKey] = useState(0);
+
+  useEffect(() => {
+    setAnimationKey(prev => prev + 1);
+  }, []); // Run on mount
+
+  // ... rest of the component
 
   // Helper to get units filtered by everything EXCEPT the specified dimension
   const getFilteredUnits = (exclude: 'status' | 'type' | 'dorms' | 'none') => {
@@ -77,20 +124,16 @@ export default function Dashboard() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        setLoading(true);
-
-        // Cargar proyectos
+        // Only load projects here. Units are loaded by the other useEffect
+        // based on selectedProject (which is now persisted).
         const projectsData = await supabaseService.getProjects();
         setProjects(projectsData);
-
-        // Cargar todas las unidades
-        const unitsData = await supabaseService.getAllUnits();
-        setUnits(unitsData);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
-      } finally {
-        setLoading(false);
       }
+      // Do not set loading false here, let the units fetch handle the main loading state
+      // or if projects take longer, we might want to handle that, but for now
+      // the charts depend on units.
     };
 
     loadInitialData();
@@ -245,12 +288,13 @@ export default function Dashboard() {
       color: `hsl(${index * 30 + 200}, 70%, 50%)`
     }));
 
-  // comercialData removed
-
-  // Componente de Tooltip personalizado eliminado de aquí
-
   return (
-    <div className="p-6">
+    <motion.div
+      className="p-6"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">Dashboard de Ventas</h1>
 
@@ -279,200 +323,221 @@ export default function Dashboard() {
         </TabsList>
 
         <TabsContent value="metricas">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Unidades
-                </CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-7 w-20" />
-                ) : (
-                  <div className="text-2xl font-bold">{formatNumber(metrics.totalUnits)}</div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {showTotalValue ? "Valor Total" : "Promedio Total"}
-                </CardTitle>
-                <button
-                  onClick={() => setShowTotalValue(!showTotalValue)}
-                  className="hover:bg-accent rounded-full p-1 transition-colors border-none bg-transparent cursor-pointer"
-                  title={showTotalValue ? "Ver promedio" : "Ver total"}
-                >
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-7 w-28" />
-                ) : (
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(showTotalValue ? metrics.valorTotal : metrics.valorPromedio)}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Precio Promedio m²
-                </CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-7 w-20" />
-                ) : (
-                  <div className="text-2xl font-bold">{formatCurrency(metrics.precioPromedioM2)}</div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total m²
-                </CardTitle>
-                <Layers className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-7 w-20" />
-                ) : (
-                  <div className="text-2xl font-bold">{formatNumber(metrics.totalM2)} m²</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 mt-4">
-            {/* Status Chart */}
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  Distribución por Estado
-                  {selectedStatus && (
-                    <button
-                      className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
-                      onClick={() => setSelectedStatus(null)}
-                      title="Limpiar filtro"
-                      aria-label={`Eliminar filtro de estado ${selectedStatus}`}
-                    >
-                      Filtrado por: {selectedStatus} (x)
-                    </button>
+          <motion.div
+            className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+            variants={containerVariants}
+          >
+            <motion.div variants={itemVariants} whileHover={cardHoverEffects}>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Unidades
+                  </CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-7 w-20" />
+                  ) : (
+                    <div className="text-2xl font-bold">{formatNumber(metrics.totalUnits)}</div>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 pb-0">
-                {loading ? (
-                  <Skeleton className="h-[250px] w-full" />
-                ) : (
-                  <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={statusData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          onClick={(data) => {
-                            // Toggle filter: if already selected, clear it; otherwise set it
-                            setSelectedStatus(current => current === data.name ? null : data.name);
-                          }}
-                          className="cursor-pointer"
-                        >
-                          {statusData.map((entry, index) => (
-                            <Cell
-                              key={entry.name}
-                              fill={entry.color}
-                              stroke={selectedStatus === entry.name ? "#000" : "none"}
-                              strokeWidth={2}
-                              className="cursor-pointer hover:opacity-80"
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip totalUnits={metrics.totalUnits} />} />
-                        <Legend layout="vertical" verticalAlign="top" align="right" wrapperStyle={{ paddingLeft: "10px" }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div variants={itemVariants} whileHover={cardHoverEffects}>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {showTotalValue ? "Valor Total" : "Promedio Total"}
+                  </CardTitle>
+                  <button
+                    onClick={() => setShowTotalValue(!showTotalValue)}
+                    className="hover:bg-accent rounded-full p-1 transition-colors border-none bg-transparent cursor-pointer"
+                    title={showTotalValue ? "Ver promedio" : "Ver total"}
+                  >
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-7 w-28" />
+                  ) : (
+                    <div className="text-2xl font-bold">
+                      {formatCurrency(showTotalValue ? metrics.valorTotal : metrics.valorPromedio)}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div variants={itemVariants} whileHover={cardHoverEffects}>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Precio Promedio m²
+                  </CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-7 w-20" />
+                  ) : (
+                    <div className="text-2xl font-bold">{formatCurrency(metrics.precioPromedioM2)}</div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div variants={itemVariants} whileHover={cardHoverEffects}>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total m²
+                  </CardTitle>
+                  <Layers className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-7 w-20" />
+                  ) : (
+                    <div className="text-2xl font-bold">{formatNumber(metrics.totalM2)} m²</div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="grid gap-4 md:grid-cols-2 mt-4"
+            variants={containerVariants}
+          >
+            {/* Status Chart */}
+            <motion.div variants={itemVariants}>
+              <Card className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    Distribución por Estado
+                    {selectedStatus && (
+                      <button
+                        className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
+                        onClick={() => setSelectedStatus(null)}
+                        title="Limpiar filtro"
+                        aria-label={`Eliminar filtro de estado ${selectedStatus}`}
+                      >
+                        Filtrado por: {selectedStatus} (x)
+                      </button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 pb-0">
+                  {loading ? (
+                    <Skeleton className="h-[250px] w-full" />
+                  ) : (
+                    <div className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={statusData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            onClick={(data) => {
+                              setSelectedStatus(current => current === data.name ? null : data.name);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            {statusData.map((entry, index) => (
+                              <Cell
+                                key={entry.name}
+                                fill={entry.color}
+                                stroke={selectedStatus === entry.name ? "#000" : "none"}
+                                strokeWidth={2}
+                                className="cursor-pointer hover:opacity-80"
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip totalUnits={metrics.totalUnits} />} />
+                          <Legend layout="vertical" verticalAlign="top" align="right" wrapperStyle={{ paddingLeft: "10px" }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Type Chart */}
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  Distribución por Tipo
-                  {selectedType && (
-                    <button
-                      className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
-                      onClick={() => setSelectedType(null)}
-                      title="Limpiar filtro"
-                      aria-label={`Eliminar filtro de tipo ${selectedType}`}
-                    >
-                      Filtrado por: {selectedType} (x)
-                    </button>
+            <motion.div variants={itemVariants}>
+              <Card className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    Distribución por Tipo
+                    {selectedType && (
+                      <button
+                        className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
+                        onClick={() => setSelectedType(null)}
+                        title="Limpiar filtro"
+                        aria-label={`Eliminar filtro de tipo ${selectedType}`}
+                      >
+                        Filtrado por: {selectedType} (x)
+                      </button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 pb-0">
+                  {loading ? (
+                    <Skeleton className="h-[250px] w-full" />
+                  ) : (
+                    <div className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={tipoData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            onClick={(data) => {
+                              setSelectedType(current => current === data.name ? null : data.name);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            {tipoData.map((entry, index) => (
+                              <Cell
+                                key={entry.name}
+                                fill={entry.color}
+                                stroke={selectedType === entry.name ? "#000" : "none"}
+                                strokeWidth={2}
+                                className="cursor-pointer hover:opacity-80"
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip totalUnits={metrics.totalUnits} />} />
+                          <Legend layout="vertical" verticalAlign="top" align="right" wrapperStyle={{ paddingLeft: "10px" }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 pb-0">
-                {loading ? (
-                  <Skeleton className="h-[250px] w-full" />
-                ) : (
-                  <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={tipoData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          onClick={(data) => {
-                            setSelectedType(current => current === data.name ? null : data.name);
-                          }}
-                          className="cursor-pointer"
-                        >
-                          {tipoData.map((entry, index) => (
-                            <Cell
-                              key={entry.name}
-                              fill={entry.color}
-                              stroke={selectedType === entry.name ? "#000" : "none"}
-                              strokeWidth={2}
-                              className="cursor-pointer hover:opacity-80"
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip totalUnits={metrics.totalUnits} />} />
-                        <Legend layout="vertical" verticalAlign="top" align="right" wrapperStyle={{ paddingLeft: "10px" }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
 
-          <div className="grid gap-4 md:grid-cols-2 mt-4">
-            <div
-              className={`transition-all duration-500 ease-in-out overflow-hidden ${(!selectedType || selectedType === 'Departamento')
-                  ? 'opacity-100 max-h-[500px] mt-4'
-                  : 'opacity-0 max-h-0 mt-0'
+          <motion.div
+            className="grid gap-4 md:grid-cols-2 mt-4"
+            variants={containerVariants}
+          >
+            <motion.div
+              variants={itemVariants}
+              className={`transition-all duration-500 ease-in-out overflow-hidden w-full ${(!selectedType || selectedType === 'Departamento')
+                ? 'opacity-100 max-h-[500px] mt-4'
+                : 'opacity-0 max-h-0 mt-0'
                 }`}
             >
               <Card className="flex flex-col h-full">
@@ -497,7 +562,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+                        <PieChart key={animationKey}>
                           <Pie
                             data={dormitoriosData}
                             cx="50%"
@@ -506,9 +571,11 @@ export default function Dashboard() {
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"
+                            isAnimationActive={true}
+                            animationBegin={400}
+                            animationDuration={1500}
+                            animationEasing="ease-out"
                             onClick={(data) => {
-                              // data.key contains the raw number string (e.g. "2")
-                              // data.payload.key is safest
                               const key = data.payload.key || data.payload.name.split(' ')[0];
                               setSelectedDorms(current => current === key ? null : key);
                             }}
@@ -532,60 +599,66 @@ export default function Dashboard() {
                   )}
                 </CardContent>
               </Card>
-            </div>
-
-          </div>
+            </motion.div>
+          </motion.div>
         </TabsContent>
-        {/* ... (rest of the file content for stock tab etc, kept as is or minimized if not changed) ... */}
-        {/* Wait, I cannot just remove the Stock Tab content. I must include it. */}
 
         <TabsContent value="stock">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-green-50 dark:bg-green-950/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Disponibles
-                </CardTitle>
-                <Home className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-7 w-20" />
-                ) : (
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {metrics.disponibles}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.round(metrics.disponibles / metrics.totalUnits * 100) || 0}% del total
-                </p>
-              </CardContent>
-            </Card>
+          <motion.div
+            className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+            variants={containerVariants}
+          >
+            <motion.div variants={itemVariants} whileHover={cardHoverEffects}>
+              <Card className="bg-green-50 dark:bg-green-950/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Disponibles
+                  </CardTitle>
+                  <Home className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-7 w-20" />
+                  ) : (
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {metrics.disponibles}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {Math.round(metrics.disponibles / metrics.totalUnits * 100) || 0}% del total
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            <Card className="bg-yellow-50 dark:bg-yellow-950/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Reservadas
-                </CardTitle>
-                <Users className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-7 w-20" />
-                ) : (
-                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {metrics.reservadas}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.round(metrics.reservadas / metrics.totalUnits * 100) || 0}% del total
-                </p>
-              </CardContent>
-            </Card>
+            <motion.div variants={itemVariants} whileHover={cardHoverEffects}>
+              <Card className="bg-yellow-50 dark:bg-yellow-950/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Reservadas
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-yellow-500" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-7 w-20" />
+                  ) : (
+                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {metrics.reservadas}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {Math.round(metrics.reservadas / metrics.totalUnits * 100) || 0}% del total
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
 
-          </div>
-
-          <div className="mt-6">
+          <motion.div
+            className="mt-6"
+            variants={containerVariants}
+          >
             <h3 className="text-lg font-medium mb-4">Inventario por Tipo y Estado</h3>
 
             {loading ? (
@@ -595,7 +668,7 @@ export default function Dashboard() {
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : (
-              <div className="grid gap-4">
+              <motion.div className="grid gap-4" variants={containerVariants}>
                 {Object.entries(tipoDistribution).map(([tipo, _]) => {
                   const tipoUnits = units.filter(u => u.tipo === tipo);
 
@@ -605,39 +678,53 @@ export default function Dashboard() {
                   const stockCount = stockUnits.length;
                   const totalM2 = stockUnits.reduce((sum, u) => sum + (u.m2Totales || 0), 0);
                   const totalValue = stockUnits.reduce((sum, u) => sum + (u.precioUSD || 0), 0);
+                  const averageValue = stockCount > 0 ? totalValue / stockCount : 0;
+                  const averageM2Price = totalM2 > 0 ? totalValue / totalM2 : 0;
 
                   return (
-                    <Card key={tipo} className="overflow-hidden">
-                      <CardHeader className="py-3 bg-muted/20">
-                        <CardTitle className="text-sm font-medium">{tipo}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4">
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div className="flex flex-col">
-                            <span className="text-muted-foreground text-xs">Stock</span>
-                            <span className="font-bold text-lg">{formatNumber(stockCount)}</span>
-                            <span className="text-xs text-muted-foreground">unidades</span>
+                    <motion.div key={tipo} variants={itemVariants} whileHover={{ x: 5 }}>
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3 bg-muted/20">
+                          <CardTitle className="text-sm font-medium">{tipo}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Stock</span>
+                              <span className="font-bold text-lg">{formatNumber(stockCount)}</span>
+                              <span className="text-xs text-muted-foreground">unidades</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Total m²</span>
+                              <span className="font-bold text-lg">{formatNumber(totalM2)}</span>
+                              <span className="text-xs text-muted-foreground">m² cubiertos</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Precio Prom. m²</span>
+                              <span className="font-bold text-lg">{formatCurrency(averageM2Price)}</span>
+                              <span className="text-xs text-muted-foreground">USD / m²</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Promedio Total</span>
+                              <span className="font-bold text-lg">{formatCurrency(averageValue)}</span>
+                              <span className="text-xs text-muted-foreground">USD</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Total</span>
+                              <span className="font-bold text-lg">{formatCurrency(totalValue)}</span>
+                              <span className="text-xs text-muted-foreground">USD</span>
+                            </div>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-muted-foreground text-xs">Total m²</span>
-                            <span className="font-bold text-lg">{formatNumber(totalM2)}</span>
-                            <span className="text-xs text-muted-foreground">m² cubiertos</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-muted-foreground text-xs">Total</span>
-                            <span className="font-bold text-lg">{formatCurrency(totalValue)}</span>
-                            <span className="text-xs text-muted-foreground">USD</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   );
                 })}
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }

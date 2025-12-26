@@ -24,12 +24,37 @@ import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Animation Variants
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
+
+const listContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03, // Fast stagger for enterprise feel
+      delayChildren: 0.1
+    }
+  }
+};
+
+const listItemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
+};
+
+import { usePersistentProject } from "@/hooks/usePersistentProject";
 
 export default function UnitsListPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<string[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [selectedProject, setSelectedProject] = usePersistentProject('');
   const [projectNaturaleza, setProjectNaturaleza] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -48,6 +73,7 @@ export default function UnitsListPage() {
     'Vendido',
     'No disponible'
   ];
+  const [isProjectsLoading, setIsProjectsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,6 +88,8 @@ export default function UnitsListPage() {
       } catch (error) {
         console.error('Error loading projects:', error);
         toast.error('Error al cargar los proyectos');
+      } finally {
+        setIsProjectsLoading(false);
       }
     };
 
@@ -91,6 +119,10 @@ export default function UnitsListPage() {
   }, []);
 
   useEffect(() => {
+    // Evitar carga inicial de "todas las unidades" si todavía estamos determinando
+    // si hay proyectos para seleccionar por defecto.
+    if (isProjectsLoading) return;
+
     const loadUnits = async () => {
       try {
         setLoading(true);
@@ -131,7 +163,7 @@ export default function UnitsListPage() {
     };
 
     loadUnits();
-  }, [selectedProject]);
+  }, [selectedProject, isProjectsLoading]);
 
   const handleEdit = (unitId: string) => {
     navigate(`/unit/edit/${unitId}`);
@@ -237,7 +269,12 @@ export default function UnitsListPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <motion.div
+      className="container mx-auto p-6"
+      initial="initial"
+      animate="animate"
+      variants={pageVariants}
+    >
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Mapa de Ventas</h1>
         <Button onClick={handleCreate} className="flex items-center gap-2">
@@ -374,51 +411,75 @@ export default function UnitsListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedUnits.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-4">
-                      No se encontraron unidades
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedUnits.map((unit) => (
-                    <TableRow key={unit.id}>
-                      <TableCell className="font-medium">{unit.edificioTorre || '-'}</TableCell>
-                      <TableCell>{unit.piso || '-'}</TableCell>
-                      <TableCell className="font-medium">{unit.numeroUnidad || '-'}</TableCell>
-                      <TableCell>{unit.tipo || '-'}</TableCell>
-                      <TableCell>{unit.etapa || '-'}</TableCell>
-                      <TableCell>{unit.dormitorios || '-'}</TableCell>
-                      <TableCell className="text-right">{unit.m2Totales?.toFixed(2) || '-'}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        ${unit.precioUSD?.toLocaleString() || '-'}
+                <AnimatePresence mode='wait'>
+                  {paginatedUnits.length === 0 ? (
+                    <motion.tr
+                      key="no-results"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <TableCell colSpan={10} className="text-center py-4">
+                        No se encontraron unidades
                       </TableCell>
-                      <TableCell>
-                        <Badge className={cn("font-medium", getStatusColor(unit.estado))}>
-                          {unit.estado || 'Desconocido'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleEdit(unit.id)}
-                          >
-                            <Pencil size={16} />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleDelete(unit.id)}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                    </motion.tr>
+                  ) : (
+                    // We use a fragment to allow motion components inside
+                    <motion.tbody
+                      variants={listContainerVariants}
+                      initial="hidden"
+                      animate="show"
+                      className="contents" // Use contents to avoid breaking table structure, though tbody is valid here
+                    >
+                      {paginatedUnits.map((unit) => (
+                        <motion.tr
+                          key={unit.id}
+                          variants={listItemVariants}
+                          className="group hover:bg-muted/30 transition-colors" // Added gentle hover bg
+                        >
+                          <TableCell className="font-medium">{unit.edificioTorre || '-'}</TableCell>
+                          <TableCell>{unit.piso || '-'}</TableCell>
+                          <TableCell className="font-medium">{unit.numeroUnidad || '-'}</TableCell>
+                          <TableCell>{unit.tipo || '-'}</TableCell>
+                          <TableCell>{unit.etapa || '-'}</TableCell>
+                          <TableCell>{unit.dormitorios || '-'}</TableCell>
+                          <TableCell className="text-right">{unit.m2Totales?.toFixed(2) || '-'}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            ${unit.precioUSD?.toLocaleString() || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={cn("font-medium", getStatusColor(unit.estado))}>
+                              {unit.estado || 'Desconocido'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleEdit(unit.id)}
+                                >
+                                  <Pencil size={16} />
+                                </Button>
+                              </motion.div>
+                              <motion.div whileHover={{ scale: 1.05, color: "#ef4444" }} whileTap={{ scale: 0.95 }}>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleDelete(unit.id)}
+                                  className="hover:text-red-500 hover:border-red-200 transition-colors"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </motion.div>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </motion.tbody>
+                  )}
+                </AnimatePresence>
               </TableBody>
             </Table>
           </div>
@@ -470,6 +531,6 @@ export default function UnitsListPage() {
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
