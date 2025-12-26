@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Unit } from "@/types/supabase-types";
 import { Building2, Home, DollarSign, Layers, BarChart3, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 // Componente de Tooltip personalizado
 const CustomTooltip = ({ active, payload, totalUnits }: any) => {
@@ -25,7 +26,7 @@ const CustomTooltip = ({ active, payload, totalUnits }: any) => {
 };
 
 // Animation Variants
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -36,7 +37,7 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
@@ -62,6 +63,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [units, setUnits] = useState<Unit[]>([]);
   const [projects, setProjects] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   // Use persistent hook instead of simple state
   const [selectedProject, setSelectedProject] = usePersistentProject("all");
@@ -681,12 +683,22 @@ export default function Dashboard() {
                   const averageValue = stockCount > 0 ? totalValue / stockCount : 0;
                   const averageM2Price = totalM2 > 0 ? totalValue / totalM2 : 0;
 
+
                   return (
                     <motion.div key={tipo} variants={itemVariants} whileHover={{ x: 5 }}>
-                      <Card className="overflow-hidden">
+                      <Card
+                        className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => {
+                          const params = new URLSearchParams();
+                          params.set('tipo', tipo);
+                          params.set('estado', 'stock');
+                          navigate(`/units?${params.toString()}`);
+                        }}
+                      >
                         <CardHeader className="py-3 bg-muted/20">
                           <CardTitle className="text-sm font-medium">{tipo}</CardTitle>
                         </CardHeader>
+                        {/* Rest of card content */}
                         <CardContent className="p-4">
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                             <div className="flex flex-col">

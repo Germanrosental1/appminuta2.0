@@ -125,29 +125,55 @@ export const supabaseService = {
   },
 
   /**
-   * Crea una nueva unidad
+   * Crea una nueva unidad completa (incluyendo métricas y detalles)
    */
   async createUnit(unit: Omit<Unit, 'id'>): Promise<Unit> {
     try {
-      // Creamos un objeto temporal con un ID falso para poder usar la función de mapeo
-      const tempUnit = { ...unit, id: 'temp-id' } as Unit;
-      const tablaInsert = mapUnitToTabla(tempUnit);
+      console.log('📝 Creating complete unit:', unit);
 
-      // Eliminamos el ID ya que Supabase lo generará
-      delete (tablaInsert as any).id;
+      // Mapear Unit a formato del backend (CreateUnidadDto)
+      const backendData = {
+        // Campos obligatorios/básicos
+        sectorid: unit.sectorId,
 
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .insert(tablaInsert)
-        .select()
-        .single();
+        // El backend ha sido actualizado para resolver estos IDs por nombre si es texto
+        tipounidad_id: unit.tipo,
+        edificio_id: unit.edificioTorre,
+        etapa_id: unit.etapa,
 
-      if (error) {
-        console.error('Error creating unit:', error);
-        throw error;
-      }
+        piso: unit.piso,
+        nrounidad: unit.numeroUnidad,
+        dormitorios: unit.dormitorios,
+        manzana: unit.manzana,
+        destino: unit.destino,
+        frente: unit.frente,
 
-      return mapTablaToUnit(data);
+        // Métricas
+        m2exclusivos: unit.m2Exclusivos,
+        m2totales: unit.m2Totales,
+        m2comunes: unit.m2Comunes,
+        m2patioterraza: unit.m2PatioTerraza,
+        tamano: String(unit.tamano || 0),
+
+        // Detalles Venta
+        preciousd: unit.precioUSD,
+        usdm2: unit.usdM2,
+        clienteinteresado: unit.clienteInteresado,
+        obs: unit.observaciones,
+        fechareserva: unit.fechaReserva,
+
+        estadocomercial: unit.estado,
+        comercial: unit.comercial,
+
+        // Extras
+        unidadcomprador_id: null,
+        tipocochera_id: null
+      };
+
+      // Debemos asegurarnos que el backend las resuelva.
+
+      const createdUnit = await backendAPI.createUnitComplete(backendData);
+      return mapTablaToUnit(createdUnit);
     } catch (error) {
       console.error('Error in createUnit:', error);
       throw error;

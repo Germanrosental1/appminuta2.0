@@ -45,4 +45,48 @@ export class CreateUnidadDto {
     @IsString()
     @IsOptional()
     frente?: string;
+
+    // --- Métricas ---
+    @IsOptional()
+    m2exclusivos?: number;
+
+    @IsOptional()
+    m2totales?: number;
+
+    @IsOptional()
+    m2comunes?: number;
+
+    @IsOptional()
+    m2patioterraza?: number;
+
+    @IsString()
+    @IsOptional()
+    tamano?: string;
+
+    // --- Detalles Venta ---
+    @IsOptional()
+    preciousd?: number;
+
+    @IsOptional()
+    usdm2?: number;
+
+    @IsString()
+    @IsOptional()
+    clienteinteresado?: string;
+
+    @IsString()
+    @IsOptional()
+    obs?: string;
+
+    @IsOptional()
+    fechareserva?: Date;
+
+    @IsString()
+    @IsOptional()
+    estadocomercial?: string; // Nombre del estado (ej: Disponible)
+
+    @IsString()
+    @IsOptional()
+    comercial?: string; // Nombre del comercial
+
 }

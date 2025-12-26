@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabaseService } from '@/services/supabaseService';
 import { supabase } from '@/lib/supabase';
 import { Unit, EstadoUnidad } from '@/types/supabase-types';
@@ -20,19 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { backendAPI } from '@/services/backendAPI';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 
 // Animation Variants
-const pageVariants = {
+const pageVariants: Variants = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
 };
 
-const listContainerVariants = {
+const listContainerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -43,7 +50,7 @@ const listContainerVariants = {
   }
 };
 
-const listItemVariants = {
+const listItemVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
 };
@@ -65,6 +72,8 @@ export default function UnitsListPage() {
   const [filtroPrecioMin, setFiltroPrecioMin] = useState<string>('');
   const [filtroPrecioMax, setFiltroPrecioMax] = useState<string>('');
   const [filtroEstado, setFiltroEstado] = useState<string>('all');
+
+  const [searchParams] = useSearchParams();
 
   // Estados disponibles para las unidades
   const estadosDisponibles: EstadoUnidad[] = [
@@ -95,6 +104,17 @@ export default function UnitsListPage() {
 
     loadProjects();
   }, []);
+
+  // Handle URL Params
+  useEffect(() => {
+    const tipoParam = searchParams.get('tipo');
+    const estadoParam = searchParams.get('estado');
+    const dormsParam = searchParams.get('dormitorios');
+
+    if (tipoParam) setFiltroTipo(tipoParam);
+    if (estadoParam) setFiltroEstado(estadoParam);
+    if (dormsParam) setFiltroDormitorios(dormsParam);
+  }, [searchParams]);
 
   // Mostrar mensaje de depuración cuando se carga la página
   useEffect(() => {
@@ -142,11 +162,14 @@ export default function UnitsListPage() {
           }
 
           // Resetear los filtros cuando cambia el proyecto
-          setFiltroTipo('all');
-          setFiltroDormitorios('all');
-          setFiltroPrecioMin('');
-          setFiltroPrecioMax('');
-          setFiltroEstado('all');
+          // PERO respetar si vienen de URL params en el montaje inicial
+          if (!searchParams.toString()) {
+            setFiltroTipo('all');
+            setFiltroDormitorios('all');
+            setFiltroPrecioMin('');
+            setFiltroPrecioMax('');
+            setFiltroEstado('all');
+          }
         } else {
           data = await supabaseService.getAllUnits();
           const tipos = await supabaseService.getUniqueValues('tipo');
@@ -163,7 +186,7 @@ export default function UnitsListPage() {
     };
 
     loadUnits();
-  }, [selectedProject, isProjectsLoading]);
+  }, [selectedProject, isProjectsLoading]); // searchParams not needed here as it simply sets the initial state
 
   const handleEdit = (unitId: string) => {
     navigate(`/unit/edit/${unitId}`);
@@ -239,8 +262,12 @@ export default function UnitsListPage() {
     }
 
     // Filtro por estado
-    if (filtroEstado !== 'all' && unit.estado !== filtroEstado) {
-      return false;
+    if (filtroEstado !== 'all') {
+      if (filtroEstado === 'stock') {
+        if (unit.estado !== 'Disponible' && unit.estado !== 'Reservado') return false;
+      } else if (unit.estado !== filtroEstado) {
+        return false;
+      }
     }
 
     return true;
@@ -277,9 +304,61 @@ export default function UnitsListPage() {
     >
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Mapa de Ventas</h1>
-        <Button onClick={handleCreate} className="flex items-center gap-2">
-          <Plus size={16} /> Nueva Unidad
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Hidden file input for import */}
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            id="import-file"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+
+              const toastId = toast.loading('Importando unidades...');
+              try {
+                const result = await backendAPI.importUnits(file);
+
+                if (result.errors > 0) {
+                  toast.warning(`Importación completada con observaciones. Éxito: ${result.success}, Errores: ${result.errors}`);
+                } else {
+                  toast.success(`Se importaron ${result.success} unidades exitosamente.`);
+                }
+
+                // Reload units to show new data
+                // Quick hack: trigger re-fetch by toggling a state or calling the fetcher if exposed. 
+                // ideally refactor loadUnits to be outside useEffect or use react-query.
+                // For now, refreshing page is safest or we can force a reload.
+                window.location.reload();
+              } catch (error: any) {
+                console.error('Import error:', error);
+                toast.error(error.message || 'Error al importar el archivo');
+              } finally {
+                toast.dismiss(toastId);
+                // Reset input
+                e.target.value = '';
+              }
+            }}
+          />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus size={16} /> Nueva Unidad
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleCreate} className="cursor-pointer">
+                <Plus className="mr-2 h-4 w-4" />
+                Individual
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => document.getElementById('import-file')?.click()} className="cursor-pointer">
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Importar Masivo (Excel)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 mb-6">
@@ -356,6 +435,7 @@ export default function UnitsListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="stock">Stock (Disp. + Res.)</SelectItem>
                 {estadosDisponibles.map(estado => (
                   <SelectItem key={estado} value={estado}>
                     {estado}

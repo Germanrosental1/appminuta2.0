@@ -22,24 +22,101 @@ export class UnidadesService {
             );
         }
 
-        return this.prisma.unidades.create({
-            data: {
-                sectorid: createUnidadDto.sectorid,
-                tipounidad_id: createUnidadDto.tipounidad_id,
-                edificio_id: createUnidadDto.edificio_id,
-                etapa_id: createUnidadDto.etapa_id,
-                piso: createUnidadDto.piso,
-                nrounidad: createUnidadDto.nrounidad,
-                dormitorios: createUnidadDto.dormitorios,
-                manzana: createUnidadDto.manzana,
-                destino: createUnidadDto.destino,
-                frente: createUnidadDto.frente,
-            },
-            include: {
-                edificios: true,
-                etapas: true,
-                tiposunidad: true,
-            },
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Resolver IDs de catálogos si vienen nombres (para soportar input de texto del frontend)
+            let estadoId: string | null = null;
+            if (createUnidadDto.estadocomercial) {
+                const estado = await tx.estadocomercial.findFirst({ where: { nombreestado: { equals: createUnidadDto.estadocomercial, mode: 'insensitive' } } });
+                if (estado) estadoId = estado.id;
+            }
+
+            let comercialId: string | null = null;
+            if (createUnidadDto.comercial) {
+                const comercial = await tx.comerciales.findFirst({ where: { nombre: { equals: createUnidadDto.comercial, mode: 'insensitive' } } });
+                if (comercial) comercialId = comercial.id;
+            }
+
+            // Resolver Tipo Unidad
+            let tipoId = createUnidadDto.tipounidad_id;
+            // Si no parece UUID (simple check de longitud/formato), intentamos buscar por nombre
+            if (tipoId && !tipoId.includes('-')) {
+                const tipo = await tx.tiposunidad.findFirst({ where: { nombre: { equals: tipoId, mode: 'insensitive' } } });
+                if (tipo) {
+                    tipoId = tipo.id;
+                } else {
+                    // Si no existe, creamos? O fallamos? Mejor fallar o usar 'Departamento' por defecto?
+                    // Por ahora, si no encuentra, dejaremos el valor original y fallará la FK si es invalido.
+                }
+            }
+
+            // Resolver Edificio
+            let edificioId = createUnidadDto.edificio_id;
+            if (edificioId && !edificioId.includes('-')) {
+                const edificio = await tx.edificios.findFirst({ where: { nombreedificio: { equals: edificioId, mode: 'insensitive' } } });
+                if (edificio) edificioId = edificio.id;
+            }
+
+            // Resolver Etapa
+            let etapaId = createUnidadDto.etapa_id;
+            if (etapaId && !etapaId.includes('-')) {
+                const etapa = await tx.etapas.findFirst({ where: { nombre: { equals: etapaId, mode: 'insensitive' } } });
+                if (etapa) etapaId = etapa.id;
+            }
+
+            // 2. Crear Unidad
+            const newUnit = await tx.unidades.create({
+                data: {
+                    sectorid: createUnidadDto.sectorid,
+                    tipounidad_id: tipoId,
+                    edificio_id: edificioId,
+                    etapa_id: etapaId,
+                    piso: createUnidadDto.piso,
+                    nrounidad: createUnidadDto.nrounidad,
+                    dormitorios: createUnidadDto.dormitorios,
+                    manzana: createUnidadDto.manzana,
+                    destino: createUnidadDto.destino,
+                    frente: createUnidadDto.frente,
+                }
+            });
+
+            // 3. Crear Métricas
+            await tx.unidadesmetricas.create({
+                data: {
+                    unidad_id: newUnit.id,
+                    m2exclusivos: createUnidadDto.m2exclusivos || 0,
+                    m2totales: createUnidadDto.m2totales || 0,
+                    m2comunes: createUnidadDto.m2comunes || 0,
+                    m2patioterraza: createUnidadDto.m2patioterraza || 0,
+                    tamano: createUnidadDto.tamano || '0',
+                    // default values needed
+                    m2cubiertos: 0,
+                    m2semicubiertos: 0,
+                }
+            });
+
+            // 4. Crear Detalles Venta
+            await tx.detallesventa.create({
+                data: {
+                    unidad_id: newUnit.id,
+                    preciousd: createUnidadDto.preciousd || 0,
+                    usdm2: createUnidadDto.usdm2 || 0,
+                    clienteinteresado: createUnidadDto.clienteinteresado,
+                    obs: createUnidadDto.obs,
+                    fechareserva: createUnidadDto.fechareserva,
+                    estado_id: estadoId,
+                    comercial_id: comercialId
+                }
+            });
+
+            // Devolver unidad completa
+            return tx.unidades.findUnique({
+                where: { id: newUnit.id },
+                include: {
+                    edificios: true,
+                    etapas: true,
+                    tiposunidad: true,
+                }
+            });
         });
     }
 
