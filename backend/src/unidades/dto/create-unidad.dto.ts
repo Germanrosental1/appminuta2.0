@@ -9,7 +9,13 @@ export class CreateUnidadDto {
     @IsNotEmpty({ message: 'sectorid es requerido' })
     sectorid: string;
 
-    @IsUUID('4', { message: 'tipounidad_id debe ser un UUID válido' })
+    @IsUUID('4', { message: 'proyecto_id debe ser un UUID válido' })
+    @IsOptional()
+    proyecto_id?: string; // Necesario para crear edificios si no existen
+
+    // @IsUUID('4', { message: 'tipounidad_id debe ser un UUID válido' })
+    // Permitimos string para que el service resuelva por nombre si es necesario
+    @IsString()
     @IsNotEmpty({ message: 'tipounidad_id es requerido' })
     tipounidad_id: string;
 

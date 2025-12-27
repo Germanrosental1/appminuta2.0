@@ -29,6 +29,7 @@ export interface TablaItem {
   fechareserva: string | null;
   comercial: string | null;
   clienteinteresado: string | null;
+  titular: string | null;
 }
 
 // Tipo para crear un nuevo registro (sin ID)
@@ -46,12 +47,14 @@ export function normalizeEstado(estado: string | null): EstadoUnidad {
 
   const estadoLower = estado.toLowerCase();
 
+  // IMPORTANTE: Verificar "no disponible" ANTES de "disponible" 
+  // porque "no disponible" contiene "disponible"
+  if (estadoLower.includes('no disponible') || estadoLower.includes('alquil')) return 'No disponible';
   if (estadoLower.includes('disponible')) return 'Disponible';
   if (estadoLower.includes('reserva')) return 'Reservado';
   if (estadoLower.includes('vendid')) return 'Vendido';
-  if (estadoLower.includes('no disponible')) return 'No disponible';
 
-  return 'Disponible'; // Estado por defecto
+  return 'No disponible'; // Estado por defecto para estados desconocidos
 };
 
 // Mapeo entre el tipo de Supabase y el tipo de la UI
@@ -86,7 +89,7 @@ export function mapTablaToUnit(tabla: TablaItem): Unit {
     comercial: tabla.comercial || '',
     clienteInteresado: tabla.clienteinteresado || '',
     fechaFirmaBoleto: '', // La vista no tiene este campo
-    clienteTitularBoleto: '', // La vista no tiene este campo
+    clienteTitularBoleto: tabla.titular || '', // Ahora viene de la vista
     fechaPosesionBoleto: '', // La vista no tiene este campo
   };
 }

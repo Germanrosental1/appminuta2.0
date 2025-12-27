@@ -36,31 +36,60 @@ export class UnidadesService {
                 if (comercial) comercialId = comercial.id;
             }
 
-            // Resolver Tipo Unidad
+            // Resolver Tipo Unidad (Find or Create)
             let tipoId = createUnidadDto.tipounidad_id;
-            // Si no parece UUID (simple check de longitud/formato), intentamos buscar por nombre
             if (tipoId && !tipoId.includes('-')) {
                 const tipo = await tx.tiposunidad.findFirst({ where: { nombre: { equals: tipoId, mode: 'insensitive' } } });
                 if (tipo) {
                     tipoId = tipo.id;
                 } else {
-                    // Si no existe, creamos? O fallamos? Mejor fallar o usar 'Departamento' por defecto?
-                    // Por ahora, si no encuentra, dejaremos el valor original y fallará la FK si es invalido.
+                    // Crear si no existe
+                    const newTipo = await tx.tiposunidad.create({ data: { nombre: tipoId } });
+                    tipoId = newTipo.id;
                 }
             }
 
-            // Resolver Edificio
+            // Resolver Edificio (Find or Create)
             let edificioId = createUnidadDto.edificio_id;
             if (edificioId && !edificioId.includes('-')) {
-                const edificio = await tx.edificios.findFirst({ where: { nombreedificio: { equals: edificioId, mode: 'insensitive' } } });
-                if (edificio) edificioId = edificio.id;
+                // Intentar buscar por nombre
+                // Si tenemos proyecto_id, filtramos por proyecto también (idealmente)
+                // Pero Buildings en esquema actual es :: id, proyecto_id, nombreedificio
+                const whereClause: any = { nombreedificio: { equals: edificioId, mode: 'insensitive' } };
+                if (createUnidadDto.proyecto_id) {
+                    whereClause.proyecto_id = createUnidadDto.proyecto_id;
+                }
+
+                const edificio = await tx.edificios.findFirst({ where: whereClause });
+
+                if (edificio) {
+                    edificioId = edificio.id;
+                } else if (createUnidadDto.proyecto_id) {
+                    // Solo podemos crear si tenemos el proyecto_id
+                    const newEdificio = await tx.edificios.create({
+                        data: {
+                            nombreedificio: edificioId,
+                            proyecto_id: createUnidadDto.proyecto_id
+                        }
+                    });
+                    edificioId = newEdificio.id;
+                } else {
+                    // Si no hay proyecto_id, no podemos crear, dejamos que falle o null?
+                    // Dejamos el string original, fallará ID inválido, correcto.
+                }
             }
 
-            // Resolver Etapa
+            // Resolver Etapa (Find or Create)
             let etapaId = createUnidadDto.etapa_id;
             if (etapaId && !etapaId.includes('-')) {
                 const etapa = await tx.etapas.findFirst({ where: { nombre: { equals: etapaId, mode: 'insensitive' } } });
-                if (etapa) etapaId = etapa.id;
+                if (etapa) {
+                    etapaId = etapa.id;
+                } else {
+                    // Crear si no existe
+                    const newEtapa = await tx.etapas.create({ data: { nombre: etapaId } });
+                    etapaId = newEtapa.id;
+                }
             }
 
             // 2. Crear Unidad
@@ -100,7 +129,7 @@ export class UnidadesService {
                     unidad_id: newUnit.id,
                     preciousd: createUnidadDto.preciousd || 0,
                     usdm2: createUnidadDto.usdm2 || 0,
-                    clienteinteresado: createUnidadDto.clienteinteresado,
+                    clienteinteresado: createUnidadDto.clienteinteresado ? BigInt(createUnidadDto.clienteinteresado) : null,
                     obs: createUnidadDto.obs,
                     fechareserva: createUnidadDto.fechareserva,
                     estado_id: estadoId,

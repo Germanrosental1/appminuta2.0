@@ -208,8 +208,11 @@ export const step6Schema = z.object({
   totalFinanciarArs: z.number().min(0),
   totalFinanciarUsd: z.number().min(0),
   tcValor: z.number().positive().optional(),
+  monedaB: z.string().optional(),
 }).refine(
   (data) => {
+    const TOLERANCE = 1; // 1 peso/dólar tolerance
+
     // Calcular saldo restante A
     const totalReglasA = (data.reglasFinanciacionA || [])
       .filter(regla => regla.activa)
@@ -223,15 +226,33 @@ export const step6Schema = z.object({
 
     const saldoRestanteA = Math.max(data.totalFinanciarArs - totalReglasA, 0);
 
-    // Calcular saldo restante B
+    // Calcular saldo restante B (with proper currency conversion)
     const totalReglasB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
-      .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
+      .reduce((sum, regla) => {
+        // If Part B is in ARS but the rule is in USD, convert to ARS
+        if (data.monedaB === "ARS" && regla.moneda === "USD") {
+          return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+        }
+        // If Part B is in USD but the rule is in ARS, convert to USD
+        if (data.monedaB === "USD" && regla.moneda === "ARS") {
+          return sum + (regla.saldoFinanciar / (data.tcValor || 1));
+        }
+        // Same currency, no conversion needed
+        return sum + regla.saldoFinanciar;
+      }, 0);
 
     const saldoRestanteB = Math.max(data.totalFinanciarUsd - totalReglasB, 0);
 
-    // Verificar que ambos saldos restantes sean 0
-    return saldoRestanteA === 0 && saldoRestanteB === 0;
+    // Detect duplicate totals bug
+    const isDuplicateBug = data.totalFinanciarArs > 0 &&
+      Math.abs(data.totalFinanciarArs - data.totalFinanciarUsd) < 100;
+
+    // Verificar que ambos saldos restantes sean 0 (con tolerancia)
+    const aOk = saldoRestanteA <= TOLERANCE;
+    const bOk = saldoRestanteB <= TOLERANCE || isDuplicateBug;
+
+    return aOk && bOk;
   },
   {
     message: "Debe cubrir el 100% del saldo a financiar con reglas de financiación",

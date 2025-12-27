@@ -31,6 +31,7 @@ function normalizeEstado(estado: string): string {
 interface UserPermissionsCache {
   permissions: string[];
   projectIds: string[];
+  roles: string[];
   cachedAt: number;
 }
 const PERMISSIONS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
@@ -46,19 +47,24 @@ export class MinutasService {
   ) { }
 
   // ⚡ Método para obtener permisos con cache
-  private async getCachedUserPermissions(userId: string): Promise<{ permissions: string[]; projectIds: string[] }> {
+  private async getCachedUserPermissions(userId: string): Promise<{ permissions: string[]; projectIds: string[]; roles: string[] }> {
     const cached = userPermissionsCache.get(userId);
     const now = Date.now();
 
     // Si hay cache válido, usarlo
     if (cached && (now - cached.cachedAt) < PERMISSIONS_CACHE_TTL_MS) {
-      return { permissions: cached.permissions, projectIds: cached.projectIds };
+      return { permissions: cached.permissions, projectIds: cached.projectIds, roles: cached.roles };
     }
 
     // Si no hay cache o expiró, hacer la query
+    // ⚡ OPTIMIZED QUERY: Fetch Permissions, Roles, and Projects in one go
     const userDataRaw: any[] = await this.prisma.$queryRaw`
-      SELECT DISTINCT p.nombre as permiso_nombre, up.idproyecto
+      SELECT 
+        DISTINCT p.nombre as permiso_nombre, 
+        up.idproyecto,
+        r.nombre as rol_nombre
       FROM "usuarios-roles" ur
+      LEFT JOIN roles r ON ur.idrol = r.id
       LEFT JOIN "roles-permisos" rp ON ur.idrol = rp.idrol
       LEFT JOIN permisos p ON rp.idpermiso = p.id
       LEFT JOIN "usuarios-proyectos" up ON ur.idusuario = up.idusuario
@@ -67,15 +73,17 @@ export class MinutasService {
 
     const permissions = [...new Set(userDataRaw.map(row => row.permiso_nombre).filter(Boolean))] as string[];
     const projectIds = [...new Set(userDataRaw.map(row => row.idproyecto).filter(Boolean))] as string[];
+    const roles = [...new Set(userDataRaw.map(row => row.rol_nombre).filter(Boolean))] as string[];
 
     // Guardar en cache
     userPermissionsCache.set(userId, {
       permissions,
       projectIds,
+      roles,
       cachedAt: now,
     });
 
-    return { permissions, projectIds };
+    return { permissions, projectIds, roles };
   }
 
   // Método para invalidar cache de un usuario (llamar cuando cambien sus permisos/proyectos)
@@ -242,7 +250,7 @@ export class MinutasService {
     // ⚡ OPTIMIZACIÓN: Usar cache para permisos y proyectos del usuario
     const { permissions: userPermissions, projectIds: userProjectIds } = await this.getCachedUserPermissions(userId);
     const canViewAll = userPermissions.includes('verTodasMinutas');
-    const canSign = userPermissions.includes('firmarMinutas');
+    const canSign = userPermissions.includes('firmarMinuta');
 
     // Si NO es admin y NO es firmante, filtrar por proyectos del usuario O minutas propias
     if (!canViewAll && !canSign) {
@@ -267,9 +275,10 @@ export class MinutasService {
 
       where.OR = orConditions;
     } else if (canSign && !canViewAll) {
-      // Firmante: puede ver TODAS las minutas aprobadas + sus propias minutas
+      // Firmante: puede ver TODAS las minutas aprobadas y firmadas + sus propias minutas
       where.OR = [
         { estado: 'aprobada' },
+        { estado: 'firmada' },
         { usuario_id: userId }
       ];
     } else {
@@ -443,10 +452,14 @@ export class MinutasService {
 
     // ⚡ OPTIMIZACIÓN: Verificar permisos usando datos ya obtenidos
     const canViewAll = userPermissions.permissions.includes('verTodasMinutas');
+    const canSign = userPermissions.permissions.includes('firmarMinuta'); // Permitir firmantes
     const isOwner = minuta.usuario_id === userId;
     const hasProjectAccess = minuta.proyecto ? userPermissions.projectIds.includes(minuta.proyecto) : false;
 
-    if (!canViewAll && !isOwner && !hasProjectAccess) {
+    // Explicit bypass for global admins
+    const isGlobalAdmin = userPermissions.roles && userPermissions.roles.some(r => ['superadminmv', 'adminmv'].includes(r));
+
+    if (!canViewAll && !isOwner && !hasProjectAccess && !isGlobalAdmin && !canSign) {
       throw new ForbiddenException(`No tienes permiso para acceder a esta minuta.`);
     }
 
@@ -479,8 +492,8 @@ export class MinutasService {
       // 🔒 VALIDACIÓN: Motivo obligatorio al cancelar
       const estadoLower = updateMinutaDto.estado.toLowerCase();
 
-      // Validar motivo obligatorio para 'cancelada' y 'en_edicion'
-      if (['cancelada', 'en_edicion'].includes(estadoLower)) {
+      // Validar motivo obligatorio para 'cancelada'
+      if (['cancelada'].includes(estadoLower)) {
         if (!updateMinutaDto.comentarios || updateMinutaDto.comentarios.trim() === '') {
           const accion = estadoLower === 'cancelada' ? 'cancelación' : 'edición';
           throw new BadRequestException(

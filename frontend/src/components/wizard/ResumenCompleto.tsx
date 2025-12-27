@@ -66,8 +66,25 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
 
   const cocherasCant = displayData.cocheras?.length || 0;
   const totalCocheras = displayData.cocheras?.reduce((sum, cochera) => sum + (cochera.precioNegociado || 0), 0) || 0;
-  const totalReglasA = (displayData.reglasFinanciacionA || []).reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
-  const totalReglasB = (displayData.reglasFinanciacionB || []).reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
+  const totalReglasA = (displayData.reglasFinanciacionA || []).reduce((sum, regla) => {
+    // Si la regla está en USD, convertir a ARS
+    if (regla.moneda === "USD") {
+      return sum + (regla.saldoFinanciar * (displayData.tcValor || 1));
+    }
+    return sum + regla.saldoFinanciar;
+  }, 0);
+
+  const totalReglasB = (displayData.reglasFinanciacionB || []).reduce((sum, regla) => {
+    // Si Part B es ARS y la regla es USD, convertir a ARS
+    if (displayData.monedaB === "ARS" && regla.moneda === "USD") {
+      return sum + (regla.saldoFinanciar * (displayData.tcValor || 1));
+    }
+    // Si Part B es USD y la regla es ARS, convertir a USD
+    if (displayData.monedaB === "USD" && regla.moneda === "ARS") {
+      return sum + (regla.saldoFinanciar / (displayData.tcValor || 1));
+    }
+    return sum + regla.saldoFinanciar;
+  }, 0);
 
 
   return (

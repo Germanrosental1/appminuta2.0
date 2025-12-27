@@ -148,7 +148,7 @@ export default function UnitsListPage() {
         setLoading(true);
         let data: Unit[];
 
-        if (selectedProject) {
+        if (selectedProject && selectedProject !== 'all') {
           data = await supabaseService.getUnitsByProject(selectedProject);
 
           // Cargar los tipos disponibles para este proyecto
@@ -171,9 +171,11 @@ export default function UnitsListPage() {
             setFiltroEstado('all');
           }
         } else {
+          // selectedProject es '' o 'all' - cargar todas las unidades
           data = await supabaseService.getAllUnits();
           const tipos = await supabaseService.getUniqueValues('tipo');
           setTiposDisponibles(tipos);
+          setProjectNaturaleza('');
         }
 
         setUnits(data);
@@ -370,6 +372,9 @@ export default function UnitsListPage() {
                 <SelectValue placeholder="Seleccionar proyecto" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all" className="font-bold border-b mb-1">
+                  Todos
+                </SelectItem>
                 {projects.map(project => (
                   <SelectItem key={project} value={project}>
                     {project}

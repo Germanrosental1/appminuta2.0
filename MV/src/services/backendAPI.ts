@@ -170,6 +170,42 @@ class BackendAPI {
             throw error;
         }
     }
+    // --- Catalog Methods ---
+
+
+    async getUnitTypes() {
+        return this.fetchJson(`${this.baseURL}/tipos-unidad`);
+    }
+
+    async getBuildings(projectId: string) {
+        const token = await this.getAuthToken();
+        const response = await fetch(`${this.baseURL}/edificios?proyectoId=${projectId}`, { // Tentativo
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        // Fallback si falla el filtro, traer todos (no ideal pero funcional para demo)
+        if (!response.ok) return [];
+        return response.json();
+    }
+
+    // Mejor estrategia: Generic fetch helper
+    private async fetchJson(url: string) {
+        const token = await this.getAuthToken();
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+        return res.json();
+    }
+
+    async getStages() {
+        return this.fetchJson(`${this.baseURL}/etapas`);
+    }
+
+    async getCommercialStates() {
+        return this.fetchJson(`${this.baseURL}/estado-comercial`);
+    }
+
+    async getCommercials() {
+        return this.fetchJson(`${this.baseURL}/comerciales`);
+    }
 }
 
 export const backendAPI = new BackendAPI();

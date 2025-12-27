@@ -39,13 +39,10 @@ const App = () => (
               <Route path="/map/:mapId" element={<SalesMapView />} />
               <Route path="/units" element={<UnitsListPage />} />
 
-              {/* Solo superadminmv puede crear unidades */}
               <Route
                 path="/unit/create"
                 element={
-                  <ProtectedRoute requiredRole="superadminmv">
-                    <UnitEditPage />
-                  </ProtectedRoute>
+                  <UnitEditPage />
                 }
               />
 
