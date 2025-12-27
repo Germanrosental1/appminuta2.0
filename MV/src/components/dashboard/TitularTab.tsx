@@ -87,9 +87,9 @@ export function TitularTab({
                                             key={unit.id}
                                             className={`border-b hover:bg-muted/30 ${index % 2 === 0 ? 'bg-white dark:bg-background' : 'bg-muted/10'}`}
                                         >
-                                            <td className="p-3 cursor-pointer" onClick={() => navigate(`/units/${unit.id}`)}>{unit.proyecto || '-'}</td>
-                                            <td className="p-3 font-medium cursor-pointer" onClick={() => navigate(`/units/${unit.id}`)}>{unit.clienteTitularBoleto || '-'}</td>
-                                            <td className="p-3 cursor-pointer" onClick={() => navigate(`/units/${unit.id}`)}>
+                                            <td className="p-3">{unit.proyecto || '-'}</td>
+                                            <td className="p-3 font-medium">{unit.clienteTitularBoleto || '-'}</td>
+                                            <td className="p-3">
                                                 <span className={`px-2 py-1 rounded text-xs font-medium ${unit.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                                                     unit.estado === 'Reservado' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
                                                         unit.estado === 'Vendido' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
@@ -98,9 +98,9 @@ export function TitularTab({
                                                     {unit.estado || '-'}
                                                 </span>
                                             </td>
-                                            <td className="p-3 text-muted-foreground cursor-pointer" onClick={() => navigate(`/units/${unit.id}`)}>{unit.motivoNoDisponibilidad || '-'}</td>
-                                            <td className="p-3 cursor-pointer" onClick={() => navigate(`/units/${unit.id}`)}>{unit.tipo || '-'}</td>
-                                            <td className="p-3 font-mono text-xs cursor-pointer" onClick={() => navigate(`/units/${unit.id}`)}>{unit.sectorId || '-'}</td>
+                                            <td className="p-3 text-muted-foreground">{unit.motivoNoDisponibilidad || '-'}</td>
+                                            <td className="p-3">{unit.tipo || '-'}</td>
+                                            <td className="p-3 font-mono text-xs">{unit.sectorId || '-'}</td>
                                             <td className="p-3 text-center">
                                                 <button
                                                     onClick={(e) => {

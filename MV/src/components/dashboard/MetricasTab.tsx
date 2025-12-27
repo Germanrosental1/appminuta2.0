@@ -39,6 +39,7 @@ interface MetricasTabProps {
     showTotalValue: boolean;
     setShowTotalValue: (show: boolean) => void;
     animationKey: number;
+    hasDepartamentos: boolean;
 }
 
 export function MetricasTab({
@@ -58,7 +59,8 @@ export function MetricasTab({
     setSelectedMotivo,
     showTotalValue,
     setShowTotalValue,
-    animationKey
+    animationKey,
+    hasDepartamentos
 }: MetricasTabProps) {
     return (
         <>
@@ -274,12 +276,12 @@ export function MetricasTab({
             >
                 <motion.div
                     variants={itemVariants}
-                    className={`transition-all duration-500 ease-in-out overflow-hidden w-full ${(!selectedType || selectedType === 'Departamento')
+                    className={`transition-all duration-500 ease-in-out overflow-hidden w-full ${(hasDepartamentos && (!selectedType || selectedType === 'Departamento'))
                         ? 'opacity-100 max-h-[500px] mt-4'
                         : 'opacity-0 max-h-0 mt-0'
                         }`}
                 >
-                    <Card className="flex flex-col h-full">
+                    <Card className="flex flex-col h-[350px]">
                         <CardHeader>
                             <CardTitle className="flex justify-between items-center">
                                 Distribución por Dormitorios
@@ -344,11 +346,11 @@ export function MetricasTab({
                 <motion.div
                     variants={itemVariants}
                     className={`transition-all duration-500 ease-in-out overflow-hidden w-full ${motivosData.length > 0
-                            ? 'opacity-100 max-h-[500px]'
-                            : 'opacity-0 max-h-0'
+                        ? 'opacity-100 max-h-[500px]'
+                        : 'opacity-0 max-h-0'
                         }`}
                 >
-                    <Card className="flex flex-col h-full">
+                    <Card className="flex flex-col h-[350px]">
                         <CardHeader>
                             <CardTitle className="flex justify-between items-center">
                                 Distribución por Motivo

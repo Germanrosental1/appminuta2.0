@@ -26,6 +26,7 @@ import {
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [allUnits, setAllUnits] = useState<Unit[]>([]); // All units for Titular tab
   const [projects, setProjects] = useState<string[]>([]);
   const navigate = useNavigate();
 
@@ -101,11 +102,43 @@ export default function Dashboard() {
     loadInitialData();
   }, []);
 
+  // Load ALL units once on mount (for Titular tab)
+  useEffect(() => {
+    const loadAllUnits = async () => {
+      try {
+        const allData = await supabaseService.getAllUnits();
+        setAllUnits(allData);
+
+        // Pre-select "Cartera Propia" variants in Titulares filter
+        const carteraVariants = allData
+          .map(u => u.clienteTitularBoleto)
+          .filter(titular => {
+            if (!titular) return false;
+            const normalized = titular.toLowerCase().replace(/\s+/g, '');
+            return normalized === 'carterapropia';
+          });
+        const uniqueCartera = [...new Set(carteraVariants)] as string[];
+        if (uniqueCartera.length > 0) {
+          setSelectedTitulares(uniqueCartera);
+        }
+      } catch (error) {
+        console.error("Error loading all units:", error);
+      }
+    };
+    loadAllUnits();
+  }, []);
+
   // Load units when project changes
   useEffect(() => {
     const loadFilteredUnits = async () => {
       try {
         setLoading(true);
+        // Reset all chart filters when project changes
+        setSelectedStatus(null);
+        setSelectedType(null);
+        setSelectedDorms(null);
+        setSelectedMotivo(null);
+
         let filteredUnits: Unit[] = [];
         if (selectedProject !== "all" && selectedProject) {
           filteredUnits = await supabaseService.getUnitsByProject(selectedProject);
@@ -162,23 +195,23 @@ export default function Dashboard() {
       color: `hsl(${index * 50 + 30}, 60%, 45%)`
     }));
 
-  // Get unique values for filters
-  const allTitulares = [...new Set(units
+  // Get unique values for Titular tab filters (using allUnits to be independent of project filter)
+  const allTitulares = [...new Set(allUnits
     .filter(u => u.clienteTitularBoleto && u.clienteTitularBoleto.trim() !== '')
     .map(u => u.clienteTitularBoleto)
   )].sort() as string[];
 
-  const allEstados = [...new Set(units
+  const allEstados = [...new Set(allUnits
     .filter(u => u.estado)
     .map(u => u.estado)
   )].sort() as string[];
 
-  const allTipos = [...new Set(units
+  const allTipos = [...new Set(allUnits
     .filter(u => u.tipo && u.tipo.trim() !== '')
     .map(u => u.tipo)
   )].sort() as string[];
 
-  const allProyectos = [...new Set(units
+  const allProyectos = [...new Set(allUnits
     .filter(u => u.proyecto && u.proyecto.trim() !== '')
     .map(u => u.proyecto)
   )].sort() as string[];
@@ -278,6 +311,7 @@ export default function Dashboard() {
             showTotalValue={showTotalValue}
             setShowTotalValue={setShowTotalValue}
             animationKey={animationKey}
+            hasDepartamentos={tipoData.some(t => t.name === 'Departamento' && t.value > 0)}
           />
         </TabsContent>
 
@@ -293,7 +327,7 @@ export default function Dashboard() {
         <TabsContent value="titular">
           <TitularTab
             loading={loading}
-            units={units}
+            units={allUnits}
             selectedProyectosFilter={selectedProyectosFilter}
             selectedTiposFilter={selectedTiposFilter}
             selectedEstadosFilter={selectedEstadosFilter}
