@@ -604,6 +604,7 @@ export const Step4Pago: React.FC = () => {
             Puedes modificar manualmente los valores o usar el botón "Restablecer" para volver al precio total original.
           </p>
         </div>
-      </div >
-      );
+      </div>
+    </div>
+  );
 };
