@@ -228,7 +228,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
         <Tabs defaultValue="consolidado" className="mt-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="consolidado">Vista Consolidada</TabsTrigger>
-            <TabsTrigger value="resumen">Calculadora</TabsTrigger>
+            <TabsTrigger value="resumen">Minuta Comercial</TabsTrigger>
             <TabsTrigger value="mapa-ventas">Mapa de Ventas</TabsTrigger>
             <TabsTrigger value="json">Datos JSON</TabsTrigger>
           </TabsList>
@@ -236,7 +236,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           <TabsContent value="consolidado">
             <div ref={consolidadoRef} className="p-4 bg-white rounded-md">
               <div className="mb-6">
-                <h2 className="text-xl font-bold mb-4">Datos de la Calculadora Comercial</h2>
+                <h2 className="text-xl font-bold mb-4">Datos de la Minuta Comercial</h2>
                 <ResumenCompleto wizardData={minuta.datos} />
               </div>
 

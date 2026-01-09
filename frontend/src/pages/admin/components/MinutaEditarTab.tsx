@@ -31,7 +31,7 @@ export const MinutaEditarTab: React.FC<MinutaEditarTabProps> = ({
         <Card>
             <CardHeader>
                 <CardTitle className="flex justify-between items-center">
-                    <span>Editar Datos de la Calculadora</span>
+                    <span>Editar Datos de la Minuta Comercial</span>
                     <div className="flex gap-2">
                         {editandoDatos ? (
                             <>
@@ -76,7 +76,7 @@ export const MinutaEditarTab: React.FC<MinutaEditarTabProps> = ({
                     </div>
                 </CardTitle>
                 <CardDescription>
-                    Modifique los datos de la calculadora comercial según sea necesario
+                    Modifique los datos de la minuta comercial según sea necesario
                 </CardDescription>
             </CardHeader>
             <CardContent>

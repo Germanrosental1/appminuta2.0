@@ -81,9 +81,9 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   // Función de guardar borrador eliminada
 
   const handleReset = () => {
-    if (globalThis.confirm('¿Estás seguro de que quieres reiniciar toda la calculadora? Todos los datos se perderán.')) {
+    if (globalThis.confirm('¿Estás seguro de que quieres reiniciar toda la minuta comercial? Todos los datos se perderán.')) {
       resetWizard();
-      toast.success("Calculadora reiniciada correctamente");
+      toast.success("Minuta comercial reiniciada correctamente");
     }
   };
 
@@ -93,7 +93,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-foreground">Calculadora Comercial</h1>
+            <h1 className="text-3xl font-bold text-foreground">Minuta Comercial</h1>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link to="/">

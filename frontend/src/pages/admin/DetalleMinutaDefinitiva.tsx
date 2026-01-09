@@ -563,7 +563,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
               </div>
 
               <div className="mb-6">
-                <h2 className="text-xl font-bold mb-4">Datos de la Calculadora Comercial</h2>
+                <h2 className="text-xl font-bold mb-4">Datos de la Minuta Comercial</h2>
                 {minuta.datos && (
                   <ResumenCompleto wizardData={minuta.datos} />
                 )}

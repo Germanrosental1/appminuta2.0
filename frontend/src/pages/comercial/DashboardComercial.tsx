@@ -263,7 +263,7 @@ export const DashboardComercial: React.FC = () => {
             onClick={handleNuevaCalculadora}
           >
             <Calculator className="h-5 w-5" />
-            Nueva Calculadora
+            Nueva Minuta Comercial
           </button>
           <button
             className="fab-menu-item fab-menu-item-document"
