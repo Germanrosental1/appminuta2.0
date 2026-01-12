@@ -20,6 +20,11 @@ export class ProyectosController {
         return this.proyectosService.findByUserId(userId);
     }
 
+    @Get('by-name/:name')
+    findByName(@Param('name') name: string) {
+        return this.proyectosService.findByName(name);
+    }
+
     @Get()
     findAll() {
         return this.proyectosService.findAll();

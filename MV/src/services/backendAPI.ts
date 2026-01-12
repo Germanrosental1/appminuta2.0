@@ -206,6 +206,71 @@ class BackendAPI {
     async getCommercials() {
         return this.fetchJson(`${this.baseURL}/comerciales`);
     }
+
+    /**
+     * Get gastos generales for a project
+     */
+    async getGastosGenerales(projectId: string) {
+        try {
+            const token = await this.getAuthToken();
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
+            const response = await fetch(`${this.baseURL}/gastosgenerales/proyecto/${projectId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.status === 404) {
+                // No gastos found, return null
+                return null;
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching gastos generales:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update gastos generales for a project
+     */
+    async updateGastosGenerales(projectId: string, gastosData: any) {
+        try {
+            const token = await this.getAuthToken();
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
+            const response = await fetch(`${this.baseURL}/gastosgenerales/proyecto/${projectId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(gastosData),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || `HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating gastos generales:', error);
+            throw error;
+        }
+    }
 }
 
 export const backendAPI = new BackendAPI();

@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UnidadesService } from './unidades.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
+import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
 import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
@@ -79,6 +80,11 @@ export class UnidadesController {
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.unidadesService.findOne(id);
+    }
+
+    @Patch(':id/complete')
+    updateComplete(@Param('id') id: string, @Body() updateUnidadDto: UpdateUnidadCompleteDto) {
+        return this.unidadesService.updateComplete(id, updateUnidadDto);
     }
 
     @Patch(':id')

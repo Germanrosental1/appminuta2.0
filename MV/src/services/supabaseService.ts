@@ -111,6 +111,7 @@ export const supabaseService = {
         // - comercial_id (de unit.comercial)
         // - etapa_id (de unit.etapa)
         // Por ahora enviamos lo que podemos
+        estadocomercial: unit.estado,
       };
 
       // Llamar al backend API

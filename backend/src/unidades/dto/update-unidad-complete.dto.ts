@@ -91,6 +91,10 @@ export class UpdateUnidadCompleteDto {
     @IsOptional()
     estado_id?: string;
 
+    @IsString()
+    @IsOptional()
+    estadocomercial?: string;
+
     @IsUUID('4', { message: 'comercial_id debe ser un UUID válido' })
     @IsOptional()
     comercial_id?: string;

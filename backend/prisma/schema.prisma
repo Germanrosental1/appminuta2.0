@@ -604,6 +604,21 @@ model profiles {
   @@schema("public")
 }
 
+model gastosgenerales {
+  proyecto               String    @id @db.Uuid
+  sellado                Float?
+  certificaciondefirmas  String?
+  alajamiento            Float?
+  planosm2propiedad      String?
+  planosm2cochera        String?
+  comisioninmobiliaria   Float?
+  otrosgastos            String?
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  proyectos              proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model proyectos {
@@ -627,6 +642,7 @@ model proyectos {
   proyectostiposunidad proyectostiposunidad[]
   tablas               tablas[]
   usuarios_proyectos   usuarios_proyectos[]
+  gastosgenerales      gastosgenerales?
 
   @@index([activo], map: "idx_proyectos_activo")
   @@schema("public")

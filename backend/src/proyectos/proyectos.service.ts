@@ -196,6 +196,29 @@ export class ProyectosService {
         return proyecto;
     }
 
+    async findByName(nombre: string) {
+        const proyecto = await this.prisma.proyectos.findUnique({
+            where: { nombre },
+            select: {
+                id: true,
+                nombre: true,
+                descripcion: true,
+                naturaleza: true,
+                direccion: true,
+                localidad: true,
+                provincia: true,
+                activo: true,
+                iva: true,
+            },
+        });
+
+        if (!proyecto) {
+            throw new NotFoundException(`Proyecto con nombre '${nombre}' no encontrado`);
+        }
+
+        return proyecto;
+    }
+
     async update(id: string, updateProyectoDto: UpdateProyectoDto) {
         // Verificar que existe
         await this.findOne(id);
