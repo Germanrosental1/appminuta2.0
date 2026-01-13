@@ -73,46 +73,48 @@ export const Step6Salida: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4">
         <h2 className="text-2xl font-bold">Resumen de la Operación</h2>
-        <div className="flex gap-2">
-          <ConfirmarGuardarMinutaDefinitiva
-            unidadId={data.unidad}
-            wizardData={data}
-            onSuccess={() => {
-              toast({
-                title: "Éxito",
-                description: "Minuta guardada exitosamente. Puedes verla en tu dashboard.",
-                duration: 3000,
-              });
-              // Opcional: Redirigir al dashboard si se desea flujo automático
-              // navigate('/comercial/dashboard');
-            }}
-          />
-          {/* Botón de descarga de PDF temporalmente deshabilitado
-          <Button 
-            onClick={handleDownloadPDF} 
-            disabled={isGeneratingPDF}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isGeneratingPDF ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generando PDF...
-              </>
-            ) : (
-              <>
-                <FileDown className="mr-2 h-4 w-4" />
-                Descargar PDF
-              </>
-            )}
-          </Button>
-          */}
-        </div>
       </div>
 
       <div ref={resumenRef}>
         <ResumenCompleto forPDF={false} />
+      </div>
+
+      {/* Botón de guardar movido al final */}
+      <div className="flex justify-end gap-2 mt-6">
+        <ConfirmarGuardarMinutaDefinitiva
+          unidadId={data.unidad}
+          wizardData={data}
+          onSuccess={() => {
+            toast({
+              title: "Éxito",
+              description: "Minuta guardada exitosamente. Puedes verla en tu dashboard.",
+              duration: 3000,
+            });
+            // Opcional: Redirigir al dashboard si se desea flujo automático
+            // navigate('/comercial/dashboard');
+          }}
+        />
+        {/* Botón de descarga de PDF temporalmente deshabilitado
+        <Button 
+          onClick={handleDownloadPDF} 
+          disabled={isGeneratingPDF}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          {isGeneratingPDF ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generando PDF...
+            </>
+          ) : (
+            <>
+              <FileDown className="mr-2 h-4 w-4" />
+              Descargar PDF
+            </>
+          )}
+        </Button>
+        */}
       </div>
     </div>
   );

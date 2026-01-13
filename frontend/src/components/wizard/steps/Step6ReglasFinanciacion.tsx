@@ -152,12 +152,21 @@ const formatFechaPosesion = (fechaIso: string | undefined): string => {
 };
 
 // Helper: Convertir totales a moneda base (ARS) según moneda B
-const convertirATotalesEnMonedaBase = (totalFinanciarArs: number, totalFinanciarUsd: number, monedaB: string, tcValor: number): number => {
-  if (monedaB === "USD") {
-    const totalBEnArs = totalFinanciarUsd * (tcValor || 1);
-    return totalFinanciarArs + totalBEnArs;
+// Helper: Convertir totales a moneda base (ARS) considerando monedas de ambas partes
+const convertirATotalesEnMonedaBase = (totalFinanciarArs: number, totalFinanciarUsd: number, monedaB: string, tcValor: number, monedaA: string = "ARS"): number => {
+  let totalA = totalFinanciarArs;
+  // Si Parte F está en USD, convertir a ARS
+  if (monedaA === "USD") {
+    totalA = totalFinanciarArs * (tcValor || 1);
   }
-  return totalFinanciarArs + totalFinanciarUsd;
+
+  let totalB = totalFinanciarUsd;
+  // Si Parte SB está en USD, convertir a ARS
+  if (monedaB === "USD") {
+    totalB = totalFinanciarUsd * (tcValor || 1);
+  }
+
+  return totalA + totalB;
 };
 
 // Helper: Calcular total de anticipos en moneda base (ARS)
@@ -209,7 +218,8 @@ const calcularPorcentajePagadoHelper = (
     data.totalFinanciarArs || 0,
     data.totalFinanciarUsd || 0,
     data.monedaB,
-    data.tcValor || 1
+    data.tcValor || 1,
+    data.monedaA
   );
 
   if (totalFinanciar === 0) return 100;
@@ -262,10 +272,12 @@ const calcularPorcentajePagadoHelper = (
   // Sumar los anticipos a los pagos de las reglas
   const totalPagado = totalPagadoA + totalPagadoB + totalAnticipos;
 
-  // El porcentaje pagado es lo que se pagará antes de la fecha de posesión dividido por el total a financiar
+  // El porcentaje pagado es lo que se pagará antes de la fecha de posesión dividido por el PRECIO TOTAL (Deuda + Anticipos)
   let porcentajePagado = 0;
-  if (totalFinanciar > 0) {
-    porcentajePagado = (totalPagado / totalFinanciar) * 100;
+  const precioTotal = totalFinanciar + totalAnticipos;
+
+  if (precioTotal > 0) {
+    porcentajePagado = (totalPagado / precioTotal) * 100;
   }
 
   // Asegurarse de que el porcentaje esté entre 0 y 100
@@ -276,20 +288,21 @@ const calcularPorcentajePagadoHelper = (
 export const Step6ReglasFinanciacion: React.FC = () => {
   const { data, updateData } = useWizard();
   const fechaActual = new Date();
-  const fechaProximoMes = format(addMonths(fechaActual, 1), "d/MM/yy");
+  const fechaHoy = format(fechaActual, "d/MM/yy");
 
   const [nuevaReglaA, setNuevaReglaA] = useState<Partial<ReglaFinanciacion>>({
-    moneda: "ARS",
-    primerVencimiento: fechaProximoMes
+    moneda: data.monedaA || "ARS",
+    primerVencimiento: fechaHoy
   });
   const [nuevaReglaB, setNuevaReglaB] = useState<Partial<ReglaFinanciacion>>({
-    primerVencimiento: fechaProximoMes
+    primerVencimiento: fechaHoy
   });
 
-  // Inicializar moneda B según la selección del paso 3
+  // Inicializar monedas según la selección del paso 3
   useEffect(() => {
+    setNuevaReglaA(prev => ({ ...prev, moneda: data.monedaA || "ARS" }));
     setNuevaReglaB(prev => ({ ...prev, moneda: data.monedaB }));
-  }, [data.monedaB]);
+  }, [data.monedaA, data.monedaB]);
   const [mostrarFormA, setMostrarFormA] = useState(false);
   const [mostrarFormB, setMostrarFormB] = useState(false);
 
@@ -302,11 +315,24 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     const totalReglasA = (data.reglasFinanciacionA || [])
       .filter(regla => regla.activa)
       .reduce((sum, regla) => {
-        // Si la regla está en USD, convertir a ARS usando el tipo de cambio
-        if (regla.moneda === "USD") {
-          return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+        // Conversión según la moneda base de la Parte F (data.monedaA)
+        if (data.monedaA === "USD") {
+          // Si F es USD:
+          // - Regla USD: Sumar directo
+          // - Regla ARS: Dividir por TC
+          if (regla.moneda === "ARS") {
+            return sum + (regla.saldoFinanciar / (data.tcValor || 1));
+          }
+          return sum + regla.saldoFinanciar;
+        } else {
+          // Si F es ARS (o default):
+          // - Regla USD: Multiplicar por TC
+          // - Regla ARS: Sumar directo
+          if (regla.moneda === "USD") {
+            return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+          }
+          return sum + regla.saldoFinanciar;
         }
-        return sum + regla.saldoFinanciar;
       }, 0);
     return Math.max(totalFinanciarArs - totalReglasA, 0);
   };
@@ -327,6 +353,37 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         return sum + regla.saldoFinanciar;
       }, 0);
     return Math.max(totalFinanciarUsd - totalReglasB, 0);
+  };
+
+  // Helper para calcular el máximo permitido en el input de la nueva regla A
+  const calcularMaximoPermitidoA = () => {
+    // 1. Obtener el saldo restante en la moneda de la Deuda F
+    const saldoRestante = calcularSaldoRestanteA();
+
+    // 2. Si el saldo es 0, no permitir agregar más (aunque la UI debería bloquearlo antes)
+    if (saldoRestante <= 0) return 0;
+
+    // 3. Convertir ese saldo restante a la moneda que el usuario está escribiendo en el input
+    const monedaDeuda = data.monedaA || "ARS";
+    const monedaInput = nuevaReglaA.moneda || "ARS";
+    const tc = data.tcValor || 1;
+
+    // Caso A: Deuda en USD
+    if (monedaDeuda === "USD") {
+      if (monedaInput === "USD") {
+        return saldoRestante; // Input USD -> Max USD
+      } else {
+        return saldoRestante * tc; // Input ARS -> Max USD * TC
+      }
+    }
+    // Caso B: Deuda en ARS
+    else {
+      if (monedaInput === "ARS") {
+        return saldoRestante; // Input ARS -> Max ARS
+      } else {
+        return saldoRestante / tc; // Input USD -> Max ARS / TC
+      }
+    }
   };
 
   // Wrapper for calculation using current component state or overrides
@@ -364,14 +421,22 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       : Number(nuevaReglaA.saldoFinanciar) / Number(nuevaReglaA.numCuotas);
 
     // Calcular el monto en la moneda correcta para los porcentajes
-    let montoEnMonedaBase = Number(nuevaReglaA.saldoFinanciar);
+    // Calcular el monto en la moneda correcta del total para los porcentajes (Base ARS para el global)
+    let montoEnMonedaBaseGlobal = Number(nuevaReglaA.saldoFinanciar);
     if (nuevaReglaA.moneda === "USD") {
-      // Si la regla está en USD, convertir a ARS para calcular porcentajes
-      montoEnMonedaBase = montoEnMonedaBase * (data.tcValor || 1);
+      montoEnMonedaBaseGlobal = montoEnMonedaBaseGlobal * (data.tcValor || 1);
+    }
+
+    // Calcular el monto en la moneda de la Parte F
+    let montoEnMonedaParteF = Number(nuevaReglaA.saldoFinanciar);
+    if (data.monedaA === "USD") {
+      if (nuevaReglaA.moneda === "ARS") montoEnMonedaParteF = montoEnMonedaParteF / (data.tcValor || 1);
+    } else {
+      if (nuevaReglaA.moneda === "USD") montoEnMonedaParteF = montoEnMonedaParteF * (data.tcValor || 1);
     }
 
     // Calcular el total de reglas existentes para la parte A y total
-    const totalReglasExistentesA = (data.reglasFinanciacionA || [])
+    const totalReglasExistentesBaseGlobal = (data.reglasFinanciacionA || [])
       .filter(regla => regla.activa)
       .reduce((sum, regla) => {
         if (regla.moneda === "USD") {
@@ -382,17 +447,55 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
     const totalReglasExistentesB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
-      .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
+      .reduce((sum, regla) => {
+        // Normalizar a Base Global ARS
+        // Si Moneda B es USD -> todo es USD: * TC
+        // Si Moneda B es ARS -> todo es ARS: directo (si regla es USD, * TC)
+
+        let montoReglaArs = regla.saldoFinanciar;
+
+        // Si la regla está en USD, la pasamos a ARS
+        if (regla.moneda === "USD") {
+          montoReglaArs = regla.saldoFinanciar * (data.tcValor || 1);
+        }
+
+        return sum + montoReglaArs;
+      }, 0);
 
     // Sumar el monto de la nueva regla al total existente
-    const totalReglasA = totalReglasExistentesA + montoEnMonedaBase;
-    const totalReglas = totalReglasA + totalReglasExistentesB;
+    const totalReglasAGlobal = totalReglasExistentesBaseGlobal + montoEnMonedaBaseGlobal;
+    const totalReglas = totalReglasAGlobal + totalReglasExistentesB;
+
+    // Calcular cobertura en Parte F (en la moneda de F)
+    const totalReglasExistentesParteF = (data.reglasFinanciacionA || [])
+      .filter(regla => regla.activa)
+      .reduce((sum, regla) => {
+        if (data.monedaA === "USD") {
+          if (regla.moneda === "ARS") return sum + (regla.saldoFinanciar / (data.tcValor || 1));
+          return sum + regla.saldoFinanciar;
+        } else {
+          if (regla.moneda === "USD") return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+          return sum + regla.saldoFinanciar;
+        }
+      }, 0);
+
+    const totalReglasAParteF = totalReglasExistentesParteF + montoEnMonedaParteF;
 
     // Calcular los porcentajes como la cobertura de la deuda
-    const porcentajeDeudaTotal = totalFinanciarArs + totalFinanciarUsd > 0 ?
-      (totalReglas / (totalFinanciarArs + totalFinanciarUsd)) * 100 : 0;
+    // Para el global, necesitamos todo en moneda base ARS
+    const totalFinanciarGlobalArs = convertirATotalesEnMonedaBase(
+      data.totalFinanciarArs || 0,
+      data.totalFinanciarUsd || 0,
+      data.monedaB,
+      data.tcValor || 1,
+      data.monedaA
+    );
+
+    const porcentajeDeudaTotal = totalFinanciarGlobalArs > 0 ?
+      (totalReglas / totalFinanciarGlobalArs) * 100 : 0;
+
     const porcentajeDeudaA = totalFinanciarArs > 0 ?
-      (totalReglasA / totalFinanciarArs) * 100 : 0;
+      (totalReglasAParteF / totalFinanciarArs) * 100 : 0;
 
     const nuevaRegla: ReglaFinanciacion = {
       id: uuidv4(),
@@ -424,12 +527,43 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
     // Resetear el formulario
     setNuevaReglaA({
-      moneda: "ARS",
-      primerVencimiento: fechaProximoMes
+      moneda: data.monedaA || "ARS",
+      primerVencimiento: fechaHoy
     });
     setMostrarFormA(false);
 
     // Log para depuración
+  };
+
+  // Helper para calcular el máximo permitido en el input de la nueva regla B
+  const calcularMaximoPermitidoB = () => {
+    // 1. Obtener el saldo restante en la moneda de la Deuda SB
+    const saldoRestante = calcularSaldoRestanteB();
+
+    // 2. Si el saldo es 0, no permitir agregar más
+    if (saldoRestante <= 0) return 0;
+
+    // 3. Convertir ese saldo restante a la moneda que el usuario está escribiendo en el input
+    const monedaDeuda = data.monedaB || "ARS";
+    const monedaInput = nuevaReglaB.moneda || "ARS";
+    const tc = data.tcValor || 1;
+
+    // Caso A: Deuda en USD
+    if (monedaDeuda === "USD") {
+      if (monedaInput === "USD") {
+        return saldoRestante; // Input USD -> Max USD
+      } else {
+        return saldoRestante * tc; // Input ARS -> Max USD * TC
+      }
+    }
+    // Caso B: Deuda en ARS
+    else {
+      if (monedaInput === "ARS") {
+        return saldoRestante; // Input ARS -> Max ARS
+      } else {
+        return saldoRestante / tc; // Input USD -> Max ARS / TC
+      }
+    }
   };
 
   // Agregar nueva regla B
@@ -486,14 +620,42 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     }
 
     // Sumar el monto de la nueva regla al total existente
-    const totalReglasB = totalReglasExistentesB + montoEnMonedaB;
-    const totalReglas = totalReglasExistentesA + totalReglasB;
+    const totalReglasBParteB = totalReglasExistentesB + montoEnMonedaB;
+    const totalReglas = totalReglasExistentesA + totalReglasBParteB;
 
-    // Calcular los porcentajes como la cobertura de la deuda
-    const porcentajeDeudaTotal = totalFinanciarArs + totalFinanciarUsd > 0 ?
-      (totalReglas / (totalFinanciarArs + totalFinanciarUsd)) * 100 : 0;
+    // Calcular cobertura GLOBAL en Moneda Base (ARS)
+    // 1. Total deuda global en ARS
+    const totalFinanciarGlobalArs = convertirATotalesEnMonedaBase(
+      data.totalFinanciarArs || 0,
+      data.totalFinanciarUsd || 0,
+      data.monedaB,
+      data.tcValor || 1,
+      data.monedaA
+    );
+
+    // 2. Sumar todas las reglas A (existentes) en ARS
+    const totalReglasA_EnArs = (data.reglasFinanciacionA || []).filter(r => r.activa).reduce((sum, r) => {
+      return sum + (r.moneda === "USD" ? r.saldoFinanciar * (data.tcValor || 1) : r.saldoFinanciar);
+    }, 0);
+
+    // 3. Sumar todas las reglas B (existentes + nueva) en ARS
+    const totalReglasB_Existentes_EnArs = (data.reglasFinanciacionB || []).filter(r => r.activa).reduce((sum, r) => {
+      return sum + (r.moneda === "USD" ? r.saldoFinanciar * (data.tcValor || 1) : r.saldoFinanciar);
+    }, 0);
+
+    // Nueva regla B en ARS
+    const nuevaReglaB_EnArs = nuevaReglaB.moneda === "USD"
+      ? Number(nuevaReglaB.saldoFinanciar) * (data.tcValor || 1)
+      : Number(nuevaReglaB.saldoFinanciar);
+
+    const totalReglasGlobal_EnArs = totalReglasA_EnArs + totalReglasB_Existentes_EnArs + nuevaReglaB_EnArs;
+
+    // Calcular porcentajes
+    const porcentajeDeudaTotal = totalFinanciarGlobalArs > 0 ?
+      (totalReglasGlobal_EnArs / totalFinanciarGlobalArs) * 100 : 0;
+
     const porcentajeDeudaB = totalFinanciarUsd > 0 ?
-      (totalReglasB / totalFinanciarUsd) * 100 : 0;
+      (totalReglasBParteB / totalFinanciarUsd) * 100 : 0;
 
     const nuevaRegla: ReglaFinanciacion = {
       id: uuidv4(),
@@ -526,7 +688,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     // Resetear el formulario
     setNuevaReglaB({
       moneda: data.monedaB,
-      primerVencimiento: fechaProximoMes
+      primerVencimiento: fechaHoy
     });
     setMostrarFormB(false);
 
@@ -634,7 +796,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
               <p className="text-red-600 mt-1">
                 Para poder continuar al siguiente paso, debe cubrir el 100% del saldo a financiar con reglas de financiación.
                 {haySaldoRestanteA && (
-                  <span className="block mt-1">• Saldo pendiente en Parte F: ${formatCurrency(calcularSaldoRestanteA())}</span>
+                  <span className="block mt-1">• Saldo pendiente en Parte F: ${formatCurrency(calcularSaldoRestanteA(), data.monedaA || "ARS")}</span>
+                )}
+                {data.ivaProyecto === "no incluido" && (data.montoIVA || 0) > 0 && (
+                  <span className="block mt-1 text-sm font-medium text-red-500/80">
+                    (Incluye IVA: +${formatCurrency(data.montoIVA || 0)})
+                  </span>
                 )}
                 {haySaldoRestanteB && (
                   <span className="block mt-1">• Saldo pendiente en Parte SB: ${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</span>
@@ -647,11 +814,11 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
       <div className="grid grid-cols-4 gap-4 bg-blue-50 p-4 rounded-lg">
         <div>
-          <h3 className="text-sm font-medium text-blue-700">Total a Financiar en ARS:</h3>
-          <p className="text-xl font-bold">${formatCurrency(totalFinanciarArs)}</p>
+          <h3 className="text-sm font-medium text-blue-700">Total a Financiar en F:</h3>
+          <p className="text-xl font-bold">${formatCurrency(totalFinanciarArs, data.monedaA || "ARS")}</p>
         </div>
         <div>
-          <h3 className="text-sm font-medium text-blue-700">Total a Financiar en {data.monedaB}:</h3>
+          <h3 className="text-sm font-medium text-blue-700">Total a Financiar en SB:</h3>
           <p className="text-xl font-bold">${formatCurrency(totalFinanciarUsd, data.monedaB)}</p>
         </div>
         <div>
@@ -667,7 +834,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       {/* Sección A - ARS */}
       <Card className="border-2 border-blue-500">
         <CardHeader className="bg-blue-500 text-white">
-          <CardTitle className="text-xl">Financiación Parte F (ARS)</CardTitle>
+          <CardTitle className="text-xl">Financiación Parte F ({data.monedaA || "ARS"})</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           {/* Reglas existentes */}
@@ -733,30 +900,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                             {regla.ultimoVencimiento}
                           </td>
                         </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">Valor bien:</td>
-                          <td className="p-3 text-right font-medium" colSpan={2}>
-                            {regla.valorBien}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">Cargo:</td>
-                          <td className="p-3 text-right font-medium" colSpan={2}>
-                            {regla.cargo}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">% Cobertura Total:</td>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.porcentajeDeudaTotal}%
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="p-3 font-medium">% Cobertura F:</td>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.porcentajeDeudaParte}%
-                          </td>
-                        </tr>
+
                       </tbody>
                     </table>
                   </CardContent>
@@ -769,7 +913,17 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           <div className={`p-4 rounded-lg mb-4 ${calcularSaldoRestanteA() > 0 ? 'bg-red-50' : 'bg-blue-50'}`}>
             <div className="flex justify-between items-center">
               <h3 className="font-medium">Saldo restante a financiar:</h3>
-              <p className={`text-xl font-bold ${calcularSaldoRestanteA() > 0 ? 'text-red-600' : ''}`}>${formatCurrency(calcularSaldoRestanteA())}</p>
+              <div className="text-right">
+                <p className={`text-xl font-bold ${calcularSaldoRestanteA() > 0 ? 'text-red-600' : ''}`}>${formatCurrency(calcularSaldoRestanteA(), data.monedaA || "ARS")}</p>
+                <p className="text-sm text-muted-foreground">
+                  ({formatCurrency(
+                    (data.monedaA === 'USD')
+                      ? calcularSaldoRestanteA() * (data.tcValor || 1)
+                      : calcularSaldoRestanteA() / (data.tcValor || 1),
+                    (data.monedaA === 'USD') ? 'ARS' : 'USD'
+                  )})
+                </p>
+              </div>
             </div>
             {calcularSaldoRestanteA() > 0 && (
               <div className="mt-2 text-red-600 text-sm">
@@ -798,7 +952,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                         id="saldoFinanciarA"
                         value={nuevaReglaA.saldoFinanciar}
                         onChange={(value) => setNuevaReglaA({ ...nuevaReglaA, saldoFinanciar: value })}
-                        max={calcularSaldoRestanteA()}
+                        max={calcularMaximoPermitidoA()}
                         prefix="$"
                         className="flex-1"
                       />
@@ -821,7 +975,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                     <Input
                       id="numCuotasA"
                       type="number"
-                      placeholder="12"
+                      placeholder=""
                       value={nuevaReglaA.numCuotas || ""}
                       onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, numCuotas: Number(e.target.value) })}
                       min={1}
@@ -989,30 +1143,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                             {regla.ultimoVencimiento}
                           </td>
                         </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">Valor bien:</th>
-                          <td className="p-3 text-right font-medium" colSpan={2}>
-                            {regla.valorBien}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">Cargo:</th>
-                          <td className="p-3 text-right font-medium" colSpan={2}>
-                            {regla.cargo}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">% Cobertura Total:</th>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.porcentajeDeudaTotal}%
-                          </td>
-                        </tr>
-                        <tr>
-                          <th scope="row" className="p-3 font-medium text-left">% Cobertura SB:</th>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.porcentajeDeudaParte}%
-                          </td>
-                        </tr>
+
                       </tbody>
                     </table>
                   </CardContent>
@@ -1025,7 +1156,17 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           <div className={`p-4 rounded-lg mb-4 ${calcularSaldoRestanteB() > 0 ? 'bg-red-50' : 'bg-purple-50'}`}>
             <div className="flex justify-between items-center">
               <h3 className="font-medium">Saldo restante a financiar:</h3>
-              <p className={`text-xl font-bold ${calcularSaldoRestanteB() > 0 ? 'text-red-600' : ''}`}>${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</p>
+              <div className="text-right">
+                <p className={`text-xl font-bold ${calcularSaldoRestanteB() > 0 ? 'text-red-600' : ''}`}>${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</p>
+                <p className="text-sm text-muted-foreground">
+                  ({formatCurrency(
+                    (data.monedaB === 'USD')
+                      ? calcularSaldoRestanteB() * (data.tcValor || 1)
+                      : calcularSaldoRestanteB() / (data.tcValor || 1),
+                    (data.monedaB === 'USD') ? 'ARS' : 'USD'
+                  )})
+                </p>
+              </div>
             </div>
             {calcularSaldoRestanteB() > 0 && (
               <div className="mt-2 text-red-600 text-sm">
@@ -1054,7 +1195,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                         id="saldoFinanciarB"
                         value={nuevaReglaB.saldoFinanciar}
                         onChange={(value) => setNuevaReglaB({ ...nuevaReglaB, saldoFinanciar: value })}
-                        max={calcularSaldoRestanteB()}
+                        max={calcularMaximoPermitidoB()}
                         prefix="$"
                         className="flex-1"
                       />
@@ -1078,7 +1219,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                     <Input
                       id="numCuotasB"
                       type="number"
-                      placeholder="12"
+                      placeholder=""
                       value={nuevaReglaB.numCuotas || ""}
                       onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, numCuotas: Number(e.target.value) })}
                       min={1}

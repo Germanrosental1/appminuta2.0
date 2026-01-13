@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateComercialDto } from './dto/create-comercial.dto';
 import { UpdateComercialDto } from './dto/update-comercial.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class ComercialesService {
@@ -14,7 +15,7 @@ export class ComercialesService {
                 data: createComercialDto,
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
                     throw new ConflictException(
                         `Ya existe un comercial con el nombre "${createComercialDto.nombre}"`,
@@ -63,7 +64,7 @@ export class ComercialesService {
                 data: updateComercialDto,
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Comercial con ID "${id}" no encontrado`);
                 }
@@ -83,7 +84,7 @@ export class ComercialesService {
                 where: { id },
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Comercial con ID "${id}" no encontrado`);
                 }

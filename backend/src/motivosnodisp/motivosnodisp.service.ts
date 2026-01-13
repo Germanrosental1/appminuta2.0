@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateMotivoNodispDto } from './dto/create-motivonodisp.dto';
 import { UpdateMotivoNodispDto } from './dto/update-motivonodisp.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class MotivosNodispService {
@@ -14,7 +15,7 @@ export class MotivosNodispService {
                 data: createMotivoNodispDto,
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un motivo con el nombre "${createMotivoNodispDto.nombre}"`);
             }
             throw error;
@@ -44,7 +45,7 @@ export class MotivosNodispService {
                 data: updateMotivoNodispDto,
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Motivo con ID "${id}" no encontrado`);
                 if (error.code === 'P2002') throw new ConflictException(`Ya existe un motivo con el nombre "${updateMotivoNodispDto.nombre}"`);
             }
@@ -56,7 +57,7 @@ export class MotivosNodispService {
         try {
             return await this.prisma.motivosnodisp.delete({ where: { id } });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Motivo con ID "${id}" no encontrado`);
                 if (error.code === 'P2003') throw new ConflictException('No se puede eliminar porque tiene ventas asociadas');
             }

@@ -8,6 +8,7 @@ export interface Proyecto {
   direccion?: string;
   localidad?: string;
   provincia?: string;
+  iva?: string;
   activo: boolean;
   created_at: string;
   updated_at: string;

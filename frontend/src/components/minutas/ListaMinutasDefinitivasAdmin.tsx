@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
-import { CancelarMinutaModal } from '@/components/minutas/CancelarMinutaModal';
+import { MotivoModal } from '@/components/minutas/MotivoModal';
 
 interface ListaMinutasDefinitivasAdminProps {
   readOnly?: boolean;
@@ -440,11 +440,17 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
       />
 
       {/* Modal para cancelar minuta con motivo */}
-      <CancelarMinutaModal
+      <MotivoModal
         open={cancelModalOpen}
         onOpenChange={setCancelModalOpen}
         onConfirm={handleConfirmCancel}
         isLoading={updateEstadoMutation.isPending}
+        title="Cancelar Minuta"
+        description="Esta acción no se puede deshacer. Por favor, indica el motivo de la cancelación."
+        label="Motivo de cancelación"
+        placeholder="Escribe el motivo por el cual se cancela esta minuta..."
+        actionLabel="Confirmar Cancelación"
+        variant="destructive"
       />
     </div>
   );

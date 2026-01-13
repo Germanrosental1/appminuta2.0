@@ -66,8 +66,25 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
 
   const cocherasCant = displayData.cocheras?.length || 0;
   const totalCocheras = displayData.cocheras?.reduce((sum, cochera) => sum + (cochera.precioNegociado || 0), 0) || 0;
-  const totalReglasA = (displayData.reglasFinanciacionA || []).reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
-  const totalReglasB = (displayData.reglasFinanciacionB || []).reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
+  const totalReglasA = (displayData.reglasFinanciacionA || []).reduce((sum, regla) => {
+    // Si la regla está en USD, convertir a ARS
+    if (regla.moneda === "USD") {
+      return sum + (regla.saldoFinanciar * (displayData.tcValor || 1));
+    }
+    return sum + regla.saldoFinanciar;
+  }, 0);
+
+  const totalReglasB = (displayData.reglasFinanciacionB || []).reduce((sum, regla) => {
+    // Si Part B es ARS y la regla es USD, convertir a ARS
+    if (displayData.monedaB === "ARS" && regla.moneda === "USD") {
+      return sum + (regla.saldoFinanciar * (displayData.tcValor || 1));
+    }
+    // Si Part B es USD y la regla es ARS, convertir a USD
+    if (displayData.monedaB === "USD" && regla.moneda === "ARS") {
+      return sum + (regla.saldoFinanciar / (displayData.tcValor || 1));
+    }
+    return sum + regla.saldoFinanciar;
+  }, 0);
 
 
   return (
@@ -103,14 +120,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
                           <span className="font-medium">{unidad.etapa}</span>
                         </div>
                       )}
-                      <div>
-                        <span className="text-muted-foreground">Precio Lista: </span>
-                        <span className="font-medium">${formatCurrency(unidad.precioLista)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Precio Negociado: </span>
-                        <span className="font-medium">${formatCurrency(unidad.precioNegociado)}</span>
-                      </div>
+
                     </div>
                   </div>
                 ))}
@@ -141,7 +151,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
       {/* Paso 2: Estructura Comercial */}
       <Card>
         <CardHeader className="bg-primary/10">
-          <CardTitle className="text-lg">2. Estructura Comercial</CardTitle>
+          <CardTitle className="text-lg">2. Acuerdo Comercial</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="space-y-4">
@@ -155,6 +165,61 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
                 </p>
               )}
             </div>
+
+            {/* Desglose por unidades */}
+            {displayData.unidades && displayData.unidades.length > 0 && (
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="text-sm font-semibold text-muted-foreground">Desglose por unidad:</h4>
+                {displayData.unidades.map((unidad, index) => {
+                  const m2 = unidad.m2 || 0;
+                  const precioM2Lista = m2 > 0 ? (unidad.precioLista / m2) : 0;
+                  const precioM2Negociado = m2 > 0 ? (unidad.precioNegociado / m2) : 0;
+
+                  return (
+                    <div key={index} className="bg-muted/30 p-3 rounded-md text-sm space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">{unidad.tipo}</Badge>
+                        <span className="font-medium truncate">{unidad.descripcion}</span>
+                        {m2 > 0 && <span className="text-xs text-muted-foreground ml-auto">({m2} m²)</span>}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="font-bold">Precio Lista (USD):</span>
+                            <span>${formatCurrency(unidad.precioLista)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="font-bold">USD/m² Lista:</span>
+                            <span className="text-muted-foreground">{m2 > 0 ? `$${formatCurrency(precioM2Lista)}` : "-"}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="font-bold">Precio Negociado (USD):</span>
+                            <span className="text-primary">${formatCurrency(unidad.precioNegociado)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="font-bold">USD/m² Negociado:</span>
+                            <span className="text-primary">{m2 > 0 ? `$${formatCurrency(precioM2Negociado)}` : "-"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Descuento por unidad */}
+                      {unidad.precioLista > 0 && (
+                        <div className="mt-3 text-right">
+                          <span className="text-sm text-green-600">
+                            <span className="font-bold">Descuento:</span> {Math.max(0, ((unidad.precioLista - unidad.precioNegociado) / unidad.precioLista) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Detalle por tipo si hay modelo antiguo con cocheras/baulera separadas */}
             {(cocherasCant > 0 || displayData.baulera) && !displayData.unidades?.length && (
@@ -184,45 +249,59 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
       {/* Paso 3: Composición F/SB */}
       <Card>
         <CardHeader className="bg-primary/10">
-          <CardTitle className="text-lg">3. Composición F/SB</CardTitle>
+          <CardTitle className="text-lg">3. Estructura de pago</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Modo F:</p>
-              <p className="font-medium">{displayData.modoA === "porcentaje" ? "Porcentaje" : "Importe"}</p>
+          <div className="space-y-6">
+            {/* Modo de Composición - Full Width */}
+            <div className="border-b pb-4">
+              <p className="text-sm text-muted-foreground">Composición por:</p>
+              <p className="font-medium text-lg">{displayData.modoA === "porcentaje" ? "Porcentaje" : "Importe Fijo"}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Porcentaje F:</p>
-              <p className="font-medium">{displayData.porcA || 0}%</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Porcentaje SB:</p>
-              <p className="font-medium">{porcB}%</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Valor F ({displayData.monedaA}):</p>
-              <p className="font-medium">${formatCurrency(
-                displayData.modoA === "porcentaje"
-                  ? (precioTotal * (displayData.porcA || 0)) / 100
-                  : displayData.impA || displayData.valorArsConIVA
-              )}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Valor SB ({displayData.monedaB}):</p>
-              <p className="font-medium">${formatCurrency(
-                displayData.modoA === "porcentaje"
-                  ? (precioTotal * porcB) / 100
-                  : (precioTotal - (displayData.impA || 0)) || displayData.valorUsdConIVA
-              )}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Moneda F:</p>
-              <p className="font-medium">{displayData.monedaA || "-"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Moneda SB:</p>
-              <p className="font-medium">{displayData.monedaB || "-"}</p>
+
+            {/* Columnas F y SB */}
+            <div className="grid grid-cols-2 gap-8">
+              {/* Columna Parte F */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-primary border-b border-primary/20 pb-2">Parte F</h4>
+                <div>
+                  <p className="text-sm text-muted-foreground">Porcentaje:</p>
+                  <p className="font-medium text-lg">{displayData.porcA || 0}%</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Valor F:</p>
+                  <p className="font-medium text-lg">${formatCurrency(
+                    displayData.modoA === "porcentaje"
+                      ? (precioTotal * (displayData.porcA || 0)) / 100
+                      : displayData.impA || displayData.valorArsConIVA
+                  )}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Moneda:</p>
+                  <Badge variant={displayData.monedaA === "USD" ? "secondary" : "default"}>{displayData.monedaA || "-"}</Badge>
+                </div>
+              </div>
+
+              {/* Columna Parte SB */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-purple-600 border-b border-purple-200 pb-2">Parte SB</h4>
+                <div>
+                  <p className="text-sm text-muted-foreground">Porcentaje:</p>
+                  <p className="font-medium text-lg">{porcB}%</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Valor SB:</p>
+                  <p className="font-medium text-lg">${formatCurrency(
+                    displayData.modoA === "porcentaje"
+                      ? (precioTotal * porcB) / 100
+                      : (precioTotal - (displayData.impA || 0)) || displayData.valorUsdConIVA
+                  )}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Moneda:</p>
+                  <Badge variant={displayData.monedaB === "USD" ? "secondary" : "default"}>{displayData.monedaB || "-"}</Badge>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -231,7 +310,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
       {/* Paso 4: Pago */}
       <Card>
         <CardHeader className="bg-primary/10">
-          <CardTitle className="text-lg">4. Pago F/SB</CardTitle>
+          <CardTitle className="text-lg">4. Forma de pago</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid grid-cols-2 gap-4">
@@ -260,17 +339,23 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
               <p className="font-medium">${formatCurrency(displayData.anticipoUsdB || 0)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">A financiar ARS:</p>
+              <p className="text-sm text-muted-foreground">A financiar F ({displayData.monedaA || "ARS"}):</p>
               <p className="font-medium">${formatCurrency(displayData.totalFinanciarArs)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">A financiar USD:</p>
+              <p className="text-sm text-muted-foreground">A financiar SB ({displayData.monedaB || "USD"}):</p>
               <p className="font-medium">${formatCurrency(displayData.totalFinanciarUsd)}</p>
             </div>
             {displayData.fechaFirmaBoleto && (
               <div>
                 <p className="text-sm text-muted-foreground">Fecha Firma Boleto:</p>
                 <p className="font-medium">{formatDate(displayData.fechaFirmaBoleto)}</p>
+              </div>
+            )}
+            {displayData.fechaBaseCAC && (
+              <div>
+                <p className="text-sm text-muted-foreground">Base CAC:</p>
+                <p className="font-medium">{formatDate(displayData.fechaBaseCAC)}</p>
               </div>
             )}
           </div>
@@ -315,11 +400,11 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
               <p className="text-xs text-muted-foreground">Pago: {displayData.otrosGastosPago}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Cargos ARS:</p>
+              <p className="text-sm font-bold">Total Cargos ARS:</p>
               <p className="font-medium">${formatCurrency(displayData.totalCargosArs)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Cargos USD:</p>
+              <p className="text-sm font-bold">Total Cargos USD:</p>
               <p className="font-medium">${formatCurrency(displayData.totalCargosUsd)}</p>
             </div>
           </div>
@@ -364,7 +449,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
                     </div>
                   ))}
                   <div className="mt-2">
-                    <p className="text-sm text-muted-foreground">Total financiado F:</p>
+                    <p className="text-sm font-bold">Total financiado F:</p>
                     <p className="font-medium">${formatCurrency(totalReglasA)}</p>
                   </div>
                 </div>
@@ -406,7 +491,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
                     </div>
                   ))}
                   <div className="mt-2">
-                    <p className="text-sm text-muted-foreground">Total financiado SB:</p>
+                    <p className="text-sm font-bold">Total financiado SB:</p>
                     <p className="font-medium">${formatCurrency(totalReglasB)}</p>
                   </div>
                 </div>
@@ -415,13 +500,46 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
               )}
             </div>
 
-            <div className="mt-4 p-3 bg-primary/5 rounded-md">
-              <p className="text-sm font-medium">% financiado a fecha Posesión:</p>
-              <p className="text-xl font-bold">{displayData.porcentajePagadoFechaPosesion || 0}%</p>
-            </div>
+            {(() => {
+              const porcentaje = displayData.porcentajePagadoFechaPosesion || 0;
+              const isGood = porcentaje >= 50;
+              return (
+                <div className={`mt-4 p-3 rounded-md ${isGood ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                  <p className="text-sm font-medium">% financiado a fecha Posesión:</p>
+                  <p className="text-xl font-bold">{porcentaje}%</p>
+                </div>
+              );
+            })()}
           </div>
         </CardContent>
       </Card>
+
+      {/* Paso 7: Datos del Cliente */}
+      {displayData.clienteInteresado && (
+        <Card>
+          <CardHeader className="bg-primary/10">
+            <CardTitle className="text-lg">7. Datos del Cliente Interesado</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">DNI:</p>
+                <p className="font-medium">{displayData.clienteInteresado.dni || "-"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Nombre y Apellido:</p>
+                <p className="font-medium">{displayData.clienteInteresado.nombreApellido || "-"}</p>
+              </div>
+              {displayData.clienteInteresado.telefono && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Teléfono:</p>
+                  <p className="font-medium">{displayData.clienteInteresado.telefono}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
     </div>
   );

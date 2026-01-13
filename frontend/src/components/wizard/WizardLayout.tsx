@@ -15,28 +15,29 @@ interface WizardLayoutProps {
   isEditMode?: boolean; // En modo edición, no puede volver al paso 1
 }
 
-const STEP_TITLES = [
+// Definir títulos base
+const TITLES_BASE = [
   "Proyecto & Unidad",
-  "Estructura comercial",
-  "Composición F/SB",
-  "Pago F/SB",
+  "Acuerdo Comercial",
+  "Estructura de Pago",
+  "Forma de Pago",
   "Cargos & Extras",
   "Reglas de Financiación F/SB",
   "Datos del Cliente",
-  "Tipo de Cambio & Salida",
+  "Resumen",
 ];
 
-// Títulos para pago de contado (sin paso de financiación)
-const STEP_TITLES_CONTADO = [
+const TITLES_CONTADO = [
   "Proyecto & Unidad",
-  "Estructura comercial",
-  "Composición F/SB",
-  "Pago F/SB",
+  "Acuerdo Comercial",
+  "Estructura de Pago",
+  "Forma de Pago",
   "Cargos & Extras",
   "Datos del Cliente",
-  "Tipo de Cambio & Salida",
+  "Resumen",
 ];
 
+// WizardLayout component definition
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
   children,
   onNext,
@@ -47,14 +48,18 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 }) => {
   const { currentStep, setCurrentStep, resetWizard, data } = useWizard();
 
-  // Determinar qué conjunto de títulos usar basado en el tipo de pago
-  const titles = data.tipoPago === "contado" ? STEP_TITLES_CONTADO : STEP_TITLES;
+  // Determine array based on payment type
+  const titles = data.tipoPago === "contado" ? [...TITLES_CONTADO] : [...TITLES_BASE];
 
-  // Calcular el progreso basado en el conjunto de títulos actual
+  // Insert extra step if IVA applies
+  if (data.ivaProyecto === "no incluido") {
+    titles.splice(3, 0, "Impuestos (IVA)");
+  }
+
+  // Calculate progress
   const progress = ((currentStep + 1) / titles.length) * 100;
 
   const handleBack = () => {
-    // En modo edición, no permitir volver al paso 1 (index 0)
     if (isEditMode && currentStep === 1) {
       toast.error("En modo edición no puedes cambiar el proyecto/unidad");
       return;
@@ -77,8 +82,6 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
       setCurrentStep(currentStep + 1);
     }
   };
-
-  // Función de guardar borrador eliminada
 
   const handleReset = () => {
     if (globalThis.confirm('¿Estás seguro de que quieres reiniciar toda la minuta comercial? Todos los datos se perderán.')) {

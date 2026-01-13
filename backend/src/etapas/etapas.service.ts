@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateEtapaDto } from './dto/create-etapa.dto';
 import { UpdateEtapaDto } from './dto/update-etapa.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 // ⚡ OPTIMIZACIÓN: Cache para catálogos
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -29,7 +30,7 @@ export class EtapasService {
             await this.invalidateCache(); // Invalidar cache al crear
             return result;
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
                     throw new ConflictException(
                         `Ya existe una etapa con el nombre "${createEtapaDto.nombre}"`,
@@ -86,7 +87,7 @@ export class EtapasService {
                 return result;
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Etapa con ID "${id}" no encontrada`);
                 }
@@ -109,7 +110,7 @@ export class EtapasService {
                 return result;
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Etapa con ID "${id}" no encontrada`);
                 }

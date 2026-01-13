@@ -6,8 +6,10 @@ import { UnitTable } from "@/components/unit-table";
 import { UnitFiltersComponent } from "@/components/unit-filters";
 import { UnitDetailSheet } from "@/components/unit-detail-sheet";
 import { PermissionsTab } from "@/components/permissions-tab";
+import { GastosGeneralesTab } from "@/components/gastos-generales-tab";
 import { mockUsers, mockPermissions } from "@/data/mock-data";
 import { supabaseService } from "@/services/supabaseService";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -16,6 +18,7 @@ export default function SalesMapView() {
   const [loading, setLoading] = useState(true);
   const [units, setUnits] = useState<Unit[]>([]);
   const [projectName, setProjectName] = useState<string>('');
+  const [projectId, setProjectId] = useState<string>('');
   const [projectNaturaleza, setProjectNaturaleza] = useState<string>('');
 
   const [filters, setFilters] = useState<UnitFilters>({
@@ -33,18 +36,32 @@ export default function SalesMapView() {
 
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  
+
   // Cargar unidades del proyecto seleccionado
   useEffect(() => {
     const loadUnits = async () => {
       if (!mapId) return;
-      
+
       try {
         setLoading(true);
+
+        // Primero obtener el ID del proyecto por nombre
+        const projectResponse = await fetch(`http://localhost:3000/proyectos/by-name/${mapId}`, {
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+        });
+
+        if (projectResponse.ok) {
+          const projectData = await projectResponse.json();
+          setProjectId(projectData.id);
+        }
+
+        // Luego cargar las unidades
         const data = await supabaseService.getUnitsByProject(mapId);
         setUnits(data);
         setProjectName(mapId);
-        
+
         // Intentar obtener la naturaleza del proyecto
         if (data.length > 0) {
           const firstUnit = data[0];
@@ -57,10 +74,10 @@ export default function SalesMapView() {
         setLoading(false);
       }
     };
-    
+
     loadUnits();
   }, [mapId]);
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -69,7 +86,7 @@ export default function SalesMapView() {
       </div>
     );
   }
-  
+
   if (units.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -83,22 +100,22 @@ export default function SalesMapView() {
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       const matchesSearch = (
-        (unit.numeroUnidad.toLowerCase().includes(searchLower)) ||
-        (unit.edificioTorre.toLowerCase().includes(searchLower)) ||
-        (unit.piso.toLowerCase().includes(searchLower)) ||
-        (unit.estado.toLowerCase().includes(searchLower)) ||
-        (unit.clienteInteresado.toLowerCase().includes(searchLower)) ||
-        (unit.sectorId.toLowerCase().includes(searchLower))
+        (String(unit.numeroUnidad || '').toLowerCase().includes(searchLower)) ||
+        (String(unit.edificioTorre || '').toLowerCase().includes(searchLower)) ||
+        (String(unit.piso || '').toLowerCase().includes(searchLower)) ||
+        (String(unit.estado || '').toLowerCase().includes(searchLower)) ||
+        (String(unit.clienteInteresado || '').toLowerCase().includes(searchLower)) ||
+        (String(unit.sectorId || '').toLowerCase().includes(searchLower))
       );
-      
+
       if (!matchesSearch) return false;
     }
-    
+
     // Filtro por tipo
     if (filters.tipo !== "all" && unit.tipo !== filters.tipo) {
       return false;
     }
-    
+
     // Filtro por dormitorios (solo si no es naturaleza Naves)
     if (projectNaturaleza !== 'Naves' && filters.dormitorios !== "all") {
       // Si filtroDormitorios es 'null', buscamos unidades sin dormitorios (como cocheras)
@@ -109,24 +126,24 @@ export default function SalesMapView() {
         if (unit.dormitorios !== dormitoriosNum) return false;
       }
     }
-    
+
     // Filtro por estado
     if (filters.estado !== "all" && unit.estado !== filters.estado) {
       return false;
     }
-    
+
     // Filtro por precio mínimo
     if (filters.precioMin && !isNaN(parseFloat(filters.precioMin))) {
       const precioMin = parseFloat(filters.precioMin);
       if (unit.precioUSD < precioMin) return false;
     }
-    
+
     // Filtro por precio máximo
     if (filters.precioMax && !isNaN(parseFloat(filters.precioMax))) {
       const precioMax = parseFloat(filters.precioMax);
       if (unit.precioUSD > precioMax) return false;
     }
-    
+
     return true;
   });
 
@@ -139,12 +156,12 @@ export default function SalesMapView() {
     try {
       // Guardar los cambios en la base de datos
       await supabaseService.updateUnit(unit);
-      
+
       // Actualizar la unidad en el estado local
-      setUnits(prevUnits => 
+      setUnits(prevUnits =>
         prevUnits.map(u => u.id === unit.id ? unit : u)
       );
-      
+
       toast.success("Unidad actualizada correctamente");
       setSheetOpen(false);
     } catch (error) {
@@ -176,6 +193,8 @@ export default function SalesMapView() {
             <TabsList className="bg-muted">
               <TabsTrigger value="units">Mapa / Unidades</TabsTrigger>
               <TabsTrigger value="permissions">Permisos y Roles</TabsTrigger>
+              <TabsTrigger value="gastos">Gastos Generales</TabsTrigger>
+              <TabsTrigger value="masiva">Modificación Masiva</TabsTrigger>
             </TabsList>
 
             <TabsContent value="units" className="space-y-6">
@@ -200,6 +219,33 @@ export default function SalesMapView() {
                 permissions={mockPermissions}
                 onSavePermissions={handleSavePermissions}
               />
+            </TabsContent>
+
+            <TabsContent value="gastos">
+              {projectId ? (
+                <GastosGeneralesTab projectId={projectId} />
+              ) : (
+                <div className="flex items-center justify-center p-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="masiva">
+              <div className="space-y-6">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+                  <div className="h-5 w-5 text-yellow-600 mt-0.5">⚠️</div>
+                  <div>
+                    <h4 className="font-semibold text-yellow-800">Vista en Construcción (Standby)</h4>
+                    <p className="text-yellow-700 text-sm mt-1">
+                      Esta sección de <strong>Modificación Masiva</strong> se encuentra en desarrollo.
+                    </p>
+                  </div>
+                </div>
+                <div className="border rounded-lg p-12 text-center text-muted-foreground">
+                  <p>Aquí se podrá realizar la modificación masiva de precios y estados de las unidades.</p>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

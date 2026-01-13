@@ -9,7 +9,13 @@ export class CreateUnidadDto {
     @IsNotEmpty({ message: 'sectorid es requerido' })
     sectorid: string;
 
-    @IsUUID('4', { message: 'tipounidad_id debe ser un UUID válido' })
+    @IsUUID('4', { message: 'proyecto_id debe ser un UUID válido' })
+    @IsOptional()
+    proyecto_id?: string; // Necesario para crear edificios si no existen
+
+    // @IsUUID('4', { message: 'tipounidad_id debe ser un UUID válido' })
+    // Permitimos string para que el service resuelva por nombre si es necesario
+    @IsString()
     @IsNotEmpty({ message: 'tipounidad_id es requerido' })
     tipounidad_id: string;
 
@@ -45,4 +51,48 @@ export class CreateUnidadDto {
     @IsString()
     @IsOptional()
     frente?: string;
+
+    // --- Métricas ---
+    @IsOptional()
+    m2exclusivos?: number;
+
+    @IsOptional()
+    m2totales?: number;
+
+    @IsOptional()
+    m2comunes?: number;
+
+    @IsOptional()
+    m2patioterraza?: number;
+
+    @IsString()
+    @IsOptional()
+    tamano?: string;
+
+    // --- Detalles Venta ---
+    @IsOptional()
+    preciousd?: number;
+
+    @IsOptional()
+    usdm2?: number;
+
+    @IsString()
+    @IsOptional()
+    clienteinteresado?: string;
+
+    @IsString()
+    @IsOptional()
+    obs?: string;
+
+    @IsOptional()
+    fechareserva?: Date;
+
+    @IsString()
+    @IsOptional()
+    estadocomercial?: string; // Nombre del estado (ej: Disponible)
+
+    @IsString()
+    @IsOptional()
+    comercial?: string; // Nombre del comercial
+
 }

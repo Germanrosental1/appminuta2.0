@@ -79,8 +79,8 @@ export const Step4Pago: React.FC = () => {
 
     // Importante: Tanto valorA como valorB están en USD en este punto
 
-    // Convertir el valor A a ARS (siempre es en ARS)
-    if (data.tcValor > 0) {
+    // Convertir el valor A según su moneda (si es ARS, convertir desde USD)
+    if ((!data.monedaA || data.monedaA === 'ARS') && data.tcValor > 0) {
       valorA = valorA * data.tcValor;
     }
 
@@ -184,11 +184,17 @@ export const Step4Pago: React.FC = () => {
   useEffect(() => {
     const tcValor = data.tcValor || 1;
 
-    // Para la parte F (siempre en ARS):
-    // - Restar anticipo en ARS directamente
-    // - Convertir anticipo en USD a ARS y restarlo
-    const anticipoUsdAEnArs = (data.anticipoUsdA || 0) * tcValor;
-    const totalArs = Math.max((data.valorArsConIVA || 0) - (data.anticipoArsA || 0) - anticipoUsdAEnArs, 0);
+    // Para la parte F:
+    let totalArs = 0;
+    if (!data.monedaA || data.monedaA === 'ARS') {
+      // Si F está en ARS
+      const anticipoUsdAEnArs = (data.anticipoUsdA || 0) * tcValor;
+      totalArs = Math.max((data.valorArsConIVA || 0) - (data.anticipoArsA || 0) - anticipoUsdAEnArs, 0);
+    } else {
+      // Si F está en USD
+      const anticipoArsAEnUsd = (data.anticipoArsA || 0) / tcValor;
+      totalArs = Math.max((data.valorArsConIVA || 0) - (data.anticipoUsdA || 0) - anticipoArsAEnUsd, 0);
+    }
 
     // Para la parte SB: depende de la moneda seleccionada
     let totalUsd = 0;
@@ -219,6 +225,7 @@ export const Step4Pago: React.FC = () => {
       {/* Referencia al precio total */}
       <div className="rounded-lg bg-primary/10 border border-primary/20 p-4">
         <div className="flex items-center gap-2">
+
           <div className="w-full">
             {(() => {
               const precioBase = calcularPrecioTotal();
@@ -278,333 +285,300 @@ export const Step4Pago: React.FC = () => {
             })()}
           </div>
         </div>
+      </div>
+      {/* Tipo de pago */}
+      <div className="rounded-lg border border-border p-4 space-y-4">
+        <h3 className="font-semibold text-foreground">Tipo de pago</h3>
 
-        {/* Tipo de pago */}
-        <div className="rounded-lg border border-border p-4 space-y-4">
-          <h3 className="font-semibold text-foreground">Tipo de pago</h3>
-
-          <RadioGroup
-            value={data.tipoPago}
-            onValueChange={(val: "contado" | "financiado") => handleChange("tipoPago", val)}
-            className="flex flex-col space-y-3"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="contado" id="tipo-contado" />
-              <Label htmlFor="tipo-contado" className="flex items-center cursor-pointer">
-                <Check className="w-4 h-4 mr-2" />
-                Pago de contado
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="financiado" id="tipo-financiado" />
-              <Label htmlFor="tipo-financiado" className="flex items-center cursor-pointer">
-                <CreditCard className="w-4 h-4 mr-2" />
-                Pago financiado
-              </Label>
-            </div>
-          </RadioGroup>
-        </div >
-
-        {/* Tipo de cambio */}
-        < div className="rounded-lg border border-border p-4 space-y-4" >
-          <h3 className="font-semibold text-foreground">Tipo de cambio</h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="tcFuente">
-                Fuente <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={data.tcFuente}
-                onValueChange={(val: "MEP" | "BNA" | "Acordado" | "Otro") => handleChange("tcFuente", val)}
-              >
-                <SelectTrigger id="tcFuente">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MEP">MEP</SelectItem>
-                  <SelectItem value="BNA">BNA</SelectItem>
-                  <SelectItem value="Acordado">Acordado</SelectItem>
-                  <SelectItem value="Otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tcValor">
-                Valor ($/USD) <span className="text-destructive">*</span>
-              </Label>
-              <CurrencyInput
-                id="tcValor"
-                value={data.tcValor}
-                onChange={(value) => handleChange("tcValor", value)}
-                onBlur={handleBlur}
-                error={!!errors.tcValor}
-                decimals={0}
-              />
-              {errors.tcValor && <p className="text-sm text-destructive">{errors.tcValor}</p>}
-            </div>
+        <RadioGroup
+          value={data.tipoPago}
+          onValueChange={(val: "contado" | "financiado") => handleChange("tipoPago", val)}
+          className="flex flex-col space-y-3"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="contado" id="tipo-contado" />
+            <Label htmlFor="tipo-contado" className="flex items-center cursor-pointer">
+              <Check className="w-4 h-4 mr-2" />
+              Pago de contado
+            </Label>
           </div>
-        </div >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="financiado" id="tipo-financiado" />
+            <Label htmlFor="tipo-financiado" className="flex items-center cursor-pointer">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Pago financiado
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
 
-        {/* Valores a financiar (IVA incluido) */}
-        < div className="rounded-lg border border-border p-4 space-y-4" >
-          <div>
-            <h3 className="font-semibold text-foreground">Valores a financiar (IVA incluido)</h3>
-            <p className="text-xs text-muted-foreground">Basado en el precio total: ${calcularPrecioTotal().toLocaleString("es-AR", { minimumFractionDigits: 2 })}</p>
+      {/* Tipo de cambio */}
+      <div className="rounded-lg border border-border p-4 space-y-4">
+        <h3 className="font-semibold text-foreground">Tipo de cambio</h3>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="tcFuente">
+              Fuente <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={data.tcFuente}
+              onValueChange={(val: "MEP" | "BNA" | "Acordado" | "Otro") => handleChange("tcFuente", val)}
+            >
+              <SelectTrigger id="tcFuente">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MEP">MEP</SelectItem>
+                <SelectItem value="BNA">BNA</SelectItem>
+                <SelectItem value="Acordado">Acordado</SelectItem>
+                <SelectItem value="Otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="valorArsConIVA" className="flex items-center gap-2">
-                Valor F <span className="text-muted-foreground">(ARS)</span>
-              </Label>
-              <CurrencyInput
-                id="valorArsConIVA"
-                value={data.valorArsConIVA}
-                onChange={() => { }}
-                disabled={true}
-                prefix="$"
-                className="opacity-100 cursor-default"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>IVA incluido</span>
-                <span className="font-medium">{data.modoA === "porcentaje" ? `${data.porcA}% ` : ""}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="valorUsdConIVA" className="flex items-center gap-2">
-                Valor SB <span className="text-muted-foreground">({data.monedaB})</span>
-              </Label>
-              <CurrencyInput
-                id="valorUsdConIVA"
-                value={data.valorUsdConIVA}
-                onChange={() => { }}
-                disabled={true}
-                prefix="$"
-                suffix={data.monedaB}
-                className="opacity-100 cursor-default"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>IVA incluido</span>
-                <span className="font-medium">{data.modoA === "porcentaje" ? `${100 - data.porcA}% ` : ""}</span>
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="tcValor">
+              Valor ($/USD) <span className="text-destructive">*</span>
+            </Label>
+            <CurrencyInput
+              id="tcValor"
+              value={data.tcValor}
+              onChange={(value) => handleChange("tcValor", value)}
+              onBlur={handleBlur}
+              error={!!errors.tcValor}
+              decimals={0}
+            />
+            {errors.tcValor && <p className="text-sm text-destructive">{errors.tcValor}</p>}
           </div>
-        </div >
-
-        {/* Anticipo al boleto - Solo visible si es financiado */}
-        {
-          data.tipoPago === "financiado" && (
-            <div className="rounded-lg border border-border p-4 space-y-4">
-              <h3 className="font-semibold text-foreground">Anticipo al boleto</h3>
-
-              <div className="mb-4">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="text-left p-2"></th>
-                      <th className="text-center p-2 font-medium text-muted-foreground">Anticipo F</th>
-                      <th className="text-center p-2 font-medium text-muted-foreground">Anticipo SB</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Fila para ARS */}
-                    <tr>
-                      <td className="p-2 font-medium text-muted-foreground">ARS</td>
-                      <td className="p-2">
-                        <div className="space-y-2">
-                          <CurrencyInput
-                            id="anticipoArsA"
-                            value={data.anticipoArsA}
-                            onChange={(value) => handleChange("anticipoArsA", value)}
-                            onBlur={handleBlur}
-                            error={!!errors.anticipoArsA}
-                            prefix="$"
-                          />
-                          {errors.anticipoArsA && <p className="text-sm text-destructive">{errors.anticipoArsA}</p>}
-                          {data.anticipoArsA > 0 && data.tcValor > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              ≈ ${(data.anticipoArsA / data.tcValor).toLocaleString("es-AR", { minimumFractionDigits: 2 })} USD
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2">
-                        <div className="space-y-2">
-                          <CurrencyInput
-                            id="anticipoArsB"
-                            value={data.anticipoArsB}
-                            onChange={(value) => handleChange("anticipoArsB", value)}
-                            onBlur={handleBlur}
-                            error={!!errors.anticipoArsB}
-                            prefix="$"
-                          />
-                          {errors.anticipoArsB && <p className="text-sm text-destructive">{errors.anticipoArsB}</p>}
-                          {data.anticipoArsB > 0 && data.tcValor > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              ≈ ${(data.anticipoArsB / data.tcValor).toLocaleString("es-AR", { minimumFractionDigits: 2 })} USD
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Fila para USD */}
-                    <tr>
-                      <td className="p-2 font-medium text-muted-foreground">USD</td>
-                      <td className="p-2">
-                        <div className="space-y-2">
-                          <CurrencyInput
-                            id="anticipoUsdA"
-                            value={data.anticipoUsdA}
-                            onChange={(value) => handleChange("anticipoUsdA", value)}
-                            onBlur={handleBlur}
-                            error={!!errors.anticipoUsdA}
-                            prefix="$"
-                            suffix="USD"
-                          />
-                          {errors.anticipoUsdA && <p className="text-sm text-destructive">{errors.anticipoUsdA}</p>}
-                          {data.anticipoUsdA > 0 && data.tcValor > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              ≈ ${(data.anticipoUsdA * data.tcValor).toLocaleString("es-AR", { minimumFractionDigits: 2 })} ARS
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2">
-                        <div className="space-y-2">
-                          <CurrencyInput
-                            id="anticipoUsdB"
-                            value={data.anticipoUsdB}
-                            onChange={(value) => handleChange("anticipoUsdB", value)}
-                            onBlur={handleBlur}
-                            error={!!errors.anticipoUsdB}
-                            prefix="$"
-                            suffix="USD"
-                          />
-                          {errors.anticipoUsdB && <p className="text-sm text-destructive">{errors.anticipoUsdB}</p>}
-                          {data.anticipoUsdB > 0 && data.tcValor > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              ≈ ${(data.anticipoUsdB * data.tcValor).toLocaleString("es-AR", { minimumFractionDigits: 2 })} ARS
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )
-        }
-
-        {/* Totales a financiar - Solo visible si es financiado */}
-        {
-          data.tipoPago === "financiado" && (
-            <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 space-y-3">
-              <h3 className="font-semibold text-foreground">Totales a financiar</h3>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Total F (ARS)</p>
-                  <p className="text-2xl font-bold text-primary">
-                    ${data.totalFinanciarArs.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Total SB ({data.monedaB})</p>
-                  <p className="text-2xl font-bold text-primary">
-                    ${data.totalFinanciarUsd.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )
-        }
-
-        {/* Fechas */}
-        <div className="rounded-lg border border-border p-4 space-y-4">
-          <h3 className="font-semibold text-foreground">Fechas</h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="fechaFirmaBoleto">
-                Fecha Firma Boleto <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="fechaFirmaBoleto"
-                type="date"
-                value={data.fechaFirmaBoleto}
-                onChange={(e) => handleChange("fechaFirmaBoleto", e.target.value)}
-                onBlur={handleBlur}
-                min={new Date().toISOString().split('T')[0]}
-                className={errors.fechaFirmaBoleto ? "border-destructive" : ""}
-                onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
-              />
-              {errors.fechaFirmaBoleto && <p className="text-sm text-destructive">{errors.fechaFirmaBoleto}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fechaBaseCAC">Base CAC (mes/año)</Label>
-              <Input
-                id="fechaBaseCAC"
-                type="month"
-                value={data.fechaBaseCAC}
-                onChange={(e) => handleChange("fechaBaseCAC", e.target.value)}
-                placeholder="YYYY-MM"
-                onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
-              />
-              <p className="text-xs text-muted-foreground">Mes y año de referencia para CAC</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Resumen compacto - Solo visible si es financiado */}
-        {
-          data.tipoPago === "financiado" && (
-            <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm font-medium mb-2">Resumen</p>
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium">Anticipo F:</span> ARS ${(data.anticipoArsA || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdA || 0).toLocaleString("es-AR")} <br />
-                <span className="font-medium">Anticipo SB:</span> ARS ${(data.anticipoArsB || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdB || 0).toLocaleString("es-AR")} <br />
-                <span className="font-medium">Saldo:</span> F (ARS) ${data.totalFinanciarArs.toLocaleString("es-AR")} / SB ({data.monedaB}) ${data.totalFinanciarUsd.toLocaleString("es-AR")}
-              </p>
-            </div>
-          )
-        }
-
-        {/* Resumen de pago de contado - Solo visible si es contado */}
-        {
-          data.tipoPago === "contado" && (
-            <div className="rounded-lg bg-success/10 border border-success/20 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="w-5 h-5 text-success" />
-                <p className="text-sm font-medium">Pago de contado</p>
-              </div>
-              <p className="text-2xl font-bold text-success">
-                ${calcularPrecioTotal().toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                No se requieren anticipos ni financiamiento adicional.
-              </p>
-            </div>
-          )
-        }
-
-        {/* Tip */}
-        <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-          <p className="font-medium mb-1">💡 Tip:</p>
-          <p>
-            Los valores a financiar se inicializan automáticamente con el precio total, que incluye todas las unidades seleccionadas en el paso 1. El cálculo de totales a financiar descuenta los anticipos y se usará en la minuta final.
-          </p>
-          <p className="mt-2">
-            Puedes modificar manualmente los valores o usar el botón "Restablecer" para volver al precio total original.
-          </p>
         </div>
       </div>
-    </div>
+
+      {/* Valores a financiar (IVA incluido) */}
+      <div className="rounded-lg border border-border p-4 space-y-4">
+        <div>
+          <h3 className="font-semibold text-foreground">Valores a financiar (IVA incluido)</h3>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="valorArsConIVA" className="flex items-center gap-2">
+              Valor F <span className="text-muted-foreground">({data.monedaA || "ARS"})</span>
+            </Label>
+            <CurrencyInput
+              id="valorArsConIVA"
+              value={data.valorArsConIVA}
+              onChange={() => { }}
+              disabled={true}
+              prefix="$"
+              className="opacity-100 cursor-default"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>IVA incluido</span>
+              <span className="font-medium">{data.modoA === "porcentaje" ? `${data.porcA}% ` : ""}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="valorUsdConIVA" className="flex items-center gap-2">
+              Valor SB <span className="text-muted-foreground">({data.monedaB})</span>
+            </Label>
+            <CurrencyInput
+              id="valorUsdConIVA"
+              value={data.valorUsdConIVA}
+              onChange={() => { }}
+              disabled={true}
+              prefix="$"
+              className="opacity-100 cursor-default"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>IVA incluido</span>
+              <span className="font-medium">{data.modoA === "porcentaje" ? `${100 - data.porcA}% ` : ""}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Anticipo al boleto - Solo visible si es financiado */}
+      {data.tipoPago === "financiado" && (
+        <div className="rounded-lg border border-border p-4 space-y-4">
+          <h3 className="font-semibold text-foreground">Anticipo al boleto</h3>
+
+          <div className="mb-4">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left p-2"></th>
+                  <th className="text-center p-2 font-medium text-muted-foreground">Anticipo F</th>
+                  <th className="text-center p-2 font-medium text-muted-foreground">Anticipo SB</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Fila para ARS */}
+                <tr>
+                  <td className="p-2 font-medium text-muted-foreground">ARS</td>
+                  <td className="p-2">
+                    <div className="space-y-2">
+                      <CurrencyInput
+                        id="anticipoArsA"
+                        value={data.anticipoArsA}
+                        onChange={(value) => handleChange("anticipoArsA", value)}
+                        onBlur={handleBlur}
+                        error={!!errors.anticipoArsA}
+                        prefix="$"
+                      />
+                      {errors.anticipoArsA && <p className="text-sm text-destructive">{errors.anticipoArsA}</p>}
+                    </div>
+
+                  </td>
+                  <td className="p-2">
+                    <div className="space-y-2">
+                      <CurrencyInput
+                        id="anticipoArsB"
+                        value={data.anticipoArsB}
+                        onChange={(value) => handleChange("anticipoArsB", value)}
+                        onBlur={handleBlur}
+                        error={!!errors.anticipoArsB}
+                        prefix="$"
+                      />
+                      {errors.anticipoArsB && <p className="text-sm text-destructive">{errors.anticipoArsB}</p>}
+                    </div>
+
+                  </td>
+                </tr>
+
+                {/* Fila para USD */}
+                <tr>
+                  <td className="p-2 font-medium text-muted-foreground">USD</td>
+                  <td className="p-2">
+                    <div className="space-y-2">
+                      <CurrencyInput
+                        id="anticipoUsdA"
+                        value={data.anticipoUsdA}
+                        onChange={(value) => handleChange("anticipoUsdA", value)}
+                        onBlur={handleBlur}
+                        error={!!errors.anticipoUsdA}
+                        prefix="$"
+                        suffix="USD"
+                      />
+                      {errors.anticipoUsdA && <p className="text-sm text-destructive">{errors.anticipoUsdA}</p>}
+                    </div>
+
+                  </td>
+                  <td className="p-2">
+                    <div className="space-y-2">
+                      <CurrencyInput
+                        id="anticipoUsdB"
+                        value={data.anticipoUsdB}
+                        onChange={(value) => handleChange("anticipoUsdB", value)}
+                        onBlur={handleBlur}
+                        error={!!errors.anticipoUsdB}
+                        prefix="$"
+                        suffix="USD"
+                      />
+                      {errors.anticipoUsdB && <p className="text-sm text-destructive">{errors.anticipoUsdB}</p>}
+                    </div>
+
+                  </td>
+                </tr>
+              </tbody >
+            </table >
+          </div >
+        </div >
+      )}
+
+      {/* Totales a financiar - Solo visible si es financiado */}
+      {
+        data.tipoPago === "financiado" && (
+          <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 space-y-3">
+            <h3 className="font-semibold text-foreground">Totales a financiar</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">A financiar F ({data.monedaA || "ARS"})</p>
+                <p className="text-2xl font-bold text-primary">
+                  ${data.totalFinanciarArs.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">A financiar SB ({data.monedaB})</p>
+                <p className="text-2xl font-bold text-primary">
+                  ${data.totalFinanciarUsd.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Fechas */}
+      <div className="rounded-lg border border-border p-4 space-y-4">
+        <h3 className="font-semibold text-foreground">Fechas</h3>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fechaBaseCAC">
+              Base CAC (mes/año) <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="fechaBaseCAC"
+              type="month"
+              value={data.fechaBaseCAC}
+              onChange={(e) => handleChange("fechaBaseCAC", e.target.value)}
+              onBlur={handleBlur}
+              placeholder="YYYY-MM"
+              className={errors.fechaBaseCAC ? "border-destructive" : ""}
+              onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
+            />
+            {errors.fechaBaseCAC && <p className="text-sm text-destructive">{errors.fechaBaseCAC}</p>}
+            <p className="text-xs text-muted-foreground">Mes y año de referencia para CAC</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Resumen compacto - Solo visible si es financiado */}
+      {
+        data.tipoPago === "financiado" && (
+          <div className="rounded-lg bg-muted p-4">
+            <p className="text-sm font-medium mb-2">Resumen</p>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium">Anticipo F:</span> ARS ${(data.anticipoArsA || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdA || 0).toLocaleString("es-AR")} <br />
+              <span className="font-medium">Anticipo SB:</span> ARS ${(data.anticipoArsB || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdB || 0).toLocaleString("es-AR")} <br />
+              <span className="font-medium">Saldo:</span> F ({data.monedaA || "ARS"}) ${data.totalFinanciarArs.toLocaleString("es-AR")} / SB ({data.monedaB}) ${data.totalFinanciarUsd.toLocaleString("es-AR")}
+            </p>
+          </div>
+        )
+      }
+
+      {/* Resumen de pago de contado - Solo visible si es contado */}
+      {
+        data.tipoPago === "contado" && (
+          <div className="rounded-lg bg-success/10 border border-success/20 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Check className="w-5 h-5 text-success" />
+              <p className="text-sm font-medium">Pago de contado</p>
+            </div>
+            <p className="text-2xl font-bold text-success">
+              USD {calcularPrecioTotal().toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              No se requieren anticipos ni financiamiento adicional.
+            </p>
+          </div>
+        )
+      }
+
+      {/* Tip */}
+      <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
+        <p className="font-medium mb-1">💡 Tip:</p>
+        <p>
+          Los valores a financiar se inicializan automáticamente con el precio total, que incluye todas las unidades seleccionadas en el paso 1. El cálculo de totales a financiar descuenta los anticipos y se usará en la minuta final.
+        </p>
+        <p className="mt-2">
+          Puedes modificar manualmente los valores o usar el botón "Restablecer" para volver al precio total original.
+        </p>
+      </div>
+    </div >
   );
 };

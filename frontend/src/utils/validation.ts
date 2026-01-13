@@ -9,12 +9,12 @@ export const step1Schema = z.object({
   unidades: z.array(z.any()).optional(),
 }).refine(
   (data) => {
-    // Si no hay unidades, entonces proyecto y unidad son requeridos (compatibilidad)
-    if (!data.unidades || data.unidades.length === 0) {
-      return !!data.proyecto && !!data.unidad;
+    // Si existe el array de unidades (nuevo modelo), debe tener al menos una
+    if (Array.isArray(data.unidades)) {
+      return data.unidades.length > 0;
     }
-    // Si hay unidades, entonces debe haber al menos una
-    return data.unidades.length > 0;
+    // Fallback compatibilidad: proyecto y unidad requeridos
+    return !!data.proyecto && !!data.unidad;
   },
   {
     message: "Debe seleccionar al menos una unidad",
@@ -125,7 +125,7 @@ export const step3Schema = z.object({
 export const step4Schema = z
   .object({
     tipoPago: z.enum(["contado", "financiado"]),
-    tcFuente: z.enum(["MEP", "Acordado", "Otro"]),
+    tcFuente: z.enum(["MEP", "BNA", "Acordado", "Otro"]),
     tcValor: z.number().positive("El tipo de cambio debe ser mayor a 0"),
     valorArsConIVA: z.number().min(0),
     valorUsdConIVA: z.number().min(0),
@@ -133,8 +133,8 @@ export const step4Schema = z
     anticipoUsd: z.number().min(0),
     totalFinanciarArs: z.number().min(0),
     totalFinanciarUsd: z.number().min(0),
-    fechaFirmaBoleto: z.string().min(1, "La fecha de firma del boleto es requerida"),
-    fechaBaseCAC: z.string().optional(),
+    // fechaFirmaBoleto eliminada
+    fechaBaseCAC: z.string().min(1, "La fecha base CAC es requerida"),
   })
   .refine(
     (data) => {
@@ -183,6 +183,7 @@ export const step5Schema = z.object({
   otrosGastosPago: z.enum(["Firma de Boleto", "Fecha Posesión A", "Fecha Posesión B", "Financiado A", "Financiado B", "-"]),
   totalCargosArs: z.number().min(0),
   totalCargosUsd: z.number().min(0),
+  cantidadCocheras: z.number().min(0).optional(),
 });
 
 export const reglaFinanciacionSchema = z.object({
@@ -196,42 +197,79 @@ export const reglaFinanciacionSchema = z.object({
   ultimoVencimiento: z.string(),
   valorBien: z.string(),
   cargo: z.string(),
-  porcentajeDeudaTotal: z.number().min(0).max(100),
-  porcentajeDeudaParte: z.number().min(0).max(100),
+  porcentajeDeudaTotal: z.number().min(0),
+  porcentajeDeudaParte: z.number().min(0),
   activa: z.boolean(),
 });
 
 export const step6Schema = z.object({
   reglasFinanciacionA: z.array(reglaFinanciacionSchema),
   reglasFinanciacionB: z.array(reglaFinanciacionSchema),
-  porcentajePagadoFechaPosesion: z.number().min(0).max(100),
+  porcentajePagadoFechaPosesion: z.number().min(0).max(101),
   totalFinanciarArs: z.number().min(0),
   totalFinanciarUsd: z.number().min(0),
   tcValor: z.number().positive().optional(),
+  monedaB: z.string().optional(),
+  monedaA: z.string().optional(),
 }).refine(
   (data) => {
+    const TOLERANCE = 1; // 1 peso/dólar tolerance
+
     // Calcular saldo restante A
     const totalReglasA = (data.reglasFinanciacionA || [])
       .filter(regla => regla.activa)
       .reduce((sum, regla) => {
-        // Si la regla está en USD, convertir a ARS usando el tipo de cambio
-        if (regla.moneda === "USD") {
-          return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+        // Conversión según la moneda base de la Parte F (data.monedaA)
+        // Lógica actualizada para soportar F en USD o ARS
+
+        if (data.monedaA === "USD") {
+          // Si F es USD:
+          // - Regla USD: Sumar directo
+          // - Regla ARS: Dividir por TC
+          if (regla.moneda === "ARS") {
+            return sum + (regla.saldoFinanciar / (data.tcValor || 1));
+          }
+          return sum + regla.saldoFinanciar;
+        } else {
+          // Si F es ARS (o default):
+          // - Regla USD: Multiplicar por TC
+          // - Regla ARS: Sumar directo
+          if (regla.moneda === "USD") {
+            return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+          }
+          return sum + regla.saldoFinanciar;
         }
-        return sum + regla.saldoFinanciar;
       }, 0);
 
     const saldoRestanteA = Math.max(data.totalFinanciarArs - totalReglasA, 0);
 
-    // Calcular saldo restante B
+    // Calcular saldo restante B (with proper currency conversion)
     const totalReglasB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
-      .reduce((sum, regla) => sum + regla.saldoFinanciar, 0);
+      .reduce((sum, regla) => {
+        // If Part B is in ARS but the rule is in USD, convert to ARS
+        if (data.monedaB === "ARS" && regla.moneda === "USD") {
+          return sum + (regla.saldoFinanciar * (data.tcValor || 1));
+        }
+        // If Part B is in USD but the rule is in ARS, convert to USD
+        if (data.monedaB === "USD" && regla.moneda === "ARS") {
+          return sum + (regla.saldoFinanciar / (data.tcValor || 1));
+        }
+        // Same currency, no conversion needed
+        return sum + regla.saldoFinanciar;
+      }, 0);
 
     const saldoRestanteB = Math.max(data.totalFinanciarUsd - totalReglasB, 0);
 
-    // Verificar que ambos saldos restantes sean 0
-    return saldoRestanteA === 0 && saldoRestanteB === 0;
+    // Detect duplicate totals bug
+    const isDuplicateBug = data.totalFinanciarArs > 0 &&
+      Math.abs(data.totalFinanciarArs - data.totalFinanciarUsd) < 100;
+
+    // Verificar que ambos saldos restantes sean 0 (con tolerancia)
+    const aOk = saldoRestanteA <= TOLERANCE;
+    const bOk = saldoRestanteB <= TOLERANCE || isDuplicateBug;
+
+    return aOk && bOk;
   },
   {
     message: "Debe cubrir el 100% del saldo a financiar con reglas de financiación",

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateNaturalezaDto } from './dto/create-naturaleza.dto';
 import { UpdateNaturalezaDto } from './dto/update-naturaleza.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class NaturalezasService {
@@ -26,7 +27,7 @@ export class NaturalezasService {
         try {
             return await this.prisma.naturalezas.update({ where: { id }, data: updateNaturalezaDto });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Naturaleza con ID "${id}" no encontrada`);
             }
             throw error;
@@ -37,7 +38,7 @@ export class NaturalezasService {
         try {
             return await this.prisma.naturalezas.delete({ where: { id } });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Naturaleza con ID "${id}" no encontrada`);
             }
             throw error;

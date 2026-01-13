@@ -468,24 +468,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                             </div>
                           </div>
 
-                          {/* Precios */}
-                          <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">💰 Información Comercial</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                              <div className="p-2 bg-green-50 rounded">
-                                <span className="block font-medium text-green-700">Precio</span>
-                                <span className="text-lg font-bold text-green-800">{precioUsd}</span>
-                              </div>
-                              <div className="p-2 bg-blue-50 rounded">
-                                <span className="block font-medium text-blue-700">Precio/m²</span>
-                                <span className="text-lg font-bold text-blue-800">{usdM2}</span>
-                              </div>
-                              <div className="p-2 bg-purple-50 rounded">
-                                <span className="block font-medium text-purple-700">Estado</span>
-                                <Badge variant={estado === 'Disponible' ? 'default' : 'secondary'}>{estado}</Badge>
-                              </div>
-                            </div>
-                          </div>
+
                         </div>
                       </CardContent>
                     </Card>
@@ -604,6 +587,14 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                   <span>{new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</span>
                 </div>
               </div>
+
+              {/* Email del Comercial */}
+              {minuta.users?.email && (
+                <div className="text-sm">
+                  <span className="font-medium">Comercial: </span>
+                  <span className="text-muted-foreground">{minuta.users.email}</span>
+                </div>
+              )}
 
               {/* Status Progress Indicator */}
               <div className="flex items-center justify-center py-2">

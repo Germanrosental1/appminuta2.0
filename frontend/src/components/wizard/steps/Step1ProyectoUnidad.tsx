@@ -19,8 +19,18 @@ export const Step1ProyectoUnidad: React.FC = () => {
   // Custom hook para manejar filtros en cascada
   const filters = useUnidadFilters();
 
-  // Cargar proyectos disponibles
+  // Cargar proyectos disponibles con metadata completa
+  const [proyectosFull, setProyectosFull] = useState<any[]>([]);
   const { data: proyectosDisponibles = [], isLoading: loadingProyectos } = useProyectos();
+
+  // Fetch full projects data to get IVA
+  useEffect(() => {
+    import("@/services/proyectos").then(({ getProyectosActivos }) => {
+      getProyectosActivos().then(proyectos => {
+        setProyectosFull(proyectos);
+      });
+    });
+  }, []);
 
   // Estado para el proyecto seleccionado a nivel global
   const [proyectoGlobal, setProyectoGlobal] = useState<string>(data.proyecto || "");
@@ -50,7 +60,15 @@ export const Step1ProyectoUnidad: React.FC = () => {
 
   const handleProyectoGlobalChange = (value: string) => {
     setProyectoGlobal(value);
-    updateData({ proyecto: value });
+
+    // Find project and set IVA status
+    const selectedProject = proyectosFull.find(p => p.nombre === value);
+    const ivaStatus = selectedProject?.iva || "incluido";
+
+    updateData({
+      proyecto: value,
+      ivaProyecto: ivaStatus
+    });
     // Resetear tipo cuando cambia el proyecto
     setTipoUnidadSeleccionado("");
     clearAllErrors();
@@ -71,7 +89,8 @@ export const Step1ProyectoUnidad: React.FC = () => {
         precioLista: unidad.precioUSD || 0,
         precioNegociado: unidad.precioUSD || 0,
         tipoDescuento: "ninguno",
-        valorDescuento: 0
+        valorDescuento: 0,
+        m2: unidad.metrosTotales || 0,
       });
 
       updateData({
@@ -274,19 +293,21 @@ export const Step1ProyectoUnidad: React.FC = () => {
         <h3 className="text-lg font-semibold mb-4">Unidades Seleccionadas ({unidadesSeleccionadas.length})</h3>
 
         {unidadesSeleccionadas.length === 0 ? (
-          <div className="text-center py-8 border border-dashed rounded-lg">
-            <Building className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-            <p className="text-muted-foreground">No hay unidades agregadas</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {proyectoGlobal
-                ? "Seleccione un tipo y haga clic en \"Agregar Unidad\""
-                : "Seleccione un proyecto para comenzar"
-              }
-            </p>
-          </div>
+          !mostrarFormularioUnidad && (
+            <div className="text-center py-8 border border-dashed rounded-lg">
+              <Building className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">No hay unidades agregadas</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {proyectoGlobal
+                  ? "Seleccione un tipo y haga clic en \"Agregar Unidad\""
+                  : "Seleccione un proyecto para comenzar"
+                }
+              </p>
+            </div>
+          )
         ) : (
           <div className="space-y-3">
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="max-h-[300px] pr-4">
               {unidadesSeleccionadas.map((unidad, index) => (
                 <Card key={unidad.id || index} className="mb-3">
                   <CardHeader className="py-3">

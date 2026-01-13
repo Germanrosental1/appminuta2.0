@@ -34,6 +34,7 @@ import { LoggingThrottlerGuard } from './common/guards/logging-throttler.guard';
 // ⚡ OPTIMIZACIÓN: Cache para catálogos con soporte Redis
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
+import { GastosgeneralesModule } from './gastosgenerales/gastosgenerales.module';
 
 // ⚡ Factory para configuración de cache (Redis o memoria)
 const getCacheConfig = (): any => {
@@ -92,6 +93,7 @@ const getCacheConfig = (): any => {
             ttl: 60000,
             limit: 100,
         }]),
+        GastosgeneralesModule,
     ],
     controllers: [AppController],
     providers: [

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTipoPatioTerrazaDto, UpdateTipoPatioTerrazaDto } from './dto/create-tipopatioterraza.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class TiposPatioTerrazaService {
@@ -11,7 +12,7 @@ export class TiposPatioTerrazaService {
         try {
             return await this.prisma.tipospatioterraza.create({ data: dto });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un tipo de patio/terraza con el nombre "${dto.nombre}"`);
             }
             throw error;
@@ -32,7 +33,7 @@ export class TiposPatioTerrazaService {
         try {
             return await this.prisma.tipospatioterraza.update({ where: { id }, data: dto });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Tipo de patio/terraza con ID "${id}" no encontrado`);
                 if (error.code === 'P2002') throw new ConflictException(`Ya existe un tipo con el nombre "${dto.nombre}"`);
             }
@@ -44,7 +45,7 @@ export class TiposPatioTerrazaService {
         try {
             return await this.prisma.tipospatioterraza.delete({ where: { id } });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Tipo de patio/terraza con ID "${id}" no encontrado`);
             }
             throw error;

@@ -54,11 +54,9 @@ export const Step2Comercial: React.FC = () => {
     const nuevasUnidades = [...unidades];
     nuevasUnidades[index].tipoDescuento = value;
 
-    // Si cambiamos a "ninguno", resetear el valor del descuento
-    if (value === "ninguno") {
-      nuevasUnidades[index].valorDescuento = 0;
-      nuevasUnidades[index].precioNegociado = nuevasUnidades[index].precioLista;
-    }
+    // Resetear siempre valores al cambiar el tipo
+    nuevasUnidades[index].valorDescuento = 0;
+    nuevasUnidades[index].precioNegociado = nuevasUnidades[index].precioLista;
 
     setUnidades(nuevasUnidades);
   };
@@ -83,6 +81,22 @@ export const Step2Comercial: React.FC = () => {
     }
   };
 
+  // Manejar cambio en el precio negociado de una unidad
+  const handlePrecioNegociadoChange = (index: number, value: string) => {
+    const numValue = value === "" ? 0 : Number.parseFloat(value);
+    if (!Number.isNaN(numValue)) {
+      const nuevasUnidades = [...unidades];
+      nuevasUnidades[index].precioNegociado = numValue;
+
+      // Recalcular valor del descuento si es por importe
+      if (nuevasUnidades[index].tipoDescuento === "importe") {
+        nuevasUnidades[index].valorDescuento = Math.max(nuevasUnidades[index].precioLista - numValue, 0);
+      }
+
+      setUnidades(nuevasUnidades);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -97,7 +111,7 @@ export const Step2Comercial: React.FC = () => {
           <p className="text-sm text-muted-foreground mt-2">Regrese al paso anterior para agregar unidades</p>
         </div>
       ) : (
-        <ScrollArea className="h-[600px] pr-4">
+        <ScrollArea className="max-h-[600px] pr-4">
           <div className="space-y-4">
             {unidades.map((unidad, index) => (
               <Card key={unidad.id || `unidad-${index}`} className="mb-4">
@@ -117,93 +131,92 @@ export const Step2Comercial: React.FC = () => {
                     Sector: {unidad.sector}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 pt-2">
-                  <div className="space-y-2">
-                    <Label htmlFor={`precioLista-${index}`}>
-                      Precio de Lista
-                    </Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
+                <CardContent className="pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                    {/* Precio Lista */}
+                    <div className={unidad.tipoDescuento === "ninguno" ? "md:col-span-4" : "md:col-span-3"}>
+                      <Label htmlFor={`precioLista-${index}`} className="text-xs mb-1.5 block">
+                        Precio de Lista
+                      </Label>
+                      <CurrencyInput
                         id={`precioLista-${index}`}
-                        type="number"
-                        step="0.01"
-                        value={unidad.precioLista || ""}
-                        className="pl-9 bg-muted"
-                        placeholder="0.00"
+                        value={unidad.precioLista}
+                        onChange={() => { }}
+                        prefix="$"
+                        className="bg-muted h-9 text-sm"
                         disabled
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`tipoDescuento-${index}`}>
-                      Tipo de Descuento
-                    </Label>
-                    <Select
-                      value={unidad.tipoDescuento}
-                      onValueChange={(value: TipoDescuento) => handleTipoDescuentoChange(index, value)}
-                    >
-                      <SelectTrigger id={`tipoDescuento-${index}`}>
-                        <SelectValue placeholder="Seleccione tipo de descuento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ninguno">Sin descuento</SelectItem>
-                        <SelectItem value="porcentaje">Descuento por porcentaje</SelectItem>
-                        <SelectItem value="importe">Descuento por importe</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {unidad.tipoDescuento !== "ninguno" && (
-                    <div className="space-y-2">
-                      <Label htmlFor={`valorDescuento-${index}`}>
-                        {unidad.tipoDescuento === "porcentaje" ? "Porcentaje de Descuento" : "Importe de Descuento"}
+                    {/* Tipo de Descuento */}
+                    <div className={unidad.tipoDescuento === "ninguno" ? "md:col-span-4" : "md:col-span-3"}>
+                      <Label htmlFor={`tipoDescuento-${index}`} className="text-xs mb-1.5 block">
+                        Tipo de Descuento
                       </Label>
-                      <div className="relative">
-                        {unidad.tipoDescuento === "porcentaje" ? (
-                          <>
-                            <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              id={`valorDescuento-${index}`}
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={unidad.valorDescuento || ""}
-                              onChange={(e) => handleValorDescuentoChange(index, e.target.value)}
-                              className="pl-9"
-                              placeholder="0.00"
-                              onWheel={(e) => e.currentTarget.blur()}
-                            />
-                          </>
-                        ) : (
-                          <CurrencyInput
-                            id={`valorDescuento-${index}`}
-                            value={unidad.valorDescuento}
-                            onChange={(value) => handleValorDescuentoChange(index, value.toString())}
-                            prefix="$"
-                            min={0}
-                          />
-                        )}
-                      </div>
+                      <Select
+                        value={unidad.tipoDescuento}
+                        onValueChange={(value: TipoDescuento) => handleTipoDescuentoChange(index, value)}
+                      >
+                        <SelectTrigger id={`tipoDescuento-${index}`} className="h-9 text-sm">
+                          <SelectValue placeholder="Seleccione tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ninguno">Sin descuento</SelectItem>
+                          <SelectItem value="porcentaje">Porcentaje %</SelectItem>
+                          <SelectItem value="importe">Importe $</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`precioNegociado-${index}`}>
-                      Precio Negociado
-                    </Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
+                    {/* Valor Descuento (Condicional) */}
+                    {unidad.tipoDescuento !== "ninguno" && (
+                      <div className="md:col-span-3">
+                        <Label htmlFor={`valorDescuento-${index}`} className="text-xs mb-1.5 block">
+                          {unidad.tipoDescuento === "porcentaje" ? "% Descuento" : "$ Descuento"}
+                        </Label>
+                        <div className="relative">
+                          {unidad.tipoDescuento === "porcentaje" ? (
+                            <>
+                              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                              <Input
+                                id={`valorDescuento-${index}`}
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={unidad.valorDescuento || ""}
+                                onChange={(e) => handleValorDescuentoChange(index, e.target.value)}
+                                className="pl-8 h-9 text-sm"
+                                placeholder="0.00"
+                                onWheel={(e) => e.currentTarget.blur()}
+                              />
+                            </>
+                          ) : (
+                            <CurrencyInput
+                              id={`valorDescuento-${index}`}
+                              value={unidad.valorDescuento}
+                              onChange={(value) => handleValorDescuentoChange(index, value.toString())}
+                              prefix="$"
+                              min={0}
+                              className={`h-9 text-sm ${unidad.tipoDescuento === "importe" ? "bg-muted font-bold text-slate-900" : ""}`}
+                              disabled={unidad.tipoDescuento === "importe"}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Precio Negociado */}
+                    <div className={unidad.tipoDescuento === "ninguno" ? "md:col-span-4" : "md:col-span-3"}>
+                      <Label htmlFor={`precioNegociado-${index}`} className="text-xs mb-1.5 block">
+                        Precio Negociado
+                      </Label>
+                      <CurrencyInput
                         id={`precioNegociado-${index}`}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={unidad.precioNegociado || ""}
-                        className="pl-9 bg-muted"
-                        placeholder="0.00"
-                        disabled
+                        value={unidad.precioNegociado}
+                        onChange={(value) => handlePrecioNegociadoChange(index, value.toString())}
+                        prefix="$"
+                        className={`h-9 text-sm ${unidad.tipoDescuento === "importe" ? "" : "bg-muted font-bold text-slate-900"}`}
+                        disabled={unidad.tipoDescuento !== "importe"}
                       />
                     </div>
                   </div>
@@ -214,9 +227,23 @@ export const Step2Comercial: React.FC = () => {
         </ScrollArea>
       )}
 
+      {/* Total General */}
+      {data.unidades && data.unidades.length > 0 && (
+        <Card className="mt-4 bg-slate-50 border-slate-200">
+          <CardContent className="p-4 flex justify-between items-center">
+            <div className="text-sm font-medium text-slate-600">
+              Total ({data.unidades.length} unidades seleccionadas)
+            </div>
+            <div className="text-xl font-bold text-slate-900">
+              USD {(data.unidades.reduce((acc: number, curr: any) => acc + (curr.precioNegociado || 0), 0)).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground mt-6">
         <p className="font-medium mb-1">💡 Tip:</p>
-        <p>Configure los descuentos para cada unidad. El precio negociado se calcula automáticamente.</p>
+        <p>Configure los descuentos o edite el precio negociado directamente (solo para descuento por importe).</p>
       </div>
     </div>
   );

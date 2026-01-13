@@ -104,23 +104,79 @@ export const Step5Cargos: React.FC = () => {
       calcularMontoFinanciado(data.planosCocheraMonto, data.planosCocheraPago, "Financiado B") +
       calcularMontoFinanciado(data.otrosGastos, data.otrosGastosPago, "Financiado B");
 
-    // Calcular total a financiar ARS
-    let totalFinanciarArs = baseFinanciarArsConAnticipos + cargosFinanciadosAArs + (cargosFinanciadosAUsd * tcValor);
+    // -- CORRECCIÓN CRÍTICA --
+    // Mantener separadas las Partes F y SB en sus respectivas variables de salida
+    // totalFinanciarArs -> Representará TOTAL F (en moneda A)
+    // totalFinanciarUsd -> Representará TOTAL SB (en moneda B)
+    // Los nombres de las variables son legados, pero su uso lógico será este.
 
-    // Calcular total a financiar USD según moneda B
-    let totalFinanciarUsd = baseFinanciarUsdConAnticipos;
+    let totalF = 0;
+    let totalSB = 0;
 
-    if (data.monedaB === "ARS") {
-      totalFinanciarArs += cargosFinanciadosBArs + (cargosFinanciadosBUsd * tcValor);
-    } else if (data.monedaB === "USD") {
-      totalFinanciarUsd += (cargosFinanciadosBArs / tcValor) + cargosFinanciadosBUsd;
-    } else if (data.monedaB === "MIX") {
-      totalFinanciarArs += cargosFinanciadosBArs;
-      totalFinanciarUsd += cargosFinanciadosBUsd;
+    // 1. BASE DE DEUDA
+    // data.valorArsConIVA ya viene en la Moneda A (sea ARS o USD) desde Step 4
+    // data.valorUsdConIVA ya viene en la Moneda B (sea ARS, USD o MIX) desde Step 4
+
+    // Calcular Base F (restando anticipos en la misma moneda)
+    const anticipoA_MismoMoneda = data.monedaA === "USD" ? (data.anticipoUsdA || 0) : (data.anticipoArsA || 0);
+    const anticipoA_OtraMoneda = data.monedaA === "USD" ? (data.anticipoArsA || 0) : (data.anticipoUsdA || 0);
+
+    // Si la otra moneda es ARS y yo estoy en USD -> Dividir por TC
+    // Si la otra moneda es USD y yo estoy en ARS -> Multiplicar por TC
+    const anticipoA_Convertido = data.monedaA === "USD"
+      ? anticipoA_OtraMoneda / (tcValor || 1)
+      : anticipoA_OtraMoneda * (tcValor || 1);
+
+    const baseF = Math.max(0, (data.valorArsConIVA || 0) - anticipoA_MismoMoneda - anticipoA_Convertido);
+    totalF += baseF;
+
+    // Calcular Base SB
+    const anticipoB_MismoMoneda = data.monedaB === "ARS" ? (data.anticipoArsB || 0) : (data.anticipoUsdB || 0);
+    const anticipoB_OtraMoneda = data.monedaB === "ARS" ? (data.anticipoUsdB || 0) : (data.anticipoArsB || 0);
+
+    const anticipoB_Convertido = data.monedaB === "ARS"
+      ? anticipoB_OtraMoneda * (tcValor || 1)  // Estoy en ARS, anticipo viene en USD -> * TC
+      : anticipoB_OtraMoneda / (tcValor || 1); // Estoy en USD, anticipo viene en ARS -> / TC
+
+    const baseSB = Math.max(0, (data.valorUsdConIVA || 0) - anticipoB_MismoMoneda - anticipoB_Convertido);
+    totalSB += baseSB;
+
+
+    // 2. CARGOS ADICIONALES
+    // Los cargos tienen una moneda de origen fija:
+    // - Certif, Sellado -> ARS (cargosFinanciadosAArs, cargosFinanciadosBArs)
+    // - Alhaj, Planos -> USD (cargosFinanciadosAUsd, cargosFinanciadosBUsd)
+
+    // Sumar a Parte F (totalF) - Moneda Destino: data.monedaA
+    if (data.monedaA === "USD") {
+      // Destino USD
+      totalF += cargosFinanciadosAUsd; // USD -> USD (Directo)
+      totalF += cargosFinanciadosAArs / (tcValor || 1); // ARS -> USD (Dividir)
+    } else {
+      // Destino ARS
+      totalF += cargosFinanciadosAArs; // ARS -> ARS (Directo)
+      totalF += cargosFinanciadosAUsd * (tcValor || 1); // USD -> ARS (Multiplicar)
     }
 
-    if (totalFinanciarArs !== data.totalFinanciarArs || totalFinanciarUsd !== data.totalFinanciarUsd) {
-      updateData({ totalFinanciarArs, totalFinanciarUsd });
+    // Sumar a Parte SB (totalSB) - Moneda Destino: data.monedaB
+    if (data.monedaB === "ARS") {
+      // Destino ARS
+      totalSB += cargosFinanciadosBArs; // ARS -> ARS (Directo)
+      totalSB += cargosFinanciadosBUsd * (tcValor || 1); // USD -> ARS (Multiplicar)
+    } else {
+      // Destino USD
+      totalSB += cargosFinanciadosBUsd; // USD -> USD (Directo)
+      totalSB += cargosFinanciadosBArs / (tcValor || 1); // ARS -> USD (Dividir)
+    }
+
+    // Actualizar estado usando las variables legadas pero con la nueva lógica semántica
+    // totalFinanciarArs = TOTAL F
+    // totalFinanciarUsd = TOTAL SB
+    if (totalF !== data.totalFinanciarArs || totalSB !== data.totalFinanciarUsd) {
+      updateData({
+        totalFinanciarArs: totalF,
+        totalFinanciarUsd: totalSB
+      });
     }
   }, [
     data.valorArsConIVA, data.valorUsdConIVA,
@@ -158,7 +214,16 @@ export const Step5Cargos: React.FC = () => {
     const planosUnidadMonto = planosUnidadValorM2 * planosUnidadM2;
 
     // Calcular planos cochera (valor por cochera * cantidad de cocheras)
-    const cantidadCocheras = (data.cocheras || []).length;
+    // Usamos la cantidad manual si está definida, sino calculamos (y actualizamos si es la primera vez)
+    let cantidadCocheras = data.cantidadCocheras;
+
+    // Si no está inicializado (es 0) pero detectamos cocheras en el array, sugerimos ese valor inicialmente
+    if (!cantidadCocheras) {
+      const cocherasNuevas = (data.unidades || []).filter(u => u.tipo === "Cochera").length;
+      const cocherasLegacy = (data.cocheras || []).length;
+      cantidadCocheras = cocherasNuevas > 0 ? cocherasNuevas : cocherasLegacy;
+    }
+
     const planosCocheraMonto = planosCocheraValor * cantidadCocheras;
 
     // Calcular totales
@@ -179,7 +244,8 @@ export const Step5Cargos: React.FC = () => {
         planosUnidadMonto,
         planosCocheraMonto,
         totalCargosArs,
-        totalCargosUsd
+        totalCargosUsd,
+        cantidadCocheras // Guardamos también la cantidad calculada si estaba en 0
       });
     }
   }, [
@@ -191,6 +257,8 @@ export const Step5Cargos: React.FC = () => {
     data.planosUnidadM2,
     data.planosCocheraValor,
     data.cocheras,
+    data.unidades,
+    data.cantidadCocheras,
     data.otrosGastos
   ]);
 
@@ -394,10 +462,17 @@ export const Step5Cargos: React.FC = () => {
                     />
                     <span>USD</span>
                   </div>
-                  <div className="mt-2">
-                    <div className="text-xs text-muted-foreground">
-                      Cocheras: {(data.cocheras || []).length}
-                    </div>
+                  <div className="mt-2 flex gap-2 items-center">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={data.cantidadCocheras || 0}
+                      onChange={(e) => handleChange("cantidadCocheras", e.target.value)}
+                      onBlur={handleBlur}
+                      className="border-pink-100 bg-pink-50 w-20"
+                    />
+                    <span className="text-sm">Cocheras</span>
                   </div>
                 </td>
                 <td className="p-4 text-right font-medium">

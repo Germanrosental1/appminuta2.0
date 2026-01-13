@@ -21,7 +21,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <div className="dashboard-header-content">
                 <div className="dashboard-header-left">
                     <img
-                        src="/logoRosental.png"
+                        src="/logoRosentalBlanco.png"
                         alt="Rosental Logo"
                         className="dashboard-logo"
                     />

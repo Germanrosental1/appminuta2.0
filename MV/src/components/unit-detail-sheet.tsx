@@ -36,24 +36,24 @@ export function UnitDetailSheet({
   onSave,
 }: UnitDetailSheetProps) {
   const [editedUnit, setEditedUnit] = useState<Unit | null>(null);
-  
+
   // Usar useEffect para manejar la inicialización y limpieza del estado
   // para evitar problemas con actualizaciones durante el renderizado
   useEffect(() => {
     if (open && unit) {
-      setEditedUnit({...unit});
+      setEditedUnit({ ...unit });
     }
-    
+
     if (!open) {
       setEditedUnit(null);
     }
   }, [open, unit]);
-  
+
   if (!unit || !editedUnit) return null;
-  
+
   // Función para actualizar un campo específico
   const updateField = (field: keyof Unit, value: any) => {
-    setEditedUnit(prev => prev ? {...prev, [field]: value} : null);
+    setEditedUnit(prev => prev ? { ...prev, [field]: value } : null);
   };
 
   return (
@@ -173,8 +173,8 @@ export function UnitDetailSheet({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Estado</Label>
-                  <Select 
-                    value={editedUnit.estado} 
+                  <Select
+                    value={editedUnit.estado}
                     onValueChange={(value) => updateField('estado', value)}
                   >
                     <SelectTrigger>
@@ -184,30 +184,31 @@ export function UnitDetailSheet({
                       <SelectItem value="Disponible">Disponible</SelectItem>
                       <SelectItem value="Reservado">Reservado</SelectItem>
                       <SelectItem value="Vendido">Vendido</SelectItem>
+                      <SelectItem value="Pisada">Pisada</SelectItem>
                       <SelectItem value="No disponible">No disponible</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Comercial</Label>
-                  <Input 
-                    value={editedUnit.comercial} 
-                    onChange={(e) => updateField('comercial', e.target.value)} 
+                  <Input
+                    value={editedUnit.comercial}
+                    onChange={(e) => updateField('comercial', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Cliente Interesado</Label>
-                  <Input 
-                    value={editedUnit.clienteInteresado} 
-                    onChange={(e) => updateField('clienteInteresado', e.target.value)} 
+                  <Input
+                    value={editedUnit.clienteInteresado}
+                    onChange={(e) => updateField('clienteInteresado', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Fecha Reserva</Label>
-                  <Input 
-                    type="date" 
-                    value={editedUnit.fechaReserva} 
-                    onChange={(e) => updateField('fechaReserva', e.target.value)} 
+                  <Input
+                    type="date"
+                    value={editedUnit.fechaReserva}
+                    onChange={(e) => updateField('fechaReserva', e.target.value)}
                   />
                 </div>
               </div>
@@ -222,10 +223,10 @@ export function UnitDetailSheet({
               </h3>
               <div className="space-y-2">
                 <Label>Observaciones</Label>
-                <Textarea 
-                  value={editedUnit.observaciones} 
+                <Textarea
+                  value={editedUnit.observaciones}
                   onChange={(e) => updateField('observaciones', e.target.value)}
-                  rows={4} 
+                  rows={4}
                 />
               </div>
             </div>

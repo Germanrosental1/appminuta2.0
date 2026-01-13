@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateEdificioDto } from './dto/create-edificio.dto';
 import { UpdateEdificioDto } from './dto/update-edificio.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class EdificiosService {
@@ -64,7 +65,7 @@ export class EdificiosService {
                 include: { proyectos: true },
             });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Edificio con ID "${id}" no encontrado`);
             }
             throw error;
@@ -75,7 +76,7 @@ export class EdificiosService {
         try {
             return await this.prisma.edificios.delete({ where: { id } });
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Edificio con ID "${id}" no encontrado`);
                 }

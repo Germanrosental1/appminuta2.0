@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, Inject } from '@nestj
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTipoUnidadDto, UpdateTipoUnidadDto } from './dto/create-tipounidad.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 // ⚡ OPTIMIZACIÓN: Cache para catálogos
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -26,7 +27,7 @@ export class TiposUnidadService {
             await this.invalidateCache();
             return result;
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un tipo de unidad con el nombre "${dto.nombre}"`);
             }
             throw error;
@@ -58,7 +59,7 @@ export class TiposUnidadService {
             await this.invalidateCache();
             return result;
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Tipo de unidad con ID "${id}" no encontrado`);
                 if (error.code === 'P2002') throw new ConflictException(`Ya existe un tipo con el nombre "${dto.nombre}"`);
             }
@@ -72,7 +73,7 @@ export class TiposUnidadService {
             await this.invalidateCache();
             return result;
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Tipo de unidad con ID "${id}" no encontrado`);
             }
             throw error;

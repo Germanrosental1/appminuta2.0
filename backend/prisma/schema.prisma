@@ -598,10 +598,26 @@ model profiles {
   users                   users                @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   usuarios_proyectos      usuarios_proyectos[]
   usuarios_roles          usuarios_roles[]
-  usuarios_organizaciones usuarios_organizaciones[]
 
   @@index([activo], map: "idx_profiles_activo")
   @@index([email], map: "idx_profiles_email")
+  @@schema("public")
+}
+
+model gastosgenerales {
+  proyecto               String    @id @db.Uuid
+  sellado                Float?
+  certificaciondefirmas  Float?
+  alajamiento            Float?
+  planosm2propiedad      Float?
+  planosm2cochera        Float?
+  comisioninmobiliaria   Float?
+  otrosgastos            Float?
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  fecha_posesion         String?
+  etapa_torre            String?   @map("etapa / torre")
+  proyectos              proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@schema("public")
 }
 
@@ -620,6 +636,7 @@ model proyectos {
   updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
   naturaleza           String?                @db.Uuid
   id_org               String?                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  iva                  String?
   edificios            edificios[]
   minutas_definitivas  minutas_definitivas[]
   organizaciones       organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -627,7 +644,7 @@ model proyectos {
   proyectostiposunidad proyectostiposunidad[]
   tablas               tablas[]
   usuarios_proyectos   usuarios_proyectos[]
-  organizacion         organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  gastosgenerales      gastosgenerales?
 
   @@index([activo], map: "idx_proyectos_activo")
   @@schema("public")
@@ -652,8 +669,7 @@ model roles {
   created_at         DateTime             @default(now()) @db.Timestamptz(6)
   roles_permisos     roles_permisos[]
   usuarios_proyectos usuarios_proyectos[]
-  usuarios_roles          usuarios_roles[]
-  usuarios_organizaciones usuarios_organizaciones[]
+  usuarios_roles     usuarios_roles[]
 
   @@index([nombre], map: "idx_roles_nombre")
   @@schema("public")
@@ -851,12 +867,11 @@ model changes_logs {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model organizaciones {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre     String?
-  creador    String?  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
-  proyectos               proyectos[]
-  usuarios_organizaciones usuarios_organizaciones[]
+  creador    String?     @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  proyectos  proyectos[]
 
   @@schema("public")
 }
@@ -865,11 +880,8 @@ model organizaciones {
 model usuarios_organizaciones {
   userid     String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   idorg      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  idrol      String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime     @default(now()) @db.Timestamptz(6)
-  profiles   profiles     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  organizacion organizaciones @relation(fields: [idorg], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  roles      roles        @relation(fields: [idrol], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  idrol      String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@id([userid, idorg, idrol])
   @@map("usuarios-organizaciones")

@@ -26,6 +26,8 @@ import {
   CheckCircle2,
   Plus,
   Filter,
+  FileSignature,
+  XCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import '@/components/dashboard/dashboard.css';
@@ -61,9 +63,11 @@ export const DashboardComercial: React.FC = () => {
     const total = minutas.length;
     const pendientes = minutas.filter(m => m.estado === 'pendiente').length;
     const enEdicion = minutas.filter(m => m.estado === 'en_edicion').length;
-    const aprobadas = minutas.filter(m => m.estado === 'aprobada' || m.estado === 'firmada').length;
+    const aprobadas = minutas.filter(m => m.estado === 'aprobada').length;
+    const firmadas = minutas.filter(m => m.estado === 'firmada').length;
+    const canceladas = minutas.filter(m => m.estado === 'cancelada').length;
 
-    return { total, pendientes, enEdicion, aprobadas };
+    return { total, pendientes, enEdicion, aprobadas, firmadas, canceladas };
   }, [minutas]);
 
   const handleNuevaCalculadora = () => {
@@ -249,6 +253,22 @@ export const DashboardComercial: React.FC = () => {
               Aprobadas
               <span className="filter-count">{stats.aprobadas}</span>
             </button>
+            <button
+              className={`status-filter-btn ${statusFilter === 'firmada' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('firmada')}
+            >
+              <FileSignature className="h-4 w-4" />
+              Firmadas
+              <span className="filter-count">{stats.firmadas}</span>
+            </button>
+            <button
+              className={`status-filter-btn ${statusFilter === 'cancelada' ? 'active' : ''}`}
+              onClick={() => setStatusFilter('cancelada')}
+            >
+              <XCircle className="h-4 w-4" />
+              Canceladas
+              <span className="filter-count">{stats.canceladas}</span>
+            </button>
           </div>
 
           {renderMinutasContent()}
@@ -264,16 +284,6 @@ export const DashboardComercial: React.FC = () => {
           >
             <Calculator className="h-5 w-5" />
             Nueva Minuta Comercial
-          </button>
-          <button
-            className="fab-menu-item fab-menu-item-document"
-            onClick={() => {
-              // TODO: Implementar acción para nuevo documento
-              console.log('Nuevo documento clicked');
-            }}
-          >
-            <FileText className="h-5 w-5" />
-            Nuevo Documento
           </button>
         </div>
         <button className="fab-button" title="Opciones">

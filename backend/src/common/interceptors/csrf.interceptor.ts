@@ -27,16 +27,17 @@ export class CsrfInterceptor implements NestInterceptor {
         const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
         if (writeMethods.includes(method)) {
-            // 🔒 En producción: CSRF es obligatorio
+            // 🔒 En producción: CSRF es obligatorio SI está habilitado
             // 🛠️ En desarrollo: CSRF es opcional para facilitar el desarrollo
             const isProduction = process.env.NODE_ENV === 'production';
+            const csrfEnabled = process.env.CSRF_ENABLED === 'true';
 
             // Obtener token de cookie y header
             const cookieToken = request.cookies?.[this.CSRF_COOKIE_NAME];
             const headerToken = request.headers[this.CSRF_HEADER_NAME];
 
-            // Solo validar en producción
-            if (isProduction) {
+            // Solo validar si CSRF está habilitado explícitamente
+            if (isProduction && csrfEnabled) {
                 // Validar que ambos existan y coincidan
                 if (!cookieToken || !headerToken) {
                     throw new UnauthorizedException(

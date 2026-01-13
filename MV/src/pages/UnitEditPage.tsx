@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { UnitEditForm } from '@/components/sales-map/UnitEditForm';
+import { UnitCreationWizard } from "@/components/units/UnitCreationWizard";
 import { Unit } from '@/types/supabase-types';
 
 export default function UnitEditPage() {
@@ -12,26 +13,26 @@ export default function UnitEditPage() {
     navigate(`/map/${unit.proyecto}`);
   };
 
-  const handleCancel = () => {
-    // Redirigir atrás al cancelar
-    navigate(-1);
-  };
+  // No need for local loading/unit state as UnitEditForm handles fetching
 
+  // Si estamos creando una nueva unidad, usamos el Wizard
+  if (!unitId) {
+    return (
+      <UnitCreationWizard />
+    );
+  }
+
+  // Para edición, mantenemos el formulario anterior
   return (
-    <div className="container mx-auto py-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">
-          {isEditing ? 'Editar Unidad' : 'Nueva Unidad'}
-        </h1>
-        
-        <div className="bg-card border rounded-lg shadow-sm p-6">
-          <UnitEditForm 
-            unitId={unitId} 
-            onSaved={handleSaved} 
-            onCancel={handleCancel} 
-          />
-        </div>
-      </div>
+    <div className="container mx-auto p-6 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">
+        Editar Unidad
+      </h1>
+      <UnitEditForm
+        unitId={unitId}
+        onSaved={handleSaved}
+        onCancel={() => navigate(-1)}
+      />
     </div>
   );
-}
+};

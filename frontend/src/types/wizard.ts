@@ -21,6 +21,7 @@ export interface UnidadSeleccionada {
   precioNegociado: number;
   tipoDescuento: TipoDescuento;
   valorDescuento: number;
+  m2?: number;
 }
 
 // Mantenemos estas interfaces para compatibilidad con código existente
@@ -114,6 +115,7 @@ export interface WizardData {
   otrosGastosPago: FormaPago;
   totalCargosArs: number;
   totalCargosUsd: number;
+  cantidadCocheras: number;
 
   // Paso 6: Reglas de financiación
   reglasFinanciacionA: ReglaFinanciacion[];
@@ -122,7 +124,7 @@ export interface WizardData {
 
   // Cliente interesado
   clienteInteresado?: {
-    dni: number;
+    dni?: number;
     nombreApellido: string;
     telefono?: string;
   };
@@ -130,6 +132,11 @@ export interface WizardData {
   // Paso 7: Tipo de cambio & salida
   dolarRef: number;
   formatoSalida: FormatoSalida;
+
+  // Paso Intermedio: IVA (si aplica)
+  ivaProyecto?: string; // "incluido" | "no incluido"
+  porcentajeIVA?: number;
+  montoIVA?: number;
 }
 
 export const initialWizardData: WizardData = {
@@ -145,10 +152,10 @@ export const initialWizardData: WizardData = {
   cocheras: [],
   baulera: null,
   modoA: "porcentaje",
-  porcA: 50,
+  porcA: 0,
   impA: 0,
-  monedaA: "USD",
-  monedaB: "ARS",
+  monedaA: "ARS",
+  monedaB: "USD",
   tipoPago: "contado",
   tcFuente: "MEP",
   tcValor: 0,
@@ -183,11 +190,15 @@ export const initialWizardData: WizardData = {
   otrosGastosPago: "-",
   totalCargosArs: 0,
   totalCargosUsd: 0,
+  cantidadCocheras: 0,
   reglasFinanciacionA: [],
   reglasFinanciacionB: [],
   porcentajePagadoFechaPosesion: 85,
   dolarRef: 0,
   formatoSalida: "PDF",
+  ivaProyecto: "incluido",
+  porcentajeIVA: 0,
+  montoIVA: 0,
 };
 
 export interface GeneratedFile {

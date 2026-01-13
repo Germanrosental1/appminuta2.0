@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateEstadoComercialDto } from './dto/create-estadocomercial.dto';
 import { UpdateEstadoComercialDto } from './dto/update-estadocomercial.dto';
 import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 // ⚡ OPTIMIZACIÓN: Cache para catálogos
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -29,7 +30,7 @@ export class EstadoComercialService {
             await this.invalidateCache();
             return result;
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
                     throw new ConflictException(
                         `Ya existe un estado con el nombre "${createEstadoComercialDto.nombreestado}"`,
@@ -82,7 +83,7 @@ export class EstadoComercialService {
             await this.invalidateCache();
             return result;
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Estado comercial con ID "${id}" no encontrado`);
                 }
@@ -104,7 +105,7 @@ export class EstadoComercialService {
             await this.invalidateCache();
             return result;
         } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Estado comercial con ID "${id}" no encontrado`);
                 }

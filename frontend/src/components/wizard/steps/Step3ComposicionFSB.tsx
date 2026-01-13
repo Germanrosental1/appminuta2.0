@@ -48,12 +48,12 @@ export const Step3ComposicionFSB: React.FC = () => {
   const porcB = 100 - data.porcA;
   const impB = precioTotal - data.impA;
 
-  // Asegurar que la moneda A siempre sea ARS
-  useEffect(() => {
-    if (data.monedaA !== "ARS") {
-      updateData({ monedaA: "ARS" });
-    }
-  }, []);
+  // Asegurar que la moneda A siempre sea ARS (ELIMINADO para permitir selección)
+  // useEffect(() => {
+  //   if (data.monedaA !== "ARS") {
+  //     updateData({ monedaA: "ARS" });
+  //   }
+  // }, []);
 
   useEffect(() => {
     // Validate when values change
@@ -104,11 +104,11 @@ export const Step3ComposicionFSB: React.FC = () => {
       {/* Referencia al precio total */}
       <div className="rounded-lg bg-primary/10 border border-primary/20 p-4">
         <div className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-primary" />
+
           <div>
             <p className="text-sm font-medium">Precio total (unidad + adicionales)</p>
             <p className="text-2xl font-bold text-primary">
-              ${precioTotal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+              USD {precioTotal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
             </p>
             <div className="text-xs text-muted-foreground mt-1">
               {data.unidades && data.unidades.length > 0 ? (
@@ -138,136 +138,133 @@ export const Step3ComposicionFSB: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="space-y-3">
-        <Label>Modo de Composición</Label>
-        <RadioGroup value={data.modoA} onValueChange={handleModoChange}>
+
+
+      {/* Selector de Modo de Composición */}
+      <div className="rounded-lg border border-border p-4">
+        <Label className="text-sm font-medium mb-3 block">Composición por:</Label>
+        <RadioGroup
+          value={data.modoA}
+          onValueChange={(val: "porcentaje" | "importe") => handleModoChange(val)}
+          className="flex gap-4"
+        >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="porcentaje" id="modo-porcentaje" />
-            <Label htmlFor="modo-porcentaje" className="font-normal cursor-pointer">
-              Por Porcentaje
-            </Label>
+            <Label htmlFor="modo-porcentaje" className="cursor-pointer">Porcentaje</Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="importe" id="modo-importe" />
-            <Label htmlFor="modo-importe" className="font-normal cursor-pointer">
-              Por Importe
-            </Label>
+            <Label htmlFor="modo-importe" className="cursor-pointer">Importe Fijo</Label>
           </div>
         </RadioGroup>
       </div>
 
-      {data.modoA === "porcentaje" ? (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="porcA">Porcentaje F (%)</Label>
-            <Input
-              id="porcA"
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              value={data.porcA === 0 ? '' : data.porcA}
-              onChange={(e) => handlePorcAChange(e.target.value)}
-              onBlur={(e) => {
-                // Al salir del campo, si está vacío poner 0
-                if (e.target.value === '') {
-                  updateData({ porcA: 0 });
-                }
-              }}
-              className={errors.porcA ? "border-destructive" : ""}
-              placeholder="0"
-            />
-            {errors.porcA && <p className="text-sm text-destructive">{errors.porcA}</p>}
-          </div>
-
-          <div className="rounded-lg bg-secondary p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Porcentaje SB (calculado)</span>
-              <span className="text-lg font-bold text-primary">{porcB.toFixed(2)}%</span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="impA">Importe F</Label>
-            <CurrencyInput
-              id="impA"
-              value={data.impA}
-              onChange={(value) => handleImpAChange(value.toString())}
-              max={precioTotal}
-              error={!!errors.impA}
-              prefix="$"
-            />
-            {errors.impA && <p className="text-sm text-destructive">{errors.impA}</p>}
-            <p className="text-xs text-muted-foreground">
-              Máximo: ${precioTotal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-secondary p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Importe SB (calculado)</span>
-              <span className="text-lg font-bold text-primary">
-                ${impB.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="monedaB">Moneda SB</Label>
-          <Select value={data.monedaB} onValueChange={(val: "USD" | "ARS" | "MIX") => updateData({ monedaB: val, monedaA: "ARS" })}>
-            <SelectTrigger id="monedaB">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="ARS">ARS</SelectItem>
-              <SelectItem value="MIX">MIX</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">En este paso los totales siempre se muestran en USD</p>
-        </div>
-      </div>
-
-      {/* Resumen de totales a pagar */}
-      <div className="rounded-lg border border-border overflow-hidden mt-6">
+      {/* Tabla unificada de composición */}
+      <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-muted/50 border-b border-border">
-              <th className="p-3 text-left font-medium text-sm">Concepto</th>
-              <th className="p-3 text-center font-medium text-sm">Porcentaje</th>
-              <th className="p-3 text-right font-medium text-sm">Monto</th>
+              <th className="p-4 text-left font-medium text-sm w-1/4">Concepto</th>
+              <th className="p-4 text-center font-medium text-sm w-1/4">
+                {data.modoA === "porcentaje" ? "Porcentaje" : "Importe"}
+              </th>
+              <th className="p-4 text-center font-medium text-sm w-1/4">Moneda</th>
+              <th className="p-4 text-right font-medium text-sm w-1/4">Monto</th>
             </tr>
           </thead>
           <tbody>
+            {/* Fila Parte F */}
             <tr className="border-b border-border">
-              <td className="p-3 font-medium text-blue-500">
+              <td className="p-4 font-medium text-blue-600">
                 Total a Pagar F
               </td>
-              <td className="p-3 text-center">
-                {data.modoA === "porcentaje" ? `${data.porcA}%` : ""}
+              <td className="p-4">
+                <div className="flex items-center justify-center">
+                  {data.modoA === "porcentaje" ? (
+                    <div className="relative w-24">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={data.porcA === 0 ? '' : data.porcA}
+                        onChange={(e) => handlePorcAChange(e.target.value)}
+                        onBlur={(e) => {
+                          if (e.target.value === '') updateData({ porcA: 0 });
+                        }}
+                        className={`text-center pr-6 h-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${errors.porcA ? "border-destructive" : ""}`}
+                        placeholder="0"
+                        onWheel={(e) => e.currentTarget.blur()}
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                    </div>
+                  ) : (
+                    <CurrencyInput
+                      value={data.impA}
+                      onChange={(val) => updateData({ impA: val })}
+                      prefix="$"
+                      suffix="USD"
+                      className="w-40"
+                    />
+                  )}
+                </div>
               </td>
-              <td className="p-3 text-right font-bold text-blue-500">
+              <td className="p-4">
+                <div className="flex justify-center">
+                  <Select
+                    value={data.monedaA || "ARS"}
+                    onValueChange={(val: "USD" | "ARS") => updateData({ monedaA: val })}
+                  >
+                    <SelectTrigger className="w-24 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ARS">ARS</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </td>
+              <td className="p-4 text-right font-bold text-blue-600">
                 {data.modoA === "porcentaje"
-                  ? `${((precioTotal * data.porcA) / 100).toLocaleString("es-AR", { minimumFractionDigits: 2 })} USD`
-                  : `${data.impA.toLocaleString("es-AR", { minimumFractionDigits: 2 })} USD`}
+                  ? ((precioTotal * data.porcA) / 100).toLocaleString("es-AR", { minimumFractionDigits: 2 })
+                  : (data.impA || 0).toLocaleString("es-AR", { minimumFractionDigits: 2 })
+                } USD
               </td>
             </tr>
+
+            {/* Fila Parte SB */}
             <tr>
-              <td className="p-3 font-medium text-blue-500">
+              <td className="p-4 font-medium text-purple-600">
                 Total a Pagar SB
               </td>
-              <td className="p-3 text-center">
-                {data.modoA === "porcentaje" ? `${porcB}%` : ""}
-              </td>
-              <td className="p-3 text-right font-bold text-blue-500">
+              <td className="p-4 text-center text-sm">
                 {data.modoA === "porcentaje"
-                  ? `${((precioTotal * porcB) / 100).toLocaleString("es-AR", { minimumFractionDigits: 2 })} USD`
-                  : `${impB.toLocaleString("es-AR", { minimumFractionDigits: 2 })} USD`}
+                  ? `${Number.isInteger(porcB) ? porcB.toFixed(0) : porcB.toFixed(2)}%`
+                  : `${impB.toLocaleString("es-AR", { minimumFractionDigits: 2 })} USD`
+                }
+              </td>
+              <td className="p-4">
+                <div className="flex justify-center">
+                  <Select
+                    value={data.monedaB || "ARS"}
+                    onValueChange={(val: "USD" | "ARS") => updateData({ monedaB: val })}
+                  >
+                    <SelectTrigger className="w-24 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ARS">ARS</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </td>
+              <td className="p-4 text-right font-bold text-purple-600">
+                {data.modoA === "porcentaje"
+                  ? ((precioTotal * porcB) / 100).toLocaleString("es-AR", { minimumFractionDigits: 2 })
+                  : impB.toLocaleString("es-AR", { minimumFractionDigits: 2 })
+                } USD
               </td>
             </tr>
           </tbody>
@@ -277,8 +274,10 @@ export const Step3ComposicionFSB: React.FC = () => {
       <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
         <p className="font-medium mb-1">💡 Tip:</p>
         <p>
-          Defina cómo se divide el pago entre dos partes (F y SB), ya sea por porcentaje o por importe específico.
-          El sistema calculará automáticamente la parte SB.
+          {data.modoA === "porcentaje"
+            ? "Defina el porcentaje para la parte F y seleccione la moneda. La parte SB se calculará automáticamente."
+            : "Ingrese el importe fijo para la parte F. La parte SB se calculará automáticamente como la diferencia con el precio total."
+          }
         </p>
       </div>
     </div>

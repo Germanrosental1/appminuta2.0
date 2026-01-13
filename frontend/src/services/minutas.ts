@@ -266,7 +266,7 @@ export async function getDatosMapaVentasBatch(unidadIds: string[]) {
 }
 
 // Guardar directamente una minuta definitiva (VALIDACIÓN DESHABILITADA TEMPORALMENTE)
-export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id' | 'fecha_creacion'>) {
+export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id' | 'fecha_creacion' | 'created_at' | 'updated_at'>) {
   try {
     console.log('🔄 Guardando minuta - datos recibidos:', minuta.datos);
 
