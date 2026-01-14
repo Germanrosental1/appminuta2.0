@@ -607,13 +607,15 @@ model profiles {
 model gastosgenerales {
   proyecto               String    @id @db.Uuid
   sellado                Float?
-  certificaciondefirmas  String?
+  certificaciondefirmas  Float?
   alajamiento            Float?
-  planosm2propiedad      String?
-  planosm2cochera        String?
+  planosm2propiedad      Float?
+  planosm2cochera        Float?
   comisioninmobiliaria   Float?
-  otrosgastos            String?
+  otrosgastos            Float?
   created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  fecha_posesion         String?
+  etapatorre             String?
   proyectos              proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")

@@ -168,16 +168,30 @@ export class UnidadesService {
             }
         }
 
-        // Filtrar por estado - por defecto solo "Disponible" (case insensitive)
-        // Usar 'is' para relación nullable 1-to-1
-        const estadoFiltro = query.estado || 'disponible';
-        where.detallesventa_detallesventa_unidad_idTounidades = {
-            is: {
-                estadocomercial: {
-                    nombreestado: { equals: estadoFiltro, mode: 'insensitive' },
+        // Filtrar por estado - por defecto "Disponible" y "Pisada" (case insensitive)
+        // Soporta múltiples estados separados por coma (ej: "disponible,pisada")
+        const estadoFiltro = query.estado || 'disponible,pisada';
+        const estados = estadoFiltro.split(',').map(e => e.trim());
+
+        if (estados.length === 1) {
+            // Filtro simple por un solo estado
+            where.detallesventa_detallesventa_unidad_idTounidades = {
+                is: {
+                    estadocomercial: {
+                        nombreestado: { equals: estados[0], mode: 'insensitive' },
+                    },
                 },
-            },
-        };
+            };
+        } else {
+            // Filtro por múltiples estados usando OR
+            where.detallesventa_detallesventa_unidad_idTounidades = {
+                is: {
+                    estadocomercial: {
+                        nombreestado: { in: estados, mode: 'insensitive' },
+                    },
+                },
+            };
+        }
 
         if (query.etapa && query.etapa !== 'Ninguna') {
             where.etapas = {

@@ -7,26 +7,34 @@ export class UpdateGastosGeneralesDto {
     sellado?: number;
 
     @IsOptional()
-    @IsString()
-    certificaciondefirmas?: string;
+    @IsNumber()
+    certificaciondefirmas?: number;
 
     @IsOptional()
     @IsNumber()
     alajamiento?: number;
 
     @IsOptional()
-    @IsString()
-    planosm2propiedad?: string;
+    @IsNumber()
+    planosm2propiedad?: number;
 
     @IsOptional()
-    @IsString()
-    planosm2cochera?: string;
+    @IsNumber()
+    planosm2cochera?: number;
 
     @IsOptional()
     @IsNumber()
     comisioninmobiliaria?: number;
 
     @IsOptional()
+    @IsNumber()
+    otrosgastos?: number;
+
+    @IsOptional()
     @IsString()
-    otrosgastos?: string;
+    fecha_posesion?: string;
+
+    @IsOptional()
+    @IsString()
+    etapatorre?: string;
 }
