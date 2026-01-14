@@ -31,6 +31,7 @@
     "@nestjs/websockets": "^10.4.20",
     "@prisma/client": "^5.10.2",
     "@types/cookie-parser": "^1.4.10",
+    "axios": "^1.13.2",
     "cache-manager": "^7.2.7",
     "cache-manager-redis-store": "^3.0.1",
     "class-transformer": "^0.5.1",

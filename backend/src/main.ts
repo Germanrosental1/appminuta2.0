@@ -16,7 +16,7 @@ import { PerformanceInterceptor } from './common/interceptors/performance.interc
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
-    // 🔒 SEGURIDAD: Headers de seguridad con Helmet
+    // 🔒 SEGURIDAD: Headers de seguridad con Helmet (MEJORADO para 10/10)
     const isDevelopment = process.env.NODE_ENV !== 'production';
     app.use(helmet({
         contentSecurityPolicy: isDevelopment ? false : {
@@ -45,7 +45,20 @@ async function bootstrap() {
         referrerPolicy: {
             policy: 'strict-origin-when-cross-origin',
         },
+        // 🔒 NUEVOS HEADERS DE SEGURIDAD (mejoras 10/10)
+        crossOriginOpenerPolicy: { policy: 'same-origin' },
+        crossOriginResourcePolicy: { policy: 'same-origin' },
+        originAgentCluster: true,
     }));
+
+    // 🔒 SEGURIDAD: Permissions-Policy header (no incluido en Helmet)
+    app.use((req: any, res: any, next: any) => {
+        res.setHeader(
+            'Permissions-Policy',
+            'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()'
+        );
+        next();
+    });
 
     // ⚡ OPTIMIZACIÓN: Comprimir respuestas HTTP (reduce 60-70% el tamaño)
     app.use(compression());
@@ -59,6 +72,7 @@ async function bootstrap() {
 
     // 🔒 SEGURIDAD: Deshabilitar header X-Powered-By
     expressApp.disable('x-powered-by');
+
 
     // Global Exception Filter
     app.useGlobalFilters(new AllExceptionsFilter());

@@ -41,16 +41,26 @@ export class UnidadesController {
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
     @UseInterceptors(FileInterceptor('file'))
-    uploadFile(@UploadedFile() file: Express.Multer.File, @Request() req) {
-        // 🔒 SEGURIDAD: Validar MIME type del archivo
-        const allowedMimes = [
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-excel'
-        ];
-        if (!file || !allowedMimes.includes(file.mimetype)) {
-            throw new BadRequestException('Solo se permiten archivos Excel (.xlsx, .xls)');
+    uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
+        // Opción 1: Archivo subido
+        if (file) {
+            const allowedMimes = [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel'
+            ];
+            if (!allowedMimes.includes(file.mimetype)) {
+                throw new BadRequestException('Solo se permiten archivos Excel (.xlsx, .xls)');
+            }
+            return this.importService.importFromExcel(file.buffer, req.user);
         }
-        return this.importService.importFromExcel(file.buffer, req.user);
+
+        // Opción 2: URL en el body (para n8n/automations)
+        if (body && (body.excel || body.linkArchivo)) {
+            const url = body.excel || body.linkArchivo;
+            return this.importService.importFromUrl(url, req.user);
+        }
+
+        throw new BadRequestException('Debe proporcionar un archivo (file) o una URL (excel/linkArchivo) en el body');
     }
 
     // Metadata endpoints - MUST come before generic GET routes
