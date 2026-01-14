@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { MinutasService } from './minutas.service';
 import { CreateMinutaDto } from './dto/create-minuta.dto';
+import { CreateMinutaProvisoriaDto } from './dto/create-minuta-provisoria.dto';
 import { UpdateMinutaDto } from './dto/update-minuta.dto';
 import { FindAllMinutasQueryDto } from './dto/find-all-minutas-query.dto';
 
@@ -26,14 +27,14 @@ export class MinutasController {
   @Post('provisoria')
   @Permissions('generarMinuta')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 🔒 5 requests per minute
-  createProvisoria(@Body() data: any, @CurrentUser() user: any) {
+  createProvisoria(@Body() data: CreateMinutaProvisoriaDto, @CurrentUser() user: any) {
     return this.minutasService.createProvisoria(data, user.id);
   }
 
   @Patch('provisoria/:id')
   @Permissions('editarMinuta')
   @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
-  updateProvisoria(@Param('id') id: string, @Body() data: any) {
+  updateProvisoria(@Param('id') id: string, @Body() data: UpdateMinutaDto) {
     return this.minutasService.updateProvisoria(id, data);
   }
 

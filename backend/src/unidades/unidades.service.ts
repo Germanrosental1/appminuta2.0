@@ -130,7 +130,7 @@ export class UnidadesService {
                     unidad_id: newUnit.id,
                     preciousd: createUnidadDto.preciousd || 0,
                     usdm2: createUnidadDto.usdm2 || 0,
-                    clienteinteresado: createUnidadDto.clienteinteresado ? BigInt(createUnidadDto.clienteinteresado) : null,
+                    clienteInteresado: createUnidadDto.clienteinteresado || null,
                     obs: createUnidadDto.obs,
                     fechareserva: createUnidadDto.fechareserva,
                     estado_id: estadoId,
@@ -523,7 +523,7 @@ export class UnidadesService {
 
         try {
             return await this.prisma.$transaction(async (tx) => {
-                console.log('Starting transaction for unit update:', id);
+                // 🔒 SEGURIDAD: Logs de debug eliminados - exponen IDs internos
 
                 // 2. Update Unidad Base
                 const unidadData: any = {};
@@ -538,7 +538,6 @@ export class UnidadesService {
                 if (updateDto.frente !== undefined) unidadData.frente = updateDto.frente;
 
                 if (Object.keys(unidadData).length > 0) {
-                    console.log('Updating unidad base...');
                     await tx.unidades.update({
                         where: { id },
                         data: unidadData
@@ -558,7 +557,6 @@ export class UnidadesService {
                 if (updateDto.tamano !== undefined) metricsData.tamano = updateDto.tamano;
 
                 if (Object.keys(metricsData).length > 0) {
-                    console.log('Updating metrics...');
                     // Check existance first or use upsert
                     const existingMetrics = await tx.unidadesmetricas.findUnique({ where: { unidad_id: id } });
                     if (existingMetrics) {
@@ -592,13 +590,13 @@ export class UnidadesService {
                 if (updateDto.clienteinteresado !== undefined) {
                     if (updateDto.clienteinteresado && String(updateDto.clienteinteresado).trim() !== '') {
                         try {
-                            salesData.clienteinteresado = BigInt(updateDto.clienteinteresado);
+                            salesData.clienteInteresado = updateDto.clienteinteresado;
                         } catch (e) {
                             console.warn(`Invalid BigInt for clienteinteresado: ${updateDto.clienteinteresado}`, e);
-                            salesData.clienteinteresado = null;
+                            salesData.clienteInteresado = null;
                         }
                     } else {
-                        salesData.clienteinteresado = null;
+                        salesData.clienteInteresado = null;
                     }
                 }
 
@@ -620,7 +618,6 @@ export class UnidadesService {
                 if (updateDto.unidadcomprador_id !== undefined) salesData.unidadcomprador_id = updateDto.unidadcomprador_id;
 
                 if (Object.keys(salesData).length > 0) {
-                    console.log('Updating sales details...');
                     const existingSales = await tx.detallesventa.findUnique({ where: { unidad_id: id } });
                     if (existingSales) {
                         await tx.detallesventa.update({ where: { unidad_id: id }, data: salesData });
@@ -629,8 +626,7 @@ export class UnidadesService {
                     }
                 }
 
-                // 5. Return complete updated unit
-                console.log('Fetching final result...');
+                // Return complete updated unit
                 return await tx.unidades.findUnique({
                     where: { id },
                     include: {

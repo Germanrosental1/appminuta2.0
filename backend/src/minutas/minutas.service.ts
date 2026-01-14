@@ -97,7 +97,7 @@ export class MinutasService {
   }
 
   async create(createMinutaDto: CreateMinutaDto, userId: string) {
-    console.log('📝 Creating minuta with DTO:', JSON.stringify(createMinutaDto, null, 2));
+    // 🔒 SEGURIDAD: No loguear DTOs completos - pueden contener datos sensibles
 
     // Sanitizar datos antes de guardar
     const sanitizedData = {
@@ -116,26 +116,19 @@ export class MinutasService {
 
     // Buscar el proyecto por nombre si viene en datos.proyecto
     let proyectoId = createMinutaDto.proyecto || null;
-    console.log('📌 Proyecto from DTO:', createMinutaDto.proyecto);
-    console.log('📌 Proyecto from datos:', sanitizedData.datos?.proyecto);
 
     if (!proyectoId && sanitizedData.datos?.proyecto) {
       const nombreProyecto = sanitizedData.datos.proyecto;
-      console.log('🔍 Buscando proyecto por nombre:', nombreProyecto);
 
       const proyecto = await this.prisma.proyectos.findFirst({
         where: { nombre: nombreProyecto },
         select: { id: true }
       });
 
-      console.log('Proyecto encontrado:', proyecto);
-
       if (proyecto) {
         proyectoId = proyecto.id;
       }
     }
-
-    console.log('Guardando con proyectoId:', proyectoId);
 
     // Exclude clienteInteresadoDni from spread - it's not a valid Prisma field
     const { clienteInteresadoDni: _dniToExclude, ...dataForPrisma } = sanitizedData;
@@ -159,39 +152,20 @@ export class MinutasService {
 
     // Actualizar detallesventa con el DNI del cliente interesado
     if (createMinutaDto.clienteInteresadoDni && unidadIds.length > 0) {
-      console.log('Actualizando detallesventa con cliente DNI:', createMinutaDto.clienteInteresadoDni);
+      // 🔒 SEGURIDAD: No loguear DNIs de clientes
 
       for (const unidadId of unidadIds) {
         await this.prisma.detallesventa.upsert({
           where: { unidad_id: unidadId },
           update: {
-            clienteinteresado: createMinutaDto.clienteInteresadoDni,
-          } as any,
+            clienteInteresado: createMinutaDto.clienteInteresadoId || null,
+          },
           create: {
             unidad_id: unidadId,
-            clienteinteresado: createMinutaDto.clienteInteresadoDni,
-          } as any,
+            clienteInteresado: createMinutaDto.clienteInteresadoId || null,
+          },
         });
       }
-
-      // Actualizar unidadesInteresadas del cliente para estadísticas
-      const cliente = await this.prisma.clientes.findUnique({
-        where: { dni: createMinutaDto.clienteInteresadoDni },
-        select: { unidadesInteresadas: true },
-      });
-
-      // Obtener array existente o inicializar vacío
-      const unidadesActuales = (cliente?.unidadesInteresadas as string[]) || [];
-
-      // Agregar nuevas unidades sin duplicados
-      const unidadesActualizadas = [...new Set([...unidadesActuales, ...unidadIds])];
-
-      await this.prisma.clientes.update({
-        where: { dni: createMinutaDto.clienteInteresadoDni },
-        data: { unidadesInteresadas: unidadesActualizadas },
-      });
-
-      console.log('Unidades interesadas actualizadas para cliente:', unidadesActualizadas);
     }
 
 
@@ -529,7 +503,7 @@ export class MinutasService {
           for (const unidadId of unidadIds) {
             await this.prisma.detallesventa.updateMany({
               where: { unidad_id: unidadId },
-              data: { clienteinteresado: null } as any,
+              data: { clienteInteresado: null },
             });
           }
         }
@@ -690,6 +664,42 @@ export class MinutasService {
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
     if (!webhookUrl) {
       throw new Error('N8N_WEBHOOK_URL not configured');
+    }
+
+    // 🔒 SEGURIDAD: Validar URL para prevenir SSRF
+    try {
+      const url = new URL(webhookUrl);
+
+      // Rechazar protocolos peligrosos
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        throw new Error('Only HTTP/HTTPS protocols are allowed');
+      }
+
+      // Rechazar IPs internas/locales
+      const hostname = url.hostname.toLowerCase();
+      const internalPatterns = [
+        'localhost',
+        '127.',
+        '10.',
+        '192.168.',
+        '172.16.', '172.17.', '172.18.', '172.19.',
+        '172.20.', '172.21.', '172.22.', '172.23.',
+        '172.24.', '172.25.', '172.26.', '172.27.',
+        '172.28.', '172.29.', '172.30.', '172.31.',
+        '169.254.',
+        '0.0.0.0',
+        '::1',
+        '[::1]',
+      ];
+
+      if (internalPatterns.some(pattern => hostname.startsWith(pattern) || hostname === pattern.replace('.', ''))) {
+        throw new Error('Internal/local URLs are not allowed');
+      }
+    } catch (e) {
+      if (e instanceof TypeError) {
+        throw new Error('Invalid webhook URL configuration');
+      }
+      throw e;
     }
 
     const response = await fetch(webhookUrl, {

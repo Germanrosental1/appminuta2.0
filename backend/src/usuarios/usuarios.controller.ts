@@ -104,12 +104,22 @@ export class UsuariosController {
     }
 
     // Gestión de proyectos
+    /**
+     * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
+     */
     @Get(':id/proyectos')
+    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @Permissions('gestionarUsuarios')
     getUserProjects(@Param('id') id: string) {
         return this.usuariosProyectosService.getUserProjects(id);
     }
 
+    /**
+     * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
+     */
     @Post(':id/proyectos')
+    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @Permissions('gestionarUsuarios')
     @HttpCode(HttpStatus.CREATED)
     assignUserToProject(
         @Param('id') id: string,
@@ -122,7 +132,12 @@ export class UsuariosController {
         );
     }
 
+    /**
+     * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
+     */
     @Delete(':id/proyectos/:projectId/roles/:roleId')
+    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @Permissions('gestionarUsuarios')
     @HttpCode(HttpStatus.NO_CONTENT)
     removeUserFromProject(
         @Param('id') id: string,

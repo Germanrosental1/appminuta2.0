@@ -53,20 +53,19 @@ export function useWebSocket() {
         });
 
         socket.on('connect', () => {
-            console.log('🔌 WebSocket connected');
+            // Connected silently
         });
 
         socket.on('disconnect', (reason) => {
-            console.log('🔌 WebSocket disconnected:', reason);
+            // Disconnected silently
         });
 
         socket.on('connect_error', (error) => {
-            console.error('🔌 WebSocket connection error:', error.message);
+            // Connection error - silent
         });
 
         // Evento: Nueva minuta creada (para admins)
         socket.on('minuta:created', (payload: MinutaEvent) => {
-            console.log('📩 Minuta created:', payload);
             queryClient.invalidateQueries({ queryKey: ['minutas'] });
             toast({
                 title: '📋 Nueva minuta',
@@ -76,7 +75,6 @@ export function useWebSocket() {
 
         // Evento: Estado de minuta cambió (para el usuario dueño)
         socket.on('minuta:stateChanged', (payload: MinutaEvent) => {
-            console.log('📩 Minuta state changed:', payload);
             queryClient.invalidateQueries({ queryKey: ['minutas'] });
             queryClient.invalidateQueries({ queryKey: ['minuta', payload.minutaId] });
             toast({
@@ -87,7 +85,6 @@ export function useWebSocket() {
 
         // Evento: Minuta actualizada
         socket.on('minuta:updated', (payload: MinutaEvent) => {
-            console.log('📩 Minuta updated:', payload);
             queryClient.invalidateQueries({ queryKey: ['minutas'] });
             queryClient.invalidateQueries({ queryKey: ['minuta', payload.minutaId] });
         });

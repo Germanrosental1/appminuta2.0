@@ -3,14 +3,36 @@ import {
     NotFoundException,
     ConflictException,
     BadRequestException,
+    Inject,
+    forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { UsuariosRolesService } from '../usuarios-roles/usuarios-roles.service';
 
 @Injectable()
 export class RolesService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @Inject(forwardRef(() => UsuariosRolesService))
+        private readonly usuariosRolesService: UsuariosRolesService,
+    ) { }
+
+    /**
+     * 🔒 SEGURIDAD: Invalida cache de todos los usuarios con un rol específico
+     * Se llama cuando cambian los permisos de un rol
+     */
+    private async invalidateCacheForUsersWithRole(roleId: string): Promise<void> {
+        const usersWithRole = await this.prisma.usuarios_roles.findMany({
+            where: { idrol: roleId },
+            select: { idusuario: true },
+        });
+
+        for (const user of usersWithRole) {
+            this.usuariosRolesService.invalidateUserRolesCache(user.idusuario);
+        }
+    }
 
     async create(createRoleDto: CreateRoleDto) {
         // Verificar si el rol ya existe
@@ -143,7 +165,7 @@ export class RolesService {
             );
         }
 
-        return this.prisma.roles_permisos.create({
+        const result = await this.prisma.roles_permisos.create({
             data: {
                 idrol: roleId,
                 idpermiso: permisoId,
@@ -152,6 +174,11 @@ export class RolesService {
                 permisos: true,
             },
         });
+
+        // 🔒 SEGURIDAD: Invalidar cache de usuarios con este rol
+        await this.invalidateCacheForUsersWithRole(roleId);
+
+        return result;
     }
 
     async removePermission(roleId: string, permisoId: string) {
@@ -174,7 +201,7 @@ export class RolesService {
             );
         }
 
-        return this.prisma.roles_permisos.delete({
+        const result = await this.prisma.roles_permisos.delete({
             where: {
                 idrol_idpermiso: {
                     idrol: roleId,
@@ -182,5 +209,10 @@ export class RolesService {
                 },
             },
         });
+
+        // 🔒 SEGURIDAD: Invalidar cache de usuarios con este rol
+        await this.invalidateCacheForUsersWithRole(roleId);
+
+        return result;
     }
 }

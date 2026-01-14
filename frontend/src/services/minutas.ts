@@ -134,7 +134,7 @@ export async function getMinutasDefinitivasByUsuario(usuarioId: string, filters?
     return response.data;
   } catch (error) {
     if (error instanceof ValidationError) {
-      console.error('Validation error fetching minutas by user:', error);
+      // Validation error logged silently
     }
     throw error;
   }
@@ -187,9 +187,6 @@ export async function actualizarEstadoMinutaDefinitiva(
     });
 
   } catch (error) {
-    if (error instanceof ValidationError) {
-      console.error('Validation error updating estado:', error);
-    }
     throw error;
   }
 }
@@ -213,11 +210,6 @@ export async function actualizarDatosMinutaDefinitiva(id: string, datosActualiza
     });
 
   } catch (error) {
-    if (error instanceof ValidationError) {
-      console.error('Validation error:', error);
-    } else {
-      console.error('Update error:', error);
-    }
     throw error;
   }
 }
@@ -260,7 +252,6 @@ export async function getDatosMapaVentasBatch(unidadIds: string[]) {
     const data = await apiFetch<any[]>(`/unidades/batch?ids=${validIds.join(',')}`);
     return data || [];
   } catch (error) {
-    console.warn('Error en batch fetch de unidades:', error);
     return [];
   }
 }
@@ -268,8 +259,6 @@ export async function getDatosMapaVentasBatch(unidadIds: string[]) {
 // Guardar directamente una minuta definitiva (VALIDACIÓN DESHABILITADA TEMPORALMENTE)
 export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id' | 'fecha_creacion' | 'created_at' | 'updated_at'>) {
   try {
-    console.log('🔄 Guardando minuta - datos recibidos:', minuta.datos);
-
     // Obtener unidad_id de la primera unidad seleccionada
     const primeraUnidad = minuta.datos?.unidades?.[0];
     const unidadId = primeraUnidad?.id || minuta.datos?.unidad_id || null;
@@ -284,15 +273,12 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id
 
     try {
       const unidades = minuta.datos?.unidades || [];
-      console.log('📊 Unidades a procesar para mapa de ventas:', unidades.length);
 
       if (unidades.length > 0) {
         // ⚡ BATCH: Extraer todos los IDs y hacer UNA sola request
         const unidadIds = unidades.map((u: any) => u.id).filter(Boolean);
-        console.log(`📊 Obteniendo ${unidadIds.length} unidades en batch...`);
 
         const batchData = await getDatosMapaVentasBatch(unidadIds);
-        console.log(`📊 Batch response: ${batchData.length} unidades encontradas`);
 
         // Mapear resultados con metadatos adicionales
         datosMapaVentas = batchData.map((data: any) => {
@@ -307,7 +293,6 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id
       } else {
         // Caso: Sin array de unidades (legacy o single unit directa)
         const unidadCodigo = unidadId || minuta.datos?.unidadCodigo || minuta.datos?.unidad?.codigo || '';
-        console.log('📊 Modo legacy, buscando unidad:', unidadCodigo);
 
         if (unidadCodigo) {
           const data = await getDatosMapaVentasByUnidadId(unidadCodigo);
@@ -317,10 +302,8 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id
         }
       }
     } catch (e) {
-      console.warn('No se pudieron obtener datos del mapa de ventas:', e);
+      // Silent fail - datos del mapa de ventas no disponibles
     }
-
-    console.log('📊 datos_mapa_ventas final (es array?):', Array.isArray(datosMapaVentas), 'longitud:', datosMapaVentas.length);
 
     // Preparar minuta para guardar - proyecto puede ser null
     const minutaParaGuardar = {
@@ -332,21 +315,15 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id
       clienteInteresadoDni: minuta.clienteInteresadoDni || null,
     };
 
-    console.log('📤 Enviando minuta al backend:', minutaParaGuardar);
-
     // Guardar en Backend
     const response = await apiFetch<MinutaDefinitiva>('/minutas', {
       method: 'POST',
       body: JSON.stringify(minutaParaGuardar)
     });
 
-    console.log('✅ Minuta guardada exitosamente:', response);
     return response;
 
   } catch (error: any) {
-    console.error('❌ Error al guardar minuta:', error);
-    console.error('❌ Error message:', error?.message);
-    console.error('❌ Error response:', error?.response);
     throw error;
   }
 }
@@ -382,8 +359,6 @@ export async function getMinutasWithFilters(filters: Partial<MinutaFilters>) {
     if (filters.sortBy) params.append('sortBy', filters.sortBy);
     if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
 
-    console.log('📋 Fetching minutas with params:', params.toString());
-
     const response = await apiFetch<{
       data: MinutaDefinitiva[];
       total: number;
@@ -391,8 +366,6 @@ export async function getMinutasWithFilters(filters: Partial<MinutaFilters>) {
       limit: number;
       totalPages: number;
     }>(`/minutas?${params.toString()}`);
-
-    console.log('📋 API Response:', response);
 
     return {
       data: response.data,
@@ -402,10 +375,6 @@ export async function getMinutasWithFilters(filters: Partial<MinutaFilters>) {
       totalPages: response.totalPages,
     };
   } catch (error) {
-    console.error('📋 Error fetching minutas:', error);
-    if (error instanceof ValidationError) {
-      // Error de validación - se ignora
-    }
     throw error;
   }
 }
@@ -445,7 +414,6 @@ export async function getMinutasStats(usuarioId?: string) {
 
     return stats;
   } catch (error) {
-    console.error('Error fetching minutas stats:', error);
     return { total: 0, porEstado: {} };
   }
 }

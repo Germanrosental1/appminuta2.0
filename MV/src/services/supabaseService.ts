@@ -80,8 +80,6 @@ export const supabaseService = {
    */
   async updateUnit(unit: Unit): Promise<Unit> {
     try {
-      console.log('📝 Actualizando unidad:', unit);
-
       // Mapear Unit a formato del backend
       const backendData = {
         // Campos basicos
@@ -120,7 +118,6 @@ export const supabaseService = {
       // Retornar la unidad actualizada
       return unit;
     } catch (error) {
-      console.error('❌ Error in updateUnit:', error);
       throw error;
     }
   },
@@ -130,8 +127,6 @@ export const supabaseService = {
    */
   async createUnit(unit: Omit<Unit, 'id'>): Promise<Unit> {
     try {
-      console.log('📝 Creating complete unit:', unit);
-
       // Mapear Unit a formato del backend (CreateUnidadDto)
       const backendData = {
         // Campos obligatorios/básicos
@@ -176,7 +171,6 @@ export const supabaseService = {
       const createdUnit = await backendAPI.createUnitComplete(backendData);
       return mapTablaToUnit(createdUnit);
     } catch (error) {
-      console.error('Error in createUnit:', error);
       throw error;
     }
   },
@@ -192,11 +186,9 @@ export const supabaseService = {
         .eq('id', id);
 
       if (error) {
-        console.error(`Error deleting unit with id ${id}:`, error);
         throw error;
       }
     } catch (error) {
-      console.error('Error in deleteUnit:', error);
       throw error;
     }
   },
@@ -212,7 +204,6 @@ export const supabaseService = {
         .not('proyecto', 'is', null);
 
       if (error) {
-        console.error('Error fetching projects:', error);
         throw error;
       }
 
@@ -220,7 +211,6 @@ export const supabaseService = {
       const projects = [...new Set(data.map(item => item.proyecto))].filter(Boolean) as string[];
       return projects;
     } catch (error) {
-      console.error('Error in getProjects:', error);
       throw error;
     }
   },
@@ -236,7 +226,6 @@ export const supabaseService = {
         .not('natdelproyecto', 'is', null);
 
       if (error) {
-        console.error('Error fetching naturalezas:', error);
         throw error;
       }
 
@@ -244,7 +233,6 @@ export const supabaseService = {
       const naturalezas = [...new Set(data.map(item => item.natdelproyecto))].filter(Boolean) as string[];
       return naturalezas;
     } catch (error) {
-      console.error('Error in getNaturalezasProyecto:', error);
       throw error;
     }
   },
@@ -262,16 +250,11 @@ export const supabaseService = {
         .not('proyecto', 'is', null);
 
       if (error) {
-        console.error('Error fetching projects by naturaleza:', error);
         throw error;
       }
 
-      console.log('📊 Supabase data for projects:', data);
-
       // Extraer proyectos únicos
       const uniqueProjects = [...new Set(data.map(item => item.proyecto))].filter(Boolean) as string[];
-
-      console.log('📋 Unique projects found:', uniqueProjects);
 
       // Retornar todos los proyectos bajo un solo grupo "Proyectos"
       const result = [{
@@ -279,10 +262,8 @@ export const supabaseService = {
         proyectos: uniqueProjects.sort()
       }];
 
-      console.log('✅ Final projects by naturaleza array:', result);
       return result;
     } catch (error) {
-      console.error('❌ Error in getProjectsByNaturaleza:', error);
       throw error;
     }
   },

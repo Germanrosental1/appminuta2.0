@@ -21,7 +21,8 @@ export class SupabaseStrategy extends PassportStrategy(Strategy) {
 
         // Validar que sea base64 válido (formato recomendado)
         const base64Regex = /^[A-Za-z0-9+/=]+$/;
-        if (!base64Regex.test(jwtSecret)) {
+        // 🔒 SEGURIDAD: Solo advertir en desarrollo, no en producción
+        if (process.env.NODE_ENV !== 'production' && !base64Regex.test(jwtSecret)) {
             console.warn(
                 '⚠️  WARNING: JWT secret is not base64 encoded. ' +
                 'For maximum security, use: openssl rand -base64 64'

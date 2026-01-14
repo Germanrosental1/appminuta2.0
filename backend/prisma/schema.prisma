@@ -433,18 +433,6 @@ model auth_logs {
   @@schema("public")
 }
 
-model clientes {
-  dni                 BigInt                @id
-  nombreApellido      String?
-  telefono            BigInt?
-  unidadesInteresadas Json?
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  detallesventa       detallesventa[]
-  minutas_definitivas minutas_definitivas[]
-
-  @@schema("public")
-}
-
 model comerciales {
   id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre        String          @unique @db.VarChar(255)
@@ -460,18 +448,19 @@ model detallesventa {
   motivonodisp_id                                     String?          @db.Uuid
   preciousd                                           Decimal?         @db.Decimal(12, 2)
   usdm2                                               Decimal?         @db.Decimal(10, 2)
-  clientetitularboleto                                String?          @db.VarChar(255)
   fechareserva                                        DateTime?        @db.Date
   fechafirmaboleto                                    DateTime?        @db.Date
   fechaposesion                                       DateTime?        @db.Date
   obs                                                 String?
   tipocochera_id                                      String?          @db.Uuid
   unidadcomprador_id                                  String?          @db.Uuid
-  clienteinteresado                                   BigInt?
-  clientes                                            clientes?        @relation(fields: [clienteinteresado], references: [dni], onUpdate: NoAction)
+  titular                                             String?
+  fechapisada                                         DateTime?        @db.Date
+  clienteInteresado                                   String?          @db.Uuid
+  Clientes                                            Clientes?        @relation(fields: [clienteInteresado], references: [id])
   comerciales                                         comerciales?     @relation(fields: [comercial_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   estadocomercial                                     estadocomercial? @relation(fields: [estado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  motivosnodisp                                       motivosnodisp?   @relation(fields: [motivonodisp_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  motivosnodisp                                       motivosnodisp?   @relation(fields: [motivonodisp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "detallesventa_motivoid_fkey")
   unidades_detallesventa_unidad_idTounidades          unidades         @relation("detallesventa_unidad_idTounidades", fields: [unidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   tiposcochera                                        tiposcochera?    @relation(fields: [tipocochera_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipocochera")
   unidades_detallesventa_unidadcomprador_idTounidades unidades?        @relation("detallesventa_unidadcomprador_idTounidades", fields: [unidadcomprador_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_unidad_comprador")
@@ -523,7 +512,6 @@ model minutas_definitivas {
   version           Int        @default(1)
   motivo            String?
   clienteinteresado BigInt?
-  clientes          clientes?  @relation(fields: [clienteinteresado], references: [dni], onUpdate: NoAction)
   proyectos         proyectos? @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users             users      @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -604,18 +592,22 @@ model profiles {
   @@schema("public")
 }
 
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model gastosgenerales {
-  proyecto               String    @id @db.Uuid
-  sellado                Float?
-  certificaciondefirmas  String?
-  alajamiento            Float?
-  planosm2propiedad      String?
-  planosm2cochera        String?
-  comisioninmobiliaria   Float?
-  otrosgastos            String?
-  created_at             DateTime? @default(now()) @db.Timestamptz(6)
-  proyectos              proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proyecto              String    @db.Uuid
+  sellado               Float?
+  certificaciondefirmas Float?
+  alajamiento           Float?
+  planosm2propiedad     Float?
+  planosm2cochera       Float?
+  comisioninmobiliaria  Float?
+  otrosgastos           Float?
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  fecha_posesion        String?
+  etapatorre            String?
+  proyectos             proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@ignore
   @@schema("public")
 }
 
@@ -636,13 +628,13 @@ model proyectos {
   id_org               String?                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   iva                  String?
   edificios            edificios[]
+  gastosgenerales      gastosgenerales[]      @ignore
   minutas_definitivas  minutas_definitivas[]
   organizaciones       organizaciones?        @relation(fields: [id_org], references: [id], onDelete: NoAction, onUpdate: NoAction)
   naturalezas          naturalezas?           @relation(fields: [naturaleza], references: [id], onUpdate: NoAction)
   proyectostiposunidad proyectostiposunidad[]
   tablas               tablas[]
   usuarios_proyectos   usuarios_proyectos[]
-  gastosgenerales      gastosgenerales?
 
   @@index([activo], map: "idx_proyectos_activo")
   @@schema("public")
@@ -763,23 +755,23 @@ model tiposunidad {
 }
 
 model unidades {
-  id                                                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  edificio_id                                              String?           @db.Uuid
-  tipounidad_id                                            String            @db.Uuid
-  etapa_id                                                 String?           @db.Uuid
-  sectorid                                                 String            @unique
-  piso                                                     String?           @db.VarChar(50)
-  nrounidad                                                String?           @db.VarChar(50)
+  id                                                       String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  edificio_id                                              String?                     @db.Uuid
+  tipounidad_id                                            String                      @db.Uuid
+  etapa_id                                                 String?                     @db.Uuid
+  sectorid                                                 String                      @unique
+  piso                                                     String?                     @db.VarChar(50)
+  nrounidad                                                String?                     @db.VarChar(50)
   dormitorios                                              Int?
-  manzana                                                  String?           @db.VarChar(50)
-  destino                                                  String?           @db.VarChar(100)
-  frente                                                   String?           @db.VarChar
-  titular                                                  String?
-  detallesventa_detallesventa_unidad_idTounidades          detallesventa?    @relation("detallesventa_unidad_idTounidades")
-  detallesventa_detallesventa_unidadcomprador_idTounidades detallesventa[]   @relation("detallesventa_unidadcomprador_idTounidades")
-  edificios                                                edificios?        @relation(fields: [edificio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  etapas                                                   etapas?           @relation(fields: [etapa_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  tiposunidad                                              tiposunidad       @relation(fields: [tipounidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  manzana                                                  String?                     @db.VarChar(50)
+  destino                                                  String?                     @db.VarChar(100)
+  frente                                                   String?                     @db.VarChar
+  ClientesUnidadesTitulares                                ClientesUnidadesTitulares[]
+  detallesventa_detallesventa_unidad_idTounidades          detallesventa?              @relation("detallesventa_unidad_idTounidades")
+  detallesventa_detallesventa_unidadcomprador_idTounidades detallesventa[]             @relation("detallesventa_unidadcomprador_idTounidades")
+  edificios                                                edificios?                  @relation(fields: [edificio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  etapas                                                   etapas?                     @relation(fields: [etapa_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tiposunidad                                              tiposunidad                 @relation(fields: [tipounidad_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   unidadesmetricas                                         unidadesmetricas?
 
   @@index([edificio_id, tipounidad_id], map: "idx_unidades_edificio_tipo")
@@ -883,6 +875,31 @@ model usuarios_organizaciones {
 
   @@id([userid, idorg, idrol])
   @@map("usuarios-organizaciones")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Clientes {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombreApellido            String?
+  telefono                  String?                     @default("")
+  dni                       BigInt?                     @unique
+  unidadesInteresadas       Json?                       @db.Json
+  ClientesUnidadesTitulares ClientesUnidadesTitulares[]
+  detallesventa             detallesventa[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ClientesUnidadesTitulares {
+  idCliente  String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idUnidad   String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  porcentaje Float?   @db.Real
+  Clientes   Clientes @relation(fields: [idCliente], references: [id], onDelete: NoAction)
+  unidades   unidades @relation(fields: [idUnidad], references: [id], onDelete: Cascade)
+
+  @@id([idCliente, idUnidad])
   @@schema("public")
 }
 

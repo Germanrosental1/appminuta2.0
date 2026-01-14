@@ -27,6 +27,7 @@ import { TiposUnidadModule } from './tiposunidad/tiposunidad.module';
 import { EdificiosModule } from './edificios/edificios.module';
 import { ClientesModule } from './clientes/clientes.module';
 
+
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';

@@ -56,7 +56,10 @@ export class MinutasGateway
             const userId = payload.sub;
             const userEmail = payload.email || 'unknown';
             const userRole = payload.role || payload.user_role || 'unknown';
-            const isAdmin = userRole === 'admin' || userRole === 'administrador';
+
+            // 🔒 SEGURIDAD: Incluir todos los roles administrativos del sistema
+            const adminRoles = ['admin', 'administrador', 'superadminmv', 'adminmv'];
+            const isAdmin = adminRoles.includes(userRole.toLowerCase());
 
             // Guardar información del cliente
             this.connectedClients.set(client.id, { userId, isAdmin });

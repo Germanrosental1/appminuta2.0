@@ -40,8 +40,7 @@ export class PermissionsGuard implements CanActivate {
             user.id,
         );
 
-        console.log(`🔒 PermissionsDebug: User ${user.id} trying to access. Required: ${requiredPermissions.join(', ')}`);
-        console.log(`🔒 PermissionsDebug: User has perms: ${userPermissions.map(p => p.nombre).join(', ')}`);
+        // 🔒 SEGURIDAD: Logs de debug eliminados para evitar exposición de user IDs y permisos
 
         // Verificar si el usuario tiene al menos uno de los permisos requeridos
         const hasPermission = requiredPermissions.some((permission) =>

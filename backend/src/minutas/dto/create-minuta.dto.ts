@@ -30,9 +30,14 @@ export class CreateMinutaDto {
     @IsOptional()
     url_documento?: string;
 
-    // DNI del cliente interesado
+    // DNI del cliente interesado (legacy - backwards compatibility)
     @IsNumber()
     @IsOptional()
     clienteInteresadoDni?: number;
+
+    // UUID del cliente interesado (nueva referencia a tabla Clientes)
+    @IsUUID()
+    @IsOptional()
+    clienteInteresadoId?: string;
 }
 

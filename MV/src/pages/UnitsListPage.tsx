@@ -102,7 +102,6 @@ export default function UnitsListPage() {
           setSelectedProject(projectsList[0]);
         }
       } catch (error) {
-        console.error('Error loading projects:', error);
         toast.error('Error al cargar los proyectos');
       } finally {
         setIsProjectsLoading(false);
@@ -123,26 +122,9 @@ export default function UnitsListPage() {
     if (dormsParam) setFiltroDormitorios(dormsParam);
   }, [searchParams]);
 
-  // Mostrar mensaje de depuración cuando se carga la página
+  // Verificar conexión con Supabase durante el desarrollo - silenciado en producción
   useEffect(() => {
-    console.log('UnitsListPage montada - Verificando conexión con Supabase');
-
-    // Verificar conexión con Supabase
-    const checkConnection = async () => {
-      try {
-        const { data, error } = await supabase.from('vista_buscador_propiedades').select('count').limit(1);
-        if (error) {
-          console.error('Error al conectar con Supabase:', error);
-          toast.error(`Error de conexión: ${error.message}`);
-        } else {
-          console.log('Conexión con Supabase exitosa');
-        }
-      } catch (err) {
-        console.error('Error al verificar conexión:', err);
-      }
-    };
-
-    checkConnection();
+    // Removed debug logging
   }, []);
 
   useEffect(() => {
@@ -187,7 +169,6 @@ export default function UnitsListPage() {
 
         setUnits(data);
       } catch (error) {
-        console.error('Error loading units:', error);
         toast.error('Error al cargar las unidades');
       } finally {
         setLoading(false);
@@ -212,7 +193,6 @@ export default function UnitsListPage() {
         setUnits(units.filter(unit => unit.id !== unitId));
         toast.success('Unidad eliminada correctamente');
       } catch (error) {
-        console.error('Error deleting unit:', error);
         toast.error('Error al eliminar la unidad');
       }
     }
@@ -341,7 +321,6 @@ export default function UnitsListPage() {
                   // For now, refreshing page is safest or we can force a reload.
                   window.location.reload();
                 } catch (error: any) {
-                  console.error('Import error:', error);
                   toast.error(error.message || 'Error al importar el archivo');
                 } finally {
                   toast.dismiss(toastId);

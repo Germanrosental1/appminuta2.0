@@ -28,14 +28,14 @@ interface MetricasTabProps {
     tipoData: Array<{ name: string; value: number; color: string }>;
     dormitoriosData: Array<{ name: string; key: string; value: number; color: string }>;
     motivosData: Array<{ name: string; key: string; value: number; color: string }>;
-    selectedStatus: string | null;
-    setSelectedStatus: (status: string | null) => void;
-    selectedType: string | null;
-    setSelectedType: (type: string | null) => void;
-    selectedDorms: string | null;
-    setSelectedDorms: (dorms: string | null) => void;
-    selectedMotivo: string | null;
-    setSelectedMotivo: (motivo: string | null) => void;
+    selectedStatus: string[];
+    setSelectedStatus: (status: string[]) => void;
+    selectedType: string[];
+    setSelectedType: (type: string[]) => void;
+    selectedDorms: string[];
+    setSelectedDorms: (dorms: string[]) => void;
+    selectedMotivo: string[];
+    setSelectedMotivo: (motivo: string[]) => void;
     showTotalValue: boolean;
     setShowTotalValue: (show: boolean) => void;
     animationKey: number;
@@ -157,16 +157,16 @@ export function MetricasTab({
                 <motion.div variants={itemVariants}>
                     <Card className="flex flex-col">
                         <CardHeader>
-                            <CardTitle className="flex justify-between items-center">
+                            <CardTitle className="flex justify-between items-center flex-wrap gap-2">
                                 Distribución por Estado
-                                {selectedStatus && (
+                                {selectedStatus.length > 0 && (
                                     <button
                                         className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
-                                        onClick={() => setSelectedStatus(null)}
+                                        onClick={() => setSelectedStatus([])}
                                         title="Limpiar filtro"
-                                        aria-label={`Eliminar filtro de estado ${selectedStatus}`}
+                                        aria-label={`Eliminar filtros de estado`}
                                     >
-                                        Filtrado por: {selectedStatus} (x)
+                                        Filtrado: {selectedStatus.join(', ')} (x)
                                     </button>
                                 )}
                             </CardTitle>
@@ -187,7 +187,12 @@ export function MetricasTab({
                                                 fill="#8884d8"
                                                 dataKey="value"
                                                 onClick={(data) => {
-                                                    setSelectedStatus(selectedStatus === data.name ? null : data.name);
+                                                    const name = data.name;
+                                                    setSelectedStatus(
+                                                        selectedStatus.includes(name)
+                                                            ? selectedStatus.filter(s => s !== name)
+                                                            : [...selectedStatus, name]
+                                                    );
                                                 }}
                                                 className="cursor-pointer"
                                             >
@@ -195,7 +200,7 @@ export function MetricasTab({
                                                     <Cell
                                                         key={entry.name}
                                                         fill={entry.color}
-                                                        stroke={selectedStatus === entry.name ? "#000" : "none"}
+                                                        stroke={selectedStatus.includes(entry.name) ? "#000" : "none"}
                                                         strokeWidth={2}
                                                         className="cursor-pointer hover:opacity-80"
                                                     />
@@ -215,16 +220,16 @@ export function MetricasTab({
                 <motion.div variants={itemVariants}>
                     <Card className="flex flex-col">
                         <CardHeader>
-                            <CardTitle className="flex justify-between items-center">
+                            <CardTitle className="flex justify-between items-center flex-wrap gap-2">
                                 Distribución por Tipo
-                                {selectedType && (
+                                {selectedType.length > 0 && (
                                     <button
                                         className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
-                                        onClick={() => setSelectedType(null)}
+                                        onClick={() => setSelectedType([])}
                                         title="Limpiar filtro"
-                                        aria-label={`Eliminar filtro de tipo ${selectedType}`}
+                                        aria-label={`Eliminar filtros de tipo`}
                                     >
-                                        Filtrado por: {selectedType} (x)
+                                        Filtrado: {selectedType.join(', ')} (x)
                                     </button>
                                 )}
                             </CardTitle>
@@ -245,7 +250,12 @@ export function MetricasTab({
                                                 fill="#8884d8"
                                                 dataKey="value"
                                                 onClick={(data) => {
-                                                    setSelectedType(selectedType === data.name ? null : data.name);
+                                                    const name = data.name;
+                                                    setSelectedType(
+                                                        selectedType.includes(name)
+                                                            ? selectedType.filter(t => t !== name)
+                                                            : [...selectedType, name]
+                                                    );
                                                 }}
                                                 className="cursor-pointer"
                                             >
@@ -253,7 +263,7 @@ export function MetricasTab({
                                                     <Cell
                                                         key={entry.name}
                                                         fill={entry.color}
-                                                        stroke={selectedType === entry.name ? "#000" : "none"}
+                                                        stroke={selectedType.includes(entry.name) ? "#000" : "none"}
                                                         strokeWidth={2}
                                                         className="cursor-pointer hover:opacity-80"
                                                     />
@@ -276,23 +286,23 @@ export function MetricasTab({
             >
                 <motion.div
                     variants={itemVariants}
-                    className={`transition-all duration-500 ease-in-out overflow-hidden w-full ${(hasDepartamentos && (!selectedType || selectedType === 'Departamento'))
+                    className={`transition-all duration-500 ease-in-out overflow-hidden w-full ${(hasDepartamentos && (selectedType.length === 0 || selectedType.includes('Departamento')))
                         ? 'opacity-100 max-h-[500px] mt-4'
                         : 'opacity-0 max-h-0 mt-0'
                         }`}
                 >
                     <Card className="flex flex-col h-[350px]">
                         <CardHeader>
-                            <CardTitle className="flex justify-between items-center">
+                            <CardTitle className="flex justify-between items-center flex-wrap gap-2">
                                 Distribución por Dormitorios
-                                {selectedDorms && (
+                                {selectedDorms.length > 0 && (
                                     <button
                                         className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
-                                        onClick={() => setSelectedDorms(null)}
+                                        onClick={() => setSelectedDorms([])}
                                         title="Limpiar filtro"
-                                        aria-label={`Eliminar filtro de dormitorios ${selectedDorms}`}
+                                        aria-label={`Eliminar filtros de dormitorios`}
                                     >
-                                        Filtrado por: {selectedDorms} (x)
+                                        Filtrado: {selectedDorms.join(', ')} dorms (x)
                                     </button>
                                 )}
                             </CardTitle>
@@ -318,7 +328,11 @@ export function MetricasTab({
                                                 animationEasing="ease-out"
                                                 onClick={(data) => {
                                                     const key = data.payload.key || data.payload.name.split(' ')[0];
-                                                    setSelectedDorms(selectedDorms === key ? null : key);
+                                                    setSelectedDorms(
+                                                        selectedDorms.includes(key)
+                                                            ? selectedDorms.filter(d => d !== key)
+                                                            : [...selectedDorms, key]
+                                                    );
                                                 }}
                                                 className="cursor-pointer"
                                             >
@@ -326,7 +340,7 @@ export function MetricasTab({
                                                     <Cell
                                                         key={entry.name}
                                                         fill={entry.color}
-                                                        stroke={selectedDorms === entry.key ? "#000" : "none"}
+                                                        stroke={selectedDorms.includes(entry.key) ? "#000" : "none"}
                                                         strokeWidth={2}
                                                         className="cursor-pointer hover:opacity-80"
                                                     />
@@ -352,16 +366,16 @@ export function MetricasTab({
                 >
                     <Card className="flex flex-col h-[350px]">
                         <CardHeader>
-                            <CardTitle className="flex justify-between items-center">
+                            <CardTitle className="flex justify-between items-center flex-wrap gap-2">
                                 Distribución por Motivo
-                                {selectedMotivo && (
+                                {selectedMotivo.length > 0 && (
                                     <button
                                         className="text-xs bg-primary/10 text-primary px-2 py-1 rounded cursor-pointer hover:bg-primary/20 border-none flex items-center gap-1"
-                                        onClick={() => setSelectedMotivo(null)}
+                                        onClick={() => setSelectedMotivo([])}
                                         title="Limpiar filtro"
-                                        aria-label={`Eliminar filtro de motivo ${selectedMotivo}`}
+                                        aria-label={`Eliminar filtros de motivo`}
                                     >
-                                        Filtrado por: {selectedMotivo} (x)
+                                        Filtrado: {selectedMotivo.join(', ')} (x)
                                     </button>
                                 )}
                             </CardTitle>
@@ -387,7 +401,11 @@ export function MetricasTab({
                                                 animationEasing="ease-out"
                                                 onClick={(data) => {
                                                     const key = data.payload.key || data.payload.name;
-                                                    setSelectedMotivo(selectedMotivo === key ? null : key);
+                                                    setSelectedMotivo(
+                                                        selectedMotivo.includes(key)
+                                                            ? selectedMotivo.filter(m => m !== key)
+                                                            : [...selectedMotivo, key]
+                                                    );
                                                 }}
                                                 className="cursor-pointer"
                                             >
@@ -395,7 +413,7 @@ export function MetricasTab({
                                                     <Cell
                                                         key={entry.name}
                                                         fill={entry.color}
-                                                        stroke={selectedMotivo === entry.key ? "#000" : "none"}
+                                                        stroke={selectedMotivo.includes(entry.key) ? "#000" : "none"}
                                                         strokeWidth={2}
                                                         className="cursor-pointer hover:opacity-80"
                                                     />

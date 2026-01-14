@@ -33,10 +33,10 @@ export default function Dashboard() {
   // Use persistent hook instead of simple state
   const [selectedProject, setSelectedProject] = usePersistentProject("all");
 
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedDorms, setSelectedDorms] = useState<string | null>(null);
-  const [selectedMotivo, setSelectedMotivo] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  const [selectedType, setSelectedType] = useState<string[]>([]);
+  const [selectedDorms, setSelectedDorms] = useState<string[]>([]);
+  const [selectedMotivo, setSelectedMotivo] = useState<string[]>([]);
   const [showTotalValue, setShowTotalValue] = useState(false);
 
   // State for active tab and titular filter
@@ -62,21 +62,21 @@ export default function Dashboard() {
   // Helper to get units filtered by everything EXCEPT the specified dimension
   const getFilteredUnits = (exclude: 'status' | 'type' | 'dorms' | 'motivo' | 'none') => {
     return units.filter(u => {
-      if (exclude !== 'status' && selectedStatus) {
-        const dbStatus = STATUS_NAMES[selectedStatus] || selectedStatus;
-        if (u.estado !== dbStatus) return false;
+      if (exclude !== 'status' && selectedStatus.length > 0) {
+        const dbStatuses = selectedStatus.map(s => STATUS_NAMES[s] || s);
+        if (!dbStatuses.includes(u.estado)) return false;
       }
-      if (exclude !== 'type' && selectedType) {
+      if (exclude !== 'type' && selectedType.length > 0) {
         const tipo = u.tipo || 'Sin tipo';
-        if (tipo !== selectedType) return false;
+        if (!selectedType.includes(tipo)) return false;
       }
-      if (exclude !== 'dorms' && selectedDorms) {
+      if (exclude !== 'dorms' && selectedDorms.length > 0) {
         const dorms = u.dormitorios.toString() || '0';
-        if (dorms !== selectedDorms) return false;
+        if (!selectedDorms.includes(dorms)) return false;
       }
-      if (exclude !== 'motivo' && selectedMotivo) {
+      if (exclude !== 'motivo' && selectedMotivo.length > 0) {
         const motivo = u.motivoNoDisponibilidad || '';
-        if (motivo !== selectedMotivo) return false;
+        if (!selectedMotivo.includes(motivo)) return false;
       }
       return true;
     });
@@ -134,10 +134,10 @@ export default function Dashboard() {
       try {
         setLoading(true);
         // Reset all chart filters when project changes
-        setSelectedStatus(null);
-        setSelectedType(null);
-        setSelectedDorms(null);
-        setSelectedMotivo(null);
+        setSelectedStatus([]);
+        setSelectedType([]);
+        setSelectedDorms([]);
+        setSelectedMotivo([]);
 
         let filteredUnits: Unit[] = [];
         if (selectedProject !== "all" && selectedProject) {

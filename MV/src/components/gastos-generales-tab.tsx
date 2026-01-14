@@ -43,12 +43,9 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
 
             if (data) {
                 setGastos(data);
-            } else {
-                // No hay gastos aún, usar valores por defecto
-                console.log('No se encontraron gastos para este proyecto');
             }
+            // If no data, default values are kept
         } catch (error) {
-            console.error('Error loading gastos:', error);
             toast.error('Error al cargar los gastos generales');
         } finally {
             setLoading(false);
@@ -62,7 +59,6 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
             setGastos(updated);
             toast.success('Gastos generales guardados correctamente');
         } catch (error) {
-            console.error('Error saving gastos:', error);
             toast.error('Error al guardar los gastos generales');
         } finally {
             setSaving(false);
