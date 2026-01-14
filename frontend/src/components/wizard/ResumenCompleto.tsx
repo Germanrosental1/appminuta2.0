@@ -176,7 +176,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
                   const precioM2Negociado = m2 > 0 ? (unidad.precioNegociado / m2) : 0;
 
                   return (
-                    <div key={index} className="bg-muted/30 p-3 rounded-md text-sm space-y-2">
+                    <div key={unidad.id || `unit-${index}`} className="bg-muted/30 p-3 rounded-md text-sm space-y-2">
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant="outline" className="text-xs">{unidad.tipo}</Badge>
                         <span className="font-medium truncate">{unidad.descripcion}</span>
@@ -423,7 +423,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
               {displayData.reglasFinanciacionA && displayData.reglasFinanciacionA.length > 0 ? (
                 <div className="space-y-3">
                   {displayData.reglasFinanciacionA.map((regla, index) => (
-                    <div key={regla.id} className="border rounded-md p-3">
+                    <div key={regla.id || `regla-a-${index}`} className="border rounded-md p-3">
                       <div className="flex justify-between items-center mb-2">
                         <Badge variant="outline">Regla {index + 1}</Badge>
                         <Badge variant={regla.moneda === "USD" ? "secondary" : "default"}>{regla.moneda}</Badge>
@@ -465,7 +465,7 @@ export const ResumenCompleto: React.FC<ResumenCompletoProps> = ({ forPDF = false
               {displayData.reglasFinanciacionB && displayData.reglasFinanciacionB.length > 0 ? (
                 <div className="space-y-3">
                   {displayData.reglasFinanciacionB.map((regla, index) => (
-                    <div key={regla.id} className="border rounded-md p-3">
+                    <div key={regla.id || `regla-b-${index}`} className="border rounded-md p-3">
                       <div className="flex justify-between items-center mb-2">
                         <Badge variant="outline">Regla {index + 1}</Badge>
                         <Badge variant={regla.moneda === "USD" ? "secondary" : "default"}>{regla.moneda}</Badge>

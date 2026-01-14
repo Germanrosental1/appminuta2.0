@@ -13,7 +13,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { UnidadesImportService } from './unidades-import.service';
 
 /**
- * 🔒 SEGURIDAD: Controller protegido con autenticación
+ * Controller protegido con autenticación
  * Operaciones de escritura requieren permiso 'gestionarUnidades'
  */
 @Controller('unidades')
@@ -26,7 +26,7 @@ export class UnidadesController {
     ) { }
 
     /**
-     * 🔒 Crear unidad - requiere permiso 'gestionarUnidades'
+     * Crear unidad - requiere permiso 'gestionarUnidades'
      */
     @Post()
     @UseGuards(PermissionsGuard)
@@ -36,7 +36,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 Importar unidades desde Excel - requiere permiso 'gestionarUnidades'
+     * Importar unidades desde Excel - requiere permiso 'gestionarUnidades'
      * Valida el tipo de archivo antes de procesar
      */
     @Post('import')
@@ -100,8 +100,8 @@ export class UnidadesController {
         return this.unidadesQueryService.getSectores(proyecto, etapa, tipo);
     }
 
-    // ⚡ OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades
-    // 🔒 SEGURIDAD: Validar UUIDs y limitar cantidad
+    // OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades
+    // Validar UUIDs y limitar cantidad
     @Get('batch')
     findByIds(@Query('ids') ids: string) {
         const idArray = ids ? ids.split(',').filter(Boolean) : [];
@@ -134,7 +134,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 Actualizar unidad completa - requiere permiso 'gestionarUnidades'
+     * Actualizar unidad completa - requiere permiso 'gestionarUnidades'
      */
     @Patch(':id/complete')
     @UseGuards(PermissionsGuard)
@@ -144,7 +144,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 Actualizar unidad - requiere permiso 'gestionarUnidades'
+     * Actualizar unidad - requiere permiso 'gestionarUnidades'
      */
     @Patch(':id')
     @UseGuards(PermissionsGuard)
@@ -154,7 +154,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 Eliminar unidad - requiere permiso 'gestionarUnidades'
+     * Eliminar unidad - requiere permiso 'gestionarUnidades'
      */
     @Delete(':id')
     @UseGuards(PermissionsGuard)

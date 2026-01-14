@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTipoCocheraDto, UpdateTipoCocheraDto } from './dto/create-tipocochera.dto';
-import { Prisma } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()

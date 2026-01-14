@@ -20,7 +20,7 @@ export function maskEmail(email: string | null | undefined): string {
         return `${local[0]}***${domain}`;
     }
 
-    return `${local[0]}${'*'.repeat(Math.min(local.length - 2, 4))}${local[local.length - 1]}${domain}`;
+    return `${local[0]}${'*'.repeat(Math.min(local.length - 2, 4))}${local.at(-1)}${domain}`;
 }
 
 /**

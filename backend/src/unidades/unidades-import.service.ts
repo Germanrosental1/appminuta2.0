@@ -330,12 +330,12 @@ export class UnidadesImportService {
         const parts = str.split('/');
         if (parts.length === 3) {
             const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-            if (!isNaN(date.getTime())) return date;
+            if (!Number.isNaN(date.getTime())) return date;
         }
 
         // Try ISO format or other parseable formats
         const parsed = new Date(str);
-        if (!isNaN(parsed.getTime())) return parsed;
+        if (!Number.isNaN(parsed.getTime())) return parsed;
 
         return null;
     }
@@ -404,6 +404,6 @@ export class UnidadesImportService {
     private parseNumber(value: any): number | null {
         if (value === null || value === undefined || String(value).trim() === '') return null;
         const num = Number(String(value).replace(',', '.'));
-        return isNaN(num) ? null : num;
+        return Number.isNaN(num) ? null : num;
     }
 }
