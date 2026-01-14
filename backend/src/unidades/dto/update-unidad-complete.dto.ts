@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsInt, IsUUID, IsNumber, IsDateString, Min } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsUUID, IsNumber, IsDateString, Min } from 'class-validator';
 
 /**
  * DTO para actualización completa de una unidad

@@ -6,7 +6,6 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { validateStep } from "@/utils/validation";
-import { DollarSign } from "lucide-react";
 
 export const Step3ComposicionFSB: React.FC = () => {
   const { data, updateData } = useWizard();
@@ -83,19 +82,6 @@ export const Step3ComposicionFSB: React.FC = () => {
       if (num >= 0 && num <= 100) {
         updateData({ porcA: num });
       }
-    }
-  };
-
-  const handleImpAChange = (value: string) => {
-    const val = Number.parseFloat(value.replaceAll(/[^0-9.-]+/g, ""));
-    if (Number.isNaN(val)) {
-      if (value.trim() === "") {
-        updateData({ impA: 0 });
-      }
-      return;
-    }
-    if (val >= 0 && val <= precioTotal) {
-      updateData({ impA: val });
     }
   };
 

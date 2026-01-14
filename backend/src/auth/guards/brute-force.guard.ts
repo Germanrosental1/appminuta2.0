@@ -12,7 +12,7 @@ import {
  */
 @Injectable()
 export class BruteForceGuard implements CanActivate {
-    private attempts: Map<string, { count: number; blockedUntil?: number }> = new Map();
+    private readonly attempts: Map<string, { count: number; blockedUntil?: number }> = new Map();
 
     // Configuración
     private readonly MAX_ATTEMPTS = 5;

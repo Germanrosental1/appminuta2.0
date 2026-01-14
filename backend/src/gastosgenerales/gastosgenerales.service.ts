@@ -18,7 +18,7 @@ export interface GastosGenerales {
 
 @Injectable()
 export class GastosgeneralesService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService) { }
 
     async findByProject(projectId: string): Promise<GastosGenerales | null> {
         // Usar raw SQL porque el modelo tiene @@ignore

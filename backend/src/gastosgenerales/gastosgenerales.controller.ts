@@ -1,9 +1,7 @@
-import { Controller, Get, Patch, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, ParseUUIDPipe } from '@nestjs/common';
 import { GastosgeneralesService } from './gastosgenerales.service';
 import { UpdateGastosGeneralesDto } from './dto/update-gastos-generales.dto';
-import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
-// @UseGuards(SupabaseAuthGuard) // Comentado temporalmente si no hay auth configurada
 @Controller('gastosgenerales')
 export class GastosgeneralesController {
     constructor(private readonly gastosService: GastosgeneralesService) { }

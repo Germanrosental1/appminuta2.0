@@ -115,11 +115,9 @@ async function bootstrap() {
             // 🔒 SEGURIDAD: En producción, rechazar requests sin origin
             // En desarrollo, permitir para herramientas como Postman/curl
             if (!origin) {
-                if (isProduction) {
-                    console.warn('CORS blocked: Request without origin in production');
-                    return callback(new Error('Origin header required'));
-                }
-                return callback(null, true); // Permitir en desarrollo
+                // 🔒 SEGURIDAD: Permitir requests sin Origin (ej. n8n, mobile apps, curl)
+                // Se confía en la autenticación (Token) para la seguridad.
+                return callback(null, true);
             }
 
             if (allowedOrigins.includes(origin)) {
