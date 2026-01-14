@@ -594,18 +594,18 @@ model profiles {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model gastosgenerales {
-  proyecto              String    @db.Uuid
-  sellado               Float?
-  certificaciondefirmas Float?
-  alajamiento           Float?
-  planosm2propiedad     Float?
-  planosm2cochera       Float?
-  comisioninmobiliaria  Float?
-  otrosgastos           Float?
-  created_at            DateTime? @default(now()) @db.Timestamptz(6)
-  fecha_posesion        String?
-  etapatorre            String?
-  proyectos             proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proyecto               String    @id @db.Uuid
+  sellado                Float?
+  certificaciondefirmas  Float?
+  alajamiento            Float?
+  planosm2propiedad      Float?
+  planosm2cochera        Float?
+  comisioninmobiliaria   Float?
+  otrosgastos            Float?
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  fecha_posesion         String?
+  etapatorre             String?
+  proyectos              proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@ignore
   @@schema("public")
