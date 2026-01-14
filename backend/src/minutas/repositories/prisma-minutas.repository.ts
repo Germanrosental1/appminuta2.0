@@ -143,62 +143,23 @@ export class PrismaMinutasRepository implements IMinutasRepository {
         const limit = Math.min(query.limit || 20, 100);
         const skip = (page - 1) * limit;
 
-        // Sort configuration
-        const allowedSortFields = ['fecha_creacion', 'updated_at', 'proyecto', 'estado'];
-        const sortBy = query.sortBy && allowedSortFields.includes(query.sortBy)
-            ? query.sortBy
-            : 'fecha_creacion';
-        const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
+        const { sortBy, sortOrder } = this.getSortParams(query);
 
         // Permission-based filtering
-        const canViewAll = userPermissions.includes('verTodasMinutas');
-
-        if (canViewAll) {
-            if (query.proyecto) {
-                where.proyecto = query.proyecto;
-            }
-        } else {
-            if (userProjectIds.length === 0) {
-                return { data: [], total: 0, page, limit, totalPages: 0 };
-            }
-
-            if (query.proyecto) {
-                if (userProjectIds.includes(query.proyecto)) {
-                    where.proyecto = query.proyecto;
-                } else {
-                    return { data: [], total: 0, page, limit, totalPages: 0 };
-                }
-            } else {
-                where.proyecto = { in: userProjectIds };
-            }
+        const permissionFilter = this.buildPermissionFilter(userPermissions, userProjectIds, query);
+        if (permissionFilter === null) {
+            // Access denied or no projects
+            return { data: [], total: 0, page, limit, totalPages: 0 };
         }
+        Object.assign(where, permissionFilter); // Merge permission filters into where
 
         // Additional filters
         if (query.usuario_id) where.usuario_id = query.usuario_id;
         if (query.estado) where.estado = query.estado;
 
         // Date filters
-        if (query.fechaDesde || query.fechaHasta) {
-            const fechaFilter: Record<string, Date> = {};
-
-            if (query.fechaDesde) {
-                const fecha = new Date(query.fechaDesde);
-                if (Number.isNaN(fecha.getTime())) {
-                    throw new BadRequestException('fechaDesde inválida');
-                }
-                fechaFilter.gte = fecha;
-            }
-
-            if (query.fechaHasta) {
-                const fecha = new Date(query.fechaHasta);
-                if (Number.isNaN(fecha.getTime())) {
-                    throw new BadRequestException('fechaHasta inválida');
-                }
-                fechaFilter.lte = fecha;
-            }
-
-            where.fecha_creacion = fechaFilter;
-        }
+        const dateFilter = this.buildDateFilter(query);
+        if (dateFilter) where.fecha_creacion = dateFilter;
 
         // Execute queries in parallel
         const [total, minutas] = await Promise.all([
@@ -226,6 +187,71 @@ export class PrismaMinutasRepository implements IMinutasRepository {
             limit,
             totalPages: Math.ceil(total / limit),
         };
+    }
+
+    private getSortParams(query: FindAllMinutasQueryDto) {
+        const allowedSortFields = ['fecha_creacion', 'updated_at', 'proyecto', 'estado'];
+        const sortBy = query.sortBy && allowedSortFields.includes(query.sortBy)
+            ? query.sortBy
+            : 'fecha_creacion';
+        const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
+        return { sortBy, sortOrder };
+    }
+
+    private buildPermissionFilter(
+        userPermissions: string[],
+        userProjectIds: string[],
+        query: FindAllMinutasQueryDto
+    ): Record<string, unknown> | null {
+        const canViewAll = userPermissions.includes('verTodasMinutas');
+        const filter: Record<string, unknown> = {};
+
+        if (canViewAll) {
+            if (query.proyecto) {
+                filter.proyecto = query.proyecto;
+            }
+        } else {
+            if (userProjectIds.length === 0) {
+                return null; // No access
+            }
+
+            if (query.proyecto) {
+                if (userProjectIds.includes(query.proyecto)) {
+                    filter.proyecto = query.proyecto;
+                } else {
+                    return null; // Access denied to specific project
+                }
+            } else {
+                filter.proyecto = { in: userProjectIds };
+            }
+        }
+        return filter;
+    }
+
+    private buildDateFilter(query: FindAllMinutasQueryDto): Record<string, Date> | null {
+        if (!query.fechaDesde && !query.fechaHasta) {
+            return null;
+        }
+
+        const fechaFilter: Record<string, Date> = {};
+
+        if (query.fechaDesde) {
+            const fecha = new Date(query.fechaDesde);
+            if (Number.isNaN(fecha.getTime())) {
+                throw new BadRequestException('fechaDesde inválida');
+            }
+            fechaFilter.gte = fecha;
+        }
+
+        if (query.fechaHasta) {
+            const fecha = new Date(query.fechaHasta);
+            if (Number.isNaN(fecha.getTime())) {
+                throw new BadRequestException('fechaHasta inválida');
+            }
+            fechaFilter.lte = fecha;
+        }
+
+        return fechaFilter;
     }
 
     async findByUsuario(usuarioId: string): Promise<MinutaEntity[]> {

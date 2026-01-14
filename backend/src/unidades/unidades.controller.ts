@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, Request, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UnidadesService } from './unidades.service';
+import { UnidadesQueryService } from './unidades-query.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
 import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
@@ -20,6 +21,7 @@ import { UnidadesImportService } from './unidades-import.service';
 export class UnidadesController {
     constructor(
         private readonly unidadesService: UnidadesService,
+        private readonly unidadesQueryService: UnidadesQueryService,
         private readonly importService: UnidadesImportService
     ) { }
 
@@ -66,27 +68,27 @@ export class UnidadesController {
     // Metadata endpoints - MUST come before generic GET routes
     @Get('metadata/naturalezas')
     getNaturalezas() {
-        return this.unidadesService.getNaturalezas();
+        return this.unidadesQueryService.getNaturalezas();
     }
 
     @Get('metadata/tipos-disponibles')
     getTiposDisponibles() {
-        return this.unidadesService.getTiposDisponibles();
+        return this.unidadesQueryService.getTiposDisponibles();
     }
 
     @Get('metadata/proyectos')
     getProyectosPorTipo(@Query('tipo') tipo: string) {
-        return this.unidadesService.getProyectosPorTipo(tipo);
+        return this.unidadesQueryService.getProyectosPorTipo(tipo);
     }
 
     @Get('metadata/etapas')
     getEtapas(@Query('proyecto') proyecto: string) {
-        return this.unidadesService.getEtapas(proyecto);
+        return this.unidadesQueryService.getEtapas(proyecto);
     }
 
     @Get('metadata/tipos')
     getTipos(@Query('proyecto') proyecto: string, @Query('etapa') etapa?: string) {
-        return this.unidadesService.getTipos(proyecto, etapa);
+        return this.unidadesQueryService.getTipos(proyecto, etapa);
     }
 
     @Get('metadata/sectores')
@@ -95,7 +97,7 @@ export class UnidadesController {
         @Query('etapa') etapa?: string,
         @Query('tipo') tipo?: string,
     ) {
-        return this.unidadesService.getSectores(proyecto, etapa, tipo);
+        return this.unidadesQueryService.getSectores(proyecto, etapa, tipo);
     }
 
     // ⚡ OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades
@@ -117,18 +119,18 @@ export class UnidadesController {
             throw new BadRequestException('IDs inválidos: deben ser UUIDs válidos');
         }
 
-        return this.unidadesService.findByIds(idArray);
+        return this.unidadesQueryService.findByIds(idArray);
     }
 
     // Generic routes - come after specific routes
     @Get()
     findAll(@Query() query: FindAllUnidadesQueryDto) {
-        return this.unidadesService.findAll(query);
+        return this.unidadesQueryService.findAll(query);
     }
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-        return this.unidadesService.findOne(id);
+        return this.unidadesQueryService.findOne(id);
     }
 
     /**

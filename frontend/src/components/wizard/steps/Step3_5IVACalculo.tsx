@@ -34,8 +34,8 @@ export const Step3_5IVACalculo: React.FC = () => {
 
     // Manejar cambio de porcentaje
     const handlePorcentajeChange = (value: string) => {
-        const numValue = parseFloat(value);
-        if (!isNaN(numValue) && numValue >= 0) {
+        const numValue = Number.parseFloat(value);
+        if (!Number.isNaN(numValue) && numValue >= 0) {
             // Calcular nuevo monto de IVA (EN USD)
             const nuevoMontoIVA = montoA * (numValue / 100);
             updateData({

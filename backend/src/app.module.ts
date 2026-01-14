@@ -29,9 +29,10 @@ import { ClientesModule } from './clientes/clientes.module';
 
 
 import { AuthModule } from './auth/auth.module';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingThrottlerGuard } from './common/guards/logging-throttler.guard';
+import { PrismaRetryInterceptor } from './common/interceptors/prisma-retry.interceptor';
 // ⚡ OPTIMIZACIÓN: Cache para catálogos con soporte Redis
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
@@ -102,6 +103,10 @@ const getCacheConfig = (): any => {
         {
             provide: APP_GUARD,
             useClass: LoggingThrottlerGuard,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: PrismaRetryInterceptor,
         },
     ],
 })

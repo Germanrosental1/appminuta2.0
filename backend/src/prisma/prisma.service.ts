@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -26,48 +26,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                 : ['error'],
         });
 
-        // Middleware para manejar reconexión automática
-        this.$use(async (params, next) => {
-            const maxQueryRetries = 3;
-            let retries = 0;
-
-            while (retries < maxQueryRetries) {
-                try {
-                    return await next(params);
-                } catch (error) {
-                    const isConnectionError =
-                        error.message?.includes('Server has closed the connection') ||
-                        error.message?.includes('Connection pool timeout') ||
-                        error.message?.includes('Can\'t reach database server') ||
-                        error.code === 'P1001' || // Can't reach database server
-                        error.code === 'P1002' || // Database server timeout
-                        error.code === 'P1017';   // Server has closed the connection
-
-                    if (isConnectionError && retries < maxQueryRetries - 1) {
-                        retries++;
-                        this.logger.warn(
-                            `Database connection error, retry ${retries}/${maxQueryRetries - 1}: ${error.message}`
-                        );
-
-                        // Esperar antes de reintentar
-                        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-
-                        // Intentar reconectar
-                        try {
-                            await this.$disconnect();
-                            await this.$connect();
-                            this.logger.log('Reconnected to database successfully');
-                        } catch (reconnectError) {
-                            this.logger.error(`Reconnection failed: ${reconnectError.message}`);
-                        }
-
-                        continue;
-                    }
-
-                    throw error;
-                }
-            }
-        });
+        // Middleware eliminado: Reemplazado por PrismaRetryInterceptor
     }
 
     async onModuleInit() {
