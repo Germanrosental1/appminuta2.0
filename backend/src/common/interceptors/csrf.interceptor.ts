@@ -38,13 +38,15 @@ export class CsrfInterceptor implements NestInterceptor {
             const headerToken = request.headers[this.CSRF_HEADER_NAME];
 
             // 🔓 EXCEPTION: Permitir bypass si hay Header de Autorización (Bearer Token)
-            // Esto permite que herramientas como n8n, Postman o Mobile Apps funcionen sin Cookie session
             const authHeader = request.headers['authorization'];
             const hasBearerToken = authHeader && authHeader.startsWith('Bearer ');
 
+            // 🔓 EXCEPTION: Excluir explícitamente endpoints de importación/webhooks
+            const isExcludedPath = request.url.includes('/unidades/import');
+
             // Validar CSRF en producción (habilitado por defecto)
-            // Solo si NO hay token Bearer (es decir, session cookie auth)
-            if (isProduction && csrfEnabled && !hasBearerToken) {
+            // Solo si NO hay token Bearer Y NO es un path excluido
+            if (isProduction && csrfEnabled && !hasBearerToken && !isExcludedPath) {
                 // Validar que ambos existan y coincidan
                 if (!cookieToken || !headerToken) {
                     throw new UnauthorizedException(
