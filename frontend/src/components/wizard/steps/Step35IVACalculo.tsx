@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
-export const Step3_5IVACalculo: React.FC = () => {
+export const Step35IVACalculo: React.FC = () => {
     const { data, updateData } = useWizard();
 
     // Calcular precio total de todas las unidades seleccionadas
