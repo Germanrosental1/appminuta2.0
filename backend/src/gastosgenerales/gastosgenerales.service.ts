@@ -54,7 +54,7 @@ export class GastosgeneralesService {
                     comisioninmobiliaria = COALESCE(${updateDto.comisioninmobiliaria}, comisioninmobiliaria),
                     otrosgastos = COALESCE(${updateDto.otrosgastos}, otrosgastos),
                     fecha_posesion = COALESCE(${updateDto.fecha_posesion}, fecha_posesion),
-                    etapatorre = COALESCE(${updateDto.etapa_torre}, etapatorre)
+                    etapatorre = COALESCE(${updateDto.etapatorre}, etapatorre)
                 WHERE proyecto = ${projectId}::uuid
             `;
         } else {
@@ -74,7 +74,7 @@ export class GastosgeneralesService {
                     ${updateDto.comisioninmobiliaria ?? null},
                     ${updateDto.otrosgastos ?? null},
                     ${updateDto.fecha_posesion ?? null},
-                    ${updateDto.etapa_torre ?? null}
+                    ${updateDto.etapatorre ?? null}
                 )
             `;
         }

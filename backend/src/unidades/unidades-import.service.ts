@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoggerService } from '../logger/logger.service';
 import * as XLSX from 'xlsx';
+import axios from 'axios';
 
 @Injectable()
 export class UnidadesImportService {
@@ -61,6 +62,16 @@ export class UnidadesImportService {
         }
 
         return results;
+    }
+
+    async importFromUrl(url: string, user?: any) {
+        try {
+            const response = await axios.get(url, { responseType: 'arraybuffer' });
+            return this.importFromExcel(response.data, user);
+        } catch (error) {
+            console.error('Error downloading file from URL', error.stack);
+            throw new Error(`Error al descargar el archivo: ${error.message}`);
+        }
     }
 
     private async processRow(tx: any, row: any, cache: Map<string, string>) {

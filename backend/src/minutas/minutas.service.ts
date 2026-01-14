@@ -5,6 +5,7 @@ import { FindAllMinutasQueryDto } from './dto/find-all-minutas-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MinutasGateway } from './minutas.gateway';
 import { sanitizeString, sanitizeObject } from '../common/sanitize.helper';
+import { PrivacyHelpers } from '../common/privacy.helper';
 import { UnitStateService } from './services/unit-state.service';
 import { LoggerService } from '../logger/logger.service';
 
@@ -34,7 +35,7 @@ interface UserPermissionsCache {
   roles: string[];
   cachedAt: number;
 }
-const PERMISSIONS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+const PERMISSIONS_CACHE_TTL_MS = 1 * 60 * 1000; // 1 minuto (Reducido para mayor seguridad)
 const userPermissionsCache = new Map<string, UserPermissionsCache>();
 
 @Injectable()
@@ -175,7 +176,7 @@ export class MinutasService {
         minutaId: minuta.id,
         proyecto: proyectoId || undefined,
         estado: 'pendiente',
-        usuarioId: userId,
+        // 🔒 SEGURIDAD: usuarioId eliminado
       });
     }
 
@@ -323,9 +324,14 @@ export class MinutasService {
       }),
     ]);
 
-    // Ya no necesitamos enriquecer datos - vienen incluidos
+    // 🔒 SEGURIDAD: Enmascarar emails en la respuesta
+    const safeMinutas = minutasRaw.map(m => ({
+      ...m,
+      users: m.users ? { email: PrivacyHelpers.maskEmail(m.users.email) } : null,
+    }));
+
     return {
-      data: minutasRaw,
+      data: safeMinutas,
       total,
       page,
       limit,
@@ -404,6 +410,12 @@ export class MinutasService {
 
     // SEGURIDAD: Eliminar usuario_id de la respuesta - no debe exponerse al cliente
     const { usuario_id: _, ...safeMinuta } = minuta;
+
+    // 🔒 SEGURIDAD: Enmascarar email del usuario
+    if (safeMinuta.users) {
+      safeMinuta.users.email = PrivacyHelpers.maskEmail(safeMinuta.users.email);
+    }
+
     return safeMinuta;
   }
 
@@ -581,7 +593,8 @@ export class MinutasService {
         minutaId: id,
         proyecto: updatedMinuta?.proyecto || undefined,
         estado: updateMinutaDto.estado,
-        usuarioId: minuta.usuario_id,
+        // 🔒 SEGURIDAD: usuarioId eliminado para no exponer IDs internos
+        // usuarioId: minuta.usuario_id, 
       });
 
       // 📝 AUDIT LOG: Cambio de Estado
@@ -606,6 +619,12 @@ export class MinutasService {
     // 🔒 SEGURIDAD: Eliminar usuario_id de la respuesta
     if (updatedMinuta) {
       const { usuario_id: _, ...safeMinuta } = updatedMinuta;
+
+      // 🔒 SEGURIDAD: Enmascarar email
+      if (safeMinuta.users) {
+        safeMinuta.users.email = PrivacyHelpers.maskEmail(safeMinuta.users.email);
+      }
+
       return safeMinuta;
     }
     return updatedMinuta;

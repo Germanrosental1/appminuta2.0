@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { LoggerService } from '../../logger/logger.service';
 
 @Injectable()
 export class AuthorizationService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly logger: LoggerService
+    ) { }
 
     /**
      * Verifica si el usuario es SuperAdminMV de la organización
@@ -296,6 +300,26 @@ export class AuthorizationService {
                     idrol: roleId,
                 },
             });
+        }
+
+        // 📝 AUDIT LOG: Asignación de Usuario a Proyecto
+        try {
+            const user = await this.prisma.users.findUnique({
+                where: { id: assignedBy },
+                select: { email: true }
+            });
+            const userEmail = user?.email || 'unknown';
+
+            await this.logger.agregarLog({
+                motivo: 'Asignación de Usuario a Proyecto',
+                descripcion: `Usuario ${userId} asignado al proyecto ${projectId} con rol ${roleId}. Asignado por: ${assignedBy}`,
+                impacto: 'Alto',
+                tablaafectada: 'usuarios-proyectos',
+                usuarioID: assignedBy,
+                usuarioemail: userEmail,
+            });
+        } catch (e) {
+            console.error('Failed to audit log assignment:', e);
         }
 
         return {
