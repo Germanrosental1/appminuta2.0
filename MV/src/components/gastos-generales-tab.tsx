@@ -17,7 +17,7 @@ interface GastosGenerales {
     comisioninmobiliaria?: number;
     otrosgastos?: number;
     fecha_posesion?: string;
-    etapa_torre?: string;
+    etapatorre?: string;
 }
 
 interface GastosGeneralesTabProps {
@@ -213,14 +213,14 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="etapa_torre">Etapa / Torre</Label>
+                                <Label htmlFor="etapatorre">Etapa / Torre</Label>
                                 <Input
-                                    id="etapa_torre"
+                                    id="etapatorre"
                                     type="text"
-                                    value={gastos.etapa_torre || ''}
-                                    onChange={(e) => updateField('etapa_torre', e.target.value)}
+                                    value={gastos.etapatorre || ''}
+                                    onChange={(e) => updateField('etapatorre', e.target.value)}
                                     placeholder="Ej: Torre A"
-                                    className={gastos.etapa_torre ? "text-foreground" : ""}
+                                    className={gastos.etapatorre ? "text-foreground" : ""}
                                 />
                             </div>
                         </div>

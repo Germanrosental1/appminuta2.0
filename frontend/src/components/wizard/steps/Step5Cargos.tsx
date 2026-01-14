@@ -6,6 +6,7 @@ import { validateStep } from "@/utils/validation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormaPago } from "@/types/wizard";
+import { getGastosGeneralesByProyecto } from "@/services/proyectos";
 
 // Usamos un tipo interno para manejar "Bonificado" sin modificar el tipo FormaPago
 type FormaPagoInternal = FormaPago | "Bonificado";
@@ -13,6 +14,7 @@ type FormaPagoInternal = FormaPago | "Bonificado";
 export const Step5Cargos: React.FC = () => {
   const { data, updateData } = useWizard();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [defaultsLoaded, setDefaultsLoaded] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     const numValue = value === "" ? 0 : Number.parseFloat(value.replaceAll(",", "."));
@@ -45,6 +47,65 @@ export const Step5Cargos: React.FC = () => {
       setErrors(validation.errors);
     }
   };
+
+  // Cargar valores por defecto desde gastosgenerales cuando se selecciona un proyecto
+  useEffect(() => {
+    const loadDefaults = async () => {
+      if (!data.proyecto || defaultsLoaded) return;
+
+      try {
+        const gastos = await getGastosGeneralesByProyecto(data.proyecto);
+        if (gastos) {
+          const updates: any = {};
+
+          // Cargar certificación de firmas si existe en la BD
+          if (gastos.certificaciondefirmas !== null && gastos.certificaciondefirmas !== undefined) {
+            updates.certificacionFirmas = gastos.certificaciondefirmas;
+          }
+
+          // Cargar sellado (viene como decimal 0.05, convertir a porcentaje 5)
+          if (gastos.sellado !== null && gastos.sellado !== undefined) {
+            updates.selladoPorcentaje = gastos.sellado * 100;
+          }
+
+          // Cargar alhajamiento (viene como decimal 0.02, convertir a porcentaje 2)
+          if (gastos.alajamiento !== null && gastos.alajamiento !== undefined) {
+            updates.alhajamiemtoPorcentaje = gastos.alajamiento * 100;
+          }
+
+          // Cargar planos m² propiedad
+          if (gastos.planosm2propiedad !== null && gastos.planosm2propiedad !== undefined) {
+            updates.planosUnidadValorM2 = gastos.planosm2propiedad;
+          }
+
+          // Cargar planos m² cochera
+          if (gastos.planosm2cochera !== null && gastos.planosm2cochera !== undefined) {
+            updates.planosCocheraValor = gastos.planosm2cochera;
+          }
+
+          // Cargar otros gastos
+          if (gastos.otrosgastos !== null && gastos.otrosgastos !== undefined) {
+            updates.otrosGastos = gastos.otrosgastos;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            console.log('Loading gastos generales defaults:', updates);
+            updateData(updates);
+          }
+
+          setDefaultsLoaded(true);
+        } else {
+          // Si no hay gastos configurados, marcar como cargado de todos modos
+          setDefaultsLoaded(true);
+        }
+      } catch (error) {
+        console.error('Error loading gastos generales:', error);
+        setDefaultsLoaded(true);
+      }
+    };
+
+    loadDefaults();
+  }, [data.proyecto, defaultsLoaded]);
 
   // Calcular precio total (unidad principal + cocheras + baulera)
   const calcularPrecioTotal = () => {

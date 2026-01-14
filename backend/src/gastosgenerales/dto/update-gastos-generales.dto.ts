@@ -36,5 +36,5 @@ export class UpdateGastosGeneralesDto {
 
     @IsOptional()
     @IsString()
-    etapa_torre?: string;
+    etapatorre?: string;
 }

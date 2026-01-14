@@ -615,7 +615,7 @@ model gastosgenerales {
   otrosgastos            Float?
   created_at             DateTime? @default(now()) @db.Timestamptz(6)
   fecha_posesion         String?
-  etapa_torre            String?   @map("etapa / torre")
+  etapatorre             String?
   proyectos              proyectos @relation(fields: [proyecto], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
