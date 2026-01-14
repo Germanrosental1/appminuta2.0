@@ -12,8 +12,8 @@ interface GuardarMinutaButtonProps {
   onSuccess?: () => void;
 }
 
-export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({ 
-  unidadId, 
+export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({
+  unidadId,
   wizardData,
   onSuccess
 }) => {
@@ -33,7 +33,7 @@ export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({
 
     try {
       setSaving(true);
-      
+
       await guardarMinutaProvisoria({
         proyecto: wizardData.proyecto || 'Sin proyecto',
         unidad_id: unidadId,
@@ -41,16 +41,17 @@ export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({
         datos: wizardData,
         estado: 'pendiente'
       });
-      
+
       toast({
         title: "Minuta guardada",
         description: "La minuta provisoria ha sido guardada exitosamente",
       });
-      
+
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
+      console.error('Error al guardar minuta provisoria:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",
@@ -62,8 +63,8 @@ export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({
   };
 
   return (
-    <Button 
-      onClick={handleGuardar} 
+    <Button
+      onClick={handleGuardar}
       disabled={saving}
       className="bg-green-600 hover:bg-green-700"
     >

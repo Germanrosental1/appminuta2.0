@@ -48,6 +48,27 @@ export const Step5Cargos: React.FC = () => {
     }
   };
 
+  // Helper para mapear gastos a updates
+  const mapGastosToUpdates = (gastos: any) => {
+    const updates: any = {};
+    const mapping = [
+      { key: 'certificaciondefirmas', target: 'certificacionFirmas' },
+      { key: 'sellado', target: 'selladoPorcentaje', transform: (v: number) => v * 100 },
+      { key: 'alajamiento', target: 'alhajamiemtoPorcentaje', transform: (v: number) => v * 100 },
+      { key: 'planosm2propiedad', target: 'planosUnidadValorM2' },
+      { key: 'planosm2cochera', target: 'planosCocheraValor' },
+      { key: 'otrosgastos', target: 'otrosGastos' },
+    ];
+
+    mapping.forEach(({ key, target, transform }) => {
+      if (gastos[key] !== null && gastos[key] !== undefined) {
+        updates[target] = transform ? transform(gastos[key]) : gastos[key];
+      }
+    });
+
+    return updates;
+  };
+
   // Cargar valores por defecto desde gastosgenerales cuando se selecciona un proyecto
   useEffect(() => {
     const loadDefaults = async () => {
@@ -56,48 +77,13 @@ export const Step5Cargos: React.FC = () => {
       try {
         const gastos = await getGastosGeneralesByProyecto(data.proyecto);
         if (gastos) {
-          const updates: any = {};
-
-          // Cargar certificación de firmas si existe en la BD
-          if (gastos.certificaciondefirmas !== null && gastos.certificaciondefirmas !== undefined) {
-            updates.certificacionFirmas = gastos.certificaciondefirmas;
-          }
-
-          // Cargar sellado (viene como decimal 0.05, convertir a porcentaje 5)
-          if (gastos.sellado !== null && gastos.sellado !== undefined) {
-            updates.selladoPorcentaje = gastos.sellado * 100;
-          }
-
-          // Cargar alhajamiento (viene como decimal 0.02, convertir a porcentaje 2)
-          if (gastos.alajamiento !== null && gastos.alajamiento !== undefined) {
-            updates.alhajamiemtoPorcentaje = gastos.alajamiento * 100;
-          }
-
-          // Cargar planos m² propiedad
-          if (gastos.planosm2propiedad !== null && gastos.planosm2propiedad !== undefined) {
-            updates.planosUnidadValorM2 = gastos.planosm2propiedad;
-          }
-
-          // Cargar planos m² cochera
-          if (gastos.planosm2cochera !== null && gastos.planosm2cochera !== undefined) {
-            updates.planosCocheraValor = gastos.planosm2cochera;
-          }
-
-          // Cargar otros gastos
-          if (gastos.otrosgastos !== null && gastos.otrosgastos !== undefined) {
-            updates.otrosGastos = gastos.otrosgastos;
-          }
-
+          const updates = mapGastosToUpdates(gastos);
           if (Object.keys(updates).length > 0) {
             console.log('Loading gastos generales defaults:', updates);
             updateData(updates);
           }
-
-          setDefaultsLoaded(true);
-        } else {
-          // Si no hay gastos configurados, marcar como cargado de todos modos
-          setDefaultsLoaded(true);
         }
+        setDefaultsLoaded(true);
       } catch (error) {
         console.error('Error loading gastos generales:', error);
         setDefaultsLoaded(true);
@@ -135,12 +121,9 @@ export const Step5Cargos: React.FC = () => {
 
   // Calcular totales de cargos financiados
   useEffect(() => {
-    const baseFinanciarArs = data.valorArsConIVA || 0;
-    const baseFinanciarUsd = data.valorUsdConIVA || 0;
+    // Variables base para cálculo (anteriormente usadas para restar anticipos, ahora lógica movida)
 
-    // Restar anticipos
-    const baseFinanciarArsConAnticipos = baseFinanciarArs - (data.anticipoArsA || 0) - (data.anticipoArsB || 0);
-    const baseFinanciarUsdConAnticipos = baseFinanciarUsd - (data.anticipoUsdA || 0) - (data.anticipoUsdB || 0);
+    // Restar anticipos (Lógica movida al cálculo de baseF y baseSB)
 
     const tcValor = data.tcValor || 1;
 

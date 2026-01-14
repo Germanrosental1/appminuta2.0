@@ -42,46 +42,81 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
   const queryClient = useQueryClient();
 
   // Cargar datos del mapa de ventas para TODAS las unidades cuando se abre el diálogo
+  // Helper fuera del componente para reducir anidamiento
+  const fetchUnitMapData = (id: string) =>
+    getDatosMapaVentasByUnidadId(id).catch(err => {
+      console.warn(`Error fetching map data for unit ${id}:`, err);
+      return null;
+    });
+
+  // Cargar datos del mapa de ventas para TODAS las unidades cuando se abre el diálogo
   useEffect(() => {
-    if (open && wizardData.unidades && wizardData.unidades.length > 0) {
-      const fetchDatosMapaVentas = async () => {
-        try {
-          setLoadingMapaVentas(true);
-          // Cargar datos para cada unidad seleccionada
-          const promesas = wizardData.unidades.map(unidad =>
-            getDatosMapaVentasByUnidadId(unidad.id).catch(() => null)
-          );
-          const resultados = await Promise.all(promesas);
-          // Filtrar nulls y combinar con info de unidad del wizard
-          const datosCompletos = resultados.map((datos, index) => ({
-            ...datos,
-            // Agregar datos del wizard por si el mapa de ventas no tiene todo
-            _wizardData: wizardData.unidades[index]
-          })).filter(d => d !== null);
-          setDatosMapaVentas(datosCompletos);
-        } catch {
-          // Error silencioso, mostraremos los datos del wizard como fallback
-        } finally {
-          setLoadingMapaVentas(false);
-        }
-      };
-      fetchDatosMapaVentas();
-    } else if (open && unidadId) {
-      // Fallback para modelo antiguo con una sola unidad
-      const fetchSingleUnit = async () => {
-        try {
-          setLoadingMapaVentas(true);
-          const datos = await getDatosMapaVentasByUnidadId(unidadId);
-          setDatosMapaVentas(datos ? [datos] : []);
-        } catch {
-          setDatosMapaVentas([]);
-        } finally {
-          setLoadingMapaVentas(false);
-        }
-      };
+    if (!open) return;
+
+    const fetchMultipleUnits = async () => {
+      try {
+        setLoadingMapaVentas(true);
+        const promesas = wizardData.unidades.map(u => fetchUnitMapData(u.id));
+        const resultados = await Promise.all(promesas);
+
+        const datosCompletos = resultados.map((datos, index) => ({
+          ...datos,
+          _wizardData: wizardData.unidades[index]
+        })).filter(d => d !== null);
+
+        setDatosMapaVentas(datosCompletos);
+      } catch (error) {
+        console.error('Error fetching multiple units map data:', error);
+        setDatosMapaVentas([]);
+      } finally {
+        setLoadingMapaVentas(false);
+      }
+    };
+
+    const fetchSingleUnit = async () => {
+      try {
+        setLoadingMapaVentas(true);
+        const datos = await getDatosMapaVentasByUnidadId(unidadId);
+        setDatosMapaVentas(datos ? [datos] : []);
+      } catch (error) {
+        console.error('Error fetching single unit map data:', error);
+        setDatosMapaVentas([]);
+      } finally {
+        setLoadingMapaVentas(false);
+      }
+    };
+
+    if (wizardData.unidades?.length > 0) {
+      fetchMultipleUnits();
+    } else if (unidadId) {
       fetchSingleUnit();
     }
   }, [open, unidadId, wizardData.unidades]);
+
+  // Helper para verificar/crear cliente
+  const verifyOrCreateClient = async (data: WizardData['clienteInteresado']) => {
+    if (!data?.dni || !data?.nombreApellido) return undefined;
+
+    try {
+      const { verificarOCrearCliente } = await import('@/services/clientes');
+      const clienteResponse = await verificarOCrearCliente({
+        dni: data.dni,
+        nombreApellido: data.nombreApellido,
+        telefono: data.telefono,
+      });
+
+      if (clienteResponse.created) {
+        toast({
+          title: "Cliente creado",
+          description: `Se creó un nuevo cliente: ${clienteResponse.nombreApellido}`,
+        });
+      }
+      return clienteResponse.dni;
+    } catch (error) {
+      console.error('Error verifying/creating client:', error);
+      throw new Error('Error al procesar los datos del cliente');
+    }
+  };
 
   const handleGuardar = async () => {
     if (!user?.id) {
@@ -96,56 +131,36 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
     try {
       setSaving(true);
 
+      // 1. Verificar/crear cliente interesado
       let clienteInteresadoDni: number | undefined;
-
-      // 👤 Verificar/crear cliente interesado si los datos están presentes
-      if (wizardData.clienteInteresado?.dni && wizardData.clienteInteresado?.nombreApellido) {
-        try {
-          const { verificarOCrearCliente } = await import('@/services/clientes');
-          const clienteResponse = await verificarOCrearCliente({
-            dni: wizardData.clienteInteresado.dni,
-            nombreApellido: wizardData.clienteInteresado.nombreApellido,
-            telefono: wizardData.clienteInteresado.telefono,
-          });
-
-          clienteInteresadoDni = clienteResponse.dni;
-
-          if (clienteResponse.created) {
-            toast({
-              title: "Cliente creado",
-              description: `Se creó un nuevo cliente: ${clienteResponse.nombreApellido}`,
-            });
-          }
-        } catch (error) {
-          toast({
-            title: "Error con cliente",
-            description: "No se pudo verificar/crear el cliente. Intente nuevamente.",
-            variant: "destructive",
-          });
-          setSaving(false);
-          return;
-        }
+      try {
+        clienteInteresadoDni = await verifyOrCreateClient(wizardData.clienteInteresado);
+      } catch (clientError) {
+        console.error("Fallo al verificar cliente:", clientError);
+        toast({
+          title: "Error con cliente",
+          description: "No se pudo verificar/crear el cliente. Intente nuevamente.",
+          variant: "destructive",
+        });
+        setSaving(false);
+        return;
       }
 
-      // Asegurarnos de que el código de la unidad esté incluido en los datos
+      // 2. Preparar datos
       const datosCompletos = {
         ...wizardData,
-        unidadCodigo: unidadId, // Agregar el código de la unidad a los datos
+        unidadCodigo: unidadId,
       };
 
-      // Detectar modo edición por la presencia de minutaId
+      // 3. Guardar o Actualizar
       const isEditMode = !!(wizardData as any).minutaId;
 
       if (isEditMode) {
-        // MODO EDICIÓN: Actualizar minuta existente
         const minutaId = (wizardData as any).minutaId;
-
         await actualizarDatosMinutaDefinitiva(minutaId, {
           datos: datosCompletos,
           clienteInteresadoDni,
         });
-
-        // Cambiar estado de vuelta a pendiente para revisión
         await actualizarEstadoMinutaDefinitiva(minutaId, 'pendiente');
 
         toast({
@@ -153,7 +168,6 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
           description: "La minuta ha sido actualizada y enviada para revisión",
         });
       } else {
-        // MODO CREACIÓN: Crear nueva minuta
         await guardarMinutaDefinitiva({
           proyecto: wizardData.proyecto || 'Sin proyecto',
           usuario_id: user.id,
@@ -169,20 +183,15 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
       }
 
       setOpen(false);
+      if (onSuccess) onSuccess();
 
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      // Invalidar cache de minutas para forzar refresh
+      // Refresh cache & Redirect
       queryClient.invalidateQueries({ queryKey: ['minutas'] });
       queryClient.invalidateQueries({ queryKey: ['minutasDefinitivas'] });
+      setTimeout(() => navigate('/comercial/dashboard'), 1500);
 
-      // Redirigir al dashboard comercial después de un breve retraso
-      setTimeout(() => {
-        navigate('/comercial/dashboard');
-      }, 1500);
     } catch (error) {
+      console.error('Error saving minuta:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",
@@ -306,42 +315,79 @@ const FIELD_LABELS: Record<string, string> = {
 const HIDDEN_FIELDS = new Set(['id', 'edificio_id', 'tipounidad_id', 'etapa_id', 'proyecto_id', 'edificios', 'proyectos', 'tiposunidad', 'unidadesmetricas', '_wizardData']);
 
 // Función para formatear datos de una unidad
+// Configuración de campos para el formateo
+interface FieldConfig {
+  key?: string; // Clave en wizardData o datos del mapa
+  label: string;
+  wizardKey?: string; // Clave específica en wizardData
+  mapKeys?: string[]; // Claves posibles en datos del mapa (soporta anidamiento simple o claves alternativas)
+  transform?: (val: any) => string;
+  isCurrency?: boolean;
+}
+
+const FIELD_CONFIGS: FieldConfig[] = [
+  { label: 'Tipo de Unidad', wizardKey: 'tipo', mapKeys: ['tiposunidad.nombre', 'tipo'] },
+  { label: 'Descripción', wizardKey: 'descripcion' },
+  { label: 'Proyecto', wizardKey: 'proyecto', mapKeys: ['edificios.proyectos.nombre', 'proyectos.nombre'] },
+  { label: 'Etapa', wizardKey: 'etapa' },
+  { label: 'Precio Lista', wizardKey: 'precioLista', isCurrency: true },
+  { label: 'Precio Negociado', wizardKey: 'precioNegociado', isCurrency: true },
+  { label: 'Edificio', mapKeys: ['edificios.nombreedificio', 'edificiotorre'] },
+  { label: 'Sector', key: 'sectorid' },
+  { label: 'Piso', key: 'piso' },
+  { label: 'Número de Unidad', key: 'nrounidad' },
+  { label: 'Dormitorios', key: 'dormitorios' },
+  { label: 'M² Totales', mapKeys: ['unidadesmetricas.m2totales', 'm2totales'], transform: (v) => `${v} m²` },
+];
+
+const getValueFromPath = (obj: any, path: string) => {
+  return path.split('.').reduce((acc, part) => acc?.[part], obj);
+};
+
+const resolveFieldValue = (config: FieldConfig, datos: any, wizardData: any) => {
+  // 1. Try Wizard Data
+  if (config.wizardKey && wizardData[config.wizardKey]) {
+    return wizardData[config.wizardKey];
+  }
+  // 2. Try Map Data (only if not found in Wizard or if explicitly looking in map)
+  if (config.key && datos[config.key]) {
+    return datos[config.key];
+  }
+  // 3. Try Map Keys
+  if (config.mapKeys) {
+    for (const key of config.mapKeys) {
+      const val = getValueFromPath(datos, key);
+      if (val) return val;
+    }
+  }
+  return null;
+};
+
+const formatValue = (config: FieldConfig, value: any) => {
+  if (config.isCurrency) {
+    return `$${Number(value).toLocaleString('es-AR')} USD`;
+  }
+  if (config.transform) {
+    return config.transform(value);
+  }
+  return String(value);
+};
+
 const formatearDatosUnidad = (datos: any): Array<{ label: string; value: string }> => {
   const datosFormateados: Array<{ label: string; value: string }> = [];
+  const wizardData = datos._wizardData || {};
+  const addedLabels = new Set<string>();
 
-  // Primero usar datos del wizard si están disponibles (más confiables)
-  const wizardData = datos._wizardData;
-  if (wizardData) {
-    if (wizardData.tipo) datosFormateados.push({ label: 'Tipo de Unidad', value: wizardData.tipo });
-    if (wizardData.descripcion) datosFormateados.push({ label: 'Descripción', value: wizardData.descripcion });
-    if (wizardData.proyecto) datosFormateados.push({ label: 'Proyecto', value: wizardData.proyecto });
-    if (wizardData.etapa) datosFormateados.push({ label: 'Etapa', value: wizardData.etapa });
-    if (wizardData.precioLista) datosFormateados.push({ label: 'Precio Lista', value: `$${Number(wizardData.precioLista).toLocaleString('es-AR')} USD` });
-    if (wizardData.precioNegociado) datosFormateados.push({ label: 'Precio Negociado', value: `$${Number(wizardData.precioNegociado).toLocaleString('es-AR')} USD` });
-  }
+  for (const config of FIELD_CONFIGS) {
+    const value = resolveFieldValue(config, datos, wizardData);
 
-  // Extraer datos adicionales de relaciones anidadas del mapa de ventas
-  const edificioNombre = datos.edificios?.nombreedificio || datos.edificiotorre;
-  const proyectoNombre = datos.edificios?.proyectos?.nombre || datos.proyectos?.nombre;
-  const tipoUnidad = datos.tiposunidad?.nombre || datos.tipo;
-  const m2Totales = datos.unidadesmetricas?.m2totales || datos.m2totales;
-
-  // Agregar solo si no están ya del wizard
-  if (proyectoNombre && !datosFormateados.some(d => d.label === 'Proyecto')) {
-    datosFormateados.push({ label: 'Proyecto', value: proyectoNombre });
-  }
-  if (edificioNombre && !datosFormateados.some(d => d.label === 'Edificio')) {
-    datosFormateados.push({ label: 'Edificio', value: edificioNombre });
-  }
-  if (tipoUnidad && !datosFormateados.some(d => d.label === 'Tipo de Unidad')) {
-    datosFormateados.push({ label: 'Tipo de Unidad', value: tipoUnidad });
-  }
-  if (datos.sectorid) datosFormateados.push({ label: 'Sector', value: datos.sectorid });
-  if (datos.piso) datosFormateados.push({ label: 'Piso', value: datos.piso });
-  if (datos.nrounidad) datosFormateados.push({ label: 'Número de Unidad', value: datos.nrounidad });
-  if (datos.dormitorios) datosFormateados.push({ label: 'Dormitorios', value: String(datos.dormitorios) });
-  if (m2Totales && !datosFormateados.some(d => d.label.includes('M²'))) {
-    datosFormateados.push({ label: 'M² Totales', value: `${m2Totales} m²` });
+    if (value && !addedLabels.has(config.label)) {
+      datosFormateados.push({
+        label: config.label,
+        value: formatValue(config, value)
+      });
+      addedLabels.add(config.label);
+    }
   }
 
   return datosFormateados;

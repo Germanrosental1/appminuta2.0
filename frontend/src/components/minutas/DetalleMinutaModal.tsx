@@ -66,7 +66,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           setError(null);
           const data = await getMinutaDefinitivaById(minutaId);
           setMinuta(data);
-        } catch (err) {
+        } catch {
           setError('No se pudo cargar la información de la minuta');
         } finally {
           setLoading(false);
@@ -113,7 +113,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
       await actualizarEstadoMinutaDefinitiva(minutaId, nuevoEstado);
       // No mostrar toast de éxito - la UI ya se actualizó
 
-    } catch (error) {
+    } catch {
       // ⚡ OPTIMISTIC UI: Revertir al estado anterior en caso de error
       setMinuta(prev => ({ ...prev, estado: estadoAnterior }));
 
@@ -183,7 +183,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
         title: "PDF generado",
         description: "El PDF consolidado ha sido generado exitosamente",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Hubo un error al generar el PDF consolidado. Por favor, inténtelo de nuevo.",
@@ -247,7 +247,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                     {(() => {
                       let mapData = minuta.datos_mapa_ventas;
                       if (typeof mapData === 'string') {
-                        try { mapData = JSON.parse(mapData); } catch (e) { /* ignore */ }
+                        try { mapData = JSON.parse(mapData); } catch { /* ignore */ }
                       }
                       const mapas = Array.isArray(mapData) ? mapData : [mapData];
 
@@ -360,36 +360,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                 let mapData = minuta.datos_mapa_ventas;
 
                 // Parse strings if necessary (fallback)
-                if (typeof mapData === 'string') {
-                  try { mapData = JSON.parse(mapData); } catch (e) { /* ignore */ }
-                }
-
-                if (!mapData || (Array.isArray(mapData) && mapData.length === 0)) {
-                  return (
-                    <Card>
-                      <CardContent className="pt-6 text-center text-muted-foreground">
-                        No hay datos del mapa de ventas disponibles
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
                 const mapas = Array.isArray(mapData) ? mapData : [mapData];
-
-                // Helper para extraer valor legible de un campo
-                const getReadableValue = (obj: any, field: string): string => {
-                  const val = obj?.[field];
-                  if (val === null || val === undefined) return '-';
-                  if (typeof val === 'object') {
-                    // Extraer nombre de objetos anidados
-                    if (val.nombre) return val.nombre;
-                    if (val.nombreedificio) return val.nombreedificio;
-                    if (val.nombreestado) return val.nombreestado;
-                    if (val.descripcion) return val.descripcion;
-                    return JSON.stringify(val);
-                  }
-                  return String(val);
-                };
 
                 return mapas.map((item: any, index: number) => {
                   // Extraer datos de forma estructurada
@@ -413,11 +384,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                   const m2Semicubiertos = metricas.m2semicubiertos || '-';
                   const m2PatioTerraza = metricas.m2patioterraza || '-';
 
-                  // Datos de venta
-                  const detallesVenta = item.detallesventa_detallesventa_unidad_idTounidades || {};
-                  const precioUsd = detallesVenta.preciousd ? `USD ${Number(detallesVenta.preciousd).toLocaleString('es-AR')}` : '-';
-                  const usdM2 = detallesVenta.usdm2 ? `USD ${Number(detallesVenta.usdm2).toLocaleString('es-AR')}` : '-';
-                  const estado = detallesVenta.estadocomercial?.nombreestado || '-';
+                  // Removed unused variables: detallesVenta, precioUsd, usdM2, estado
 
                   const descripcionUnidad = item._unidad_descripcion || `${sector} - ${edificio} - Unidad ${nroUnidad}`;
 
@@ -626,7 +593,14 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                       {estados.map((estado, idx) => {
                         const isPast = idx < indexActual;
                         const isCurrent = idx === indexActual;
-                        const isFuture = idx > indexActual;
+                        let indicator: React.ReactNode;
+                        if (isPast) {
+                          indicator = <CheckCircle className="w-4 h-4" />;
+                        } else if (isCurrent) {
+                          indicator = <span>●</span>;
+                        } else {
+                          indicator = <span className="text-[10px]">{idx + 1}</span>;
+                        }
 
                         return (
                           <div key={estado} className="flex items-center">
@@ -640,13 +614,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                                     : 'bg-gray-200 text-gray-400'
                                   }`}
                               >
-                                {isPast ? (
-                                  <CheckCircle className="w-4 h-4" />
-                                ) : isCurrent ? (
-                                  <span>●</span>
-                                ) : (
-                                  <span className="text-[10px]">{idx + 1}</span>
-                                )}
+                                {indicator}
                               </div>
                               <span
                                 className={`text-[10px] mt-1 ${isCurrent ? 'text-green-600 font-semibold' : 'text-gray-500'

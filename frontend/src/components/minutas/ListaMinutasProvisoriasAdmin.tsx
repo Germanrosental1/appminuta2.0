@@ -40,6 +40,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
         setMinutas(data);
         setFilteredMinutas(data);
       } catch (err) {
+        console.error('Error fetching minutas:', err);
         setError('Error al cargar las minutas provisorias');
       } finally {
         setLoading(false);
@@ -85,6 +86,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
         description: `La minuta ha sido marcada como ${nuevoEstado} `,
       });
     } catch (error) {
+      console.error('Error updating minuta state:', error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la minuta",

@@ -143,7 +143,8 @@ async function bootstrap() {
 }
 
 // Bootstrap application
-void bootstrap().catch((err) => {
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+bootstrap().catch((err) => {
     console.error('Error during application bootstrap:', err);
     process.exit(1);
 });
