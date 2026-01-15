@@ -65,13 +65,73 @@ export class UnidadesImportService {
     }
 
     async importFromUrl(url: string, user?: any) {
+        console.log('📥 importFromUrl - URL recibida:', url);
+
+        // 🔒 SEGURIDAD: Validar URL para prevenir SSRF
         try {
+            this.validateExternalUrl(url);
+            console.log('✅ URL validada correctamente');
+        } catch (validationError) {
+            console.error('❌ Error de validación SSRF:', validationError.message);
+            throw validationError;
+        }
+
+        try {
+            console.log('📡 Descargando archivo...');
             const response = await axios.get(url, { responseType: 'arraybuffer' });
+            console.log('✅ Archivo descargado, tamaño:', response.data.length, 'bytes');
             return this.importFromExcel(response.data, user);
         } catch (error) {
-            console.error('Error downloading file from URL', error.stack);
+            console.error('❌ Error downloading file from URL:', error.message);
+            console.error('Stack:', error.stack);
             throw new Error(`Error al descargar el archivo: ${error.message}`);
         }
+    }
+
+    /**
+     * 🔒 SEGURIDAD: Valida que la URL sea externa y segura
+     * Previene ataques SSRF (Server-Side Request Forgery)
+     */
+    private validateExternalUrl(url: string): void {
+        let parsed: URL;
+        try {
+            parsed = new URL(url);
+        } catch {
+            throw new Error('URL inválida');
+        }
+
+        // Solo permitir HTTP/HTTPS
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            throw new Error('Solo se permiten URLs HTTP/HTTPS');
+        }
+
+        // Bloquear IPs internas y localhost
+        const hostname = parsed.hostname.toLowerCase();
+        const blockedPatterns = [
+            'localhost',
+            '127.',
+            '0.0.0.0',
+            '10.',
+            '192.168.',
+            '172.16.', '172.17.', '172.18.', '172.19.',
+            '172.20.', '172.21.', '172.22.', '172.23.',
+            '172.24.', '172.25.', '172.26.', '172.27.',
+            '172.28.', '172.29.', '172.30.', '172.31.',
+            '169.254.',
+            '::1',
+            '[::1]',
+            'metadata.google',
+            '169.254.169.254', // AWS/GCP metadata
+        ];
+
+        for (const pattern of blockedPatterns) {
+            if (hostname === pattern || hostname.startsWith(pattern)) {
+                throw new Error('URLs internas/locales no están permitidas');
+            }
+        }
+
+        // Bloquear hosts que resuelven a direcciones internas
+        // Nota: Para máxima seguridad, considerar resolver el DNS y validar la IP
     }
 
     private async processRow(tx: any, row: any, cache: Map<string, string>) {
