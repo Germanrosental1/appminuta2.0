@@ -90,13 +90,25 @@ export class UsuariosRolesService {
             return cached.roles;
         }
 
-        // Si no hay cache o expiró, hacer la query
-        const userRoles = await this.prisma.usuarios_roles.findMany({
-            where: { idusuario: userId },
-            include: {
-                roles: true,
-            },
-        });
+        // Si no hay cache o expiró, hacer la query con reintento
+        let userRoles;
+        try {
+            userRoles = await this.prisma.usuarios_roles.findMany({
+                where: { idusuario: userId },
+                include: { roles: true },
+            });
+        } catch (error) {
+            // Si el error es de conexión cerrada, reintentar una vez
+            if (error.message && error.message.includes('Server has closed the connection')) {
+                console.warn(`⚠️ Conexión cerrada en getUserRoles, reintentando... (UserId: ${userId})`);
+                userRoles = await this.prisma.usuarios_roles.findMany({
+                    where: { idusuario: userId },
+                    include: { roles: true },
+                });
+            } else {
+                throw error;
+            }
+        }
 
         if (userRoles.length === 0) {
             throw new NotFoundException(`Usuario sin roles o no encontrado`);
