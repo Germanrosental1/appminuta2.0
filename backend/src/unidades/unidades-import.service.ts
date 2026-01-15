@@ -345,7 +345,8 @@ export class UnidadesImportService {
             data: {
                 nombre: proyNombre,
                 tabla_nombre: proyNombre.toLowerCase().replaceAll(' ', '_'),
-                naturaleza: naturalezaId
+                naturaleza: naturalezaId,
+                id_org: null // Explicitly null to avoid FK constraint error
             }
         });
         cache.set(cacheKey, created.id);
