@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, Request, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, Request, BadRequestException, ForbiddenException, ParseUUIDPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UnidadesService } from './unidades.service';
 import { UnidadesQueryService } from './unidades-query.service';
@@ -9,11 +9,14 @@ import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { AuthorizationService } from '../auth/authorization/authorization.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { UnidadesImportService } from './unidades-import.service';
 
 /**
  * Controller protegido con autenticación
+ * 🔒 SEGURIDAD: Endpoints de metadata validan acceso al proyecto
  * Operaciones de escritura requieren permiso 'gestionarUnidades'
  */
 @Controller('unidades')
@@ -22,7 +25,8 @@ export class UnidadesController {
     constructor(
         private readonly unidadesService: UnidadesService,
         private readonly unidadesQueryService: UnidadesQueryService,
-        private readonly importService: UnidadesImportService
+        private readonly importService: UnidadesImportService,
+        private readonly authService: AuthorizationService
     ) { }
 
     /**
@@ -43,26 +47,41 @@ export class UnidadesController {
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
     @UseInterceptors(FileInterceptor('file'))
-    uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
-        // Opción 1: Archivo subido
-        if (file) {
-            const allowedMimes = [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.ms-excel'
-            ];
-            if (!allowedMimes.includes(file.mimetype)) {
-                throw new BadRequestException('Solo se permiten archivos Excel (.xlsx, .xls)');
+    async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
+        console.log('📩 Recibida solicitud de importación en /unidades/import');
+
+        try {
+            // Opción 1: Archivo subido
+            if (file) {
+                console.log('📂 Archivo recibido:', file.originalname, 'Mime:', file.mimetype, 'Size:', file.size);
+
+                const allowedMimes = [
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-excel'
+                ];
+                if (!allowedMimes.includes(file.mimetype)) {
+                    console.warn(`❌ Mime type inválido: ${file.mimetype}`);
+                    throw new BadRequestException('Solo se permiten archivos Excel (.xlsx, .xls)');
+                }
+
+                return await this.importService.importFromExcel(file.buffer, req.user);
             }
-            return this.importService.importFromExcel(file.buffer, req.user);
-        }
 
-        // Opción 2: URL en el body (para n8n/automations)
-        if (body && (body.excel || body.linkArchivo)) {
-            const url = body.excel || body.linkArchivo;
-            return this.importService.importFromUrl(url, req.user);
-        }
+            // Opción 2: URL en el body (para n8n/automations)
+            if (body && (body.excel || body.linkArchivo)) {
+                const url = body.excel || body.linkArchivo;
+                console.log('🔗 URL recibida en body:', url);
+                return await this.importService.importFromUrl(url, req.user);
+            }
 
-        throw new BadRequestException('Debe proporcionar un archivo (file) o una URL (excel/linkArchivo) en el body');
+            console.warn('❌ Solicitud sin archivo ni URL válida');
+            throw new BadRequestException('Debe proporcionar un archivo (file) o una URL (excel/linkArchivo) en el body');
+
+        } catch (error) {
+            console.error('❌ Error en controller uploadFile:', error);
+            if (error.stack) console.error(error.stack);
+            throw error;
+        }
     }
 
     // Metadata endpoints - MUST come before generic GET routes
@@ -81,23 +100,59 @@ export class UnidadesController {
         return this.unidadesQueryService.getProyectosPorTipo(tipo);
     }
 
+    /**
+     * 🔒 SEGURIDAD: Valida acceso al proyecto antes de retornar etapas
+     */
     @Get('metadata/etapas')
-    getEtapas(@Query('proyecto') proyecto: string) {
+    async getEtapas(@Query('proyecto') proyecto: string, @CurrentUser() user: any) {
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
+        }
         return this.unidadesQueryService.getEtapas(proyecto);
     }
 
+    /**
+     * 🔒 SEGURIDAD: Valida acceso al proyecto antes de retornar tipos
+     */
     @Get('metadata/tipos')
-    getTipos(@Query('proyecto') proyecto: string, @Query('etapa') etapa?: string) {
+    async getTipos(
+        @Query('proyecto') proyecto: string,
+        @CurrentUser() user: any,
+        @Query('etapa') etapa?: string
+    ) {
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
+        }
         return this.unidadesQueryService.getTipos(proyecto, etapa);
     }
 
+    /**
+     * 🔒 SEGURIDAD: Valida acceso al proyecto antes de retornar sectores
+     */
     @Get('metadata/sectores')
-    getSectores(
+    async getSectores(
         @Query('proyecto') proyecto: string,
+        @CurrentUser() user: any,
         @Query('etapa') etapa?: string,
-        @Query('tipo') tipo?: string,
+        @Query('tipo') tipo?: string
     ) {
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
+        }
         return this.unidadesQueryService.getSectores(proyecto, etapa, tipo);
+    }
+
+    /**
+     * 🔒 Helper: Valida que el usuario tenga acceso al proyecto por nombre
+     */
+    private async validateProjectAccess(userId: string, projectName: string): Promise<void> {
+        const userProjects = await this.authService.getUserProjectsDetailed(userId);
+        const hasAccess = userProjects.some(p =>
+            p.nombre.toLowerCase() === projectName.toLowerCase()
+        );
+        if (!hasAccess) {
+            throw new ForbiddenException('No tienes acceso a este proyecto');
+        }
     }
 
     // OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades
@@ -129,7 +184,7 @@ export class UnidadesController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
+    findOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.unidadesQueryService.findOne(id);
     }
 
@@ -139,7 +194,7 @@ export class UnidadesController {
     @Patch(':id/complete')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
-    updateComplete(@Param('id') id: string, @Body() updateUnidadDto: UpdateUnidadCompleteDto) {
+    updateComplete(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadCompleteDto) {
         return this.unidadesService.updateComplete(id, updateUnidadDto);
     }
 
@@ -149,7 +204,7 @@ export class UnidadesController {
     @Patch(':id')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
-    update(@Param('id') id: string, @Body() updateUnidadDto: UpdateUnidadDto) {
+    update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadDto) {
         return this.unidadesService.update(id, updateUnidadDto);
     }
 
@@ -159,7 +214,7 @@ export class UnidadesController {
     @Delete(':id')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
-    remove(@Param('id') id: string) {
+    remove(@Param('id', ParseUUIDPipe) id: string) {
         return this.unidadesService.remove(id);
     }
 }
