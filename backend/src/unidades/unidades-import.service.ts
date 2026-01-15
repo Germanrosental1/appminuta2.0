@@ -78,9 +78,16 @@ export class UnidadesImportService {
         // Normalize field names (handle case variations)
         const normalizedRow = this.normalizeRowFields(row);
 
+        console.log('\n========== PROCESANDO FILA ==========');
+        console.log('📋 Row original:', JSON.stringify(row, null, 2));
+        console.log('📋 Row normalizado:', JSON.stringify(normalizedRow, null, 2));
+
         // 1. Resolve Dependencies
         const proyectoId = await this.resolveProyecto(tx, normalizedRow, cache);
+        console.log('🏗️  Proyecto ID:', proyectoId);
+
         const edificioId = await this.resolveEdificio(tx, normalizedRow, proyectoId, cache);
+        console.log('🏢 Edificio ID:', edificioId);
 
         // 2. Resolve Simple Catalogs
         const [etapaId, tipoId, estadoId, comercialId, patioId, tipoCocheraId, motivoNodispId] = await Promise.all([
@@ -92,20 +99,26 @@ export class UnidadesImportService {
             this.resolveCatalogo(tx, 'tiposcochera', 'nombre', normalizedRow.tipocochera, cache),
             this.resolveCatalogo(tx, 'motivosnodisp', 'nombre', normalizedRow.motivonodisponibilidad, cache)
         ]);
+        console.log('📁 Catálogos - Etapa:', etapaId, '| Tipo:', tipoId, '| Estado:', estadoId, '| Comercial:', comercialId);
+        console.log('📁 Catálogos - Patio:', patioId, '| TipoCochera:', tipoCocheraId, '| MotivoNoDisp:', motivoNodispId);
 
         // 3. Parse Dates
         const fechaReserva = this.parseDate(normalizedRow.fechareserva);
         const fechaFirmaBoleto = this.parseDate(normalizedRow.fechafirmaboleto);
         const fechaPisada = this.parseDate(normalizedRow.fechapisada);
+        const fechaPosesion = this.parseDate(normalizedRow.fechaposesion);
+        console.log('📅 Fechas - Reserva:', fechaReserva, '| FirmaBoleto:', fechaFirmaBoleto, '| Pisada:', fechaPisada, '| Posesion:', fechaPosesion);
 
         // 4. Create/Find Unit
         const sectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
+        console.log('🔑 SectorID:', sectorId);
 
         let unidadId: string;
         const existingUnidad = await tx.unidades.findUnique({ where: { sectorid: sectorId } });
 
         if (existingUnidad) {
             unidadId = existingUnidad.id;
+            console.log('♻️  Unidad existente encontrada, actualizando:', unidadId);
             // Update existing unit
             await tx.unidades.update({
                 where: { id: unidadId },
@@ -137,16 +150,22 @@ export class UnidadesImportService {
                 }
             });
             unidadId = newUnidad.id;
+            console.log('✨ Nueva unidad creada:', unidadId);
         }
 
         // 5. Resolve Cliente Interesado (single cliente)
         const clienteInteresadoId = await this.resolveCliente(tx, normalizedRow.clienteinteresado, cache);
+        console.log('👤 Cliente Interesado ID:', clienteInteresadoId);
 
         // 6. Resolve Unidad Comprador (lookup by sectorId pattern)
         const unidadCompradorId = await this.resolveUnidadComprador(tx, normalizedRow.deptartamentocomprador, cache);
+        console.log('🏠 Unidad Comprador ID:', unidadCompradorId);
 
         // 7. Upsert Related Data
+        console.log('📊 Guardando métricas...');
         await this.upsertMetrics(tx, unidadId, normalizedRow, patioId);
+
+        console.log('💰 Guardando detalles de venta...');
         await this.upsertSalesDetails(tx, unidadId, normalizedRow, {
             estadoId,
             comercialId,
@@ -156,18 +175,67 @@ export class UnidadesImportService {
             unidadCompradorId,
             fechaReserva,
             fechaFirmaBoleto,
-            fechaPisada
+            fechaPisada,
+            fechaPosesion
         });
 
         // 8. Process Cliente Titular (comma-separated names -> Clientes + ClientesUnidadesTitulares)
+        console.log('👥 Procesando clientes titulares:', normalizedRow.clientetitular);
         await this.processClientesTitulares(tx, unidadId, normalizedRow.clientetitular, cache);
+
+        console.log('✅ Fila procesada exitosamente');
+        console.log('=====================================\n');
     }
 
     // Normalize field names to lowercase for consistent access
     private normalizeRowFields(row: any): Record<string, any> {
         const normalized: Record<string, any> = {};
+
+        // Field aliases mapping (Excel column -> internal field)
+        const fieldAliases: Record<string, string> = {
+            'edificio/torre': 'edificiotorre',
+            'edificiotorre': 'edificiotorre',
+            'sector': 'edificiotorre',
+            'numerounidad': 'numerounidad',
+            'nºcochera': 'numerounidad',
+            'ncochera': 'numerounidad',
+            'n°cochera': 'numerounidad',
+            'm2cubiertos': 'm2cubierto',
+            'm2cubierto': 'm2cubierto',
+            'm2semicubiertos': 'm2semicubierto',
+            'm2semicubierto': 'm2semicubierto',
+            'motivonodisponibilidad': 'motivonodisponibilidad',
+            'motivonodisp': 'motivonodisponibilidad',
+            'clientetitularboleto': 'clientetitular',
+            'clientetitular': 'clientetitular',
+            'fechaposesiónporboletocompra-venta': 'fechaposesion',
+            'fechaposesionporboletocompraventa': 'fechaposesion',
+            'fechaposesion': 'fechaposesion',
+            'dptocomprador': 'deptartamentocomprador',
+            'deptartamentocomprador': 'deptartamentocomprador',
+            'departamentocomprador': 'deptartamentocomprador',
+            'tipopatioterraza': 'tipopatio',
+            'tipopatio': 'tipopatio',
+            'preciousd': 'preciousd',
+            'precio': 'preciousd',
+            'usdm2': 'usdm2',
+            'usd/m2': 'usdm2'
+        };
+
         for (const key of Object.keys(row)) {
-            normalized[key.toLowerCase().replace(/\s+/g, '')] = row[key];
+            // Normalize key: lowercase, remove spaces, newlines, and special chars
+            const normalizedKey = key.toLowerCase()
+                .replace(/[\s\n\r]+/g, '')
+                .replace(/[áàäâ]/g, 'a')
+                .replace(/[éèëê]/g, 'e')
+                .replace(/[íìïî]/g, 'i')
+                .replace(/[óòöô]/g, 'o')
+                .replace(/[úùüû]/g, 'u')
+                .replace(/ñ/g, 'n');
+
+            // Apply alias if exists, otherwise use normalized key
+            const finalKey = fieldAliases[normalizedKey] || normalizedKey;
+            normalized[finalKey] = row[key];
         }
         return normalized;
     }
@@ -277,7 +345,8 @@ export class UnidadesImportService {
             data: {
                 nombre: proyNombre,
                 tabla_nombre: proyNombre.toLowerCase().replaceAll(' ', '_'),
-                naturaleza: naturalezaId
+                naturaleza: naturalezaId,
+                id_org: null // Explicitly null to avoid FK constraint error
             }
         });
         cache.set(cacheKey, created.id);
@@ -375,6 +444,7 @@ export class UnidadesImportService {
             fechaReserva: Date | null;
             fechaFirmaBoleto: Date | null;
             fechaPisada: Date | null;
+            fechaPosesion: Date | null;
         }
     ) {
         const data = {
@@ -389,6 +459,7 @@ export class UnidadesImportService {
             fechareserva: ids.fechaReserva,
             fechafirmaboleto: ids.fechaFirmaBoleto,
             fechapisada: ids.fechaPisada,
+            fechaposesion: ids.fechaPosesion,
             titular: row.titular,
             obs: row.observaciones
         };
@@ -403,7 +474,29 @@ export class UnidadesImportService {
 
     private parseNumber(value: any): number | null {
         if (value === null || value === undefined || String(value).trim() === '') return null;
-        const num = Number(String(value).replace(',', '.'));
+
+        let strValue = String(value).trim();
+
+        // Remove currency symbols and whitespace
+        strValue = strValue.replace(/[$\s]/g, '');
+
+        // Handle Argentine format: $ 12.000,00 -> 12000.00
+        // If contains both . and , assume Argentine format (. = thousands, , = decimal)
+        if (strValue.includes('.') && strValue.includes(',')) {
+            strValue = strValue.replace(/\./g, '').replace(',', '.');
+        } else if (strValue.includes(',') && !strValue.includes('.')) {
+            // Only comma present - could be decimal separator
+            // Check if it looks like a decimal (1-2 digits after comma)
+            const parts = strValue.split(',');
+            if (parts.length === 2 && parts[1].length <= 2) {
+                strValue = strValue.replace(',', '.');
+            } else {
+                // Comma is thousands separator
+                strValue = strValue.replace(/,/g, '');
+            }
+        }
+
+        const num = Number(strValue);
         return Number.isNaN(num) ? null : num;
     }
 }
