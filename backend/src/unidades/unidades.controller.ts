@@ -11,12 +11,13 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { AuthorizationService } from '../auth/authorization/authorization.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AdjustPricesDto } from './dto/adjust-prices.dto';
 
 import { UnidadesImportService } from './unidades-import.service';
 
 /**
  * Controller protegido con autenticación
- * 🔒 SEGURIDAD: Endpoints de metadata validan acceso al proyecto
+ * Endpoints de metadata validan acceso al proyecto
  * Operaciones de escritura requieren permiso 'gestionarUnidades'
  */
 @Controller('unidades')
@@ -37,6 +38,37 @@ export class UnidadesController {
     @Permissions('gestionarUnidades')
     create(@Body() createUnidadDto: CreateUnidadDto) {
         return this.unidadesService.create(createUnidadDto);
+    }
+
+    /**
+     * Ajustar precios masivamente por proyectos - requiere permiso 'gestionarUnidades'
+     * 🔒 SEGURIDAD: Valida que el usuario tenga acceso a cada proyecto antes de ajustar
+     */
+    @Patch('adjust-prices')
+    @UseGuards(PermissionsGuard)
+    @Permissions('gestionarUnidades')
+    async adjustPrices(
+        @Body() adjustPricesDto: AdjustPricesDto,
+        @CurrentUser() user: any
+    ) {
+        // 🔒 SEGURIDAD: Obtener proyectos a los que el usuario tiene acceso
+        const userAccessibleProjects = await this.authService.getUserProjects(user.sub);
+
+        // Verificar que todos los projectIds solicitados estén en los accesibles
+        const unauthorizedProjects = adjustPricesDto.projectIds.filter(
+            pid => !userAccessibleProjects.includes(pid)
+        );
+
+        if (unauthorizedProjects.length > 0) {
+            throw new ForbiddenException(
+                `No tienes acceso a los siguientes proyectos: ${unauthorizedProjects.length} proyecto(s)`
+            );
+        }
+
+        return this.unidadesService.adjustPricesByProjects(
+            adjustPricesDto.projectIds,
+            adjustPricesDto.percentage
+        );
     }
 
     /**
@@ -101,7 +133,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 SEGURIDAD: Valida acceso al proyecto antes de retornar etapas
+     * Valida acceso al proyecto antes de retornar etapas
      */
     @Get('metadata/etapas')
     async getEtapas(@Query('proyecto') proyecto: string, @CurrentUser() user: any) {
@@ -112,7 +144,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 SEGURIDAD: Valida acceso al proyecto antes de retornar tipos
+     * Valida acceso al proyecto antes de retornar tipos
      */
     @Get('metadata/tipos')
     async getTipos(
@@ -127,7 +159,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 SEGURIDAD: Valida acceso al proyecto antes de retornar sectores
+     * Valida acceso al proyecto antes de retornar sectores
      */
     @Get('metadata/sectores')
     async getSectores(
@@ -143,7 +175,7 @@ export class UnidadesController {
     }
 
     /**
-     * 🔒 Helper: Valida que el usuario tenga acceso al proyecto por nombre
+     * Helper: Valida que el usuario tenga acceso al proyecto por nombre
      */
     private async validateProjectAccess(userId: string, projectName: string): Promise<void> {
         const userProjects = await this.authService.getUserProjectsDetailed(userId);

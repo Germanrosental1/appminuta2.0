@@ -271,6 +271,40 @@ class BackendAPI {
             throw error;
         }
     }
+
+    /**
+     * Adjust prices for all units in selected projects
+     * @param projectIds - Array of project UUIDs
+     * @param percentage - Percentage to adjust (positive to increase, negative to decrease)
+     */
+    async adjustPrices(projectIds: string[], percentage: number) {
+        try {
+            const token = await this.getAuthToken();
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
+            const response = await fetch(`${this.baseURL}/unidades/adjust-prices`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ projectIds, percentage }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || `HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error adjusting prices:', error);
+            throw error;
+        }
+    }
 }
 
 export const backendAPI = new BackendAPI();
+

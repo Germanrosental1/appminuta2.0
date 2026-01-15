@@ -162,4 +162,64 @@ export class UnidadesService {
         });
     }
 
+    /**
+     * Ajusta los precios de todas las unidades de los proyectos especificados
+     * @param projectIds - IDs de los proyectos a ajustar
+     * @param percentage - Porcentaje de ajuste (positivo para aumentar, negativo para disminuir)
+     * @returns Resultado con cantidad de unidades afectadas
+     */
+    async adjustPricesByProjects(projectIds: string[], percentage: number) {
+        console.log(`📊 Ajustando precios un ${percentage}% para ${projectIds.length} proyectos`);
+
+        // Calcular el multiplicador (15% = 1.15, -10% = 0.90)
+        const multiplier = 1 + (percentage / 100);
+
+        // Obtener todos los edificios de los proyectos
+        const edificios = await this.prisma.edificios.findMany({
+            where: { proyecto_id: { in: projectIds } },
+            select: { id: true }
+        });
+
+        const edificioIds = edificios.map(e => e.id);
+        console.log(`🏢 Encontrados ${edificioIds.length} edificios`);
+
+        // Obtener todas las unidades de esos edificios
+        const unidades = await this.prisma.unidades.findMany({
+            where: { edificio_id: { in: edificioIds } },
+            select: { id: true }
+        });
+
+        const unidadIds = unidades.map(u => u.id);
+        console.log(`🏠 Encontradas ${unidadIds.length} unidades a ajustar`);
+
+        if (unidadIds.length === 0) {
+            return {
+                success: true,
+                unidadesAjustadas: 0,
+                message: 'No se encontraron unidades en los proyectos seleccionados'
+            };
+        }
+
+        // Actualizar precios en detallesventa
+        // Usamos updateMany con una expresión SQL raw para multiplicar
+        const result = await this.prisma.$executeRaw`
+            UPDATE detallesventa 
+            SET preciousd = ROUND(preciousd * ${multiplier}::numeric, 2),
+                usdm2 = CASE 
+                    WHEN usdm2 IS NOT NULL THEN ROUND(usdm2 * ${multiplier}::numeric, 2)
+                    ELSE NULL 
+                END
+            WHERE unidad_id = ANY(${unidadIds}::uuid[])
+            AND preciousd IS NOT NULL
+        `;
+
+        console.log(`✅ Precios ajustados: ${result} registros actualizados`);
+
+        return {
+            success: true,
+            unidadesAjustadas: result,
+            porcentajeAplicado: percentage,
+            proyectosAfectados: projectIds.length
+        };
+    }
 }
