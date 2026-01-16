@@ -162,4 +162,133 @@ export class UnidadesService {
         });
     }
 
+    /**
+     * Ajusta los precios de todas las unidades de los proyectos especificados
+     * @param projectIds - IDs de los proyectos a ajustar
+     * @param mode - Modo de ajuste (PERCENTAGE_TOTAL, PERCENTAGE_M2, FIXED_TOTAL, FIXED_M2)
+     * @param percentage - Porcentaje (para modos PERCENTAGE_*)
+     * @param fixedValue - Valor fijo (para modos FIXED_*)
+     */
+    async adjustPricesByProjects(
+        projectIds: string[],
+        mode: string,
+        percentage?: number,
+        fixedValue?: number
+    ) {
+        console.log(`Ajustando precios - Modo: ${mode}, Porcentaje: ${percentage}, Valor fijo: ${fixedValue}`);
+
+        // Obtener todos los edificios de los proyectos
+        const edificios = await this.prisma.edificios.findMany({
+            where: { proyecto_id: { in: projectIds } },
+            select: { id: true }
+        });
+
+        const edificioIds = edificios.map(e => e.id);
+        console.log(`Encontrados ${edificioIds.length} edificios`);
+
+        // Obtener todas las unidades de esos edificios
+        const unidades = await this.prisma.unidades.findMany({
+            where: { edificio_id: { in: edificioIds } },
+            select: { id: true }
+        });
+
+        const unidadIds = unidades.map(u => u.id);
+        console.log(`Encontradas ${unidadIds.length} unidades a ajustar`);
+
+        if (unidadIds.length === 0) {
+            return {
+                success: true,
+                unidadesAjustadas: 0,
+                message: 'No se encontraron unidades en los proyectos seleccionados'
+            };
+        }
+
+        let result: number;
+
+        switch (mode) {
+            case 'PERCENTAGE_TOTAL': {
+                // Aumentar precio total y m2 por el mismo porcentaje
+                const multiplier = 1 + ((percentage || 0) / 100);
+                result = await this.prisma.$executeRaw`
+                    UPDATE detallesventa 
+                    SET preciousd = ROUND(preciousd * ${multiplier}::numeric, 2),
+                        usdm2 = CASE 
+                            WHEN usdm2 IS NOT NULL THEN ROUND(usdm2 * ${multiplier}::numeric, 2)
+                            ELSE NULL 
+                        END
+                    WHERE unidad_id = ANY(${unidadIds}::uuid[])
+                    AND preciousd IS NOT NULL
+                `;
+                break;
+            }
+
+            case 'PERCENTAGE_M2': {
+                // Aumentar solo USD/m2 por porcentaje, recalcular precio total
+                const multiplier = 1 + ((percentage || 0) / 100);
+                result = await this.prisma.$executeRaw`
+                    UPDATE detallesventa dv
+                    SET usdm2 = ROUND(dv.usdm2 * ${multiplier}::numeric, 2),
+                        preciousd = ROUND(
+                            dv.usdm2 * ${multiplier}::numeric * 
+                            COALESCE(um.m2totales, um.m2cubiertos, 1), 
+                            2
+                        )
+                    FROM unidadesmetricas um
+                    WHERE dv.unidad_id = um.unidad_id
+                    AND dv.unidad_id = ANY(${unidadIds}::uuid[])
+                    AND dv.usdm2 IS NOT NULL
+                `;
+                break;
+            }
+
+            case 'FIXED_TOTAL': {
+                // Establecer precio total fijo, recalcular USD/m2
+                const fixed = fixedValue || 0;
+                result = await this.prisma.$executeRaw`
+                    UPDATE detallesventa dv
+                    SET preciousd = ${fixed}::numeric,
+                        usdm2 = CASE 
+                            WHEN COALESCE(um.m2totales, um.m2cubiertos, 0) > 0 
+                            THEN ROUND(${fixed}::numeric / COALESCE(um.m2totales, um.m2cubiertos), 2)
+                            ELSE dv.usdm2
+                        END
+                    FROM unidadesmetricas um
+                    WHERE dv.unidad_id = um.unidad_id
+                    AND dv.unidad_id = ANY(${unidadIds}::uuid[])
+                `;
+                break;
+            }
+
+            case 'FIXED_M2': {
+                // Establecer USD/m2 fijo, recalcular precio total
+                const fixed = fixedValue || 0;
+                result = await this.prisma.$executeRaw`
+                    UPDATE detallesventa dv
+                    SET usdm2 = ${fixed}::numeric,
+                        preciousd = ROUND(
+                            ${fixed}::numeric * COALESCE(um.m2totales, um.m2cubiertos, 1),
+                            2
+                        )
+                    FROM unidadesmetricas um
+                    WHERE dv.unidad_id = um.unidad_id
+                    AND dv.unidad_id = ANY(${unidadIds}::uuid[])
+                `;
+                break;
+            }
+
+            default:
+                throw new Error(`Modo de ajuste desconocido: ${mode}`);
+        }
+
+        console.log(`Precios ajustados: ${result} registros actualizados`);
+
+        return {
+            success: true,
+            unidadesAjustadas: result,
+            modo: mode,
+            porcentajeAplicado: percentage,
+            valorFijo: fixedValue,
+            proyectosAfectados: projectIds.length
+        };
+    }
 }

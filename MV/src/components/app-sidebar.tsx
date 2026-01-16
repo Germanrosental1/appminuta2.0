@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, MoreVertical, Edit2, Trash2, LayoutGrid, Home, Activity, Briefcase, Warehouse, Map as MapIcon, BarChart2 } from "lucide-react";
+import { Building2, Plus, MoreVertical, Edit2, Trash2, LayoutGrid, Home, Activity, Briefcase, Warehouse, Map as MapIcon, BarChart2, TrendingUp } from "lucide-react";
 import { backendAPI } from "@/services/backendAPI";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -155,6 +155,18 @@ export function AppSidebar() {
                   >
                     <Activity className="h-3.5 w-3.5" />
                     {!isCollapsed && <span className="text-xs">Diagnóstico</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="flex-1">
+                  <NavLink
+                    to="/price-adjustment"
+                    className="hover:bg-sidebar-accent transition-colors"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    {!isCollapsed && <span className="text-xs">Ajuste de Precios</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

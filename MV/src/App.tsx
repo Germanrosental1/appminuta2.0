@@ -13,6 +13,7 @@ import SalesMapView from "./pages/SalesMapView";
 import UnitsListPage from "./pages/UnitsListPage";
 import UnitEditPage from "./pages/UnitEditPage";
 import DiagnosticPage from "./pages/DiagnosticPage";
+import PriceAdjustmentPage from "./pages/PriceAdjustmentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,9 @@ const App = () => (
               />
 
               <Route path="/diagnostic" element={<DiagnosticPage />} />
+
+              {/* Ajuste masivo de precios */}
+              <Route path="/price-adjustment" element={<PriceAdjustmentPage />} />
             </Route>
 
             {/* Catch-all route */}
