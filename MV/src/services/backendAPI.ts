@@ -275,9 +275,16 @@ class BackendAPI {
     /**
      * Adjust prices for all units in selected projects
      * @param projectIds - Array of project UUIDs
-     * @param percentage - Percentage to adjust (positive to increase, negative to decrease)
+     * @param mode - Adjustment mode: PERCENTAGE_TOTAL, PERCENTAGE_M2, FIXED_TOTAL, FIXED_M2
+     * @param percentage - Percentage to adjust (for PERCENTAGE_* modes)
+     * @param fixedValue - Fixed value to set (for FIXED_* modes)
      */
-    async adjustPrices(projectIds: string[], percentage: number) {
+    async adjustPrices(
+        projectIds: string[],
+        mode: string,
+        percentage?: number,
+        fixedValue?: number
+    ) {
         try {
             const token = await this.getAuthToken();
             if (!token) {
@@ -290,7 +297,7 @@ class BackendAPI {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ projectIds, percentage }),
+                body: JSON.stringify({ projectIds, mode, percentage, fixedValue }),
             });
 
             if (!response.ok) {

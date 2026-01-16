@@ -67,7 +67,9 @@ export class UnidadesController {
 
         return this.unidadesService.adjustPricesByProjects(
             adjustPricesDto.projectIds,
-            adjustPricesDto.percentage
+            adjustPricesDto.mode,
+            adjustPricesDto.percentage,
+            adjustPricesDto.fixedValue
         );
     }
 
