@@ -76,26 +76,38 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
 
 // Helper function: Fetch user roles from usuarios-roles table
 const fetchUserRoles = async (userId: string): Promise<Role[]> => {
+    console.log('[fetchUserRoles DEBUG] Buscando roles para userId:', userId);
     try {
-        const { data, error } = await supabase
+        // Consulta simple a usuarios-roles
+        const { data: rawData, error: rawError } = await supabase
             .from('usuarios-roles')
-            .select(`
-        roles:idrol (
-          id,
-          nombre,
-          created_at
-        )
-      `)
+            .select('*')
             .eq('idusuario', userId);
 
-        if (error) {
-            console.error('Error fetching roles:', error);
+        console.log('[fetchUserRoles DEBUG] usuarios-roles:', { rawData, rawError });
+
+        if (!rawData || rawData.length === 0) {
+            console.log('[fetchUserRoles DEBUG] No se encontraron asignaciones de rol');
             return [];
         }
 
-        // Extract roles from the join
-        const roles = data?.map((item: any) => item.roles).filter(Boolean) || [];
-        return roles as Role[];
+        // Obtener TODOS los IDs de roles
+        const roleIds = rawData.map(r => r.idrol);
+        console.log('[fetchUserRoles DEBUG] Role IDs a buscar:', roleIds);
+
+        // Consultar todos los roles en una sola query
+        const { data: rolesData, error: rolesError } = await supabase
+            .from('roles')
+            .select('*')
+            .in('id', roleIds);
+
+        console.log('[fetchUserRoles DEBUG] Roles encontrados:', { rolesData, rolesError });
+
+        if (rolesData && rolesData.length > 0) {
+            return rolesData as Role[];
+        }
+
+        return [];
     } catch (error) {
         console.error('Exception fetching roles:', error);
         return [];
@@ -159,7 +171,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [hasPermission]);
 
     const hasRole = useCallback((role: string): boolean => {
-        return roles.some(r => r.nombre === role);
+        const result = roles.some(r => r.nombre === role);
+        // DEBUG: Ver qué roles tiene el usuario y por qué hasRole falla
+        console.log('[hasRole DEBUG]', {
+            checkingRole: role,
+            userRoles: roles.map(r => r.nombre),
+            result
+        });
+        return result;
     }, [roles]);
 
     const refreshRoles = useCallback(async (providedUser?: AuthUser) => {
