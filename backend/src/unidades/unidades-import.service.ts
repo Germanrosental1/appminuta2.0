@@ -285,7 +285,7 @@ export class UnidadesImportService {
         for (const key of Object.keys(row)) {
             // Normalize key: lowercase, remove spaces, newlines, and special chars
             const normalizedKey = key.toLowerCase()
-                .replace(/[\s\n\r]+/g, '')
+                .replace(/\s+/g, '')
                 .replace(/[áàäâ]/g, 'a')
                 .replace(/[éèëê]/g, 'e')
                 .replace(/[íìïî]/g, 'i')
