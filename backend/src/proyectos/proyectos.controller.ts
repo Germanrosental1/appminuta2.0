@@ -1,14 +1,12 @@
-<<<<<<< Updated upstream
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
-=======
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe, ForbiddenException } from '@nestjs/common';
->>>>>>> Stashed changes
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 /**
  * 🔒 SEGURIDAD: Controller protegido con autenticación
@@ -55,12 +53,6 @@ export class ProyectosController {
     }
 
     /**
-<<<<<<< Updated upstream
-     * Obtener proyecto por ID
-     */
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-=======
      * 🔒 Obtener proyecto por ID (validado como UUID)
      * SEGURIDAD: Verifica que el usuario tenga acceso al proyecto
      */
@@ -76,7 +68,6 @@ export class ProyectosController {
             throw new ForbiddenException('No tienes acceso a este proyecto');
         }
 
->>>>>>> Stashed changes
         return this.proyectosService.findOne(id);
     }
 

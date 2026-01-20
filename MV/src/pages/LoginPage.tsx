@@ -3,17 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useAuth } from '@/hooks/useAuth';
 
+import { supabase } from '@/lib/supabase';
+
 export const LoginPage: React.FC = () => {
     const { user, loading, refreshRoles } = useAuth();
     const navigate = useNavigate();
     const [verifyingRoles, setVerifyingRoles] = useState(false);
+    const [mfaState, setMfaState] = useState<'login' | 'enroll' | 'verify' | 'complete'>('login');
     const hasRedirected = useRef(false);
 
-<<<<<<< Updated upstream
-    // Helper function to check if user has a specific role
-    const hasRole = (roles: Array<{ nombre: string }>, roleName: string): boolean => {
-        return roles.some(r => r.nombre === roleName);
-=======
     // Check MFA status after authentication
     const checkMFAStatus = async () => {
         try {
@@ -65,7 +63,6 @@ export const LoginPage: React.FC = () => {
             await supabase.auth.signOut();
             setMfaState('login');
         }
->>>>>>> Stashed changes
     };
 
     // Helper function to determine redirect path based on user roles
