@@ -10,7 +10,7 @@ export class TiposCocheraService {
 
     async create(dto: CreateTipoCocheraDto) {
         try {
-            return await this.prisma.tiposcochera.create({ data: dto });
+            return await this.prisma.tiposCochera.create({ data: { Nombre: dto.nombre } });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un tipo de cochera con el nombre "${dto.nombre}"`);
@@ -20,18 +20,18 @@ export class TiposCocheraService {
     }
 
     async findAll() {
-        return await this.prisma.tiposcochera.findMany({ orderBy: { nombre: 'asc' } });
+        return await this.prisma.tiposCochera.findMany({ orderBy: { Nombre: 'asc' } });
     }
 
     async findOne(id: string) {
-        const tipo = await this.prisma.tiposcochera.findUnique({ where: { id } });
+        const tipo = await this.prisma.tiposCochera.findUnique({ where: { Id: id } });
         if (!tipo) throw new NotFoundException(`Tipo de cochera con ID "${id}" no encontrado`);
         return tipo;
     }
 
     async update(id: string, dto: UpdateTipoCocheraDto) {
         try {
-            return await this.prisma.tiposcochera.update({ where: { id }, data: dto });
+            return await this.prisma.tiposCochera.update({ where: { Id: id }, data: { Nombre: dto.nombre } });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Tipo de cochera con ID "${id}" no encontrado`);
@@ -43,7 +43,7 @@ export class TiposCocheraService {
 
     async remove(id: string) {
         try {
-            return await this.prisma.tiposcochera.delete({ where: { id } });
+            return await this.prisma.tiposCochera.delete({ where: { Id: id } });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Tipo de cochera con ID "${id}" no encontrado`);

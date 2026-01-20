@@ -21,16 +21,16 @@ export class UsuariosRolesService {
         // OPTIMIZACIÓN: Dejar que Prisma valide FKs automáticamente
         // Reducción: 3 queries → 1 query (67% mejora)
         try {
-            const result = await this.prisma.usuarios_roles.create({
+            const result = await this.prisma.usuariosRoles.create({
                 data: {
-                    idusuario: userId,
-                    idrol: roleId,
+                    IdUsuario: userId,
+                    IdRol: roleId,
                 },
                 select: {
-                    // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
-                    idrol: true,
-                    created_at: true,
-                    roles: true,
+                    // 🔒 SEGURIDAD: NO incluir IdUsuario en la respuesta
+                    IdRol: true,
+                    CreatedAt: true,
+                    Roles: true,
                 },
             });
 
@@ -53,11 +53,11 @@ export class UsuariosRolesService {
 
     async removeRole(userId: string, roleId: string) {
         // Verificar que la asignación existe
-        const existing = await this.prisma.usuarios_roles.findUnique({
+        const existing = await this.prisma.usuariosRoles.findUnique({
             where: {
-                idusuario_idrol: {
-                    idusuario: userId,
-                    idrol: roleId,
+                IdUsuario_IdRol: {
+                    IdUsuario: userId,
+                    IdRol: roleId,
                 },
             },
         });
@@ -66,11 +66,11 @@ export class UsuariosRolesService {
             throw new NotFoundException('El rol no está asignado a este usuario');
         }
 
-        const result = await this.prisma.usuarios_roles.delete({
+        const result = await this.prisma.usuariosRoles.delete({
             where: {
-                idusuario_idrol: {
-                    idusuario: userId,
-                    idrol: roleId,
+                IdUsuario_IdRol: {
+                    IdUsuario: userId,
+                    IdRol: roleId,
                 },
             },
         });
@@ -91,10 +91,10 @@ export class UsuariosRolesService {
         }
 
         // Si no hay cache o expiró, hacer la query
-        const userRoles = await this.prisma.usuarios_roles.findMany({
-            where: { idusuario: userId },
+        const userRoles = await this.prisma.usuariosRoles.findMany({
+            where: { IdUsuario: userId },
             include: {
-                roles: true,
+                Roles: true,
             },
         });
 
@@ -104,8 +104,8 @@ export class UsuariosRolesService {
 
         // Filter out any entries where the relation might be broken (null roles)
         const roles = userRoles
-            .filter(ur => ur && ur.roles)
-            .map((ur) => ur.roles);
+            .filter(ur => ur && ur.Roles)
+            .map((ur) => ur.Roles);
 
         // Guardar en cache
         userRolesCache.set(userId, {
@@ -129,42 +129,42 @@ export class UsuariosRolesService {
     async getUsersByRole(roleId: string) {
         // Verificar que el rol existe
         const role = await this.prisma.roles.findUnique({
-            where: { id: roleId },
+            where: { Id: roleId },
         });
 
         if (!role) {
             throw new NotFoundException(`Rol con ID ${roleId} no encontrado`);
         }
 
-        const usersWithRole = await this.prisma.usuarios_roles.findMany({
-            where: { idrol: roleId },
+        const usersWithRole = await this.prisma.usuariosRoles.findMany({
+            where: { IdRol: roleId },
             select: {
-                // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
-                profiles: {
+                // 🔒 SEGURIDAD: NO incluir IdUsuario en la respuesta
+                Profiles: {
                     select: {
-                        email: true,
-                        nombre: true,
-                        apellido: true,
-                        activo: true,
-                        // id: EXCLUIDO por seguridad
+                        Email: true,
+                        Nombre: true,
+                        Apellido: true,
+                        Activo: true,
+                        // Id: EXCLUIDO por seguridad
                     },
                 },
             },
         });
 
-        return usersWithRole.map((ur) => ur.profiles);
+        return usersWithRole.map((ur) => ur.Profiles);
     }
 
     async getUserPermissions(userId: string) {
         // Obtener todos los roles del usuario
-        const userRoles = await this.prisma.usuarios_roles.findMany({
-            where: { idusuario: userId },
+        const userRoles = await this.prisma.usuariosRoles.findMany({
+            where: { IdUsuario: userId },
             include: {
-                roles: {
+                Roles: {
                     include: {
-                        roles_permisos: {
+                        RolesPermisos: {
                             include: {
-                                permisos: true,
+                                Permisos: true,
                             },
                         },
                     },
@@ -177,10 +177,10 @@ export class UsuariosRolesService {
         const permisos: any[] = [];
 
         for (const userRole of userRoles) {
-            for (const rolePermiso of userRole.roles.roles_permisos) {
-                if (!permisosSet.has(rolePermiso.permisos.id)) {
-                    permisosSet.add(rolePermiso.permisos.id);
-                    permisos.push(rolePermiso.permisos);
+            for (const rolePermiso of userRole.Roles.RolesPermisos) {
+                if (!permisosSet.has(rolePermiso.Permisos.Id)) {
+                    permisosSet.add(rolePermiso.Permisos.Id);
+                    permisos.push(rolePermiso.Permisos);
                 }
             }
         }

@@ -32,16 +32,16 @@ export class UnitStateService {
             // Usar upsert para crear o actualizar registros en detallesventa
             await Promise.all(
                 unidadIds.map(async (unidadId) => {
-                    await this.prisma.detallesventa.upsert({
-                        where: { unidad_id: unidadId },
+                    await this.prisma.detallesVenta.upsert({
+                        where: { UnidadId: unidadId },
                         create: {
-                            unidad_id: unidadId,
-                            estado_id: ESTADO_COMERCIAL.RESERVADA,
-                            fechareserva: new Date(),
+                            UnidadId: unidadId,
+                            EstadoId: ESTADO_COMERCIAL.RESERVADA,
+                            FechaReserva: new Date(),
                         },
                         update: {
-                            estado_id: ESTADO_COMERCIAL.RESERVADA,
-                            fechareserva: new Date(),
+                            EstadoId: ESTADO_COMERCIAL.RESERVADA,
+                            FechaReserva: new Date(),
                         },
                     });
                 })
@@ -67,13 +67,13 @@ export class UnitStateService {
         this.logger.log(`Liberando ${unidadIds.length} unidades: ${unidadIds.join(', ')}`);
 
         try {
-            await this.prisma.detallesventa.updateMany({
+            await this.prisma.detallesVenta.updateMany({
                 where: {
-                    unidad_id: { in: unidadIds },
+                    UnidadId: { in: unidadIds },
                 },
                 data: {
-                    estado_id: ESTADO_COMERCIAL.DISPONIBLE,
-                    fechareserva: null,
+                    EstadoId: ESTADO_COMERCIAL.DISPONIBLE,
+                    FechaReserva: null,
                 },
             });
 
@@ -96,12 +96,12 @@ export class UnitStateService {
         this.logger.log(`Marcando ${unidadIds.length} unidades como vendidas`);
 
         try {
-            await this.prisma.detallesventa.updateMany({
+            await this.prisma.detallesVenta.updateMany({
                 where: {
-                    unidad_id: { in: unidadIds },
+                    UnidadId: { in: unidadIds },
                 },
                 data: {
-                    estado_id: ESTADO_COMERCIAL.VENDIDA,
+                    EstadoId: ESTADO_COMERCIAL.VENDIDA,
                 },
             });
 

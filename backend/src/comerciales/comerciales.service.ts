@@ -12,7 +12,7 @@ export class ComercialesService {
     async create(createComercialDto: CreateComercialDto) {
         try {
             return await this.prisma.comerciales.create({
-                data: createComercialDto,
+                data: { Nombre: createComercialDto.nombre },
             });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {
@@ -28,21 +28,21 @@ export class ComercialesService {
 
     async findAll() {
         return await this.prisma.comerciales.findMany({
-            orderBy: { nombre: 'asc' },
+            orderBy: { Nombre: 'asc' },
         });
     }
 
     async findOne(id: string) {
         const comercial = await this.prisma.comerciales.findUnique({
-            where: { id },
+            where: { Id: id },
             include: {
-                detallesventa: {
+                DetallesVenta: {
                     include: {
-                        unidades_detallesventa_unidad_idTounidades: {
+                        Unidades_DetallesVenta_UnidadIdToUnidades: {
                             select: {
-                                id: true,
-                                sectorid: true,
-                                nrounidad: true,
+                                Id: true,
+                                SectorId: true,
+                                NroUnidad: true,
                             },
                         },
                     },
@@ -60,8 +60,8 @@ export class ComercialesService {
     async update(id: string, updateComercialDto: UpdateComercialDto) {
         try {
             return await this.prisma.comerciales.update({
-                where: { id },
-                data: updateComercialDto,
+                where: { Id: id },
+                data: { Nombre: updateComercialDto.nombre },
             });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {
@@ -81,7 +81,7 @@ export class ComercialesService {
     async remove(id: string) {
         try {
             return await this.prisma.comerciales.delete({
-                where: { id },
+                where: { Id: id },
             });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {

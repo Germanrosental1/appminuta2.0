@@ -122,19 +122,19 @@ export class MinutasService {
       const nombreProyecto = sanitizedData.datos.proyecto;
 
       const proyecto = await this.prisma.proyectos.findFirst({
-        where: { nombre: nombreProyecto },
-        select: { id: true }
+        where: { Nombre: nombreProyecto },
+        select: { Id: true }
       });
 
       if (proyecto) {
-        proyectoId = proyecto.id;
+        proyectoId = proyecto.Id;
       }
     }
 
     // Exclude clienteInteresadoDni from spread - it's not a valid Prisma field
     const { clienteInteresadoDni: _dniToExclude, ...dataForPrisma } = sanitizedData;
 
-    const minuta = await this.prisma.minutas_definitivas.create({
+    const minuta = await this.prisma.minutasDefinitivas.create({
       data: {
         ...dataForPrisma,
         proyecto: proyectoId,
@@ -156,14 +156,14 @@ export class MinutasService {
       // 🔒 SEGURIDAD: No loguear DNIs de clientes
 
       for (const unidadId of unidadIds) {
-        await this.prisma.detallesventa.upsert({
-          where: { unidad_id: unidadId },
+        await this.prisma.detallesVenta.upsert({
+          where: { UnidadId: unidadId },
           update: {
-            clienteInteresado: createMinutaDto.clienteInteresadoId || null,
+            ClienteInteresado: createMinutaDto.clienteInteresadoId || null,
           },
           create: {
-            unidad_id: unidadId,
-            clienteInteresado: createMinutaDto.clienteInteresadoId || null,
+            UnidadId: unidadId,
+            ClienteInteresado: createMinutaDto.clienteInteresadoId || null,
           },
         });
       }
@@ -173,7 +173,7 @@ export class MinutasService {
     // Emitir evento WebSocket a admins
     if (this.gateway) {
       this.gateway.emitMinutaCreated({
-        minutaId: minuta.id,
+        minutaId: minuta.Id,
         proyecto: proyectoId || undefined,
         estado: 'pendiente',
         // 🔒 SEGURIDAD: usuarioId eliminado
@@ -292,32 +292,32 @@ export class MinutasService {
     // ⚡⚡ OPTIMIZACIÓN CRÍTICA: Ejecutar count y findMany EN PARALELO
     const [total, minutasRaw] = await Promise.all([
       // Query 1: Count
-      this.prisma.minutas_definitivas.count({ where }),
+      this.prisma.minutasDefinitivas.count({ where }),
 
       // Query 2: FindMany con select optimizado (excluye campos JSON pesados)
       // 🔒 SEGURIDAD: NO incluir usuario_id en la respuesta
-      this.prisma.minutas_definitivas.findMany({
+      this.prisma.minutasDefinitivas.findMany({
         where,
         orderBy: { [sortBy]: sortOrder },
         take: limit,
         skip: skip,
         select: {
-          id: true,
+          Id: true,
           // usuario_id: ELIMINADO por seguridad - exponía IDs internos
-          fecha_creacion: true,
-          estado: true,
-          comentarios: true,
-          proyecto: true,
-          version: true,
-          updated_at: true,
+          FechaCreacion: true,
+          Estado: true,
+          Comentario: true,
+          Proyecto: true,
+          Version: true,
+          UpdatedAt: true,
           users: {
             select: {
               email: true,
             },
           },
-          proyectos: {
+          Proyectos: {
             select: {
-              nombre: true,
+              Nombre: true,
             },
           },
         }
@@ -327,7 +327,7 @@ export class MinutasService {
     // 🔒 SEGURIDAD: Enmascarar emails en la respuesta
     const safeMinutas = minutasRaw.map(m => ({
       ...m,
-      users: m.users ? { email: PrivacyHelpers.maskEmail(m.users.email) } : null,
+      users: (m as any).users ? { email: PrivacyHelpers.maskEmail((m as any).users.email) } : null,
     }));
 
     return {
@@ -340,30 +340,30 @@ export class MinutasService {
   }
 
   async findOne(id: string, userId: string) {
-    const minuta = await this.prisma.minutas_definitivas.findUnique({
-      where: { id },
+    const minuta = await this.prisma.minutasDefinitivas.findUnique({
+      where: { Id: id },
       // SEGURIDAD: Usar select para controlar exactamente qué campos devolver
-      // El usuario_id se obtiene internamente para validación pero NO se expone al cliente
+      // El UsuarioId se obtiene internamente para validación pero NO se expone al cliente
       select: {
-        id: true,
-        proyecto: true,
-        estado: true,
-        comentarios: true,
-        datos: true,
-        datos_adicionales: true,
-        datos_mapa_ventas: true,
-        fecha_creacion: true,
-        updated_at: true,
-        version: true,
-        usuario_id: true, // Para validación interna, se elimina antes de responder
+        Id: true,
+        Proyecto: true,
+        Estado: true,
+        Comentario: true,
+        Dato: true,
+        DatoAdicional: true,
+        DatoMapaVenta: true,
+        FechaCreacion: true,
+        UpdatedAt: true,
+        Version: true,
+        UsuarioId: true, // Para validación interna, se elimina antes de responder
         users: {
           select: {
             email: true,
           },
         },
-        proyectos: {
+        Proyectos: {
           select: {
-            nombre: true,
+            Nombre: true,
           },
         },
       },
@@ -375,11 +375,11 @@ export class MinutasService {
 
     // SEGURIDAD: Verificar permisos usando userId antes de eliminarlo de la respuesta
     const userPermissions = await this.getUserPermissions(userId);
-    const canViewAll = userPermissions.some(p => p.nombre === 'verTodasMinutas');
-    const canSign = userPermissions.some(p => p.nombre === 'firmarMinuta');
+    const canViewAll = userPermissions.some(p => p.Nombre === 'verTodasMinutas');
+    const canSign = userPermissions.some(p => p.Nombre === 'firmarMinuta');
 
-    // Guardar usuario_id para validación y luego eliminarlo de la respuesta
-    const minutaUsuarioId = minuta.usuario_id;
+    // Guardar UsuarioId para validación y luego eliminarlo de la respuesta
+    const minutaUsuarioId = minuta.UsuarioId;
 
     // Si NO es admin, validar que el usuario tiene acceso
     if (!canViewAll) {
@@ -389,10 +389,10 @@ export class MinutasService {
       // Opción 2: Tiene acceso al proyecto de la minuta
       let hasProjectAccess = false;
       if (minuta.proyecto) {
-        const access = await this.prisma.usuarios_proyectos.findFirst({
+        const access = await this.prisma.usuariosProyectos.findFirst({
           where: {
-            idusuario: userId,
-            idproyecto: minuta.proyecto,
+            IdUsuario: userId,
+            IdProyecto: minuta.proyecto,
           },
         });
         hasProjectAccess = !!access;
@@ -408,12 +408,12 @@ export class MinutasService {
       }
     }
 
-    // SEGURIDAD: Eliminar usuario_id de la respuesta - no debe exponerse al cliente
-    const { usuario_id: _, ...safeMinuta } = minuta;
+    // SEGURIDAD: Eliminar UsuarioId de la respuesta - no debe exponerse al cliente
+    const { UsuarioId: _, ...safeMinuta } = minuta;
 
     // 🔒 SEGURIDAD: Enmascarar email del usuario
-    if (safeMinuta.users) {
-      safeMinuta.users.email = PrivacyHelpers.maskEmail(safeMinuta.users.email);
+    if ((safeMinuta as any).users) {
+      (safeMinuta as any).users.email = PrivacyHelpers.maskEmail((safeMinuta as any).users.email);
     }
 
     return safeMinuta;
@@ -422,15 +422,15 @@ export class MinutasService {
   async update(id: string, updateMinutaDto: any, userId: string, userRole?: string) {
     // ⚡ OPTIMIZACIÓN: Obtener minuta y permisos en paralelo
     const [minuta, userPermissions] = await Promise.all([
-      this.prisma.minutas_definitivas.findUnique({
-        where: { id },
+      this.prisma.minutasDefinitivas.findUnique({
+        where: { Id: id },
         select: {
-          id: true,
-          estado: true,
-          version: true,
-          usuario_id: true,
-          proyecto: true,
-          datos: true, // Necesario para extraer unidades
+          Id: true,
+          Estado: true,
+          Version: true,
+          UsuarioId: true,
+          Proyecto: true,
+          Dato: true, // Necesario para extraer unidades
         },
       }),
       this.getCachedUserPermissions(userId), // Usa cache
@@ -443,8 +443,8 @@ export class MinutasService {
     // ⚡ OPTIMIZACIÓN: Verificar permisos usando datos ya obtenidos
     const canViewAll = userPermissions.permissions.includes('verTodasMinutas');
     const canSign = userPermissions.permissions.includes('firmarMinuta'); // Permitir firmantes
-    const isOwner = minuta.usuario_id === userId;
-    const hasProjectAccess = minuta.proyecto ? userPermissions.projectIds.includes(minuta.proyecto) : false;
+    const isOwner = minuta.UsuarioId === userId;
+    const hasProjectAccess = minuta.Proyecto ? userPermissions.projectIds.includes(minuta.Proyecto) : false;
 
     // Explicit bypass for global admins
     const isGlobalAdmin = userPermissions.roles && userPermissions.roles.some(r => ['superadminmv', 'adminmv'].includes(r));
@@ -454,27 +454,27 @@ export class MinutasService {
     }
 
     // SEGURIDAD: Validar version para optimistic locking
-    if (updateMinutaDto.version !== undefined && updateMinutaDto.version !== minuta.version) {
+    if (updateMinutaDto.version !== undefined && updateMinutaDto.version !== minuta.Version) {
       throw new ConflictException(
         `La minuta ha sido modificada por otro usuario. Por favor, recarga la página y vuelve a intentar.`
       );
     }
 
     // Validar transición de estado si se está cambiando
-    if (updateMinutaDto.estado && updateMinutaDto.estado !== minuta.estado) {
+    if (updateMinutaDto.estado && updateMinutaDto.estado !== minuta.Estado) {
       // Normalizar estados a minúsculas para validación
-      const estadoActual = normalizeEstado(minuta.estado);
+      const estadoActual = normalizeEstado(minuta.Estado);
       const estadoNuevo = normalizeEstado(updateMinutaDto.estado);
 
       const validTransitions = VALID_STATE_TRANSITIONS[estadoActual];
 
       if (!validTransitions) {
-        throw new BadRequestException(`Estado actual '${minuta.estado}' no es válido`);
+        throw new BadRequestException(`Estado actual '${minuta.Estado}' no es válido`);
       }
 
       if (!validTransitions.includes(estadoNuevo)) {
         throw new BadRequestException(
-          `Transición de estado inválida: '${minuta.estado}' → '${updateMinutaDto.estado}'. ` +
+          `Transición de estado inválida: '${minuta.Estado}' → '${updateMinutaDto.estado}'. ` +
           `Transiciones válidas: ${validTransitions.join(', ')}`
         );
       }
@@ -503,7 +503,7 @@ export class MinutasService {
       }
 
       // 📦 Actualizar estados de unidades según el nuevo estado de la minuta
-      const minutaData = minuta.datos as { unidades?: { id: string }[] };
+      const minutaData = minuta.Dato as { unidades?: { id: string }[] };
       const unidadIds = minutaData?.unidades?.map((u) => u.id).filter(Boolean) || [];
 
       if (unidadIds.length > 0) {
@@ -513,9 +513,9 @@ export class MinutasService {
 
           // Limpiar el cliente interesado de los detalles de venta
           for (const unidadId of unidadIds) {
-            await this.prisma.detallesventa.updateMany({
-              where: { unidad_id: unidadId },
-              data: { clienteInteresado: null },
+            await this.prisma.detallesVenta.updateMany({
+              where: { UnidadId: unidadId },
+              data: { ClienteInteresado: null },
             });
           }
         }
@@ -550,9 +550,9 @@ export class MinutasService {
           estado = COALESCE(${sanitizedData.estado}, estado),
           comentarios = COALESCE(${sanitizedData.comentarios}, comentarios),
           datos = COALESCE(${datosJson}::jsonb, datos),
-          version = ${minuta.version + 1},
+          version = ${minuta.Version + 1},
           updated_at = NOW()
-        WHERE id = ${id}::uuid AND version = ${minuta.version}
+        WHERE id = ${id}::uuid AND version = ${minuta.Version}
       `;
 
       if (result === 0) {
@@ -571,30 +571,30 @@ export class MinutasService {
     }
 
     // ⚡ OPTIMIZACIÓN: Retornar solo campos necesarios
-    const updatedMinuta = await this.prisma.minutas_definitivas.findUnique({
-      where: { id },
+    const updatedMinuta = await this.prisma.minutasDefinitivas.findUnique({
+      where: { Id: id },
       select: {
-        id: true,
-        proyecto: true,
-        estado: true,
-        comentarios: true,
-        fecha_creacion: true,
-        updated_at: true,
-        version: true,
-        usuario_id: true, // Necesario para WebSocket
+        Id: true,
+        Proyecto: true,
+        Estado: true,
+        Comentario: true,
+        FechaCreacion: true,
+        UpdatedAt: true,
+        Version: true,
+        UsuarioId: true, // Necesario para WebSocket
         users: { select: { email: true } },
-        proyectos: { select: { nombre: true } },
+        Proyectos: { select: { Nombre: true } },
       },
     });
 
     // 📡 Emitir evento WebSocket si cambió el estado
-    if (this.gateway && updateMinutaDto.estado && updateMinutaDto.estado !== minuta.estado) {
+    if (this.gateway && updateMinutaDto.estado && updateMinutaDto.estado !== minuta.Estado) {
       this.gateway.emitMinutaStateChanged({
         minutaId: id,
-        proyecto: updatedMinuta?.proyecto || undefined,
+        proyecto: updatedMinuta?.Proyecto || undefined,
         estado: updateMinutaDto.estado,
         // 🔒 SEGURIDAD: usuarioId eliminado para no exponer IDs internos
-        // usuarioId: minuta.usuario_id, 
+        // usuarioId: minuta.UsuarioId, 
       });
 
       // 📝 AUDIT LOG: Cambio de Estado
@@ -608,7 +608,7 @@ export class MinutasService {
 
       await this.logger.agregarLog({
         motivo: 'Cambio de Estado de Minuta',
-        descripcion: `Estado cambiado de '${minuta.estado}' a '${updateMinutaDto.estado}'.`,
+        descripcion: `Estado cambiado de '${minuta.Estado}' a '${updateMinutaDto.estado}'.`,
         impacto: impacto,
         tablaafectada: 'minutas_definitivas',
         usuarioID: userId,
@@ -616,13 +616,13 @@ export class MinutasService {
       });
     }
 
-    // 🔒 SEGURIDAD: Eliminar usuario_id de la respuesta
+    // 🔒 SEGURIDAD: Eliminar UsuarioId de la respuesta
     if (updatedMinuta) {
-      const { usuario_id: _, ...safeMinuta } = updatedMinuta;
+      const { UsuarioId: _, ...safeMinuta } = updatedMinuta;
 
       // 🔒 SEGURIDAD: Enmascarar email
-      if (safeMinuta.users) {
-        safeMinuta.users.email = PrivacyHelpers.maskEmail(safeMinuta.users.email);
+      if ((safeMinuta as any).users) {
+        (safeMinuta as any).users.email = PrivacyHelpers.maskEmail((safeMinuta as any).users.email);
       }
 
       return safeMinuta;
@@ -631,14 +631,14 @@ export class MinutasService {
   }
 
   private async getUserPermissions(userId: string) {
-    const userRoles = await this.prisma.usuarios_roles.findMany({
-      where: { idusuario: userId },
+    const userRoles = await this.prisma.usuariosRoles.findMany({
+      where: { IdUsuario: userId },
       include: {
-        roles: {
+        Roles: {
           include: {
-            roles_permisos: {
+            RolesPermisos: {
               include: {
-                permisos: true,
+                Permisos: true,
               },
             },
           },
@@ -647,7 +647,7 @@ export class MinutasService {
     });
 
     const permissions = userRoles.flatMap(ur =>
-      ur.roles.roles_permisos.map(rp => rp.permisos)
+      ur.Roles.RolesPermisos.map(rp => rp.Permisos)
     );
 
     return permissions;
@@ -657,8 +657,8 @@ export class MinutasService {
     // Validar propiedad antes de eliminar
     await this.findOne(id, userId);
 
-    const deletedMinuta = await this.prisma.minutas_definitivas.delete({
-      where: { id },
+    const deletedMinuta = await this.prisma.minutasDefinitivas.delete({
+      where: { Id: id },
     });
 
     // 📝 AUDIT LOG: Eliminación de minuta

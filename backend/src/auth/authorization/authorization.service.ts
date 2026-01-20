@@ -15,8 +15,8 @@ export class AuthorizationService {
     async isOrganizationOwner(userId: string, orgId: string): Promise<boolean> {
         // Obtener ID del rol superadminmv
         const superAdminRole = await this.prisma.roles.findFirst({
-            where: { nombre: 'superadminmv' },
-            select: { id: true },
+            where: { Nombre: 'superadminmv' },
+            select: { Id: true },
         });
 
         if (!superAdminRole) {
@@ -24,11 +24,11 @@ export class AuthorizationService {
         }
 
         // Verificar si el usuario tiene rol superadminmv en esta org
-        const userOrgRole = await this.prisma.usuarios_organizaciones.findFirst({
+        const userOrgRole = await this.prisma.usuariosOrganizaciones.findFirst({
             where: {
-                userid: userId,
-                idorg: orgId,
-                idrol: superAdminRole.id,
+                UserId: userId,
+                IdOrg: orgId,
+                IdRol: superAdminRole.Id,
             },
         });
 
@@ -42,17 +42,17 @@ export class AuthorizationService {
         userId: string,
         projectId: string,
     ): Promise<string | null> {
-        const userProject = await this.prisma.usuarios_proyectos.findFirst({
+        const userProject = await this.prisma.usuariosProyectos.findFirst({
             where: {
-                idusuario: userId,
-                idproyecto: projectId,
+                IdUsuario: userId,
+                IdProyecto: projectId,
             },
             include: {
-                roles: true,
+                Roles: true,
             },
         });
 
-        return userProject?.roles.nombre || null;
+        return userProject?.Roles.Nombre || null;
     }
 
     /**
@@ -88,38 +88,38 @@ export class AuthorizationService {
         const projectIds = new Set<string>();
 
         // 1. Obtener proyectos donde está directamente asignado (usuarios-proyectos)
-        const directProjects = await this.prisma.usuarios_proyectos.findMany({
-            where: { idusuario: userId },
-            select: { idproyecto: true },
+        const directProjects = await this.prisma.usuariosProyectos.findMany({
+            where: { IdUsuario: userId },
+            select: { IdProyecto: true },
         });
 
-        directProjects.forEach(p => projectIds.add(p.idproyecto));
+        directProjects.forEach(p => projectIds.add(p.IdProyecto));
 
         // 2. Verificar si es SuperAdminMV en alguna organización
         // Primero obtener el ID del rol superadminmv
         const superAdminRole = await this.prisma.roles.findFirst({
-            where: { nombre: 'superadminmv' },
-            select: { id: true },
+            where: { Nombre: 'superadminmv' },
+            select: { Id: true },
         });
 
         if (superAdminRole) {
             // Obtener organizaciones donde tiene rol superadminmv
-            const superAdminOrgs = await this.prisma.usuarios_organizaciones.findMany({
+            const superAdminOrgs = await this.prisma.usuariosOrganizaciones.findMany({
                 where: {
-                    userid: userId,
-                    idrol: superAdminRole.id
+                    UserId: userId,
+                    IdRol: superAdminRole.Id
                 },
-                select: { idorg: true },
+                select: { IdOrg: true },
             });
 
             // Para cada org donde es superadmin, agregar TODOS sus proyectos
             for (const org of superAdminOrgs) {
                 const orgProjects = await this.prisma.proyectos.findMany({
-                    where: { id_org: org.idorg },
-                    select: { id: true },
+                    where: { IdOrg: org.IdOrg },
+                    select: { Id: true },
                 });
 
-                orgProjects.forEach(p => projectIds.add(p.id));
+                orgProjects.forEach(p => projectIds.add(p.Id));
             }
         }
 
@@ -139,18 +139,18 @@ export class AuthorizationService {
 
         const projects = await this.prisma.proyectos.findMany({
             where: {
-                id: {
+                Id: {
                     in: projectIds,
                 },
             },
             select: {
-                id: true,
-                nombre: true,
-                created_at: true,
-                id_org: true,
+                Id: true,
+                Nombre: true,
+                CreatedAt: true,
+                IdOrg: true,
             },
             orderBy: {
-                nombre: 'asc',
+                Nombre: 'asc',
             },
         });
 
@@ -165,15 +165,15 @@ export class AuthorizationService {
     async canAccessProject(userId: string, projectId: string): Promise<boolean> {
         // Verificar si es owner de la organización
         const proyecto = await this.prisma.proyectos.findUnique({
-            where: { id: projectId },
-            select: { id_org: true },
+            where: { Id: projectId },
+            select: { IdOrg: true },
         });
 
         // Si tiene id_org, verificar si es owner de esa organización
-        if (proyecto?.id_org) {
+        if (proyecto?.IdOrg) {
             const isOwner = await this.isOrganizationOwner(
                 userId,
-                proyecto.id_org,  // Ya es string UUID
+                proyecto.IdOrg,  // Ya es string UUID
             );
             if (isOwner) {
                 return true;
@@ -196,18 +196,18 @@ export class AuthorizationService {
         if (!userRole) return [];
 
         const roleWithPerms = await this.prisma.roles.findFirst({
-            where: { nombre: userRole },
+            where: { Nombre: userRole },
             include: {
-                roles_permisos: {
+                RolesPermisos: {
                     include: {
-                        permisos: true,
+                        Permisos: true,
                     },
                 },
             },
         });
 
         return (
-            roleWithPerms?.roles_permisos.map((rp) => rp.permisos.nombre || '') ||
+            roleWithPerms?.RolesPermisos.map((rp) => rp.Permisos.Nombre || '') ||
             []
         );
     }
@@ -217,17 +217,17 @@ export class AuthorizationService {
      */
     async getUserAccessInfo(userId: string) {
         const profile = await this.prisma.profiles.findUnique({
-            where: { id: userId },
+            where: { Id: userId },
             include: {
-                usuarios_roles: {
+                UsuariosRoles: {
                     include: {
-                        roles: true,
+                        Roles: true,
                     },
                 },
-                usuarios_proyectos: {
+                UsuariosProyectos: {
                     include: {
-                        proyectos: true,
-                        roles: true,
+                        Proyectos: true,
+                        Roles: true,
                     },
                 },
             },
@@ -249,55 +249,55 @@ export class AuthorizationService {
     ): Promise<{ success: boolean; message: string }> {
         // 1. Verificar que el proyecto existe y obtener su organización
         const project = await this.prisma.proyectos.findUnique({
-            where: { id: projectId },
-            select: { id_org: true },
+            where: { Id: projectId },
+            select: { IdOrg: true },
         });
 
-        if (!project || !project.id_org) {
+        if (!project || !project.IdOrg) {
             throw new Error('Proyecto no encontrado o no pertenece a una organización');
         }
 
         // 2. Verificar que quien asigna es owner de la organización
-        const isOwner = await this.isOrganizationOwner(assignedBy, project.id_org);
+        const isOwner = await this.isOrganizationOwner(assignedBy, project.IdOrg);
         if (!isOwner) {
             throw new Error('Solo el owner de la organización puede asignar usuarios a proyectos');
         }
 
         // 3. Asignar usuario al proyecto (usuarios-proyectos)
-        await this.prisma.usuarios_proyectos.upsert({
+        await this.prisma.usuariosProyectos.upsert({
             where: {
-                idusuario_idproyecto_idrol: {
-                    idusuario: userId,
-                    idproyecto: projectId,
-                    idrol: roleId,
+                IdUsuario_IdProyecto_IdRol: {
+                    IdUsuario: userId,
+                    IdProyecto: projectId,
+                    IdRol: roleId,
                 },
             },
             create: {
-                idusuario: userId,
-                idproyecto: projectId,
-                idrol: roleId,
+                IdUsuario: userId,
+                IdProyecto: projectId,
+                IdRol: roleId,
             },
             update: {
                 // Si ya existe, no hace nada más que actualizar el timestamp
-                created_at: new Date(),
+                CreatedAt: new Date(),
             },
         });
 
         // 4. Automáticamente agregar a usuarios-organizaciones si no está
-        const existsInOrg = await this.prisma.usuarios_organizaciones.findFirst({
+        const existsInOrg = await this.prisma.usuariosOrganizaciones.findFirst({
             where: {
-                userid: userId,
-                idorg: project.id_org,
+                UserId: userId,
+                IdOrg: project.IdOrg,
             },
         });
 
         if (!existsInOrg) {
             // Agregar como miembro con el mismo rol que tiene en el proyecto
-            await this.prisma.usuarios_organizaciones.create({
+            await this.prisma.usuariosOrganizaciones.create({
                 data: {
-                    userid: userId,
-                    idorg: project.id_org,
-                    idrol: roleId,
+                    UserId: userId,
+                    IdOrg: project.IdOrg,
+                    IdRol: roleId,
                 },
             });
         }

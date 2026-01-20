@@ -20,29 +20,29 @@ export class PrismaMinutasRepository implements IMinutasRepository {
     constructor(private readonly prisma: PrismaService) { }
 
     async findAll(filter?: Record<string, unknown>): Promise<MinutaEntity[]> {
-        const result = await this.prisma.minutas_definitivas.findMany({
+        const result = await this.prisma.minutasDefinitivas.findMany({
             where: filter as any,
-            orderBy: { fecha_creacion: 'desc' },
+            orderBy: { FechaCreacion: 'desc' },
         });
         return result as unknown as MinutaEntity[];
     }
 
     async findById(id: string): Promise<MinutaEntity | null> {
-        const result = await this.prisma.minutas_definitivas.findUnique({
-            where: { id },
+        const result = await this.prisma.minutasDefinitivas.findUnique({
+            where: { Id: id },
         });
         return result as unknown as MinutaEntity | null;
     }
 
     async findByIdWithRelations(id: string): Promise<MinutaWithRelations | null> {
-        const result = await this.prisma.minutas_definitivas.findUnique({
-            where: { id },
+        const result = await this.prisma.minutasDefinitivas.findUnique({
+            where: { Id: id },
             include: {
                 users: {
                     select: { email: true },
                 },
-                proyectos: {
-                    select: { nombre: true },
+                Proyectos: {
+                    select: { Nombre: true },
                 },
             },
         });
@@ -51,24 +51,24 @@ export class PrismaMinutasRepository implements IMinutasRepository {
 
     async create(data: CreateMinutaDto & { usuario_id: string }): Promise<MinutaEntity> {
         const sanitizedData = {
-            comentarios: data.comentarios
+            Comentario: data.comentarios
                 ? sanitizeString(data.comentarios)
                 : undefined,
-            datos: sanitizeObject(data.datos),
-            datos_adicionales: data.datos_adicionales
+            Dato: sanitizeObject(data.datos),
+            DatoAdicional: data.datos_adicionales
                 ? sanitizeObject(data.datos_adicionales)
                 : undefined,
-            datos_mapa_ventas: data.datos_mapa_ventas
+            DatoMapaVenta: data.datos_mapa_ventas
                 ? sanitizeObject(data.datos_mapa_ventas)
                 : undefined,
-            estado: data.estado,
-            proyecto: data.proyecto,
-            usuario_id: data.usuario_id,
-            fecha_creacion: new Date(),
-            updated_at: new Date(),
+            Estado: data.estado,
+            Proyecto: data.proyecto,
+            UsuarioId: data.usuario_id,
+            FechaCreacion: new Date(),
+            UpdatedAt: new Date(),
         };
 
-        const result = await this.prisma.minutas_definitivas.create({
+        const result = await this.prisma.minutasDefinitivas.create({
             data: sanitizedData as any,
         });
         return result as unknown as MinutaEntity;
@@ -76,27 +76,27 @@ export class PrismaMinutasRepository implements IMinutasRepository {
 
     async update(id: string, data: UpdateMinutaDto): Promise<MinutaEntity> {
         const sanitizedData: Record<string, unknown> = {
-            updated_at: new Date(),
+            UpdatedAt: new Date(),
         };
 
         if (data.comentarios !== undefined) {
-            sanitizedData.comentarios = sanitizeString(data.comentarios);
+            sanitizedData.Comentario = sanitizeString(data.comentarios);
         }
         if (data.datos !== undefined) {
-            sanitizedData.datos = sanitizeObject(data.datos);
+            sanitizedData.Dato = sanitizeObject(data.datos);
         }
         if (data.datos_adicionales !== undefined) {
-            sanitizedData.datos_adicionales = sanitizeObject(data.datos_adicionales);
+            sanitizedData.DatoAdicional = sanitizeObject(data.datos_adicionales);
         }
         if (data.datos_mapa_ventas !== undefined) {
-            sanitizedData.datos_mapa_ventas = sanitizeObject(data.datos_mapa_ventas);
+            sanitizedData.DatoMapaVenta = sanitizeObject(data.datos_mapa_ventas);
         }
         if (data.estado !== undefined) {
-            sanitizedData.estado = data.estado;
+            sanitizedData.Estado = data.estado;
         }
 
-        const result = await this.prisma.minutas_definitivas.update({
-            where: { id },
+        const result = await this.prisma.minutasDefinitivas.update({
+            where: { Id: id },
             data: sanitizedData as any,
         });
         return result as unknown as MinutaEntity;
@@ -121,13 +121,13 @@ export class PrismaMinutasRepository implements IMinutasRepository {
     }
 
     async delete(id: string): Promise<void> {
-        await this.prisma.minutas_definitivas.delete({
-            where: { id },
+        await this.prisma.minutasDefinitivas.delete({
+            where: { Id: id },
         });
     }
 
     async count(filter?: Record<string, unknown>): Promise<number> {
-        return this.prisma.minutas_definitivas.count({
+        return this.prisma.minutasDefinitivas.count({
             where: filter as any,
         });
     }
@@ -144,10 +144,10 @@ export class PrismaMinutasRepository implements IMinutasRepository {
         const skip = (page - 1) * limit;
 
         // Sort configuration
-        const allowedSortFields = ['fecha_creacion', 'updated_at', 'proyecto', 'estado'];
+        const allowedSortFields = ['FechaCreacion', 'UpdatedAt', 'Proyecto', 'Estado'];
         const sortBy = query.sortBy && allowedSortFields.includes(query.sortBy)
             ? query.sortBy
-            : 'fecha_creacion';
+            : 'FechaCreacion';
         const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
 
         // Permission-based filtering
@@ -155,7 +155,7 @@ export class PrismaMinutasRepository implements IMinutasRepository {
 
         if (canViewAll) {
             if (query.proyecto) {
-                where.proyecto = query.proyecto;
+                where.Proyecto = query.proyecto;
             }
         } else {
             if (userProjectIds.length === 0) {
@@ -164,18 +164,18 @@ export class PrismaMinutasRepository implements IMinutasRepository {
 
             if (query.proyecto) {
                 if (userProjectIds.includes(query.proyecto)) {
-                    where.proyecto = query.proyecto;
+                    where.Proyecto = query.proyecto;
                 } else {
                     return { data: [], total: 0, page, limit, totalPages: 0 };
                 }
             } else {
-                where.proyecto = { in: userProjectIds };
+                where.Proyecto = { in: userProjectIds };
             }
         }
 
         // Additional filters
-        if (query.usuario_id) where.usuario_id = query.usuario_id;
-        if (query.estado) where.estado = query.estado;
+        if (query.usuario_id) where.UsuarioId = query.usuario_id;
+        if (query.estado) where.Estado = query.estado;
 
         // Date filters
         if (query.fechaDesde || query.fechaHasta) {
@@ -197,13 +197,13 @@ export class PrismaMinutasRepository implements IMinutasRepository {
                 fechaFilter.lte = fecha;
             }
 
-            where.fecha_creacion = fechaFilter;
+            where.FechaCreacion = fechaFilter;
         }
 
         // Execute queries in parallel
         const [total, minutas] = await Promise.all([
-            this.prisma.minutas_definitivas.count({ where: where as any }),
-            this.prisma.minutas_definitivas.findMany({
+            this.prisma.minutasDefinitivas.count({ where: where as any }),
+            this.prisma.minutasDefinitivas.findMany({
                 where: where as any,
                 orderBy: { [sortBy]: sortOrder },
                 take: limit,
@@ -212,8 +212,8 @@ export class PrismaMinutasRepository implements IMinutasRepository {
                     users: {
                         select: { email: true },
                     },
-                    proyectos: {
-                        select: { nombre: true },
+                    Proyectos: {
+                        select: { Nombre: true },
                     },
                 },
             }),
@@ -229,17 +229,17 @@ export class PrismaMinutasRepository implements IMinutasRepository {
     }
 
     async findByUsuario(usuarioId: string): Promise<MinutaEntity[]> {
-        const result = await this.prisma.minutas_definitivas.findMany({
-            where: { usuario_id: usuarioId },
-            orderBy: { fecha_creacion: 'desc' },
+        const result = await this.prisma.minutasDefinitivas.findMany({
+            where: { UsuarioId: usuarioId },
+            orderBy: { FechaCreacion: 'desc' },
         });
         return result as unknown as MinutaEntity[];
     }
 
     async findByProyecto(proyectoId: string): Promise<MinutaEntity[]> {
-        const result = await this.prisma.minutas_definitivas.findMany({
-            where: { proyecto: proyectoId },
-            orderBy: { fecha_creacion: 'desc' },
+        const result = await this.prisma.minutasDefinitivas.findMany({
+            where: { Proyecto: proyectoId },
+            orderBy: { FechaCreacion: 'desc' },
         });
         return result as unknown as MinutaEntity[];
     }

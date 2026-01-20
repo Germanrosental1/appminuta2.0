@@ -22,14 +22,14 @@ export class AuthLoggerService {
         userAgent?: string,
     ): Promise<void> {
         try {
-            await this.prisma.auth_logs.create({
+            await this.prisma.authLogs.create({
                 data: {
-                    user_id: userId,
-                    email,
-                    event_type: eventType,
-                    timestamp: new Date(),
-                    details: details ? structuredClone(details) : null,
-                    user_agent: userAgent,
+                    UserId: userId,
+                    Email: email,
+                    EventType: eventType,
+                    Timestamp: new Date(),
+                    Detail: details ? structuredClone(details) : null,
+                    UserAgent: userAgent,
                 },
             });
 
@@ -55,20 +55,20 @@ export class AuthLoggerService {
      */
     async getRecentAuthEvents(userId: string, limit: number = 5) {
         try {
-            const events = await this.prisma.auth_logs.findMany({
+            const events = await this.prisma.authLogs.findMany({
                 where: {
-                    user_id: userId,
+                    UserId: userId,
                 },
                 orderBy: {
-                    timestamp: 'desc',
+                    Timestamp: 'desc',
                 },
                 take: limit,
                 select: {
-                    id: true,
-                    event_type: true,
-                    timestamp: true,
-                    details: true,
-                    user_agent: true,
+                    Id: true,
+                    EventType: true,
+                    Timestamp: true,
+                    Detail: true,
+                    UserAgent: true,
                 },
             });
 
@@ -89,16 +89,16 @@ export class AuthLoggerService {
             const oneHourAgo = new Date();
             oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
-            const recentLogins = await this.prisma.auth_logs.findMany({
+            const recentLogins = await this.prisma.authLogs.findMany({
                 where: {
-                    user_id: userId,
-                    event_type: AuthEventType.LOGIN_SUCCESS,
-                    timestamp: {
+                    UserId: userId,
+                    EventType: AuthEventType.LOGIN_SUCCESS,
+                    Timestamp: {
                         gte: oneHourAgo,
                     },
                 },
                 orderBy: {
-                    timestamp: 'desc',
+                    Timestamp: 'desc',
                 },
             });
 

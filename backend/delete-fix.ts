@@ -8,23 +8,23 @@ async function deleteProject(projectId: string) {
     try {
         await prisma.$transaction(async (tx) => {
             // Edificios
-            const edificios = await tx.edificios.findMany({ where: { proyecto_id: projectId } });
-            const edificioIds = edificios.map(e => e.id);
+            const edificios = await tx.edificios.findMany({ where: { ProyectoId: projectId } });
+            const edificioIds = edificios.map(e => e.Id);
 
             // Unidades
-            const unidades = await tx.unidades.findMany({ where: { edificio_id: { in: edificioIds } } });
-            const unidadIds = unidades.map(u => u.id);
+            const unidades = await tx.unidades.findMany({ where: { EdificioId: { in: edificioIds } } });
+            const unidadIds = unidades.map(u => u.Id);
 
             // Details
-            await tx.detallesventa.deleteMany({ where: { unidad_id: { in: unidadIds } } });
-            await tx.unidadesmetricas.deleteMany({ where: { unidad_id: { in: unidadIds } } });
+            await tx.detallesVenta.deleteMany({ where: { UnidadId: { in: unidadIds } } });
+            await tx.unidadesMetricas.deleteMany({ where: { UnidadId: { in: unidadIds } } });
 
             // Units & Buildings
-            await tx.unidades.deleteMany({ where: { id: { in: unidadIds } } });
-            await tx.edificios.deleteMany({ where: { id: { in: edificioIds } } });
+            await tx.unidades.deleteMany({ where: { Id: { in: unidadIds } } });
+            await tx.edificios.deleteMany({ where: { Id: { in: edificioIds } } });
 
             // Project
-            await tx.proyectos.delete({ where: { id: projectId } });
+            await tx.proyectos.delete({ where: { Id: projectId } });
         });
         console.log('Deleted successfully.');
     } catch (e) {

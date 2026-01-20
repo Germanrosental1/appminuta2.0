@@ -12,7 +12,7 @@ export class ClientesController {
         // Serialize BigInt to number for JSON response
         return {
             ...result,
-            dni: result.dni ? Number(result.dni) : null
+            dni: result.Dni ? Number(result.Dni) : null
         };
     }
 
@@ -22,7 +22,7 @@ export class ClientesController {
         // Serialize BigInt to number for JSON response
         return clientes.map(c => ({
             ...c,
-            dni: c.dni ? Number(c.dni) : null
+            dni: c.Dni ? Number(c.Dni) : null
         }));
     }
 
@@ -32,7 +32,7 @@ export class ClientesController {
         // Serialize BigInt to number for JSON response
         return {
             ...cliente,
-            dni: cliente.dni ? Number(cliente.dni) : null
+            dni: cliente.Dni ? Number(cliente.Dni) : null
         };
     }
 }

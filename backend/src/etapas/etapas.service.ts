@@ -25,7 +25,7 @@ export class EtapasService {
     async create(createEtapaDto: CreateEtapaDto) {
         try {
             const result = await this.prisma.etapas.create({
-                data: createEtapaDto,
+                data: { Nombre: createEtapaDto.nombre },
             });
             await this.invalidateCache(); // Invalidar cache al crear
             return result;
@@ -49,7 +49,7 @@ export class EtapasService {
 
         // Si no está en cache, consultar DB y guardar
         const data = await this.prisma.etapas.findMany({
-            orderBy: { nombre: 'asc' },
+            orderBy: { Nombre: 'asc' },
         });
 
         await this.cacheManager.set(CACHE_KEY, data);
@@ -58,13 +58,13 @@ export class EtapasService {
 
     async findOne(id: string) {
         const etapa = await this.prisma.etapas.findUnique({
-            where: { id },
+            where: { Id: id },
             include: {
-                unidades: {
+                Unidades: {
                     select: {
-                        id: true,
-                        sectorid: true,
-                        nrounidad: true,
+                        Id: true,
+                        SectorId: true,
+                        NroUnidad: true,
                     },
                 },
             },
@@ -80,8 +80,8 @@ export class EtapasService {
     async update(id: string, updateEtapaDto: UpdateEtapaDto) {
         try {
             return await this.prisma.etapas.update({
-                where: { id },
-                data: updateEtapaDto,
+                where: { Id: id },
+                data: { Nombre: updateEtapaDto.nombre },
             }).then(async (result) => {
                 await this.invalidateCache();
                 return result;
@@ -104,7 +104,7 @@ export class EtapasService {
     async remove(id: string) {
         try {
             return await this.prisma.etapas.delete({
-                where: { id },
+                where: { Id: id },
             }).then(async (result) => {
                 await this.invalidateCache();
                 return result;

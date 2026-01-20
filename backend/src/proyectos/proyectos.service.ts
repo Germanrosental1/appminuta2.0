@@ -10,7 +10,7 @@ export class ProyectosService {
     async create(createProyectoDto: CreateProyectoDto) {
         // Verificar que no exista un proyecto con el mismo nombre
         const existing = await this.prisma.proyectos.findUnique({
-            where: { nombre: createProyectoDto.nombre },
+            where: { Nombre: createProyectoDto.nombre },
         });
 
         if (existing) {
@@ -21,13 +21,13 @@ export class ProyectosService {
 
         return this.prisma.proyectos.create({
             data: {
-                nombre: createProyectoDto.nombre,
-                tabla_nombre: createProyectoDto.tabla_nombre,
-                descripcion: createProyectoDto.descripcion,
-                direccion: createProyectoDto.direccion,
-                localidad: createProyectoDto.localidad,
-                provincia: createProyectoDto.provincia,
-                activo: createProyectoDto.activo ?? true,
+                Nombre: createProyectoDto.nombre,
+                TablaNombre: createProyectoDto.tabla_nombre,
+                Descripcion: createProyectoDto.descripcion,
+                Direccion: createProyectoDto.direccion,
+                Localidad: createProyectoDto.localidad,
+                Provincia: createProyectoDto.provincia,
+                Activo: createProyectoDto.activo ?? true,
             },
         });
     }
@@ -36,18 +36,18 @@ export class ProyectosService {
         // ⚡ OPTIMIZACIÓN: Seleccionar solo campos necesarios
         // Reducción: 50% menos datos transferidos
         const proyectos = await this.prisma.proyectos.findMany({
-            where: { activo: true },
+            where: { Activo: true },
             select: {
-                id: true,
-                nombre: true,
-                descripcion: true,
-                naturaleza: true,
-                direccion: true,
-                localidad: true,
-                provincia: true,
-                iva: true,
+                Id: true,
+                Nombre: true,
+                Descripcion: true,
+                Naturaleza: true,
+                Direccion: true,
+                Localidad: true,
+                Provincia: true,
+                Iva: true,
             },
-            orderBy: { nombre: 'asc' },
+            orderBy: { Nombre: 'asc' },
         });
 
         return proyectos;
@@ -59,12 +59,12 @@ export class ProyectosService {
         // Helper function to add projects with organization
         const addProjectsWithOrg = (projects: any[]) => {
             for (const p of projects) {
-                if (!projectsMap.has(p.id)) {
-                    // Rename 'organizaciones' to 'organizacion' for frontend compatibility
-                    const { organizaciones, ...rest } = p;
-                    projectsMap.set(p.id, {
+                if (!projectsMap.has(p.Id)) {
+                    // Rename 'Organizaciones' to 'organizacion' for frontend compatibility
+                    const { Organizaciones, ...rest } = p;
+                    projectsMap.set(p.Id, {
                         ...rest,
-                        organizacion: organizaciones || null,
+                        organizacion: Organizaciones || null,
                     });
                 }
             }
@@ -72,32 +72,32 @@ export class ProyectosService {
 
         // Project select fields including organization
         const projectSelect = {
-            id: true,
-            nombre: true,
-            descripcion: true,
-            naturaleza: true,
-            direccion: true,
-            localidad: true,
-            provincia: true,
-            activo: true,
-            iva: true,
-            id_org: true,
-            created_at: true,
-            organizaciones: {
+            Id: true,
+            Nombre: true,
+            Descripcion: true,
+            Naturaleza: true,
+            Direccion: true,
+            Localidad: true,
+            Provincia: true,
+            Activo: true,
+            Iva: true,
+            IdOrg: true,
+            CreatedAt: true,
+            Organizaciones: {
                 select: {
-                    id: true,
-                    nombre: true,
+                    Id: true,
+                    Nombre: true,
                 },
             },
         };
 
         // ⚡ OPTIMIZATION: Run independent queries in parallel
         const [directProjects, roles] = await Promise.all([
-            // 1. Get projects directly assigned via usuarios_proyectos
-            this.prisma.usuarios_proyectos.findMany({
-                where: { idusuario: userId },
+            // 1. Get projects directly assigned via usuariosProyectos
+            this.prisma.usuariosProyectos.findMany({
+                where: { IdUsuario: userId },
                 select: {
-                    proyectos: {
+                    Proyectos: {
                         select: projectSelect,
                     },
                 },
@@ -105,67 +105,67 @@ export class ProyectosService {
             // 2. Get superadminmv and adminmv role IDs in one query
             this.prisma.roles.findMany({
                 where: {
-                    nombre: { in: ['superadminmv', 'adminmv'] }
+                    Nombre: { in: ['superadminmv', 'adminmv'] }
                 },
-                select: { id: true },
+                select: { Id: true },
             })
         ]);
 
         // Process direct projects
         for (const up of directProjects) {
-            if (up.proyectos && up.proyectos.activo) {
-                addProjectsWithOrg([up.proyectos]);
+            if (up.Proyectos && up.Proyectos.Activo) {
+                addProjectsWithOrg([up.Proyectos]);
             }
         }
 
         // Process Organization Projects (if user has admin roles)
-        const roleIds = roles.map(r => r.id);
+        const roleIds = roles.map(r => r.Id);
 
         if (roleIds.length > 0) {
-            // New Step: Check if user has these roles GLOBALLY (in usuarios_roles)
+            // New Step: Check if user has these roles GLOBALLY (in usuariosRoles)
             // If so, they are Super Admins for the entire system, not just an org.
-            const globalAdminRole = await this.prisma.usuarios_roles.findFirst({
+            const globalAdminRole = await this.prisma.usuariosRoles.findFirst({
                 where: {
-                    idusuario: userId,
-                    idrol: { in: roleIds } // Any of the admin roles
+                    IdUsuario: userId,
+                    IdRol: { in: roleIds } // Any of the admin roles
                 }
             });
 
             if (globalAdminRole) {
                 // User is a Global Admin -> See ALL Active Projects
                 const allProjects = await this.prisma.proyectos.findMany({
-                    where: { activo: true },
+                    where: { Activo: true },
                     select: projectSelect,
                 });
                 for (const p of allProjects) {
-                    if (!projectsMap.has(p.id)) {
-                        // Rename 'organizaciones' to 'organizacion' for frontend compatibility
-                        const { organizaciones, ...rest } = p;
-                        projectsMap.set(p.id, {
+                    if (!projectsMap.has(p.Id)) {
+                        // Rename 'Organizaciones' to 'organizacion' for frontend compatibility
+                        const { Organizaciones, ...rest } = p;
+                        projectsMap.set(p.Id, {
                             ...rest,
-                            organizacion: organizaciones || null,
+                            organizacion: Organizaciones || null,
                         });
                     }
                 }
             } else {
                 // Fallback: Org-based Admin
                 // 3. Get all distinct organizations where user has ANY of the admin roles
-                const userOrgs = await this.prisma.usuarios_organizaciones.findMany({
+                const userOrgs = await this.prisma.usuariosOrganizaciones.findMany({
                     where: {
-                        userid: userId,
-                        idrol: { in: roleIds },
+                        UserId: userId,
+                        IdRol: { in: roleIds },
                     },
-                    select: { idorg: true },
+                    select: { IdOrg: true },
                 });
 
-                const orgIds = [...new Set(userOrgs.map(uo => uo.idorg))]; // Ensure uniqueness
+                const orgIds = [...new Set(userOrgs.map(uo => uo.IdOrg))]; // Ensure uniqueness
 
                 if (orgIds.length > 0) {
                     // 4. Fetch all active projects for these organizations in a SINGLE query
                     const orgProjects = await this.prisma.proyectos.findMany({
                         where: {
-                            id_org: { in: orgIds },
-                            activo: true,
+                            IdOrg: { in: orgIds },
+                            Activo: true,
                         },
                         select: projectSelect,
                     });
@@ -176,16 +176,16 @@ export class ProyectosService {
         }
 
         return Array.from(projectsMap.values()).sort((a, b) =>
-            a.nombre.localeCompare(b.nombre)
+            a.Nombre.localeCompare(b.Nombre)
         );
     }
 
     async findOne(id: string) {
         const proyecto = await this.prisma.proyectos.findUnique({
-            where: { id },
+            where: { Id: id },
             include: {
-                naturalezas: true,
-                edificios: true,
+                Naturalezas: true,
+                Edificios: true,
             },
         });
 
@@ -198,17 +198,17 @@ export class ProyectosService {
 
     async findByName(nombre: string) {
         const proyecto = await this.prisma.proyectos.findUnique({
-            where: { nombre },
+            where: { Nombre: nombre },
             select: {
-                id: true,
-                nombre: true,
-                descripcion: true,
-                naturaleza: true,
-                direccion: true,
-                localidad: true,
-                provincia: true,
-                activo: true,
-                iva: true,
+                Id: true,
+                Nombre: true,
+                Descripcion: true,
+                Naturaleza: true,
+                Direccion: true,
+                Localidad: true,
+                Provincia: true,
+                Activo: true,
+                Iva: true,
             },
         });
 
@@ -227,8 +227,8 @@ export class ProyectosService {
         if (updateProyectoDto.nombre) {
             const duplicate = await this.prisma.proyectos.findFirst({
                 where: {
-                    nombre: updateProyectoDto.nombre,
-                    id: { not: id },
+                    Nombre: updateProyectoDto.nombre,
+                    Id: { not: id },
                 },
             });
 
@@ -239,12 +239,19 @@ export class ProyectosService {
             }
         }
 
+        const updateData: any = {};
+        if (updateProyectoDto.nombre !== undefined) updateData.Nombre = updateProyectoDto.nombre;
+        if (updateProyectoDto.tabla_nombre !== undefined) updateData.TablaNombre = updateProyectoDto.tabla_nombre;
+        if (updateProyectoDto.descripcion !== undefined) updateData.Descripcion = updateProyectoDto.descripcion;
+        if (updateProyectoDto.direccion !== undefined) updateData.Direccion = updateProyectoDto.direccion;
+        if (updateProyectoDto.localidad !== undefined) updateData.Localidad = updateProyectoDto.localidad;
+        if (updateProyectoDto.provincia !== undefined) updateData.Provincia = updateProyectoDto.provincia;
+        if (updateProyectoDto.activo !== undefined) updateData.Activo = updateProyectoDto.activo;
+        updateData.UpdatedAt = new Date();
+
         return this.prisma.proyectos.update({
-            where: { id },
-            data: {
-                ...updateProyectoDto,
-                updated_at: new Date(),
-            },
+            where: { Id: id },
+            data: updateData,
         });
     }
 
@@ -254,10 +261,10 @@ export class ProyectosService {
 
         // Soft delete - marcar como inactivo en vez de eliminar
         return this.prisma.proyectos.update({
-            where: { id },
+            where: { Id: id },
             data: {
-                activo: false,
-                updated_at: new Date(),
+                Activo: false,
+                UpdatedAt: new Date(),
             },
         });
     }

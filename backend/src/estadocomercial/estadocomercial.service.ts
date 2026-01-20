@@ -24,8 +24,8 @@ export class EstadoComercialService {
 
     async create(createEstadoComercialDto: CreateEstadoComercialDto) {
         try {
-            const result = await this.prisma.estadocomercial.create({
-                data: createEstadoComercialDto,
+            const result = await this.prisma.estadoComercial.create({
+                data: { NombreEstado: createEstadoComercialDto.nombreestado },
             });
             await this.invalidateCache();
             return result;
@@ -46,21 +46,21 @@ export class EstadoComercialService {
         const cached = await this.cacheManager.get(CACHE_KEY);
         if (cached) return cached;
 
-        const data = await this.prisma.estadocomercial.findMany({
-            orderBy: { nombreestado: 'asc' },
+        const data = await this.prisma.estadoComercial.findMany({
+            orderBy: { NombreEstado: 'asc' },
         });
         await this.cacheManager.set(CACHE_KEY, data);
         return data;
     }
 
     async findOne(id: string) {
-        const estado = await this.prisma.estadocomercial.findUnique({
-            where: { id },
+        const estado = await this.prisma.estadoComercial.findUnique({
+            where: { Id: id },
             include: {
-                detallesventa: {
+                DetallesVenta: {
                     include: {
-                        unidades_detallesventa_unidad_idTounidades: {
-                            select: { id: true, sectorid: true, nrounidad: true },
+                        Unidades_DetallesVenta_UnidadIdToUnidades: {
+                            select: { Id: true, SectorId: true, NroUnidad: true },
                         },
                     },
                 },
@@ -76,9 +76,9 @@ export class EstadoComercialService {
 
     async update(id: string, updateEstadoComercialDto: UpdateEstadoComercialDto) {
         try {
-            const result = await this.prisma.estadocomercial.update({
-                where: { id },
-                data: updateEstadoComercialDto,
+            const result = await this.prisma.estadoComercial.update({
+                where: { Id: id },
+                data: { NombreEstado: updateEstadoComercialDto.nombreestado },
             });
             await this.invalidateCache();
             return result;
@@ -99,8 +99,8 @@ export class EstadoComercialService {
 
     async remove(id: string) {
         try {
-            const result = await this.prisma.estadocomercial.delete({
-                where: { id },
+            const result = await this.prisma.estadoComercial.delete({
+                where: { Id: id },
             });
             await this.invalidateCache();
             return result;

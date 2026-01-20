@@ -11,8 +11,8 @@ export class MotivosNodispService {
 
     async create(createMotivoNodispDto: CreateMotivoNodispDto) {
         try {
-            return await this.prisma.motivosnodisp.create({
-                data: createMotivoNodispDto,
+            return await this.prisma.motivosNoDisp.create({
+                data: { Nombre: createMotivoNodispDto.nombre },
             });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -23,14 +23,14 @@ export class MotivosNodispService {
     }
 
     async findAll() {
-        return await this.prisma.motivosnodisp.findMany({
-            orderBy: { nombre: 'asc' },
+        return await this.prisma.motivosNoDisp.findMany({
+            orderBy: { Nombre: 'asc' },
         });
     }
 
     async findOne(id: string) {
-        const motivo = await this.prisma.motivosnodisp.findUnique({
-            where: { id },
+        const motivo = await this.prisma.motivosNoDisp.findUnique({
+            where: { Id: id },
         });
         if (!motivo) {
             throw new NotFoundException(`Motivo con ID "${id}" no encontrado`);
@@ -40,9 +40,9 @@ export class MotivosNodispService {
 
     async update(id: string, updateMotivoNodispDto: UpdateMotivoNodispDto) {
         try {
-            return await this.prisma.motivosnodisp.update({
-                where: { id },
-                data: updateMotivoNodispDto,
+            return await this.prisma.motivosNoDisp.update({
+                where: { Id: id },
+                data: { Nombre: updateMotivoNodispDto.nombre },
             });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {
@@ -55,7 +55,7 @@ export class MotivosNodispService {
 
     async remove(id: string) {
         try {
-            return await this.prisma.motivosnodisp.delete({ where: { id } });
+            return await this.prisma.motivosNoDisp.delete({ where: { Id: id } });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Motivo con ID "${id}" no encontrado`);

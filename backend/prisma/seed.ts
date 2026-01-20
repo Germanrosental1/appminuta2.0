@@ -7,10 +7,10 @@ async function main() {
 
     // Limpiar datos existentes (opcional - comentar si no quieres limpiar)
     console.log('🧹 Limpiando datos existentes...');
-    await prisma.roles_permisos.deleteMany({});
-    await prisma.usuarios_roles.deleteMany({});
-    await prisma.usuarios_proyectos.deleteMany({});
-    await prisma.permisos_extras.deleteMany({});
+    await prisma.rolesPermisos.deleteMany({});
+    await prisma.usuariosRoles.deleteMany({});
+    await prisma.usuariosProyectos.deleteMany({});
+    await prisma.permisosExtras.deleteMany({});
     await prisma.permisos.deleteMany({});
     await prisma.roles.deleteMany({});
     console.log('✅ Datos limpiados\n');
@@ -20,97 +20,97 @@ async function main() {
     const permisos = await Promise.all([
         prisma.permisos.create({
             data: {
-                nombre: 'generarMinuta',
-                descripcion: 'Permite generar nuevas minutas',
+                Nombre: 'generarMinuta',
+                Descripcion: 'Permite generar nuevas minutas',
             },
         }),
         prisma.permisos.create({
             data: {
-                nombre: 'editarMinuta',
-                descripcion: 'Permite editar minutas existentes',
+                Nombre: 'editarMinuta',
+                Descripcion: 'Permite editar minutas existentes',
             },
         }),
         prisma.permisos.create({
             data: {
-                nombre: 'aprobarRechazarMinuta',
-                descripcion: 'Permite aprobar o rechazar minutas',
+                Nombre: 'aprobarRechazarMinuta',
+                Descripcion: 'Permite aprobar o rechazar minutas',
             },
         }),
         prisma.permisos.create({
             data: {
-                nombre: 'firmarMinuta',
-                descripcion: 'Permite firmar minutas',
+                Nombre: 'firmarMinuta',
+                Descripcion: 'Permite firmar minutas',
             },
         }),
     ]);
 
     console.log(`✅ ${permisos.length} permisos creados:`);
-    permisos.forEach((p) => console.log(`   - ${p.nombre}`));
+    permisos.forEach((p) => console.log(`   - ${p.Nombre}`));
     console.log('');
 
     // Crear roles
     console.log('👥 Creando roles...');
     const roles = await Promise.all([
         prisma.roles.create({
-            data: { nombre: 'comercial' },
+            data: { Nombre: 'comercial' },
         }),
         prisma.roles.create({
-            data: { nombre: 'administrador' },
+            data: { Nombre: 'administrador' },
         }),
         prisma.roles.create({
-            data: { nombre: 'firmante' },
+            data: { Nombre: 'firmante' },
         }),
         prisma.roles.create({
-            data: { nombre: 'viewer' },
+            data: { Nombre: 'viewer' },
         }),
     ]);
 
     console.log(`✅ ${roles.length} roles creados:`);
-    roles.forEach((r) => console.log(`   - ${r.nombre}`));
+    roles.forEach((r) => console.log(`   - ${r.Nombre}`));
     console.log('');
 
     // Mapear roles y permisos por nombre para fácil acceso
-    const rolesMap = Object.fromEntries(roles.map((r) => [r.nombre, r]));
-    const permisosMap = Object.fromEntries(permisos.map((p) => [p.nombre, p]));
+    const rolesMap = Object.fromEntries(roles.map((r) => [r.Nombre, r]));
+    const permisosMap = Object.fromEntries(permisos.map((p) => [p.Nombre, p]));
 
     // Asignar permisos a roles
     console.log('🔗 Asignando permisos a roles...');
 
     // Comercial: generarMinuta, editarMinuta
-    await prisma.roles_permisos.createMany({
+    await prisma.rolesPermisos.createMany({
         data: [
             {
-                idrol: rolesMap['comercial'].id,
-                idpermiso: permisosMap['generarMinuta'].id,
+                IdRol: rolesMap['comercial'].Id,
+                IdPermiso: permisosMap['generarMinuta'].Id,
             },
             {
-                idrol: rolesMap['comercial'].id,
-                idpermiso: permisosMap['editarMinuta'].id,
+                IdRol: rolesMap['comercial'].Id,
+                IdPermiso: permisosMap['editarMinuta'].Id,
             },
         ],
     });
     console.log('   ✅ comercial → generarMinuta, editarMinuta');
 
     // Administrador: editarMinuta, aprobarRechazarMinuta
-    await prisma.roles_permisos.createMany({
+    await prisma.rolesPermisos.createMany({
         data: [
             {
-                idrol: rolesMap['administrador'].id,
-                idpermiso: permisosMap['editarMinuta'].id,
+                IdRol: rolesMap['administrador'].Id,
+                IdPermiso: permisosMap['editarMinuta'].Id,
             },
             {
-                idrol: rolesMap['administrador'].id,
-                idpermiso: permisosMap['aprobarRechazarMinuta'].id,
+                IdRol: rolesMap['administrador'].Id,
+                IdPermiso: permisosMap['aprobarRechazarMinuta'].Id,
             },
         ],
     });
     console.log('   ✅ administrador → editarMinuta, aprobarRechazarMinuta');
 
     // Firmante: firmarMinuta
-    await prisma.roles_permisos.create({
+    await prisma.rolesPermisos.create({
         data: {
-            idrol: rolesMap['firmante'].id,
-            idpermiso: permisosMap['firmarMinuta'].id,
+            IdRol: rolesMap['firmante'].Id,
+            IdPermiso: permisosMap['firmarMinuta'].Id,
         },
     });
     console.log('   ✅ firmante → firmarMinuta');
