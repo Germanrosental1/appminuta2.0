@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
  * Service for making authenticated requests to the NestJS backend
  */
 class BackendAPI {
-    private baseURL: string;
+    private readonly baseURL: string;
 
     constructor() {
         this.baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
@@ -271,6 +271,47 @@ class BackendAPI {
             throw error;
         }
     }
+
+    /**
+     * Adjust prices for all units in selected projects
+     * @param projectIds - Array of project UUIDs
+     * @param mode - Adjustment mode: PERCENTAGE_TOTAL, PERCENTAGE_M2, FIXED_TOTAL, FIXED_M2
+     * @param percentage - Percentage to adjust (for PERCENTAGE_* modes)
+     * @param fixedValue - Fixed value to set (for FIXED_* modes)
+     */
+    async adjustPrices(
+        projectIds: string[],
+        mode: string,
+        percentage?: number,
+        fixedValue?: number
+    ) {
+        try {
+            const token = await this.getAuthToken();
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
+            const response = await fetch(`${this.baseURL}/unidades/adjust-prices`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ projectIds, mode, percentage, fixedValue }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || `HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error adjusting prices:', error);
+            throw error;
+        }
+    }
 }
 
 export const backendAPI = new BackendAPI();
+

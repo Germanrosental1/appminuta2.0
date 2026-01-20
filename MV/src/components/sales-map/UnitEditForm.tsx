@@ -18,21 +18,30 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 interface UnitEditFormProps {
-  unitId?: string;
-  onSaved: (unit: Unit) => void;
-  onCancel: () => void;
+  readonly unitId?: string;
+  readonly onSaved: (unit: Unit) => void;
+  readonly onCancel: () => void;
 }
+
+type AdjustMode = 'none' | 'PERCENTAGE_TOTAL' | 'PERCENTAGE_M2' | 'FIXED_TOTAL' | 'FIXED_M2';
 
 export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [comerciales, setComerciales] = useState<string[]>([]);
-  
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<Unit>();
-  
-  // Observar el estado para mostrar/ocultar el campo de motivo
+
+  // Estado para ajuste de precios
+  const [adjustMode, setAdjustMode] = useState<AdjustMode>('none');
+  const [adjustValue, setAdjustValue] = useState<number>(0);
+
+  const { register, handleSubmit, setValue, watch } = useForm<Unit>();
+
+  // Observar el estado para mostrar/ocultar el campo de motivo y precios actuales
   const estadoValue = watch('estado');
-  
+  const currentPrecioUSD = watch('precioUSD') || 0;
+  const currentUsdM2 = watch('usdM2') || 0;
+  const currentM2Totales = watch('m2Totales') || 1;
+
   useEffect(() => {
     const loadComerciales = async () => {
       try {
@@ -43,9 +52,9 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
         toast.error('Error al cargar la lista de comerciales');
       }
     };
-    
+
     loadComerciales();
-    
+
     if (unitId) {
       setLoading(true);
       supabaseService.getUnitById(unitId)
@@ -70,12 +79,12 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
         });
     }
   }, [unitId, setValue, onCancel]);
-  
+
   const onSubmit = async (data: Unit) => {
     try {
       setSaving(true);
       let savedUnit: Unit;
-      
+
       if (unitId) {
         // Actualizar unidad existente
         savedUnit = await supabaseService.updateUnit({
@@ -88,7 +97,7 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
         savedUnit = await supabaseService.createUnit(data);
         toast.success('Unidad creada correctamente');
       }
-      
+
       onSaved(savedUnit);
     } catch (error) {
       console.error('Error saving unit:', error);
@@ -97,7 +106,7 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
       setSaving(false);
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -106,189 +115,172 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
       </div>
     );
   }
-  
+
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Información General */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Información General</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="proyecto">Proyecto</Label>
-            <Input
-              id="proyecto"
-              {...register('proyecto', { required: 'El proyecto es obligatorio' })}
-            />
-            {errors.proyecto && (
-              <p className="text-sm text-red-500">{errors.proyecto.message}</p>
-            )}
+      {/* Información General y Especificaciones - Solo lectura, lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Información General */}
+        <div className="p-4 bg-muted/30 rounded-lg space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Información General</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Proyecto:</span>
+              <span className="font-medium">{watch('proyecto') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Edificio:</span>
+              <span className="font-medium">{watch('edificioTorre') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Etapa:</span>
+              <span className="font-medium">{watch('etapa') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Piso:</span>
+              <span className="font-medium">{watch('piso') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Unidad:</span>
+              <span className="font-medium">{watch('numeroUnidad') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tipo:</span>
+              <span className="font-medium">{watch('tipo') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Sector ID:</span>
+              <span className="font-medium">{watch('sectorId') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Destino:</span>
+              <span className="font-medium">{watch('destino') || '-'}</span>
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="manzana">Manzana</Label>
-            <Input id="manzana" {...register('manzana')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="etapa">Etapa</Label>
-            <Input id="etapa" {...register('etapa')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="tipo">Tipo</Label>
-            <Input id="tipo" {...register('tipo')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="numeroUnidad">Número de Unidad</Label>
-            <Input
-              id="numeroUnidad"
-              {...register('numeroUnidad', { required: 'El número de unidad es obligatorio' })}
-            />
-            {errors.numeroUnidad && (
-              <p className="text-sm text-red-500">{errors.numeroUnidad.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="edificioTorre">Edificio/Torre</Label>
-            <Input id="edificioTorre" {...register('edificioTorre')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="piso">Piso</Label>
-            <Input id="piso" {...register('piso')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="destino">Destino</Label>
-            <Input id="destino" {...register('destino')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="frente">Frente</Label>
-            <Input id="frente" {...register('frente')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="sectorId">Sector ID</Label>
-            <Input id="sectorId" {...register('sectorId')} />
+        </div>
+
+        {/* Especificaciones */}
+        <div className="p-4 bg-muted/30 rounded-lg space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Especificaciones</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Dormitorios:</span>
+              <span className="font-medium">{watch('dormitorios') ?? '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tamaño:</span>
+              <span className="font-medium">{watch('tamano') ?? '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">M² Exclusivos:</span>
+              <span className="font-medium">{watch('m2Exclusivos') ?? '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">M² Comunes:</span>
+              <span className="font-medium">{watch('m2Comunes') ?? '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Patio/Terraza:</span>
+              <span className="font-medium">{watch('patioTerraza') || '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">M² Patio:</span>
+              <span className="font-medium">{watch('m2PatioTerraza') ?? '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">M² Cálculo:</span>
+              <span className="font-medium">{watch('m2ParaCalculo') ?? '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground font-semibold">M² Totales:</span>
+              <span className="font-bold">{watch('m2Totales') ?? '-'}</span>
+            </div>
           </div>
         </div>
       </div>
-      
+
       <Separator />
-      
-      {/* Especificaciones */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Especificaciones</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="dormitorios">Dormitorios</Label>
-            <Input
-              id="dormitorios"
-              type="number"
-              {...register('dormitorios', { valueAsNumber: true })}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="tamano">Tamaño</Label>
-            <Input
-              id="tamano"
-              type="number"
-              step="0.01"
-              {...register('tamano', { valueAsNumber: true })}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="m2Exclusivos">M² Exclusivos</Label>
-            <Input
-              id="m2Exclusivos"
-              type="number"
-              step="0.01"
-              {...register('m2Exclusivos', { valueAsNumber: true })}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="m2Comunes">M² Comunes</Label>
-            <Input
-              id="m2Comunes"
-              type="number"
-              step="0.01"
-              {...register('m2Comunes', { valueAsNumber: true })}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="patioTerraza">Patio/Terraza</Label>
-            <Input id="patioTerraza" {...register('patioTerraza')} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="m2PatioTerraza">M² Patio/Terraza</Label>
-            <Input
-              id="m2PatioTerraza"
-              type="number"
-              step="0.01"
-              {...register('m2PatioTerraza', { valueAsNumber: true })}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="m2ParaCalculo">M² Para Cálculo</Label>
-            <Input
-              id="m2ParaCalculo"
-              type="number"
-              step="0.01"
-              {...register('m2ParaCalculo', { valueAsNumber: true })}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="m2Totales">M² Totales</Label>
-            <Input
-              id="m2Totales"
-              type="number"
-              step="0.01"
-              {...register('m2Totales', { valueAsNumber: true })}
-            />
-          </div>
-        </div>
-      </div>
-      
-      <Separator />
-      
-      {/* Precio */}
+
+      {/* Precio - Con opciones de ajuste */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Precio</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="precioUSD">Precio USD</Label>
-            <Input
-              id="precioUSD"
-              type="number"
-              step="0.01"
-              {...register('precioUSD', { valueAsNumber: true })}
-            />
+
+        {/* Precios actuales (solo lectura) */}
+        <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+          <div>
+            <Label className="text-muted-foreground text-sm">Precio USD Actual</Label>
+            <p className="text-xl font-semibold">${currentPrecioUSD.toLocaleString()}</p>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="usdM2">USD/M²</Label>
-            <Input
-              id="usdM2"
-              type="number"
-              step="0.01"
-              {...register('usdM2', { valueAsNumber: true })}
-            />
+          <div>
+            <Label className="text-muted-foreground text-sm">USD/M² Actual</Label>
+            <p className="text-xl font-semibold">${currentUsdM2.toLocaleString()}</p>
           </div>
         </div>
+
+        {/* Selector de modo de ajuste */}
+        <div className="space-y-3">
+          <Label>Tipo de Ajuste</Label>
+          <Select
+            value={adjustMode}
+            onValueChange={(value) => setAdjustMode(value as AdjustMode)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sin cambios en precio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin cambios en precio</SelectItem>
+              <SelectItem value="PERCENTAGE_TOTAL">Porcentaje sobre Precio Total</SelectItem>
+              <SelectItem value="PERCENTAGE_M2">Porcentaje sobre USD/m²</SelectItem>
+              <SelectItem value="FIXED_TOTAL">Establecer Precio Total Fijo</SelectItem>
+              <SelectItem value="FIXED_M2">Establecer USD/m² Fijo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Campo de valor según modo */}
+        {adjustMode !== 'none' && (
+          <div className="space-y-2">
+            <Label htmlFor="adjustValueInput">
+              {adjustMode.startsWith('PERCENTAGE') ? 'Porcentaje (%)' : 'Valor (USD)'}
+            </Label>
+            <Input
+              id="adjustValueInput"
+              type="number"
+              step={adjustMode.startsWith('PERCENTAGE') ? '0.1' : '0.01'}
+              placeholder={adjustMode.startsWith('PERCENTAGE') ? 'Ej: 10 para +10%' : 'Ej: 2500'}
+              value={adjustValue || ''}
+              onChange={(e) => setAdjustValue(Number(e.target.value))}
+            />
+
+            {/* Preview del nuevo precio */}
+            {adjustValue !== 0 && (
+              <div className="p-3 mt-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                  Nuevo precio:
+                  {(() => {
+                    if (adjustMode === 'PERCENTAGE_TOTAL') {
+                      const newPrice = currentPrecioUSD * (1 + adjustValue / 100);
+                      return ` $${newPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                    } else if (adjustMode === 'PERCENTAGE_M2') {
+                      const newM2 = currentUsdM2 * (1 + adjustValue / 100);
+                      return ` USD/m²: $${newM2.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                    } else if (adjustMode === 'FIXED_TOTAL') {
+                      return ` $${adjustValue.toLocaleString()}`;
+                    } else if (adjustMode === 'FIXED_M2') {
+                      return ` USD/m²: $${adjustValue.toLocaleString()} (Total: $${(adjustValue * currentM2Totales).toLocaleString()})`;
+                    }
+                    return '';
+                  })()}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      
+
       <Separator />
-      
+
       {/* Estado y Comercialización */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Estado y Comercialización</h3>
@@ -310,14 +302,14 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
               </SelectContent>
             </Select>
           </div>
-          
+
           {(estadoValue === 'No disponible') && (
             <div className="space-y-2">
               <Label htmlFor="motivoNoDisponibilidad">Motivo No Disponibilidad</Label>
               <Input id="motivoNoDisponibilidad" {...register('motivoNoDisponibilidad')} />
             </div>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="comercial">Comercial</Label>
             <Select
@@ -336,36 +328,36 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="clienteInteresado">Cliente Interesado</Label>
             <Input id="clienteInteresado" {...register('clienteInteresado')} />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="fechaReserva">Fecha Reserva</Label>
             <Input id="fechaReserva" type="date" {...register('fechaReserva')} />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="fechaFirmaBoleto">Fecha Firma Boleto</Label>
             <Input id="fechaFirmaBoleto" type="date" {...register('fechaFirmaBoleto')} />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="clienteTitularBoleto">Cliente Titular Boleto</Label>
             <Input id="clienteTitularBoleto" {...register('clienteTitularBoleto')} />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="fechaPosesionBoleto">Fecha Posesión Boleto</Label>
             <Input id="fechaPosesionBoleto" type="date" {...register('fechaPosesionBoleto')} />
           </div>
         </div>
       </div>
-      
+
       <Separator />
-      
+
       {/* Observaciones */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Observaciones</h3>
@@ -374,7 +366,7 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
           <Textarea id="observaciones" rows={4} {...register('observaciones')} />
         </div>
       </div>
-      
+
       {/* Botones de acción */}
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>

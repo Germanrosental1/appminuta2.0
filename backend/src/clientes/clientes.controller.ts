@@ -1,8 +1,14 @@
-import { Controller, Post, Get, Param, Query, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Param, Query, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { ClientesService } from './clientes.service';
 import { VerificarCrearClienteDto } from './dto/verificar-crear-cliente.dto';
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 
+/**
+ * 🔒 SEGURIDAD: Controller protegido con autenticación
+ * Todos los endpoints requieren token JWT válido
+ */
 @Controller('clientes')
+@UseGuards(SupabaseAuthGuard)
 export class ClientesController {
     constructor(private readonly clientesService: ClientesService) { }
 

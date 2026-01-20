@@ -58,6 +58,22 @@ const calcularSiguienteVencimiento = (
   }
 };
 
+// Helper para calcular fechas de vencimiento (inicio y fin)
+const calculateRuleDates = (startStr: string, periodicidad: string, numCuotas: number) => {
+  const start = parseDate(startStr);
+  let end: Date = start;
+
+  if (periodicidad === "Mensual") end = addMonths(start, numCuotas - 1);
+  else if (periodicidad === "Trimestral") end = addMonths(start, (numCuotas - 1) * 3);
+  else if (periodicidad === "Semestral") end = addMonths(start, (numCuotas - 1) * 6);
+  else if (periodicidad === "Anual") end = addYears(start, numCuotas - 1);
+
+  return {
+    first: start,
+    lastStr: format(end, "d/MM/yy")
+  };
+};
+
 // Helper: Contar cuotas pagadas antes de fecha límite
 const contarCuotasPagadas = (
   fechaPrimerVencimiento: Date,
@@ -285,6 +301,43 @@ const calcularPorcentajePagadoHelper = (
 };
 
 
+// Helper pure functions for balance calculation
+const calculateBalanceA = (
+  monedaA: string | undefined,
+  totalFinanciarArs: number,
+  reglasA: ReglaFinanciacion[],
+  tcValor: number
+) => {
+  const totalReglasA = reglasA
+    .filter(regla => regla.activa)
+    .reduce((sum, regla) => {
+      if (monedaA === "USD") {
+        if (regla.moneda === "ARS") return sum + (regla.saldoFinanciar / tcValor);
+        return sum + regla.saldoFinanciar;
+      } else {
+        if (regla.moneda === "USD") return sum + (regla.saldoFinanciar * tcValor);
+        return sum + regla.saldoFinanciar;
+      }
+    }, 0);
+  return Math.max(totalFinanciarArs - totalReglasA, 0);
+};
+
+const calculateBalanceB = (
+  monedaB: string | undefined,
+  totalFinanciarUsd: number,
+  reglasB: ReglaFinanciacion[],
+  tcValor: number
+) => {
+  const totalReglasB = reglasB
+    .filter(regla => regla.activa)
+    .reduce((sum, regla) => {
+      if (monedaB === "ARS" && regla.moneda === "USD") return sum + (regla.saldoFinanciar * tcValor);
+      else if (monedaB === "USD" && regla.moneda === "ARS") return sum + (regla.saldoFinanciar / tcValor);
+      return sum + regla.saldoFinanciar;
+    }, 0);
+  return Math.max(totalFinanciarUsd - totalReglasB, 0);
+};
+
 export const Step6ReglasFinanciacion: React.FC = () => {
   const { data, updateData } = useWizard();
   const fechaActual = new Date();
@@ -310,88 +363,42 @@ export const Step6ReglasFinanciacion: React.FC = () => {
   const totalFinanciarArs = data.totalFinanciarArs || 0;
   const totalFinanciarUsd = data.totalFinanciarUsd || 0;
 
-  // Calcular saldos restantes
-  const calcularSaldoRestanteA = () => {
-    const totalReglasA = (data.reglasFinanciacionA || [])
-      .filter(regla => regla.activa)
-      .reduce((sum, regla) => {
-        // Conversión según la moneda base de la Parte F (data.monedaA)
-        if (data.monedaA === "USD") {
-          // Si F es USD:
-          // - Regla USD: Sumar directo
-          // - Regla ARS: Dividir por TC
-          if (regla.moneda === "ARS") {
-            return sum + (regla.saldoFinanciar / (data.tcValor || 1));
-          }
-          return sum + regla.saldoFinanciar;
-        } else {
-          // Si F es ARS (o default):
-          // - Regla USD: Multiplicar por TC
-          // - Regla ARS: Sumar directo
-          if (regla.moneda === "USD") {
-            return sum + (regla.saldoFinanciar * (data.tcValor || 1));
-          }
-          return sum + regla.saldoFinanciar;
-        }
-      }, 0);
-    return Math.max(totalFinanciarArs - totalReglasA, 0);
-  };
+  // Calcular saldos restantes using helpers
+  const calcularSaldoRestanteA = () => calculateBalanceA(
+    data.monedaA,
+    data.totalFinanciarArs || 0,
+    data.reglasFinanciacionA || [],
+    data.tcValor || 1
+  );
 
-  const calcularSaldoRestanteB = () => {
-    const totalReglasB = (data.reglasFinanciacionB || [])
-      .filter(regla => regla.activa)
-      .reduce((sum, regla) => {
-        // Si la moneda de B es ARS pero la regla está en USD, convertir a ARS
-        if (data.monedaB === "ARS" && regla.moneda === "USD") {
-          return sum + (regla.saldoFinanciar * (data.tcValor || 1));
-        }
-        // Si la moneda de B es USD pero la regla está en ARS, convertir a USD
-        else if (data.monedaB === "USD" && regla.moneda === "ARS") {
-          return sum + (regla.saldoFinanciar / (data.tcValor || 1));
-        }
-        // Si las monedas coinciden o es MIX, no hacer conversión
-        return sum + regla.saldoFinanciar;
-      }, 0);
-    return Math.max(totalFinanciarUsd - totalReglasB, 0);
-  };
+  const calcularSaldoRestanteB = () => calculateBalanceB(
+    data.monedaB,
+    data.totalFinanciarUsd || 0,
+    data.reglasFinanciacionB || [],
+    data.tcValor || 1
+  );
 
   // Helper para calcular el máximo permitido en el input de la nueva regla A
   const calcularMaximoPermitidoA = () => {
-    // 1. Obtener el saldo restante en la moneda de la Deuda F
     const saldoRestante = calcularSaldoRestanteA();
-
-    // 2. Si el saldo es 0, no permitir agregar más (aunque la UI debería bloquearlo antes)
     if (saldoRestante <= 0) return 0;
 
-    // 3. Convertir ese saldo restante a la moneda que el usuario está escribiendo en el input
     const monedaDeuda = data.monedaA || "ARS";
     const monedaInput = nuevaReglaA.moneda || "ARS";
     const tc = data.tcValor || 1;
 
-    // Caso A: Deuda en USD
+    if (monedaDeuda === monedaInput) return saldoRestante;
+
+    // Deuda USD, Input ARS -> return saldo * tc
+    // Deuda ARS, Input USD -> return saldo / tc
     if (monedaDeuda === "USD") {
-      if (monedaInput === "USD") {
-        return saldoRestante; // Input USD -> Max USD
-      } else {
-        return saldoRestante * tc; // Input ARS -> Max USD * TC
-      }
-    }
-    // Caso B: Deuda en ARS
-    else {
-      if (monedaInput === "ARS") {
-        return saldoRestante; // Input ARS -> Max ARS
-      } else {
-        return saldoRestante / tc; // Input USD -> Max ARS / TC
-      }
+      return saldoRestante * tc;
+    } else {
+      return saldoRestante / tc;
     }
   };
 
   // Wrapper for calculation using current component state or overrides
-  const calcularPorcentajePagado = (reglasA?: ReglaFinanciacion[], reglasB?: ReglaFinanciacion[]) => {
-    const reglasFinanciacionA = reglasA || data.reglasFinanciacionA || [];
-    const reglasFinanciacionB = reglasB || data.reglasFinanciacionB || [];
-    return calcularPorcentajePagadoHelper(reglasFinanciacionA, reglasFinanciacionB, data);
-  };
 
   // Agregar nueva regla A
   const agregarReglaA = () => {
@@ -399,40 +406,30 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
     // Usar la fecha seleccionada por el usuario o la fecha actual + 1 mes
     const primerVencimiento = nuevaReglaA.primerVencimiento;
-
-    // Parsear la fecha del primer vencimiento
-    const fechaPrimerVencimiento = parseDate(primerVencimiento);
-
-    let ultimoVencimiento;
-    if (nuevaReglaA.periodicidad === "Mensual") {
-      ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, Number(nuevaReglaA.numCuotas) - 1), "d/MM/yy");
-    } else if (nuevaReglaA.periodicidad === "Trimestral") {
-      ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, (Number(nuevaReglaA.numCuotas) - 1) * 3), "d/MM/yy");
-    } else if (nuevaReglaA.periodicidad === "Semestral") {
-      ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, (Number(nuevaReglaA.numCuotas) - 1) * 6), "d/MM/yy");
-    } else if (nuevaReglaA.periodicidad === "Anual") {
-      ultimoVencimiento = format(addYears(fechaPrimerVencimiento, Number(nuevaReglaA.numCuotas) - 1), "d/MM/yy");
-    } else {
-      ultimoVencimiento = primerVencimiento;
-    }
+    const { lastStr: ultimoVencimiento } = calculateRuleDates(
+      primerVencimiento,
+      nuevaReglaA.periodicidad || "Mensual",
+      Number(nuevaReglaA.numCuotas)
+    );
 
     const importeCuota = nuevaReglaA.periodicidad === "Pago Único"
       ? Number(nuevaReglaA.saldoFinanciar)
       : Number(nuevaReglaA.saldoFinanciar) / Number(nuevaReglaA.numCuotas);
 
-    // Calcular el monto en la moneda correcta para los porcentajes
     // Calcular el monto en la moneda correcta del total para los porcentajes (Base ARS para el global)
-    let montoEnMonedaBaseGlobal = Number(nuevaReglaA.saldoFinanciar);
-    if (nuevaReglaA.moneda === "USD") {
-      montoEnMonedaBaseGlobal = montoEnMonedaBaseGlobal * (data.tcValor || 1);
-    }
+    const montoEnMonedaBaseGlobal = nuevaReglaA.moneda === "USD"
+      ? Number(nuevaReglaA.saldoFinanciar) * (data.tcValor || 1)
+      : Number(nuevaReglaA.saldoFinanciar);
 
     // Calcular el monto en la moneda de la Parte F
     let montoEnMonedaParteF = Number(nuevaReglaA.saldoFinanciar);
-    if (data.monedaA === "USD") {
-      if (nuevaReglaA.moneda === "ARS") montoEnMonedaParteF = montoEnMonedaParteF / (data.tcValor || 1);
-    } else {
-      if (nuevaReglaA.moneda === "USD") montoEnMonedaParteF = montoEnMonedaParteF * (data.tcValor || 1);
+    const shouldConvertDiv = data.monedaA === "USD" && nuevaReglaA.moneda === "ARS";
+    const shouldConvertMult = data.monedaA !== "USD" && nuevaReglaA.moneda === "USD";
+
+    if (shouldConvertDiv) {
+      montoEnMonedaParteF = montoEnMonedaParteF / (data.tcValor || 1);
+    } else if (shouldConvertMult) {
+      montoEnMonedaParteF = montoEnMonedaParteF * (data.tcValor || 1);
     }
 
     // Calcular el total de reglas existentes para la parte A y total
@@ -449,8 +446,8 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       .filter(regla => regla.activa)
       .reduce((sum, regla) => {
         // Normalizar a Base Global ARS
-        // Si Moneda B es USD -> todo es USD: * TC
-        // Si Moneda B es ARS -> todo es ARS: directo (si regla es USD, * TC)
+        // Si Moneda B es USD ->  es USD: * TC
+        // Si Moneda B es ARS ->  es ARS: directo (si regla es USD, * TC)
 
         let montoReglaArs = regla.saldoFinanciar;
 
@@ -482,7 +479,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
     const totalReglasAParteF = totalReglasExistentesParteF + montoEnMonedaParteF;
 
     // Calcular los porcentajes como la cobertura de la deuda
-    // Para el global, necesitamos todo en moneda base ARS
+    // Para el global, necesitamos  en moneda base ARS
     const totalFinanciarGlobalArs = convertirATotalesEnMonedaBase(
       data.totalFinanciarArs || 0,
       data.totalFinanciarUsd || 0,
@@ -537,32 +534,21 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
   // Helper para calcular el máximo permitido en el input de la nueva regla B
   const calcularMaximoPermitidoB = () => {
-    // 1. Obtener el saldo restante en la moneda de la Deuda SB
     const saldoRestante = calcularSaldoRestanteB();
-
-    // 2. Si el saldo es 0, no permitir agregar más
     if (saldoRestante <= 0) return 0;
 
-    // 3. Convertir ese saldo restante a la moneda que el usuario está escribiendo en el input
     const monedaDeuda = data.monedaB || "ARS";
     const monedaInput = nuevaReglaB.moneda || "ARS";
     const tc = data.tcValor || 1;
 
-    // Caso A: Deuda en USD
+    if (monedaDeuda === monedaInput) return saldoRestante;
+
+    // Deuda USD, Input ARS -> return saldo * tc
+    // Deuda ARS, Input USD -> return saldo / tc
     if (monedaDeuda === "USD") {
-      if (monedaInput === "USD") {
-        return saldoRestante; // Input USD -> Max USD
-      } else {
-        return saldoRestante * tc; // Input ARS -> Max USD * TC
-      }
-    }
-    // Caso B: Deuda en ARS
-    else {
-      if (monedaInput === "ARS") {
-        return saldoRestante; // Input ARS -> Max ARS
-      } else {
-        return saldoRestante / tc; // Input USD -> Max ARS / TC
-      }
+      return saldoRestante * tc;
+    } else {
+      return saldoRestante / tc;
     }
   };
 
@@ -572,36 +558,17 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
     // Usar la fecha seleccionada por el usuario o la fecha actual + 1 mes
     const primerVencimiento = nuevaReglaB.primerVencimiento;
-
-    // Parsear la fecha del primer vencimiento
-    const fechaPrimerVencimiento = parseDate(primerVencimiento);
-
-    let ultimoVencimiento;
-    if (nuevaReglaB.periodicidad === "Mensual") {
-      ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, Number(nuevaReglaB.numCuotas) - 1), "d/MM/yy");
-    } else if (nuevaReglaB.periodicidad === "Trimestral") {
-      ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, (Number(nuevaReglaB.numCuotas) - 1) * 3), "d/MM/yy");
-    } else if (nuevaReglaB.periodicidad === "Semestral") {
-      ultimoVencimiento = format(addMonths(fechaPrimerVencimiento, (Number(nuevaReglaB.numCuotas) - 1) * 6), "d/MM/yy");
-    } else if (nuevaReglaB.periodicidad === "Anual") {
-      ultimoVencimiento = format(addYears(fechaPrimerVencimiento, Number(nuevaReglaB.numCuotas) - 1), "d/MM/yy");
-    } else {
-      ultimoVencimiento = primerVencimiento;
-    }
+    const { lastStr: ultimoVencimiento } = calculateRuleDates(
+      primerVencimiento,
+      nuevaReglaB.periodicidad || "Mensual",
+      Number(nuevaReglaB.numCuotas)
+    );
 
     const importeCuota = nuevaReglaB.periodicidad === "Pago Único"
       ? Number(nuevaReglaB.saldoFinanciar)
       : Number(nuevaReglaB.saldoFinanciar) / Number(nuevaReglaB.numCuotas);
 
     // Calcular el total de reglas existentes para la parte B y total
-    const totalReglasExistentesA = (data.reglasFinanciacionA || [])
-      .filter(regla => regla.activa)
-      .reduce((sum, regla) => {
-        if (regla.moneda === "USD") {
-          return sum + (regla.saldoFinanciar * (data.tcValor || 1));
-        }
-        return sum + regla.saldoFinanciar;
-      }, 0);
 
     const totalReglasExistentesB = (data.reglasFinanciacionB || [])
       .filter(regla => regla.activa)
@@ -621,7 +588,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
 
     // Sumar el monto de la nueva regla al total existente
     const totalReglasBParteB = totalReglasExistentesB + montoEnMonedaB;
-    const totalReglas = totalReglasExistentesA + totalReglasBParteB;
+    // Removed unused totalReglas variable
 
     // Calcular cobertura GLOBAL en Moneda Base (ARS)
     // 1. Total deuda global en ARS

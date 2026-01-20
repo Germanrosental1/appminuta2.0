@@ -77,25 +77,30 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
 // Helper function: Fetch user roles from usuarios-roles table
 const fetchUserRoles = async (userId: string): Promise<Role[]> => {
     try {
-        const { data, error } = await supabase
+        // Consulta a usuarios-roles
+        const { data: rawData } = await supabase
             .from('usuarios-roles')
-            .select(`
-        roles:idrol (
-          id,
-          nombre,
-          created_at
-        )
-      `)
+            .select('*')
             .eq('idusuario', userId);
 
-        if (error) {
-            console.error('Error fetching roles:', error);
+        if (!rawData || rawData.length === 0) {
             return [];
         }
 
-        // Extract roles from the join
-        const roles = data?.map((item: any) => item.roles).filter(Boolean) || [];
-        return roles as Role[];
+        // Obtener TODOS los IDs de roles
+        const roleIds = rawData.map(r => r.idrol);
+
+        // Consultar todos los roles en una sola query
+        const { data: rolesData } = await supabase
+            .from('roles')
+            .select('*')
+            .in('id', roleIds);
+
+        if (rolesData && rolesData.length > 0) {
+            return rolesData as Role[];
+        }
+
+        return [];
     } catch (error) {
         console.error('Exception fetching roles:', error);
         return [];
@@ -261,7 +266,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const signIn = async (email: string, password: string) => {
         try {
-            const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
             return { error };
         } catch (error) {
             return { error };

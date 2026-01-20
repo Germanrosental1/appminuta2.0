@@ -8,6 +8,11 @@ export enum AuthEventType {
     SESSION_EXPIRED = 'session_expired',
     AUTH_ERROR = 'auth_error',
     PASSWORD_CHANGED = 'password_changed',
+    // MFA Events
+    MFA_ENROLLED = 'mfa_enrolled',
+    MFA_VERIFIED = 'mfa_verified',
+    MFA_UNENROLLED = 'mfa_unenrolled',
+    MFA_FAILED = 'mfa_failed',
 }
 
 export class LogAuthEventDto {

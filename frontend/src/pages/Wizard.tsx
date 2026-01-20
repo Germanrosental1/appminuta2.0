@@ -11,9 +11,8 @@ import { Step6ReglasFinanciacion } from "@/components/wizard/steps/Step6ReglasFi
 import { Step6DatosCliente } from "@/components/wizard/steps/Step6DatosCliente";
 import { Step6Salida as Step7Salida } from "@/components/wizard/steps/Step6Salida";
 import { validateStep } from "@/utils/validation";
-import { Step3_5IVACalculo } from "@/components/wizard/steps/Step3_5IVACalculo";
+import { Step35IVACalculo } from "@/components/wizard/steps/Step35IVACalculo";
 import { toast } from "sonner";
-import { getMinutaDefinitivaById } from "@/services/minutas";
 import { WizardData } from "@/types/wizard";
 
 // Helper: Validate Step 0 (Proyecto y Unidad)
@@ -104,10 +103,10 @@ function validateStep6DatosCliente(data: WizardData): boolean {
 }
 
 const Wizard: React.FC = () => {
-  const { currentStep, data, updateData, setCurrentStep } = useWizard();
+  const { currentStep, data } = useWizard();
   const [searchParams] = useSearchParams();
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isEditMode] = useState(false);
+  const [isLoading] = useState(false);
 
   // Detectar si aplica IVA
   const aplicaIVA = data.ivaProyecto === "no incluido";
@@ -127,41 +126,16 @@ const Wizard: React.FC = () => {
     // ... (mismo código)
   }, [searchParams]);
 
-  const handleNext = () => {
-    // Step 0: Proyecto y Unidad
-    if (currentStep === 0) {
-      if (!validateStep0ProyectoUnidad(data)) return false;
-    }
-
-    // Calcular indices ajustados
+  // Extracted validation logic for step Pago
+  const validatePagoStep = (aplicaIVA: boolean, currentStep: number) => {
+    // Calcular indices
     const stepPago = aplicaIVA ? 4 : 3;
-    const stepReglas = aplicaIVA ? 6 : 5;
-    const stepCliente = aplicaIVA ? 7 : 6;
 
-    // Validación IVA (Paso 3 si aplica)
-    if (aplicaIVA && currentStep === 3) {
-      if (!data.porcentajeIVA || data.porcentajeIVA <= 0) {
-        toast.error("Debe ingresar un porcentaje de IVA válido");
-        return false;
-      }
-      return true;
-    }
-
-    // Step Pago: Skip to step Reglas/Cliente if payment is "contado"
     if (currentStep === stepPago && data.tipoPago === "contado") {
-      // Validar pago contado
-      const validation = validateStep(3, data); // Usamos 3 hardcoded para schema de pago? Revisar
-      // Nota: validateStep usa indices estáticos en validation.ts? 
-      // Si validation.ts usa indices, esto va a romper la validación.
-      // Asumiremos que validateStep usa indices 0-7 estandar.
-      // Si insertamos un paso, validation.ts necesita saberlo o mapeamos el paso actual al "schema step".
-
-      // Fix: Mapear currentStep al "Logical Step" de validación
       let logicalStep = currentStep;
-      if (aplicaIVA && currentStep > 3) logicalStep--; // Deshacer el shift para validar con schemas viejos
+      if (aplicaIVA && currentStep > 3) logicalStep--;
 
       const validationMapped = validateStep(logicalStep, data);
-
       if (!validationMapped.valid) {
         const firstError = Object.values(validationMapped.errors)[0];
         toast.error(firstError || "Por favor complete todos los campos requeridos");
@@ -169,20 +143,19 @@ const Wizard: React.FC = () => {
       }
       return true;
     }
+    return null; // Not handled
+  };
 
-    // Step Reglas: (SOLO si el pago es financiado)
-    if (currentStep === stepReglas && data.tipoPago !== "contado") {
-      if (!validateStep5ReglasFinanciacion(data)) return false;
+  const validateIVAStep = () => {
+    if (!data.porcentajeIVA || data.porcentajeIVA <= 0) {
+      toast.error("Debe ingresar un porcentaje de IVA válido");
+      return false;
     }
+    return true;
+  };
 
-    // Step Cliente
-    if (currentStep === stepCliente) {
-      if (!validateStep6DatosCliente(data)) return false;
-    }
-
-    // General validation mapping
+  const validateGenericStep = (aplicaIVA: boolean, currentStep: number) => {
     let logicalStep = currentStep;
-    if (aplicaIVA && currentStep === 3) return true; // Step IVA custom validation above
     if (aplicaIVA && currentStep > 3) logicalStep--;
 
     const validation = validateStep(logicalStep, data, data.tipoPago);
@@ -191,39 +164,64 @@ const Wizard: React.FC = () => {
       toast.error(firstError || "Por favor complete todos los campos requeridos");
       return false;
     }
-
     return true;
   };
 
-  const renderStep = () => {
-    // Índices dinámicos
-    const stepPago = aplicaIVA ? 4 : 3;
-    const stepCargos = aplicaIVA ? 5 : 4;
+  const handleNext = () => {
+    // Step 0: Proyecto y Unidad
+    if (currentStep === 0 && !validateStep0ProyectoUnidad(data)) return false;
+
+    // Validación IVA (Paso 3 si aplica)
+    if (aplicaIVA && currentStep === 3 && !validateIVAStep()) return false;
+
+    // Step Pago
+    const pagoValidation = validatePagoStep(aplicaIVA, currentStep);
+    if (pagoValidation !== null) return pagoValidation;
+
     const stepReglas = aplicaIVA ? 6 : 5;
     const stepCliente = aplicaIVA ? 7 : 6;
-    const stepSalida = aplicaIVA ? 8 : 7;
 
-    // Lógica de saltos para Contado
-    if (data.tipoPago === "contado") {
-      if (currentStep === stepReglas) return <Step6DatosCliente />;
-      if (currentStep === stepCliente) return <Step7Salida />; // Después de cliente va salida
+    // Step Reglas
+    if (currentStep === stepReglas && data.tipoPago !== "contado") {
+      if (!validateStep5ReglasFinanciacion(data)) return false;
     }
 
-    if (currentStep === 0) return <Step1ProyectoUnidad />;
-    if (currentStep === 1) return <Step2Comercial />;
-    if (currentStep === 2) return <Step3ComposicionFSB />;
+    // Step Cliente
+    if (currentStep === stepCliente && !validateStep6DatosCliente(data)) return false;
+
+    // Default validation
+    return validateGenericStep(aplicaIVA, currentStep);
+  };
+
+  const renderStep = () => {
+    // Steps mapping for better readability
+    const stepsMap: Record<number, JSX.Element> = {
+      0: <Step1ProyectoUnidad />,
+      1: <Step2Comercial />,
+      2: <Step3ComposicionFSB />,
+    };
 
     if (aplicaIVA) {
-      if (currentStep === 3) return <Step3_5IVACalculo />;
+      stepsMap[3] = <Step35IVACalculo />;
     }
 
-    if (currentStep === stepPago) return <Step4Pago />;
-    if (currentStep === stepCargos) return <Step5Cargos />;
-    if (currentStep === stepReglas) return <Step6ReglasFinanciacion />;
-    if (currentStep === stepCliente) return <Step6DatosCliente />;
-    if (currentStep === stepSalida) return <Step7Salida />;
+    // Shift indices if IVA applies
+    const offset = aplicaIVA ? 1 : 0;
+    stepsMap[3 + offset] = <Step4Pago />;
+    stepsMap[4 + offset] = <Step5Cargos />;
+    stepsMap[5 + offset] = <Step6ReglasFinanciacion />;
+    stepsMap[6 + offset] = <Step6DatosCliente />;
+    stepsMap[7 + offset] = <Step7Salida />;
 
-    return <Step1ProyectoUnidad />;
+    // Handle Contado skips overrides
+    if (data.tipoPago === "contado") {
+      // Reglas -> Cliente
+      if (currentStep === (5 + offset)) return <Step6DatosCliente />;
+      // Cliente -> Salida
+      if (currentStep === (6 + offset)) return <Step7Salida />;
+    }
+
+    return stepsMap[currentStep] || <Step1ProyectoUnidad />;
   };
 
   // Determinar si estamos en el paso final

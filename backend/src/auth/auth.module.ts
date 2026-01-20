@@ -6,6 +6,7 @@ import { AuthLoggerService } from './auth-logger.service';
 import { AuthLoggerController } from './auth-logger.controller';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { ProjectAccessGuard } from './guards/project-access.guard';
+import { MFAGuard } from './guards/mfa.guard';
 import { UsuariosRolesModule } from '../usuarios-roles/usuarios-roles.module';
 import { UsuariosProyectosModule } from '../usuarios-proyectos/usuarios-proyectos.module';
 import { LoggerModule } from '../logger/logger.module';
@@ -24,6 +25,7 @@ import { LoggerModule } from '../logger/logger.module';
         AuthLoggerService,
         PermissionsGuard,
         ProjectAccessGuard,
+        MFAGuard,
     ],
     exports: [
         PassportModule,
@@ -31,6 +33,8 @@ import { LoggerModule } from '../logger/logger.module';
         AuthLoggerService,
         PermissionsGuard,
         ProjectAccessGuard,
+        MFAGuard,
     ],
 })
 export class AuthModule { }
+

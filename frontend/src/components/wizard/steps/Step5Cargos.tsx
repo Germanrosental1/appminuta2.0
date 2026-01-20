@@ -6,6 +6,7 @@ import { validateStep } from "@/utils/validation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormaPago } from "@/types/wizard";
+import { getGastosGeneralesByProyecto } from "@/services/proyectos";
 
 // Usamos un tipo interno para manejar "Bonificado" sin modificar el tipo FormaPago
 type FormaPagoInternal = FormaPago | "Bonificado";
@@ -13,6 +14,7 @@ type FormaPagoInternal = FormaPago | "Bonificado";
 export const Step5Cargos: React.FC = () => {
   const { data, updateData } = useWizard();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [defaultsLoaded, setDefaultsLoaded] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     const numValue = value === "" ? 0 : Number.parseFloat(value.replaceAll(",", "."));
@@ -46,6 +48,51 @@ export const Step5Cargos: React.FC = () => {
     }
   };
 
+  // Helper para mapear gastos a updates
+  const mapGastosToUpdates = (gastos: any) => {
+    const updates: any = {};
+    const mapping = [
+      { key: 'certificaciondefirmas', target: 'certificacionFirmas' },
+      { key: 'sellado', target: 'selladoPorcentaje', transform: (v: number) => v * 100 },
+      { key: 'alajamiento', target: 'alhajamiemtoPorcentaje', transform: (v: number) => v * 100 },
+      { key: 'planosm2propiedad', target: 'planosUnidadValorM2' },
+      { key: 'planosm2cochera', target: 'planosCocheraValor' },
+      { key: 'otrosgastos', target: 'otrosGastos' },
+    ];
+
+    mapping.forEach(({ key, target, transform }) => {
+      if (gastos[key] !== null && gastos[key] !== undefined) {
+        updates[target] = transform ? transform(gastos[key]) : gastos[key];
+      }
+    });
+
+    return updates;
+  };
+
+  // Cargar valores por defecto desde gastosgenerales cuando se selecciona un proyecto
+  useEffect(() => {
+    const loadDefaults = async () => {
+      if (!data.proyecto || defaultsLoaded) return;
+
+      try {
+        const gastos = await getGastosGeneralesByProyecto(data.proyecto);
+        if (gastos) {
+          const updates = mapGastosToUpdates(gastos);
+          if (Object.keys(updates).length > 0) {
+            console.log('Loading gastos generales defaults:', updates);
+            updateData(updates);
+          }
+        }
+        setDefaultsLoaded(true);
+      } catch (error) {
+        console.error('Error loading gastos generales:', error);
+        setDefaultsLoaded(true);
+      }
+    };
+
+    loadDefaults();
+  }, [data.proyecto, defaultsLoaded]);
+
   // Calcular precio total (unidad principal + cocheras + baulera)
   const calcularPrecioTotal = () => {
     // Precio de la unidad principal
@@ -74,12 +121,9 @@ export const Step5Cargos: React.FC = () => {
 
   // Calcular totales de cargos financiados
   useEffect(() => {
-    const baseFinanciarArs = data.valorArsConIVA || 0;
-    const baseFinanciarUsd = data.valorUsdConIVA || 0;
+    // Variables base para cálculo (anteriormente usadas para restar anticipos, ahora lógica movida)
 
-    // Restar anticipos
-    const baseFinanciarArsConAnticipos = baseFinanciarArs - (data.anticipoArsA || 0) - (data.anticipoArsB || 0);
-    const baseFinanciarUsdConAnticipos = baseFinanciarUsd - (data.anticipoUsdA || 0) - (data.anticipoUsdB || 0);
+    // Restar anticipos (Lógica movida al cálculo de baseF y baseSB)
 
     const tcValor = data.tcValor || 1;
 

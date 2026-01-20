@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { MinutasService } from './minutas.service';
@@ -34,7 +34,7 @@ export class MinutasController {
   @Patch('provisoria/:id')
   @Permissions('editarMinuta')
   @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
-  updateProvisoria(@Param('id') id: string, @Body() data: UpdateMinutaDto) {
+  updateProvisoria(@Param('id', ParseUUIDPipe) id: string, @Body() data: UpdateMinutaDto) {
     return this.minutasService.updateProvisoria(id, data);
   }
 
@@ -56,7 +56,7 @@ export class MinutasController {
 
   @Get(':id')
   @Permissions('verMinutas') // Requiere permiso específico
-  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     // Validar acceso a la minuta (propiedad o acceso a proyecto)
     return this.minutasService.findOne(id, user.id);
   }
@@ -64,7 +64,7 @@ export class MinutasController {
   @Patch(':id')
   @Permissions('editarMinuta', 'aprobarRechazarMinuta')
   @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
-  async update(@Param('id') id: string, @Body() updateMinutaDto: UpdateMinutaDto, @CurrentUser() user: any) {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() updateMinutaDto: UpdateMinutaDto, @CurrentUser() user: any) {
     // El servicio manejará la lógica de qué puede hacer cada rol
     // editarMinuta: puede editar campos generales
     // aprobarRechazarMinuta: puede cambiar estado a Definitiva/Rechazada
@@ -74,7 +74,7 @@ export class MinutasController {
   @Delete(':id')
   @Permissions('editarMinuta')
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
-  remove(@Param('id') id: string, @CurrentUser() user: any) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     return this.minutasService.remove(id, user.id);
   }
 }

@@ -71,7 +71,7 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                 {/* PROYECTO - Show as text if locked, otherwise dropdown */}
                 {proyectoBloqueado ? (
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Proyecto</label>
+                        <span className="text-sm font-medium">Proyecto</span>
                         <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
                             <span>{proyectoSeleccionado}</span>
                         </div>

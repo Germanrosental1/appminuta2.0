@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
+import { VerifyMFA } from '@/components/auth/VerifyMFA';
+import { EnrollMFA } from '@/components/auth/EnrollMFA';
 import { useAuth } from '@/hooks/useAuth';
-
 import { supabase } from '@/lib/supabase';
+
+type MFAState = 'checking' | 'login' | 'verify' | 'enroll' | 'complete';
+
+
 
 export const LoginPage: React.FC = () => {
     const { user, loading, refreshRoles } = useAuth();
     const navigate = useNavigate();
+    const [mfaState, setMfaState] = useState<MFAState>('checking');
     const [verifyingRoles, setVerifyingRoles] = useState(false);
     const [mfaState, setMfaState] = useState<'login' | 'enroll' | 'verify' | 'complete'>('login');
     const hasRedirected = useRef(false);
@@ -65,14 +71,7 @@ export const LoginPage: React.FC = () => {
         }
     };
 
-    // Helper function to determine redirect path based on user roles
-    const getRedirectPath = (roles: Array<{ nombre: string }>): string => {
-        // Todos los usuarios van al dashboard principal
-        // El sistema mostrará solo los proyectos y opciones según su rol
-        return '/';
-    };
-
-    // Handle redirect after role verification
+    // Redirect after MFA is complete
     const performRedirect = async (currentUser: typeof user) => {
         if (!currentUser) return;
 
@@ -80,9 +79,8 @@ export const LoginPage: React.FC = () => {
         setVerifyingRoles(true);
 
         try {
-            const roles = await refreshRoles(currentUser);
-            const redirectPath = getRedirectPath(roles);
-            navigate(redirectPath, { replace: true });
+            await refreshRoles(currentUser);
+            navigate('/', { replace: true });
         } catch (error) {
             console.error('Error verificando roles:', error);
             navigate('/', { replace: true });
@@ -92,40 +90,75 @@ export const LoginPage: React.FC = () => {
     };
 
     useEffect(() => {
-        // Reset redirect flag when user logs out
         if (!user) {
             hasRedirected.current = false;
+            setMfaState('login');
             return;
         }
 
-        // If still loading or already redirected, skip
         if (loading || hasRedirected.current) {
             return;
         }
 
-        // User exists and we haven't redirected yet - do it now
-        performRedirect(user);
-    }, [user, loading, navigate]);
+        // User is authenticated, check MFA status
+        if (mfaState === 'checking' || mfaState === 'login') {
+            checkMFAStatus();
+        }
+    }, [user, loading]);
 
-    // Show loading screen while verifying authentication or roles
-    if (loading || verifyingRoles) {
+    // Handle MFA completion
+    useEffect(() => {
+        if (mfaState === 'complete' && user && !hasRedirected.current) {
+            performRedirect(user);
+        }
+    }, [mfaState, user]);
+
+    // Loading states
+    if (loading || mfaState === 'checking' || verifyingRoles) {
         return (
             <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-                <p className="text-sm text-gray-600">Verificando acceso...</p>
+                <p className="text-sm text-gray-600">
+                    {verifyingRoles ? 'Verificando acceso...' : 'Cargando...'}
+                </p>
             </div>
         );
     }
 
-    // If user exists, we're redirecting (or about to), don't show login form
-    if (user) {
+    // Show MFA verification screen
+    if (mfaState === 'verify') {
         return (
-            <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-                <p className="text-sm text-gray-600">Redirigiendo...</p>
+            <VerifyMFA
+                onVerified={() => setMfaState('complete')}
+                onCancel={async () => {
+                    await supabase.auth.signOut();
+                    setMfaState('login');
+                }}
+            />
+        );
+    }
+
+    // Show MFA enrollment screen (mandatory for MV)
+    if (mfaState === 'enroll') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                <div className="space-y-4">
+                    <EnrollMFA
+                        onEnrolled={() => setMfaState('complete')}
+                        onCancelled={async () => {
+                            await supabase.auth.signOut();
+                            setMfaState('login');
+                        }}
+                    />
+                    <p className="text-xs text-center text-muted-foreground">
+                        La autenticación de dos factores es obligatoria para acceder a Mapa de Ventas
+                    </p>
+                </div>
             </div>
         );
     }
 
+    // Show login form
     return <LoginForm />;
 };
+

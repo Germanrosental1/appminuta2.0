@@ -10,6 +10,7 @@ import {
     UseGuards,
     Query,
     ForbiddenException,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { UsuariosRolesService } from '../usuarios-roles/usuarios-roles.service';
 import { UsuariosProyectosService } from '../usuarios-proyectos/usuarios-proyectos.service';
@@ -58,7 +59,7 @@ export class UsuariosController {
     @Permissions('gestionarRoles') // Solo administradores
     @HttpCode(HttpStatus.CREATED)
     assignRole(
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() assignRoleDto: AssignRoleDto,
         @CurrentUser() user: any
     ) {
@@ -76,8 +77,8 @@ export class UsuariosController {
     @Permissions('gestionarRoles') // Solo administradores
     @HttpCode(HttpStatus.NO_CONTENT)
     removeRole(
-        @Param('id') id: string,
-        @Param('roleId') roleId: string,
+        @Param('id', ParseUUIDPipe) id: string,
+        @Param('roleId', ParseUUIDPipe) roleId: string,
         @CurrentUser() user: any
     ) {
         // 🔒 SEGURIDAD: Prevenir auto-remoción de roles
@@ -91,7 +92,7 @@ export class UsuariosController {
 
     @Get(':id/permisos')
     @UseGuards(SupabaseAuthGuard)
-    getUserPermissions(@Param('id') id: string, @CurrentUser() user: any) {
+    getUserPermissions(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
         // 🔒 SEGURIDAD: Solo puede ver sus propios permisos (a menos que sea admin)
         if (id !== user.id && id !== user.sub) {
             // Verificar si tiene permiso de gestión de usuarios
@@ -110,7 +111,7 @@ export class UsuariosController {
     @Get(':id/proyectos')
     @UseGuards(SupabaseAuthGuard, PermissionsGuard)
     @Permissions('gestionarUsuarios')
-    getUserProjects(@Param('id') id: string) {
+    getUserProjects(@Param('id', ParseUUIDPipe) id: string) {
         return this.usuariosProyectosService.getUserProjects(id);
     }
 
@@ -122,7 +123,7 @@ export class UsuariosController {
     @Permissions('gestionarUsuarios')
     @HttpCode(HttpStatus.CREATED)
     assignUserToProject(
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() assignUserToProjectDto: AssignUserToProjectDto,
     ) {
         return this.usuariosProyectosService.assignUserToProject(
@@ -140,9 +141,9 @@ export class UsuariosController {
     @Permissions('gestionarUsuarios')
     @HttpCode(HttpStatus.NO_CONTENT)
     removeUserFromProject(
-        @Param('id') id: string,
-        @Param('projectId') projectId: string,
-        @Param('roleId') roleId: string,
+        @Param('id', ParseUUIDPipe) id: string,
+        @Param('projectId', ParseUUIDPipe) projectId: string,
+        @Param('roleId', ParseUUIDPipe) roleId: string,
     ) {
         return this.usuariosProyectosService.removeUserFromProject(
             id,

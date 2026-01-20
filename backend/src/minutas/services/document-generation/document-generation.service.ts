@@ -13,7 +13,7 @@ import { N8nDocumentGenerator } from './n8n-generator.service';
  */
 @Injectable()
 export class DocumentGenerationService {
-    private generators: Map<string, IDocumentGenerator> = new Map();
+    private readonly generators: Map<string, IDocumentGenerator> = new Map();
     private defaultProvider = 'n8n';
 
     constructor(

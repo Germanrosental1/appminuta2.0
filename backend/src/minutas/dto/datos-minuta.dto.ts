@@ -90,12 +90,13 @@ export class DatosMinutaDto {
     @Transform(({ value }) => {
         if (value && typeof value === 'object') {
             // Filtrar propiedades peligrosas sin usar delete
-            const dangerousProps = ['__proto__', 'constructor', 'prototype'];
-            const sanitized: Record<string, string | number | boolean> = {};
+            const dangerousProps = new Set(['__proto__', 'constructor', 'prototype']);
+            type MetadataValue = string | number | boolean;
+            const sanitized: Record<string, MetadataValue> = {};
 
             for (const [key, val] of Object.entries(value)) {
-                if (!dangerousProps.includes(key)) {
-                    sanitized[key] = val as string | number | boolean;
+                if (!dangerousProps.has(key)) {
+                    sanitized[key] = val as MetadataValue;
                 }
             }
 

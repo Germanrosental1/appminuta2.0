@@ -10,12 +10,14 @@ import { backendAPI } from "@/services/backendAPI";
 interface GastosGenerales {
     proyecto: string;
     sellado?: number;
-    certificaciondefirmas?: string;
+    certificaciondefirmas?: number;
     alajamiento?: number;
-    planosm2propiedad?: string;
-    planosm2cochera?: string;
+    planosm2propiedad?: number;
+    planosm2cochera?: number;
     comisioninmobiliaria?: number;
-    otrosgastos?: string;
+    otrosgastos?: number;
+    fecha_posesion?: string;
+    etapatorre?: string;
 }
 
 interface GastosGeneralesTabProps {
@@ -144,10 +146,11 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                 <Label htmlFor="planosm2propiedad">Planos M² Propiedad</Label>
                                 <Input
                                     id="planosm2propiedad"
-                                    type="text"
+                                    type="number"
+                                    step="0.01"
                                     value={gastos.planosm2propiedad || ''}
-                                    onChange={(e) => updateField('planosm2propiedad', e.target.value)}
-                                    placeholder="Ej: $8.00"
+                                    onChange={(e) => updateField('planosm2propiedad', parseFloat(e.target.value) || 0)}
+                                    placeholder="Ej: 8.00"
                                     className={gastos.planosm2propiedad ? "text-foreground" : ""}
                                 />
                             </div>
@@ -155,10 +158,11 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                 <Label htmlFor="planosm2cochera">Planos M² Cochera</Label>
                                 <Input
                                     id="planosm2cochera"
-                                    type="text"
+                                    type="number"
+                                    step="0.01"
                                     value={gastos.planosm2cochera || ''}
-                                    onChange={(e) => updateField('planosm2cochera', e.target.value)}
-                                    placeholder="Ej: $100.00"
+                                    onChange={(e) => updateField('planosm2cochera', parseFloat(e.target.value) || 0)}
+                                    placeholder="Ej: 100.00"
                                     className={gastos.planosm2cochera ? "text-foreground" : ""}
                                 />
                             </div>
@@ -173,10 +177,11 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                 <Label htmlFor="certificaciondefirmas">Certificación de Firmas</Label>
                                 <Input
                                     id="certificaciondefirmas"
-                                    type="text"
+                                    type="number"
+                                    step="0.01"
                                     value={gastos.certificaciondefirmas || ''}
-                                    onChange={(e) => updateField('certificaciondefirmas', e.target.value)}
-                                    placeholder="Descripción o monto"
+                                    onChange={(e) => updateField('certificaciondefirmas', parseFloat(e.target.value) || 0)}
+                                    placeholder="Monto"
                                     className={gastos.certificaciondefirmas ? "text-foreground" : ""}
                                 />
                             </div>
@@ -184,11 +189,34 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                 <Label htmlFor="otrosgastos">Otros Gastos</Label>
                                 <Input
                                     id="otrosgastos"
-                                    type="text"
+                                    type="number"
+                                    step="0.01"
                                     value={gastos.otrosgastos || ''}
-                                    onChange={(e) => updateField('otrosgastos', e.target.value)}
-                                    placeholder="Descripción de otros gastos"
+                                    onChange={(e) => updateField('otrosgastos', parseFloat(e.target.value) || 0)}
+                                    placeholder="Monto"
                                     className={gastos.otrosgastos ? "text-foreground" : ""}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="fecha_posesion">Fecha Posesión</Label>
+                                <Input
+                                    id="fecha_posesion"
+                                    type="text"
+                                    value={gastos.fecha_posesion || ''}
+                                    onChange={(e) => updateField('fecha_posesion', e.target.value)}
+                                    placeholder="Ej: 30 días"
+                                    className={gastos.fecha_posesion ? "text-foreground" : ""}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="etapatorre">Etapa / Torre</Label>
+                                <Input
+                                    id="etapatorre"
+                                    type="text"
+                                    value={gastos.etapatorre || ''}
+                                    onChange={(e) => updateField('etapatorre', e.target.value)}
+                                    placeholder="Ej: Torre A"
+                                    className={gastos.etapatorre ? "text-foreground" : ""}
                                 />
                             </div>
                         </div>

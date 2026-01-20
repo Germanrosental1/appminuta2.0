@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateStep } from "@/utils/validation";
-import { DollarSign, Check, CreditCard } from "lucide-react";
+import { Check, CreditCard } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export const Step4Pago: React.FC = () => {
@@ -114,7 +114,31 @@ export const Step4Pago: React.FC = () => {
     };
 
     // Solo inicializar si no hay valores previos o si es la primera vez
-    if (!initialized) {
+    if (initialized) {
+      // Recalculate if values changed (standard logic + IVA check)
+      // data.montoIVA viene en USD desde Step3.5
+      const tc = data.tcValor || 1;
+
+      let montoIvaEnMonedaA = data.montoIVA || 0;
+
+      // Si la moneda A es ARS, convertimos el IVA a ARS usando el TC actual
+      if ((!data.monedaA || data.monedaA === 'ARS') && tc > 0) {
+        montoIvaEnMonedaA = montoIvaEnMonedaA * tc;
+      }
+
+      const valorAConIVA = valorA + montoIvaEnMonedaA;
+
+      if (data.valorArsConIVA !== valorAConIVA || data.valorUsdConIVA !== valorB) {
+        // Si los valores han cambiado debido a cambios en la composición, actualizarlos
+        updateData({
+          valorArsConIVA: valorAConIVA,
+          valorUsdConIVA: valorB,
+          // Actualizar totales a financiar
+          totalFinanciarArs: Math.max(valorAConIVA - (data.anticipoArsA || 0) - ((data.anticipoUsdA || 0) * tc), 0),
+          totalFinanciarUsd: calcularTotalFinanciarSB(valorB, data.anticipoArsB || 0, data.anticipoUsdB || 0, tc, data.monedaB)
+        });
+      }
+    } else {
       const tcValorDefault = 1100; // Valor por defecto si no hay uno configurado
       const tc = data.tcValor || tcValorDefault;
 
@@ -150,30 +174,6 @@ export const Step4Pago: React.FC = () => {
       });
 
       setInitialized(true);
-    } else {
-      // Recalculate if values changed (standard logic + IVA check)
-      // data.montoIVA viene en USD desde Step3.5
-      const tc = data.tcValor || 1;
-
-      let montoIvaEnMonedaA = data.montoIVA || 0;
-
-      // Si la moneda A es ARS, convertimos el IVA a ARS usando el TC actual
-      if ((!data.monedaA || data.monedaA === 'ARS') && tc > 0) {
-        montoIvaEnMonedaA = montoIvaEnMonedaA * tc;
-      }
-
-      const valorAConIVA = valorA + montoIvaEnMonedaA;
-
-      if (data.valorArsConIVA !== valorAConIVA || data.valorUsdConIVA !== valorB) {
-        // Si los valores han cambiado debido a cambios en la composición, actualizarlos
-        updateData({
-          valorArsConIVA: valorAConIVA,
-          valorUsdConIVA: valorB,
-          // Actualizar totales a financiar
-          totalFinanciarArs: Math.max(valorAConIVA - (data.anticipoArsA || 0) - ((data.anticipoUsdA || 0) * tc), 0),
-          totalFinanciarUsd: calcularTotalFinanciarSB(valorB, data.anticipoArsB || 0, data.anticipoUsdB || 0, tc, data.monedaB)
-        });
-      }
     }
   }, [data.precioNegociado, data.cocheras, data.baulera, data.modoA, data.porcA, data.impA, data.monedaB, data.tcValor, data.unidades, initialized, data.montoIVA]);
 
@@ -199,7 +199,7 @@ export const Step4Pago: React.FC = () => {
     // Para la parte SB: depende de la moneda seleccionada
     let totalUsd = 0;
     if (data.monedaB === "ARS") {
-      // Si SB está en ARS, trabajamos todo en ARS
+      // Si SB está en ARS, trabajamos en ARS
       // - Restar anticipo en ARS directamente
       // - Convertir anticipo en USD a ARS y restarlo
       const anticipoUsdBEnArs = (data.anticipoUsdB || 0) * tcValor;
