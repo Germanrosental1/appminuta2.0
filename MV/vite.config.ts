@@ -15,4 +15,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // 🔒 SECURITY: Remove console logs in production
+  esbuild: {
+    drop: mode === "production" ? ["console", "debugger"] : [],
+  },
 }));

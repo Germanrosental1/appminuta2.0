@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+=======
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe, ForbiddenException } from '@nestjs/common';
+>>>>>>> Stashed changes
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
@@ -51,10 +55,28 @@ export class ProyectosController {
     }
 
     /**
+<<<<<<< Updated upstream
      * Obtener proyecto por ID
      */
     @Get(':id')
     findOne(@Param('id') id: string) {
+=======
+     * 🔒 Obtener proyecto por ID (validado como UUID)
+     * SEGURIDAD: Verifica que el usuario tenga acceso al proyecto
+     */
+    @Get(':id')
+    async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+        const userId = user?.sub || user?.id;
+
+        // 🔒 SEGURIDAD: Verificar que el usuario tiene acceso a este proyecto
+        const userProjects = await this.proyectosService.findByUserId(userId);
+        const hasAccess = userProjects.some(p => p.id === id);
+
+        if (!hasAccess) {
+            throw new ForbiddenException('No tienes acceso a este proyecto');
+        }
+
+>>>>>>> Stashed changes
         return this.proyectosService.findOne(id);
     }
 

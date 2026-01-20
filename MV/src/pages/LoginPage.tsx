@@ -9,9 +9,63 @@ export const LoginPage: React.FC = () => {
     const [verifyingRoles, setVerifyingRoles] = useState(false);
     const hasRedirected = useRef(false);
 
+<<<<<<< Updated upstream
     // Helper function to check if user has a specific role
     const hasRole = (roles: Array<{ nombre: string }>, roleName: string): boolean => {
         return roles.some(r => r.nombre === roleName);
+=======
+    // Check MFA status after authentication
+    const checkMFAStatus = async () => {
+        try {
+            const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+            if (error) {
+                // No permitir bypass en error - cerrar sesión
+                console.error('Error checking MFA:', error);
+                await supabase.auth.signOut();
+                setMfaState('login');
+                return;
+            }
+
+            // User needs to verify MFA (has factor but hasn't verified yet)
+            if (data.nextLevel === 'aal2' && data.currentLevel === 'aal1') {
+                setMfaState('verify');
+                return;
+            }
+
+            // User has completed MFA verification
+            if (data.currentLevel === 'aal2') {
+                setMfaState('complete');
+                return;
+            }
+
+            // Check if user has any TOTP factors enrolled
+            const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+
+            if (factorsError) {
+                // No permitir bypass en error
+                console.error('Error listing factors:', factorsError);
+                await supabase.auth.signOut();
+                setMfaState('login');
+                return;
+            }
+
+            const hasVerifiedFactor = factors?.totp?.some(f => f.status === 'verified');
+
+            if (hasVerifiedFactor) {
+                // Has factor but needs verification
+                setMfaState('verify');
+            } else {
+                // No MFA enrolled - require enrollment for MV users
+                setMfaState('enroll');
+            }
+        } catch (err) {
+            // No permitir bypass en error
+            console.error('MFA check error:', err);
+            await supabase.auth.signOut();
+            setMfaState('login');
+        }
+>>>>>>> Stashed changes
     };
 
     // Helper function to determine redirect path based on user roles

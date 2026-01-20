@@ -78,6 +78,13 @@ export class UnidadesImportService {
         // Normalize field names (handle case variations)
         const normalizedRow = this.normalizeRowFields(row);
 
+<<<<<<< Updated upstream
+=======
+
+        console.log('\n========== PROCESANDO FILA ==========');
+        // 🔒 SEGURIDAD: No loguear datos completos de la fila para proteger información sensible
+
+>>>>>>> Stashed changes
         // 1. Resolve Dependencies
         const proyectoId = await this.resolveProyecto(tx, normalizedRow, cache);
         const edificioId = await this.resolveEdificio(tx, normalizedRow, proyectoId, cache);
@@ -160,6 +167,10 @@ export class UnidadesImportService {
         });
 
         // 8. Process Cliente Titular (comma-separated names -> Clientes + ClientesUnidadesTitulares)
+<<<<<<< Updated upstream
+=======
+        console.log('👥 Procesando clientes titulares...');
+>>>>>>> Stashed changes
         await this.processClientesTitulares(tx, unidadId, normalizedRow.clientetitular, cache);
     }
 

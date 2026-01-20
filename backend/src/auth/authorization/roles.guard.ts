@@ -3,7 +3,6 @@ import {
     CanActivate,
     ExecutionContext,
     ForbiddenException,
-    BadRequestException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthorizationService } from './authorization.service';
@@ -46,8 +45,9 @@ export class RolesGuard implements CanActivate {
             request.body?.proyecto_id;
 
         if (!projectId) {
-            throw new BadRequestException(
-                'Se requiere ID de proyecto para validar roles',
+            // 🔒 SEGURIDAD: Usar ForbiddenException para no revelar información sobre requisitos del endpoint
+            throw new ForbiddenException(
+                'Se requiere contexto de proyecto para esta operación',
             );
         }
 

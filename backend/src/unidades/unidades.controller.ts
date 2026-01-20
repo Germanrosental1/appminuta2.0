@@ -41,7 +41,14 @@ export class UnidadesController {
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
     @UseInterceptors(FileInterceptor('file'))
+<<<<<<< Updated upstream
     uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
+=======
+    async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
+        // 🔒 SEGURIDAD: No loguear detalles de archivos ni URLs
+        // El AllExceptionsFilter maneja errores de forma segura
+
+>>>>>>> Stashed changes
         // Opción 1: Archivo subido
         if (file) {
             const allowedMimes = [
@@ -51,13 +58,22 @@ export class UnidadesController {
             if (!allowedMimes.includes(file.mimetype)) {
                 throw new BadRequestException('Solo se permiten archivos Excel (.xlsx, .xls)');
             }
+<<<<<<< Updated upstream
             return this.importService.importFromExcel(file.buffer, req.user);
+=======
+
+            return await this.importService.importFromExcel(file.buffer, req.user);
+>>>>>>> Stashed changes
         }
 
         // Opción 2: URL en el body (para n8n/automations)
         if (body && (body.excel || body.linkArchivo)) {
             const url = body.excel || body.linkArchivo;
+<<<<<<< Updated upstream
             return this.importService.importFromUrl(url, req.user);
+=======
+            return await this.importService.importFromUrl(url, req.user);
+>>>>>>> Stashed changes
         }
 
         throw new BadRequestException('Debe proporcionar un archivo (file) o una URL (excel/linkArchivo) en el body');

@@ -81,5 +81,9 @@ export default defineConfig(({ mode }) => ({
     },
     chunkSizeWarningLimit: 1000,
   },
+  // 🔒 SECURITY: Remove console logs in production
+  esbuild: {
+    drop: mode === "production" ? ["console", "debugger"] : [],
+  },
 }));
 
