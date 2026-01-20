@@ -15,7 +15,7 @@ export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const [mfaState, setMfaState] = useState<MFAState>('checking');
     const [verifyingRoles, setVerifyingRoles] = useState(false);
-    const [mfaState, setMfaState] = useState<'login' | 'enroll' | 'verify' | 'complete'>('login');
+
     const hasRedirected = useRef(false);
 
     // Check MFA status after authentication

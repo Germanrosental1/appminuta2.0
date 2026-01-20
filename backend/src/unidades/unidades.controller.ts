@@ -83,89 +83,89 @@ export class UnidadesController {
     @Permissions('gestionarUnidades')
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
-    async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
-            // 🔒 SEGURIDAD: No loguear detalles de archivos ni URLs
-            // El AllExceptionsFilter maneja errores de forma segura
 
-            // Opción 1: Archivo subido
-            if (file) {
-                const allowedMimes = [
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'application/vnd.ms-excel'
-                ];
-                if (!allowedMimes.includes(file.mimetype)) {
-                    throw new BadRequestException('Solo se permiten archivos Excel (.xlsx, .xls)');
-                }
+        // 🔒 SEGURIDAD: No loguear detalles de archivos ni URLs
+        // El AllExceptionsFilter maneja errores de forma segura
 
-                return await this.importService.importFromExcel(file.buffer, req.user);
+        // Opción 1: Archivo subido
+        if (file) {
+            const allowedMimes = [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel'
+            ];
+            if (!allowedMimes.includes(file.mimetype)) {
+                throw new BadRequestException('Solo se permiten archivos Excel (.xlsx, .xls)');
             }
 
-            // Opción 2: URL en el body (para n8n/automations)
-            if (body && (body.excel || body.linkArchivo)) {
-                const url = body.excel || body.linkArchivo;
-                return await this.importService.importFromUrl(url, req.user);
-            }
-
-            throw new BadRequestException('Debe proporcionar un archivo (file) o una URL (excel/linkArchivo) en el body');
+            return await this.importService.importFromExcel(file.buffer, req.user);
         }
 
-        // Metadata endpoints - MUST come before generic GET routes
-        @Get('metadata/naturalezas')
-        getNaturalezas() {
-            return this.unidadesQueryService.getNaturalezas();
+        // Opción 2: URL en el body (para n8n/automations)
+        if (body && (body.excel || body.linkArchivo)) {
+            const url = body.excel || body.linkArchivo;
+            return await this.importService.importFromUrl(url, req.user);
         }
 
-        @Get('metadata/tipos-disponibles')
-        getTiposDisponibles() {
-            return this.unidadesQueryService.getTiposDisponibles();
-        }
+        throw new BadRequestException('Debe proporcionar un archivo (file) o una URL (excel/linkArchivo) en el body');
+    }
 
-        @Get('metadata/proyectos')
-        getProyectosPorTipo(@Query('tipo') tipo: string) {
-            return this.unidadesQueryService.getProyectosPorTipo(tipo);
-        }
+    // Metadata endpoints - MUST come before generic GET routes
+    @Get('metadata/naturalezas')
+    getNaturalezas() {
+        return this.unidadesQueryService.getNaturalezas();
+    }
 
-        /**
-         * Valida acceso al proyecto antes de retornar etapas
-         */
-        @Get('metadata/etapas')
-        async getEtapas(@Query('proyecto') proyecto: string, @CurrentUser() user: any) {
-            if (proyecto) {
-                await this.validateProjectAccess(user.id, proyecto);
-            }
-            return this.unidadesQueryService.getEtapas(proyecto);
-        }
+    @Get('metadata/tipos-disponibles')
+    getTiposDisponibles() {
+        return this.unidadesQueryService.getTiposDisponibles();
+    }
 
-        /**
-         * Valida acceso al proyecto antes de retornar tipos
-         */
-        @Get('metadata/tipos')
-        async getTipos(
-            @Query('proyecto') proyecto: string,
-            @CurrentUser() user: any,
-            @Query('etapa') etapa ?: string
-        ) {
-            if (proyecto) {
-                await this.validateProjectAccess(user.id, proyecto);
-            }
-            return this.unidadesQueryService.getTipos(proyecto, etapa);
-        }
+    @Get('metadata/proyectos')
+    getProyectosPorTipo(@Query('tipo') tipo: string) {
+        return this.unidadesQueryService.getProyectosPorTipo(tipo);
+    }
 
-        /**
-         * Valida acceso al proyecto antes de retornar sectores
-         */
-        @Get('metadata/sectores')
-        async getSectores(
-            @Query('proyecto') proyecto: string,
-            @CurrentUser() user: any,
-            @Query('etapa') etapa ?: string,
-            @Query('tipo') tipo ?: string
-        ) {
-            if (proyecto) {
-                await this.validateProjectAccess(user.id, proyecto);
-            }
-            return this.unidadesQueryService.getSectores(proyecto, etapa, tipo);
+    /**
+     * Valida acceso al proyecto antes de retornar etapas
+     */
+    @Get('metadata/etapas')
+    async getEtapas(@Query('proyecto') proyecto: string, @CurrentUser() user: any) {
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
         }
+        return this.unidadesQueryService.getEtapas(proyecto);
+    }
+
+    /**
+     * Valida acceso al proyecto antes de retornar tipos
+     */
+    @Get('metadata/tipos')
+    async getTipos(
+        @Query('proyecto') proyecto: string,
+        @CurrentUser() user: any,
+        @Query('etapa') etapa?: string
+    ) {
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
+        }
+        return this.unidadesQueryService.getTipos(proyecto, etapa);
+    }
+
+    /**
+     * Valida acceso al proyecto antes de retornar sectores
+     */
+    @Get('metadata/sectores')
+    async getSectores(
+        @Query('proyecto') proyecto: string,
+        @CurrentUser() user: any,
+        @Query('etapa') etapa?: string,
+        @Query('tipo') tipo?: string
+    ) {
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
+        }
+        return this.unidadesQueryService.getSectores(proyecto, etapa, tipo);
+    }
 
     /**
      * Helper: Valida que el usuario tenga acceso al proyecto por nombre
