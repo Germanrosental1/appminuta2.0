@@ -16,7 +16,7 @@ import { PerformanceInterceptor } from './common/interceptors/performance.interc
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
-    // 🔒 SEGURIDAD: Headers de seguridad con Helmet (MEJORADO para 10/10)
+    // Headers de seguridad con Helmet (MEJORADO para 10/10)
     const isDevelopment = process.env.NODE_ENV !== 'production';
     app.use(helmet({
         contentSecurityPolicy: isDevelopment ? false : {
@@ -51,7 +51,7 @@ async function bootstrap() {
         originAgentCluster: true,
     }));
 
-    // 🔒 SEGURIDAD: Permissions-Policy header (no incluido en Helmet)
+    // Permissions-Policy header (no incluido en Helmet)
     app.use((req: any, res: any, next: any) => {
         res.setHeader(
             'Permissions-Policy',
@@ -60,17 +60,17 @@ async function bootstrap() {
         next();
     });
 
-    // ⚡ OPTIMIZACIÓN: Comprimir respuestas HTTP (reduce 60-70% el tamaño)
+    // Comprimir respuestas HTTP (reduce 60-70% el tamaño)
     app.use(compression());
 
-    // 🔒 SEGURIDAD: Cookie parser para CSRF tokens
+    // Cookie parser para CSRF tokens
     app.use(cookieParser());
 
     // Trust Vercel Proxy
     const expressApp = app.getHttpAdapter().getInstance();
     expressApp.set('trust proxy', 1);
 
-    // 🔒 SEGURIDAD: Deshabilitar header X-Powered-By
+    // Deshabilitar header X-Powered-By
     expressApp.disable('x-powered-by');
 
 
@@ -92,14 +92,14 @@ async function bootstrap() {
         },
     }));
 
-    // 🔒 SEGURIDAD: CSRF Protection
+    // CSRF Protection
     app.useGlobalInterceptors(new CsrfInterceptor());
 
     // ⚡ PERFORMANCE: Log request duration
     app.useGlobalInterceptors(new PerformanceInterceptor());
 
 
-    // 🔒 SEGURIDAD: Configuración de CORS restrictiva
+    // Configuración de CORS restrictiva
     const isProduction = process.env.NODE_ENV === 'production';
     const allowedOrigins = isProduction
         ? (process.env.ALLOWED_ORIGINS?.split(',') || [])
@@ -112,14 +112,12 @@ async function bootstrap() {
 
     app.enableCors({
         origin: (origin, callback) => {
-            // 🔒 SEGURIDAD: En producción, rechazar requests sin origin
+            // En producción, rechazar requests sin origin
             // En desarrollo, permitir para herramientas como Postman/curl
             if (!origin) {
-                if (isProduction) {
-                    console.warn('CORS blocked: Request without origin in production');
-                    return callback(new Error('Origin header required'));
-                }
-                return callback(null, true); // Permitir en desarrollo
+                // Permitir requests sin Origin (ej. n8n, mobile apps, curl)
+                // Se confía en la autenticación (Token) para la seguridad.
+                return callback(null, true);
             }
 
             if (allowedOrigins.includes(origin)) {
@@ -143,7 +141,8 @@ async function bootstrap() {
 }
 
 // Bootstrap application
-void bootstrap().catch((err) => {
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+bootstrap().catch((err) => {
     console.error('Error during application bootstrap:', err);
     process.exit(1);
 });

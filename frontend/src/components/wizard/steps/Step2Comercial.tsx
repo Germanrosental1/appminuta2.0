@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { DollarSign, Car, Package, Percent, Building, Store, Warehouse } from "lucide-react";
+import { Car, Package, Percent, Building, Store, Warehouse } from "lucide-react";
 import { TipoDescuento, UnidadSeleccionada } from "@/types/wizard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";

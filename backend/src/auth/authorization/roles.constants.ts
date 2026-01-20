@@ -50,7 +50,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
         PERMISSIONS.VIEW_REPORTS,
     ],
     [ROLES.VIEWER]: [
-        PERMISSIONS.VIEW_UNITS,     // Ve todo pero no puede modificar
+        PERMISSIONS.VIEW_UNITS,     // Ve todos los campos pero no puede modificar
         PERMISSIONS.VIEW_REPORTS,
     ],
 };

@@ -1,13 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe } from '@nestjs/common';
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 /**
  * 🔒 SEGURIDAD: Controller protegido con autenticación
+ * GET /proyectos ahora filtra por proyectos del usuario
  * Operaciones de escritura requieren permiso 'gestionarProyectos'
  */
 @Controller('proyectos')
@@ -43,18 +45,20 @@ export class ProyectosController {
     }
 
     /**
-     * Listar todos los proyectos activos
+     * 🔒 SEGURIDAD: Listar solo proyectos a los que el usuario tiene acceso
+     * Antes devolvía TODOS los proyectos, ahora filtra por usuario
      */
     @Get()
-    findAll() {
-        return this.proyectosService.findAll();
+    findAll(@CurrentUser() user: any) {
+        const userId = user?.sub || user?.id;
+        return this.proyectosService.findByUserId(userId);
     }
 
     /**
-     * Obtener proyecto por ID
+     * 🔒 Obtener proyecto por ID (validado como UUID)
      */
     @Get(':id')
-    findOne(@Param('id') id: string) {
+    findOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.proyectosService.findOne(id);
     }
 
@@ -64,7 +68,7 @@ export class ProyectosController {
     @Patch(':id')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarProyectos')
-    update(@Param('id') id: string, @Body() updateProyectoDto: UpdateProyectoDto) {
+    update(@Param('id', ParseUUIDPipe) id: string, @Body() updateProyectoDto: UpdateProyectoDto) {
         return this.proyectosService.update(id, updateProyectoDto);
     }
 
@@ -74,7 +78,7 @@ export class ProyectosController {
     @Delete(':id')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarProyectos')
-    remove(@Param('id') id: string) {
+    remove(@Param('id', ParseUUIDPipe) id: string) {
         return this.proyectosService.remove(id);
     }
 }

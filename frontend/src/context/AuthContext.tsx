@@ -63,6 +63,7 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
 
     return profile as UserProfile;
   } catch (error) {
+    console.error('Error fetching user profile:', error);
     return null;
   }
 };
@@ -166,6 +167,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setPermissions(fetchedPermissions);
       return fetchedRoles;
     } catch (e) {
+      console.error('Error refreshing roles:', e);
       return [];
     }
   }, []);
@@ -176,6 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const enrichedUser = await enrichUserWithProfile(authUser);
       setUser(enrichedUser);
     } catch (error) {
+      console.error('Error enriching user profile:', error);
     }
   }, []);
 
@@ -193,6 +196,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const enrichedUser = await enrichUserWithProfile(session.user);
         setUser(enrichedUser);
       } catch (error) {
+        console.error('Error checking user session:', error);
         setUser(null);
       } finally {
         setLoading(false);

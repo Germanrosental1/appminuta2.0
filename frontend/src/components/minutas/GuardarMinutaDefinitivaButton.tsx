@@ -44,7 +44,7 @@ export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButt
 
     try {
       setSaving(true);
-      
+
       await guardarMinutaDefinitiva({
         proyecto: wizardData.proyecto || 'Sin proyecto',
         usuario_id: user.id,
@@ -52,18 +52,19 @@ export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButt
         estado: 'pendiente',
         datos_adicionales: {}
       });
-      
+
       toast({
         title: "Minuta guardada",
         description: "La minuta definitiva ha sido guardada exitosamente",
       });
-      
+
       // Redirigir al dashboard comercial después de un breve retraso
       setTimeout(() => {
         navigate('/comercial/dashboard');
       }, 1500);
-      
+
     } catch (error) {
+      console.error('Error al guardar minuta definitiva:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",
@@ -75,8 +76,8 @@ export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButt
   };
 
   return (
-    <Button 
-      onClick={handleGuardar} 
+    <Button
+      onClick={handleGuardar}
       disabled={saving}
       className={className}
     >

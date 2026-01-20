@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, ConflictException, Inject } from '@nestj
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEstadoComercialDto } from './dto/create-estadocomercial.dto';
 import { UpdateEstadoComercialDto } from './dto/update-estadocomercial.dto';
-import { Prisma } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 // ⚡ OPTIMIZACIÓN: Cache para catálogos
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
