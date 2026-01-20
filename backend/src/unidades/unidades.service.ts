@@ -4,13 +4,22 @@ import { UpdateUnidadDto } from './dto/update-unidad.dto';
 import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UnidadesHelper } from './unidades.helpers';
+import { LoggerService } from '../logger/logger.service';
 
+/** User info for logging */
+export interface UserInfo {
+    sub: string;
+    email: string;
+}
 
 @Injectable()
 export class UnidadesService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly logger: LoggerService
+    ) { }
 
-    async create(createUnidadDto: CreateUnidadDto) {
+    async create(createUnidadDto: CreateUnidadDto, user?: UserInfo) {
         // Verificar que el sectorid no exista
         const existing = await this.prisma.unidades.findUnique({
             where: { sectorid: createUnidadDto.sectorid },
@@ -22,7 +31,7 @@ export class UnidadesService {
             );
         }
 
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
             // 1. Resolver IDs de catálogos
             const estadoId = await UnidadesHelper.resolveEstadoId(tx, createUnidadDto.estadocomercial);
             const comercialId = await UnidadesHelper.resolveComercialId(tx, createUnidadDto.comercial);
@@ -56,9 +65,21 @@ export class UnidadesService {
                 }
             });
         });
+
+        // Log #13: Creación de unidad
+        await this.logger.agregarLog({
+            motivo: 'Creación de unidad',
+            descripcion: `Unidad creada: ${createUnidadDto.sectorid}`,
+            impacto: 'Alto',
+            tablaafectada: 'unidades',
+            usuarioID: user?.sub,
+            usuarioemail: user?.email
+        });
+
+        return result;
     }
 
-    async update(id: string, updateUnidadDto: UpdateUnidadDto) {
+    async update(id: string, updateUnidadDto: UpdateUnidadDto, user?: UserInfo) {
         // Verificar que la unidad existe
         const existing = await this.prisma.unidades.findUnique({
             where: { id },
@@ -81,7 +102,7 @@ export class UnidadesService {
             }
         }
 
-        return this.prisma.unidades.update({
+        const result = await this.prisma.unidades.update({
             where: { id },
             data: updateUnidadDto,
             include: {
@@ -90,14 +111,40 @@ export class UnidadesService {
                 tiposunidad: true,
             },
         });
+
+        // Log #15: Edición de datos de unidad
+        await this.logger.agregarLog({
+            motivo: 'Edición de unidad',
+            descripcion: `Unidad editada: ${existing.sectorid}. Campos: ${Object.keys(updateUnidadDto).join(', ')}`,
+            impacto: 'Alto',
+            tablaafectada: 'unidades',
+            usuarioID: user?.sub,
+            usuarioemail: user?.email
+        });
+
+        return result;
     }
 
-    async updateComplete(id: string, updateDto: UpdateUnidadCompleteDto) {
-        const existing = await this.prisma.unidades.findUnique({ where: { id } });
+    async updateComplete(id: string, updateDto: UpdateUnidadCompleteDto, user?: UserInfo) {
+        const existing = await this.prisma.unidades.findUnique({
+            where: { id },
+            include: {
+                detallesventa_detallesventa_unidad_idTounidades: {
+                    include: { estadocomercial: true }
+                }
+            }
+        });
         if (!existing) throw new NotFoundException(`Unidad con ID '${id}' no encontrada`);
 
+        // Capturar valores anteriores para logs
+        const oldSalesDetails = existing.detallesventa_detallesventa_unidad_idTounidades;
+        const oldPrecio = oldSalesDetails?.preciousd;
+        const oldUsdM2 = oldSalesDetails?.usdm2;
+        const oldEstadoId = oldSalesDetails?.estado_id;
+        const oldEstadoNombre = oldSalesDetails?.estadocomercial?.nombreestado;
+
         try {
-            return await this.prisma.$transaction(async (tx) => {
+            const result = await this.prisma.$transaction(async (tx) => {
                 // 1. Update Unidad Base
                 await UnidadesHelper.prepareUnidadUpdateData(tx, id, updateDto);
 
@@ -126,13 +173,60 @@ export class UnidadesService {
             }, {
                 timeout: 10000 // Increase timeout just in case
             });
+
+            // Log #11: Edición de precio individual
+            const newPrecio = updateDto.preciousd;
+            const newUsdM2 = updateDto.usdm2;
+            if ((newPrecio !== undefined && Number(newPrecio) !== Number(oldPrecio)) ||
+                (newUsdM2 !== undefined && Number(newUsdM2) !== Number(oldUsdM2))) {
+                await this.logger.agregarLog({
+                    motivo: 'Edición de precio de unidad',
+                    descripcion: `Unidad ${existing.sectorid}: Precio USD ${oldPrecio ?? 'N/A'} → ${newPrecio ?? oldPrecio}, USD/m² ${oldUsdM2 ?? 'N/A'} → ${newUsdM2 ?? oldUsdM2}`,
+                    impacto: 'Medio',
+                    tablaafectada: 'detallesventa',
+                    usuarioID: user?.sub,
+                    usuarioemail: user?.email
+                });
+            }
+
+            // Log #12: Cambio de estado comercial
+            const newEstadoId = updateDto.estado_id;
+            if (newEstadoId !== undefined && newEstadoId !== oldEstadoId) {
+                // Obtener nombre del nuevo estado
+                const newEstado = await this.prisma.estadocomercial.findUnique({ where: { id: newEstadoId } });
+                await this.logger.agregarLog({
+                    motivo: 'Cambio de estado comercial',
+                    descripcion: `Unidad ${existing.sectorid}: Estado "${oldEstadoNombre ?? 'N/A'}" → "${newEstado?.nombreestado ?? 'N/A'}"`,
+                    impacto: 'Medio',
+                    tablaafectada: 'detallesventa',
+                    usuarioID: user?.sub,
+                    usuarioemail: user?.email
+                });
+            }
+
+            // Log #15: Edición general de datos (si hay otros campos modificados)
+            const otherFields = Object.keys(updateDto).filter(k =>
+                !['preciousd', 'usdm2', 'estado_id'].includes(k)
+            );
+            if (otherFields.length > 0) {
+                await this.logger.agregarLog({
+                    motivo: 'Edición de unidad',
+                    descripcion: `Unidad ${existing.sectorid}: Campos modificados: ${otherFields.join(', ')}`,
+                    impacto: 'Alto',
+                    tablaafectada: 'unidades',
+                    usuarioID: user?.sub,
+                    usuarioemail: user?.email
+                });
+            }
+
+            return result;
         } catch (error) {
             console.error('Error in updateComplete transaction:', error);
             throw error;
         }
     }
 
-    async remove(id: string) {
+    async remove(id: string, user?: UserInfo) {
         // Verificar que la unidad existe
         const existing = await this.prisma.unidades.findUnique({
             where: { id },
@@ -157,9 +251,21 @@ export class UnidadesService {
             where: { unidad_id: id },
         });
 
-        return this.prisma.unidades.delete({
+        const result = await this.prisma.unidades.delete({
             where: { id },
         });
+
+        // Log #14: Eliminación de unidad
+        await this.logger.agregarLog({
+            motivo: 'Eliminación de unidad',
+            descripcion: `Unidad eliminada: ${existing.sectorid}`,
+            impacto: 'Alto',
+            tablaafectada: 'unidades',
+            usuarioID: user?.sub,
+            usuarioemail: user?.email
+        });
+
+        return result;
     }
 
     /**
@@ -168,15 +274,15 @@ export class UnidadesService {
      * @param mode - Modo de ajuste (PERCENTAGE_TOTAL, PERCENTAGE_M2, FIXED_TOTAL, FIXED_M2)
      * @param percentage - Porcentaje (para modos PERCENTAGE_*)
      * @param fixedValue - Valor fijo (para modos FIXED_*)
+     * @param user - Usuario que realiza la operación (para logging)
      */
     async adjustPricesByProjects(
         projectIds: string[],
         mode: string,
         percentage?: number,
-        fixedValue?: number
+        fixedValue?: number,
+        user?: UserInfo
     ) {
-        console.log(`Ajustando precios - Modo: ${mode}, Porcentaje: ${percentage}, Valor fijo: ${fixedValue}`);
-
         // Obtener todos los edificios de los proyectos
         const edificios = await this.prisma.edificios.findMany({
             where: { proyecto_id: { in: projectIds } },
@@ -184,7 +290,6 @@ export class UnidadesService {
         });
 
         const edificioIds = edificios.map(e => e.id);
-        console.log(`Encontrados ${edificioIds.length} edificios`);
 
         // Obtener todas las unidades de esos edificios
         const unidades = await this.prisma.unidades.findMany({
@@ -193,7 +298,6 @@ export class UnidadesService {
         });
 
         const unidadIds = unidades.map(u => u.id);
-        console.log(`Encontradas ${unidadIds.length} unidades a ajustar`);
 
         if (unidadIds.length === 0) {
             return {
@@ -280,7 +384,18 @@ export class UnidadesService {
                 throw new Error(`Modo de ajuste desconocido: ${mode}`);
         }
 
-        console.log(`Precios ajustados: ${result} registros actualizados`);
+        // Log #10: Ajuste masivo de precios
+        const modeDesc = mode.includes('PERCENTAGE')
+            ? `${percentage}%`
+            : `USD ${fixedValue}`;
+        await this.logger.agregarLog({
+            motivo: 'Ajuste masivo de precios',
+            descripcion: `Modo: ${mode}, Ajuste: ${modeDesc}. ${result} unidades ajustadas en ${projectIds.length} proyecto(s)`,
+            impacto: 'Medio',
+            tablaafectada: 'detallesventa',
+            usuarioID: user?.sub,
+            usuarioemail: user?.email
+        });
 
         return {
             success: true,

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
  * Service for making authenticated requests to the NestJS backend
  */
 class BackendAPI {
-    private baseURL: string;
+    private readonly baseURL: string;
 
     constructor() {
         this.baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';

@@ -637,11 +637,33 @@ export class MinutasService {
       });
 
       const userEmail = (await this.prisma.users.findUnique({ where: { id: userId }, select: { email: true } }))?.email || 'unknown';
-      const impacto = dto.estado === 'cancelada' ? 'Alto' : 'Medio';
+      const estadoNorm = dto.estado?.toLowerCase();
+
+      // Determinar motivo, descripción e impacto según el nuevo estado
+      let motivo: string;
+      let descripcion: string;
+      let impacto: string;
+
+      if (estadoNorm === 'firmada') {
+        // Log #17: Firma de minuta
+        motivo = 'Firma de Minuta';
+        descripcion = `Minuta firmada. Estado anterior: '${oldMinuta.estado}'.`;
+        impacto = 'Medio';
+      } else if (estadoNorm === 'cancelada') {
+        // Log #18: Cancelación de minuta
+        motivo = 'Cancelación de Minuta';
+        descripcion = `Minuta cancelada. Estado anterior: '${oldMinuta.estado}'. Motivo: ${dto.comentarios || 'No especificado'}`;
+        impacto = 'Medio';
+      } else {
+        // Cambio genérico de estado
+        motivo = 'Cambio de Estado de Minuta';
+        descripcion = `Estado cambiado de '${oldMinuta.estado}' a '${dto.estado}'.`;
+        impacto = 'Medio';
+      }
 
       await this.logger.agregarLog({
-        motivo: 'Cambio de Estado de Minuta',
-        descripcion: `Estado cambiado de '${oldMinuta.estado}' a '${dto.estado}'.`,
+        motivo,
+        descripcion,
         impacto,
         tablaafectada: 'minutas_definitivas',
         usuarioID: userId,

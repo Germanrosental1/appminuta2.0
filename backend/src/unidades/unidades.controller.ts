@@ -36,8 +36,8 @@ export class UnidadesController {
     @Post()
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
-    create(@Body() createUnidadDto: CreateUnidadDto) {
-        return this.unidadesService.create(createUnidadDto);
+    create(@Body() createUnidadDto: CreateUnidadDto, @CurrentUser() user: any) {
+        return this.unidadesService.create(createUnidadDto, user);
     }
 
     /**
@@ -69,7 +69,8 @@ export class UnidadesController {
             adjustPricesDto.projectIds,
             adjustPricesDto.mode,
             adjustPricesDto.percentage,
-            adjustPricesDto.fixedValue
+            adjustPricesDto.fixedValue,
+            user
         );
     }
 
@@ -228,8 +229,8 @@ export class UnidadesController {
     @Patch(':id/complete')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
-    updateComplete(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadCompleteDto) {
-        return this.unidadesService.updateComplete(id, updateUnidadDto);
+    updateComplete(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadCompleteDto, @CurrentUser() user: any) {
+        return this.unidadesService.updateComplete(id, updateUnidadDto, user);
     }
 
     /**
@@ -238,8 +239,8 @@ export class UnidadesController {
     @Patch(':id')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
-    update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadDto) {
-        return this.unidadesService.update(id, updateUnidadDto);
+    update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadDto, @CurrentUser() user: any) {
+        return this.unidadesService.update(id, updateUnidadDto, user);
     }
 
     /**
@@ -248,7 +249,7 @@ export class UnidadesController {
     @Delete(':id')
     @UseGuards(PermissionsGuard)
     @Permissions('gestionarUnidades')
-    remove(@Param('id', ParseUUIDPipe) id: string) {
-        return this.unidadesService.remove(id);
+    remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+        return this.unidadesService.remove(id, user);
     }
 }

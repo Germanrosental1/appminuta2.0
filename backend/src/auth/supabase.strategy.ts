@@ -57,11 +57,13 @@ export class SupabaseStrategy extends PassportStrategy(Strategy) {
         // - sub: user ID
         // - email: user email
         // - role: authenticated/anon
+        // - aal: Authenticator Assurance Level (aal1 or aal2)
 
         return {
             id: payload.sub, // Mapear 'sub' a 'id' para los guards
             email: payload.email,
             role: payload.role,
+            aal: payload.aal || 'aal1', // AAL para verificación MFA
             ...payload, // Mantener el resto del payload
         };
     }
