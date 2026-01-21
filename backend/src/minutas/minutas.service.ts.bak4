@@ -131,20 +131,18 @@ export class MinutasService {
       }
     }
 
+    // Exclude clienteInteresadoDni from spread - it's not a valid Prisma field
+    const { clienteInteresadoDni: _dniToExclude, ...dataForPrisma } = sanitizedData;
+
     const minuta = await this.prisma.minutasDefinitivas.create({
       data: {
-        Dato: sanitizedData.datos,
-        DatoAdicional: sanitizedData.datos_adicionales || {},
-        DatoMapaVenta: sanitizedData.datos_mapa_ventas,
-        Comentario: sanitizedData.comentarios,
-        Estado: sanitizedData.estado,
+        ...dataForPrisma,
         Proyecto: proyectoId,
         UsuarioId: userId,
         FechaCreacion: new Date(),
         UpdatedAt: new Date(),
-        ClienteInteresado: createMinutaDto.clienteInteresadoDni || null,
-        // ClienteInteresadoId: createMinutaDto.clienteInteresadoId || null, // Descomentar si existe en el esquema actualizado
-      },
+        clienteinteresado: createMinutaDto.clienteInteresadoDni || null,
+      } as any,
     });
 
     // Reservar unidades asociadas a la minuta
@@ -176,7 +174,7 @@ export class MinutasService {
     if (this.gateway) {
       this.gateway.emitMinutaCreated({
         minutaId: minuta.Id,
-        proyecto: proyectoId || undefined,
+        Proyecto: proyectoId || undefined,
         estado: 'pendiente',
         // 🔒 SEGURIDAD: usuarioId eliminado
       });
@@ -242,11 +240,11 @@ export class MinutasService {
         // Validar que el proyecto solicitado esté en los proyectos del usuario
         if (query.proyecto) {
           if (userProjectIds.includes(query.proyecto)) {
-            orConditions.push({ Proyecto: query.proyecto });
+            orConditions.push({ proyecto: query.proyecto });
           }
           // Si solicita un proyecto al que no tiene acceso, solo verá sus propias minutas
         } else {
-          orConditions.push({ Proyecto: { in: userProjectIds } });
+          orConditions.push({ proyecto: { in: userProjectIds } });
         }
       }
 
@@ -254,8 +252,8 @@ export class MinutasService {
     } else if (canSign && !canViewAll) {
       // Firmante: puede ver TODAS las minutas aprobadas y firmadas + sus propias minutas
       where.OR = [
-        { Estado: 'aprobada' },
-        { Estado: 'firmada' },
+        { estado: 'aprobada' },
+        { estado: 'firmada' },
         { UsuarioId: userId }
       ];
     } else {
@@ -268,7 +266,7 @@ export class MinutasService {
     }
 
     // Filtro de estado (aplica a todos)
-    if (query.estado) where.Estado = query.estado;
+    if (query.estado) where.estado = query.estado;
 
     // Validar y construir filtro de fechas
     if (query.fechaDesde || query.fechaHasta) {
@@ -390,18 +388,18 @@ export class MinutasService {
 
       // Opción 2: Tiene acceso al proyecto de la minuta
       let hasProjectAccess = false;
-      if (minuta.Proyecto) {
+      if (minuta.proyecto) {
         const access = await this.prisma.usuariosProyectos.findFirst({
           where: {
             IdUsuario: userId,
-            IdProyecto: minuta.Proyecto,
+            IdProyecto: minuta.proyecto,
           },
         });
         hasProjectAccess = !!access;
       }
 
       // Opción 3: Es firmante y la minuta está en estado aprobada o firmada
-      const canSignerView = canSign && ['aprobada', 'firmada'].includes(minuta.Estado?.toLowerCase());
+      const canSignerView = canSign && ['aprobada', 'firmada'].includes(minuta.estado?.toLowerCase());
 
       if (!isOwner && !hasProjectAccess && !canSignerView) {
         throw new ForbiddenException(
@@ -542,30 +540,27 @@ export class MinutasService {
 
     // ⚡ OPTIMIZACIÓN: Usar raw SQL para update más rápido
     try {
-      // Reemplazar Raw SQL con Prisma ORM seguro para manejar nombres PascalCase automáticamente
-      const result = await this.prisma.minutasDefinitivas.update({
-        where: {
-          Id: id,
-          Version: minuta.Version, // 🔒 OPTIMISTIC LOCKING: Verificar versión
-        },
-        data: {
-          Estado: sanitizedData.estado || undefined,
-          Comentario: sanitizedData.comentarios || undefined,
-          Dato: sanitizedData.datos || undefined, // Prisma maneja el JSONB automáticamente
-          DatoAdicional: sanitizedData.datos_adicionales || undefined,
-          DatoMapaVenta: sanitizedData.datos_mapa_ventas || undefined,
-          Version: { increment: 1 },
-          UpdatedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      // P2025: Record to update not found (significa que la versión cambió o el ID no existe)
-      if (error.code === 'P2025') {
+      // Preparar datos como JSON para la query
+      const datosJson = sanitizedData.datos ? JSON.stringify(sanitizedData.datos) : null;
+
+      // Ejecutar raw SQL update
+      const result = await this.prisma.$executeRaw`
+        UPDATE minutas_definitivas
+        SET 
+          estado = COALESCE(${sanitizedData.estado}, estado),
+          comentarios = COALESCE(${sanitizedData.comentarios}, comentarios),
+          datos = COALESCE(${datosJson}::jsonb, datos),
+          version = ${minuta.Version + 1},
+          UpdatedAt = NOW()
+        WHERE id = ${id}::uuid AND version = ${minuta.Version}
+      `;
+
+      if (result === 0) {
         throw new ConflictException(
           'La minuta ha sido modificada por otro usuario. Por favor, recarga la página y vuelve a intentar.'
         );
       }
-
+    } catch (error) {
       if (error instanceof ConflictException) throw error;
       if (error.message?.includes('state') || error.message?.includes('estado')) {
         throw new BadRequestException(

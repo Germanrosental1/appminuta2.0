@@ -55,17 +55,17 @@ export const DashboardComercial: React.FC = () => {
   // Filter minutas by status
   const filteredMinutas = useMemo(() => {
     if (!statusFilter) return minutas;
-    return minutas.filter(m => m.Estado === statusFilter);
+    return minutas.filter(m => m.estado === statusFilter);
   }, [minutas, statusFilter]);
 
   // Calculate statistics
   const stats = useMemo(() => {
     const total = minutas.length;
-    const pendientes = minutas.filter(m => m.Estado === 'pendiente').length;
-    const enEdicion = minutas.filter(m => m.Estado === 'en_edicion').length;
-    const aprobadas = minutas.filter(m => m.Estado === 'aprobada').length;
-    const firmadas = minutas.filter(m => m.Estado === 'firmada').length;
-    const canceladas = minutas.filter(m => m.Estado === 'cancelada').length;
+    const pendientes = minutas.filter(m => m.estado === 'pendiente').length;
+    const enEdicion = minutas.filter(m => m.estado === 'en_edicion').length;
+    const aprobadas = minutas.filter(m => m.estado === 'aprobada').length;
+    const firmadas = minutas.filter(m => m.estado === 'firmada').length;
+    const canceladas = minutas.filter(m => m.estado === 'cancelada').length;
 
     return { total, pendientes, enEdicion, aprobadas, firmadas, canceladas };
   }, [minutas]);

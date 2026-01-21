@@ -131,20 +131,18 @@ export class MinutasService {
       }
     }
 
+    // Exclude clienteInteresadoDni from spread - it's not a valid Prisma field
+    const { clienteInteresadoDni: _dniToExclude, ...dataForPrisma } = sanitizedData;
+
     const minuta = await this.prisma.minutasDefinitivas.create({
       data: {
-        Dato: sanitizedData.datos,
-        DatoAdicional: sanitizedData.datos_adicionales || {},
-        DatoMapaVenta: sanitizedData.datos_mapa_ventas,
-        Comentario: sanitizedData.comentarios,
-        Estado: sanitizedData.estado,
-        Proyecto: proyectoId,
-        UsuarioId: userId,
-        FechaCreacion: new Date(),
-        UpdatedAt: new Date(),
-        ClienteInteresado: createMinutaDto.clienteInteresadoDni || null,
-        // ClienteInteresadoId: createMinutaDto.clienteInteresadoId || null, // Descomentar si existe en el esquema actualizado
-      },
+        ...dataForPrisma,
+        proyecto: proyectoId,
+        usuario_id: userId,
+        fecha_creacion: new Date(),
+        updated_at: new Date(),
+        clienteinteresado: createMinutaDto.clienteInteresadoDni || null,
+      } as any,
     });
 
     // Reservar unidades asociadas a la minuta
@@ -218,10 +216,10 @@ export class MinutasService {
     const skip = (page - 1) * limit;
 
     // Validar y sanitizar sortBy y sortOrder
-    const allowedSortFields = ['FechaCreacion', 'UpdatedAt', 'proyecto', 'estado'];
+    const allowedSortFields = ['fecha_creacion', 'updated_at', 'proyecto', 'estado'];
     const sortBy = query.sortBy && allowedSortFields.includes(query.sortBy)
       ? query.sortBy
-      : 'FechaCreacion';
+      : 'fecha_creacion';
     const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
 
     // ⚡ OPTIMIZACIÓN: Usar cache para permisos y proyectos del usuario
@@ -235,18 +233,18 @@ export class MinutasService {
       const orConditions = [];
 
       // Siempre incluir las minutas creadas por el propio usuario
-      orConditions.push({ UsuarioId: userId });
+      orConditions.push({ usuario_id: userId });
 
       // Si tiene proyectos asignados, también incluir minutas de esos proyectos
       if (userProjectIds.length > 0) {
         // Validar que el proyecto solicitado esté en los proyectos del usuario
         if (query.proyecto) {
           if (userProjectIds.includes(query.proyecto)) {
-            orConditions.push({ Proyecto: query.proyecto });
+            orConditions.push({ proyecto: query.proyecto });
           }
           // Si solicita un proyecto al que no tiene acceso, solo verá sus propias minutas
         } else {
-          orConditions.push({ Proyecto: { in: userProjectIds } });
+          orConditions.push({ proyecto: { in: userProjectIds } });
         }
       }
 
@@ -254,32 +252,32 @@ export class MinutasService {
     } else if (canSign && !canViewAll) {
       // Firmante: puede ver TODAS las minutas aprobadas y firmadas + sus propias minutas
       where.OR = [
-        { Estado: 'aprobada' },
-        { Estado: 'firmada' },
-        { UsuarioId: userId }
+        { estado: 'aprobada' },
+        { estado: 'firmada' },
+        { usuario_id: userId }
       ];
     } else {
       // Admin puede filtrar por proyecto específico si lo solicita
       if (query.proyecto) {
-        where.Proyecto = query.proyecto;
+        where.proyecto = query.proyecto;
       }
       // Admin también puede filtrar por usuario_id si lo solicita
-      if (query.usuario_id) where.UsuarioId = query.usuario_id;
+      if (query.usuario_id) where.usuario_id = query.usuario_id;
     }
 
     // Filtro de estado (aplica a todos)
-    if (query.estado) where.Estado = query.estado;
+    if (query.estado) where.estado = query.estado;
 
     // Validar y construir filtro de fechas
     if (query.fechaDesde || query.fechaHasta) {
-      where.FechaCreacion = {};
+      where.fecha_creacion = {};
 
       if (query.fechaDesde) {
         const fecha = new Date(query.fechaDesde);
         if (Number.isNaN(fecha.getTime())) {
           throw new BadRequestException('fechaDesde inválida');
         }
-        where.FechaCreacion.gte = fecha;
+        where.fecha_creacion.gte = fecha;
       }
 
       if (query.fechaHasta) {
@@ -287,7 +285,7 @@ export class MinutasService {
         if (Number.isNaN(fecha.getTime())) {
           throw new BadRequestException('fechaHasta inválida');
         }
-        where.FechaCreacion.lte = fecha;
+        where.fecha_creacion.lte = fecha;
       }
     }
 
@@ -390,18 +388,18 @@ export class MinutasService {
 
       // Opción 2: Tiene acceso al proyecto de la minuta
       let hasProjectAccess = false;
-      if (minuta.Proyecto) {
+      if (minuta.proyecto) {
         const access = await this.prisma.usuariosProyectos.findFirst({
           where: {
             IdUsuario: userId,
-            IdProyecto: minuta.Proyecto,
+            IdProyecto: minuta.proyecto,
           },
         });
         hasProjectAccess = !!access;
       }
 
       // Opción 3: Es firmante y la minuta está en estado aprobada o firmada
-      const canSignerView = canSign && ['aprobada', 'firmada'].includes(minuta.Estado?.toLowerCase());
+      const canSignerView = canSign && ['aprobada', 'firmada'].includes(minuta.estado?.toLowerCase());
 
       if (!isOwner && !hasProjectAccess && !canSignerView) {
         throw new ForbiddenException(
@@ -542,30 +540,27 @@ export class MinutasService {
 
     // ⚡ OPTIMIZACIÓN: Usar raw SQL para update más rápido
     try {
-      // Reemplazar Raw SQL con Prisma ORM seguro para manejar nombres PascalCase automáticamente
-      const result = await this.prisma.minutasDefinitivas.update({
-        where: {
-          Id: id,
-          Version: minuta.Version, // 🔒 OPTIMISTIC LOCKING: Verificar versión
-        },
-        data: {
-          Estado: sanitizedData.estado || undefined,
-          Comentario: sanitizedData.comentarios || undefined,
-          Dato: sanitizedData.datos || undefined, // Prisma maneja el JSONB automáticamente
-          DatoAdicional: sanitizedData.datos_adicionales || undefined,
-          DatoMapaVenta: sanitizedData.datos_mapa_ventas || undefined,
-          Version: { increment: 1 },
-          UpdatedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      // P2025: Record to update not found (significa que la versión cambió o el ID no existe)
-      if (error.code === 'P2025') {
+      // Preparar datos como JSON para la query
+      const datosJson = sanitizedData.datos ? JSON.stringify(sanitizedData.datos) : null;
+
+      // Ejecutar raw SQL update
+      const result = await this.prisma.$executeRaw`
+        UPDATE minutas_definitivas
+        SET 
+          estado = COALESCE(${sanitizedData.estado}, estado),
+          comentarios = COALESCE(${sanitizedData.comentarios}, comentarios),
+          datos = COALESCE(${datosJson}::jsonb, datos),
+          version = ${minuta.Version + 1},
+          updated_at = NOW()
+        WHERE id = ${id}::uuid AND version = ${minuta.Version}
+      `;
+
+      if (result === 0) {
         throw new ConflictException(
           'La minuta ha sido modificada por otro usuario. Por favor, recarga la página y vuelve a intentar.'
         );
       }
-
+    } catch (error) {
       if (error instanceof ConflictException) throw error;
       if (error.message?.includes('state') || error.message?.includes('estado')) {
         throw new BadRequestException(

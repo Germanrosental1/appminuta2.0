@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { sanitizePassword } from '@/utils/passwordValidation';
 import { setCSRFToken, clearCSRFToken, refreshCSRFToken } from '@/utils/csrf';
 import { rbacApi, Role, Permission } from '@/services/rbac';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Tipos para los roles de usuario (deprecated - usar Role de RBAC)
 export type UserRole = 'comercial' | 'administrador' | 'viewer' | 'firmante';
@@ -12,9 +13,9 @@ interface AuthUser extends User {
   role?: UserRole; // Deprecated - mantener para backward compatibility
   roles?: Role[]; // New: roles from RBAC system
   permissions?: Permission[]; // New: permissions from RBAC system
-  nombre?: string;
-  apellido?: string;
-  require_password_change?: boolean;
+  Nombre?: string;
+  Apellido?: string;
+  RequirePasswordChange?: boolean;
 }
 
 interface AuthContextType {
@@ -41,9 +42,9 @@ interface AuthContextType {
 }
 
 interface UserProfile {
-  nombre: string;
-  apellido: string;
-  require_password_change: boolean;
+  Nombre: string;
+  Apellido: string;
+  RequirePasswordChange: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,9 +53,9 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
     const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('nombre, apellido, require_password_change')
-      .eq('id', userId)
+      .from('Profiles')
+      .select('Nombre, Apellido, RequirePasswordChange')
+      .eq('Id', userId)
       .single();
 
     if (error) {
@@ -92,9 +93,9 @@ const enrichUserWithProfile = async (authUser: User): Promise<AuthUser> => {
     // Prefer JWT roles if available, otherwise undefined (will prompt lazy load if missing)
     roles: jwtRoles || undefined,
     permissions: [],
-    nombre: profile.nombre,
-    apellido: profile.apellido,
-    require_password_change: profile.require_password_change
+    Nombre: profile.Nombre,
+    Apellido: profile.Apellido,
+    RequirePasswordChange: profile.RequirePasswordChange
   } as AuthUser;
 };
 
@@ -104,6 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const userRef = useRef<AuthUser | null>(null);
+  const queryClient = useQueryClient();
 
   // Keep userRef in sync with user state
   useEffect(() => {
@@ -127,7 +129,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Permission check helpers (backend is source of truth)
   const hasPermission = useCallback((permission: string): boolean => {
-    return permissions.some(p => p.nombre === permission);
+    return permissions.some((p: any) => {
+      if (typeof p === 'string') return p === permission;
+      const permName = p.Nombre || p.nombre || '';
+      return permName === permission;
+    });
   }, [permissions]);
 
   const hasAnyPermission = useCallback((...perms: string[]): boolean => {
@@ -139,7 +145,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [hasPermission]);
 
   const hasRole = useCallback((role: string): boolean => {
-    return roles.some(r => r.nombre === role);
+    return roles.some((r: any) => {
+      if (typeof r === 'string') return r.toLowerCase() === role.toLowerCase();
+      const roleName = r.Nombre || r.nombre || '';
+      return roleName.toLowerCase() === role.toLowerCase();
+    });
   }, [roles]);
 
   const refreshRoles = useCallback(async (providedUser?: AuthUser) => {
@@ -193,7 +203,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        const enrichedUser = await enrichUserWithProfile(session.user);
+        let enrichedUser = await enrichUserWithProfile(session.user);
+
+        // Si no hay roles (ej. recarga de página y JWT no actualizado), obtenerlos del backend
+        if (!enrichedUser.roles || enrichedUser.roles.length === 0) {
+          try {
+            const [fetchedRoles, fetchedPermissions] = await Promise.all([
+              rbacApi.getMyRoles(),
+              rbacApi.getUserPermissions(session.user.id),
+            ]);
+            enrichedUser = {
+              ...enrichedUser,
+              roles: fetchedRoles,
+              permissions: fetchedPermissions
+            };
+            setRoles(fetchedRoles);
+            setPermissions(fetchedPermissions);
+          } catch (fetchError) {
+            console.error('Error fetching initial roles from backend:', fetchError);
+          }
+        }
+
         setUser(enrichedUser);
       } catch (error) {
         console.error('Error checking user session:', error);
@@ -231,7 +261,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setRoles(jwtRoles || []);
           setLoading(false);
 
-          // BACKGROUND: Enrich with profile data (nombre, apellido, require_password_change)
+          // BACKGROUND: Enrich with profile data (Nombre, Apellido, RequirePasswordChange)
           enrichUserWithProfile(session.user).then(enrichedUser => {
             setUser(enrichedUser);
           });
@@ -300,6 +330,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Limpiar CSRF token al cerrar sesión
     clearCSRFToken();
 
+    // 🧹 LIMPIEZA DE CACHÉ: Limpiar todos los queries de React Query
+    // Esto previene que un usuario vea datos cacheados de la sesión anterior
+    queryClient.clear();
+
     // Sign out from Supabase
     await supabase.auth.signOut();
   };
@@ -323,12 +357,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (rpcError) {
           // Intentar fallback directo por si acaso (aunque probablemente falle si RLS lo bloquea)
           await supabase
-            .from('profiles')
+            .from('Profiles')
             .update({
-              require_password_change: false,
-              first_login: false
+              RequirePasswordChange: false,
+              FirstLogin: false
             })
-            .eq('id', user.id);
+            .eq('Id', user.id);
         }
       }
 

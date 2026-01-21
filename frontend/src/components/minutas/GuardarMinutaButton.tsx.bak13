@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { guardarMinutaDefinitiva } from '@/services/minutas';
+import { guardarMinutaProvisoria } from '@/services/minutas';
 import { useAuth } from '@/hooks/useAuth';
 import { WizardData } from '@/types/wizard';
 import { Save, Loader2 } from 'lucide-react';
 
-interface GuardarMinutaDefinitivaButtonProps {
+interface GuardarMinutaButtonProps {
   unidadId: string;
   wizardData: WizardData;
-  className?: string;
+  onSuccess?: () => void;
 }
 
-export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButtonProps> = ({
+export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({
   unidadId,
   wizardData,
-  className
+  onSuccess
 }) => {
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleGuardar = async () => {
     if (!user?.id) {
@@ -33,38 +31,27 @@ export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButt
       return;
     }
 
-    if (!unidadId) {
-      toast({
-        title: "Error",
-        description: "Debes seleccionar una unidad",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setSaving(true);
 
-      await guardarMinutaDefinitiva({
+      await guardarMinutaProvisoria({
         proyecto: wizardData.proyecto || 'Sin proyecto',
-        UsuarioId: user.id,
-        datos: { ...wizardData, unidad: unidadId },
-        estado: 'pendiente',
-        DatoAdicional: {}
+        unidad_id: unidadId,
+        usuario_id: user.id,
+        datos: wizardData,
+        estado: 'pendiente'
       });
 
       toast({
         title: "Minuta guardada",
-        description: "La minuta definitiva ha sido guardada exitosamente",
+        description: "La minuta provisoria ha sido guardada exitosamente",
       });
 
-      // Redirigir al dashboard comercial después de un breve retraso
-      setTimeout(() => {
-        navigate('/comercial/dashboard');
-      }, 1500);
-
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
-      console.error('Error al guardar minuta definitiva:', error);
+      console.error('Error al guardar minuta provisoria:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la minuta. Intente nuevamente.",
@@ -79,7 +66,7 @@ export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButt
     <Button
       onClick={handleGuardar}
       disabled={saving}
-      className={className}
+      className="bg-green-600 hover:bg-green-700"
     >
       {saving ? (
         <>

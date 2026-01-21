@@ -51,10 +51,10 @@ export const DashboardFirmante: React.FC = () => {
     });
 
     // Filtrar solo minutas aprobadas (las que el firmante puede firmar)
-    const minutasAprobadas = allMinutas.filter((m: any) => m.Estado === 'aprobada');
+    const minutasAprobadas = allMinutas.filter((m: any) => m.estado === 'aprobada');
 
     // Filtrar minutas ya firmadas
-    const minutasFirmadas = allMinutas.filter((m: any) => m.Estado === 'firmada');
+    const minutasFirmadas = allMinutas.filter((m: any) => m.estado === 'firmada');
 
     // Mutation para cambiar estado
     const updateEstadoMutation = useMutation({
@@ -129,8 +129,8 @@ export const DashboardFirmante: React.FC = () => {
     };
 
     // Nombre de usuario para mostrar
-    const displayName = user?.Nombre && user?.Apellido
-        ? `${user.Nombre} ${user.Apellido}`
+    const displayName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
         : user?.email || 'Usuario';
 
     return (
@@ -210,12 +210,12 @@ export const DashboardFirmante: React.FC = () => {
                                         </TableHeader>
                                         <TableBody>
                                             {minutasAprobadas.map((minuta: any) => (
-                                                <TableRow key={minuta.Id}>
-                                                    <TableCell className="font-medium">{minuta.Dato?.proyecto || minuta.Proyectos?.Nombre || 'Sin proyecto'}</TableCell>
-                                                    <TableCell>{minuta.Dato?.unidadDescripcion || 'Sin unidad'}</TableCell>
+                                                <TableRow key={minuta.id}>
+                                                    <TableCell className="font-medium">{minuta.datos?.proyecto || minuta.proyectos?.nombre || 'Sin proyecto'}</TableCell>
+                                                    <TableCell>{minuta.datos?.unidadDescripcion || 'Sin unidad'}</TableCell>
                                                     <TableCell>{minuta.users?.email || 'Sin asignar'}</TableCell>
                                                     <TableCell>
-                                                        {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
+                                                        {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge variant="outline" className="bg-green-100 text-green-800">
@@ -227,7 +227,7 @@ export const DashboardFirmante: React.FC = () => {
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                onClick={() => handleVerMinuta(minuta.Id)}
+                                                                onClick={() => handleVerMinuta(minuta.id)}
                                                             >
                                                                 <Eye className="h-4 w-4 mr-1" />
                                                                 Ver
@@ -236,7 +236,7 @@ export const DashboardFirmante: React.FC = () => {
                                                                 variant="outline"
                                                                 size="sm"
                                                                 className="bg-orange-50 hover:bg-orange-100 border-orange-200"
-                                                                onClick={() => openActionModal(minuta.Id, 'edit')}
+                                                                onClick={() => openActionModal(minuta.id, 'edit')}
                                                                 disabled={updateEstadoMutation.isPending}
                                                             >
                                                                 <Edit className="h-4 w-4 mr-1" />
@@ -246,7 +246,7 @@ export const DashboardFirmante: React.FC = () => {
                                                                 variant="outline"
                                                                 size="sm"
                                                                 className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                                                                onClick={() => openActionModal(minuta.Id, 'cancel')}
+                                                                onClick={() => openActionModal(minuta.id, 'cancel')}
                                                                 disabled={updateEstadoMutation.isPending}
                                                             >
                                                                 <XCircle className="h-4 w-4 mr-1" />
@@ -255,7 +255,7 @@ export const DashboardFirmante: React.FC = () => {
                                                             <Button
                                                                 size="sm"
                                                                 className="bg-blue-600 hover:bg-blue-700 text-white"
-                                                                onClick={() => handleFirmar(minuta.Id)}
+                                                                onClick={() => handleFirmar(minuta.id)}
                                                                 disabled={updateEstadoMutation.isPending}
                                                             >
                                                                 {updateEstadoMutation.isPending ? (
@@ -326,12 +326,12 @@ export const DashboardFirmante: React.FC = () => {
                                         </TableHeader>
                                         <TableBody>
                                             {minutasFirmadas.map((minuta: any) => (
-                                                <TableRow key={minuta.Id}>
-                                                    <TableCell className="font-medium">{minuta.Dato?.proyecto || minuta.Proyectos?.Nombre || 'Sin proyecto'}</TableCell>
-                                                    <TableCell>{minuta.Dato?.unidadDescripcion || 'Sin unidad'}</TableCell>
+                                                <TableRow key={minuta.id}>
+                                                    <TableCell className="font-medium">{minuta.datos?.proyecto || minuta.proyectos?.nombre || 'Sin proyecto'}</TableCell>
+                                                    <TableCell>{minuta.datos?.unidadDescripcion || 'Sin unidad'}</TableCell>
                                                     <TableCell>{minuta.users?.email || 'Sin asignar'}</TableCell>
                                                     <TableCell>
-                                                        {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
+                                                        {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge variant="outline" className="bg-blue-100 text-blue-800">
@@ -342,7 +342,7 @@ export const DashboardFirmante: React.FC = () => {
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            onClick={() => handleVerMinuta(minuta.Id)}
+                                                            onClick={() => handleVerMinuta(minuta.id)}
                                                         >
                                                             <Eye className="h-4 w-4 mr-1" />
                                                             Ver Detalle

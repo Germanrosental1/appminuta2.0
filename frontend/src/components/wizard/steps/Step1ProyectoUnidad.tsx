@@ -62,8 +62,8 @@ export const Step1ProyectoUnidad: React.FC = () => {
     setProyectoGlobal(value);
 
     // Find project and set IVA status
-    const selectedProject = proyectosFull.find(p => p.nombre === value);
-    const ivaStatus = selectedProject?.iva || "incluido";
+    const selectedProject = proyectosFull.find(p => p.Nombre === value);
+    const ivaStatus = selectedProject?.Iva || "incluido";
 
     updateData({
       proyecto: value,

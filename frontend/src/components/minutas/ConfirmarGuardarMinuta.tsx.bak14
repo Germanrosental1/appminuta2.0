@@ -48,8 +48,8 @@ export const ConfirmarGuardarMinuta: React.FC<ConfirmarGuardarMinutaProps> = ({
       
       await guardarMinutaProvisoria({
         proyecto: wizardData.proyecto || 'Sin proyecto',
-        UnidadId: unidadId,
-        UsuarioId: user.id,
+        unidad_id: unidadId,
+        usuario_id: user.id,
         datos: wizardData,
         estado: 'pendiente'
       });
@@ -89,11 +89,11 @@ export const ConfirmarGuardarMinuta: React.FC<ConfirmarGuardarMinutaProps> = ({
   // Datos que se guardarán en la base de datos
   const datosParaGuardar = {
     proyecto: wizardData.proyecto || 'Sin proyecto',
-    UnidadId: unidadId,
-    UsuarioId: user?.id || '',
+    unidad_id: unidadId,
+    usuario_id: user?.id || '',
     datos: wizardData,
     estado: 'pendiente' as const,
-    FechaCreacion: new Date().toISOString()
+    fecha_creacion: new Date().toISOString()
   };
 
   return (

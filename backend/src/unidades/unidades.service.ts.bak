@@ -708,6 +708,7 @@ export class UnidadesService {
         });
     }
 
+}
     /**
      * Adjust prices for all units in specified projects
      * Supports percentage-based and fixed value adjustments
@@ -796,4 +797,3 @@ export class UnidadesService {
             message: `Successfully updated ${updates.length} units`
         };
     }
-}

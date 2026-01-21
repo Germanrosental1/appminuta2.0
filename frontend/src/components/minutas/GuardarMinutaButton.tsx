@@ -36,7 +36,7 @@ export const GuardarMinutaButton: React.FC<GuardarMinutaButtonProps> = ({
 
       await guardarMinutaProvisoria({
         proyecto: wizardData.proyecto || 'Sin proyecto',
-        unidad_id: unidadId,
+        UnidadId: unidadId,
         usuario_id: user.id,
         datos: wizardData,
         estado: 'pendiente'

@@ -796,4 +796,3 @@ export class UnidadesService {
             message: `Successfully updated ${updates.length} units`
         };
     }
-}

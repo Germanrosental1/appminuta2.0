@@ -12,12 +12,12 @@ export class UnidadesQueryService {
         //  Cache proyecto_id para evitar query extra en cada request
         if (query.proyecto) {
             const proyecto = await this.prisma.proyectos.findFirst({
-                where: { nombre: { equals: query.proyecto, mode: 'insensitive' } },
-                select: { id: true }, // Solo necesitamos el ID
+                where: { Nombre: { equals: query.proyecto, mode: 'insensitive' } },
+                select: { Id: true }, // Solo necesitamos el ID
             });
             if (proyecto) {
-                where.edificios = {
-                    proyecto_id: proyecto.id,
+                where.Edificios = {
+                    ProyectoId: proyecto.Id,
                 };
             } else {
                 return [];
@@ -31,107 +31,107 @@ export class UnidadesQueryService {
 
         if (estados.length === 1) {
             // Filtro simple por un solo estado
-            where.detallesventa_detallesventa_unidad_idTounidades = {
+            where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
                 is: {
-                    estadocomercial: {
-                        nombreestado: { equals: estados[0], mode: 'insensitive' },
+                    EstadoComercial: {
+                        NombreEstado: { equals: estados[0], mode: 'insensitive' },
                     },
                 },
             };
         } else {
             // Filtro por múltiples estados usando OR
-            where.detallesventa_detallesventa_unidad_idTounidades = {
+            where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
                 is: {
-                    estadocomercial: {
-                        nombreestado: { in: estados, mode: 'insensitive' },
+                    EstadoComercial: {
+                        NombreEstado: { in: estados, mode: 'insensitive' },
                     },
                 },
             };
         }
 
         if (query.etapa && query.etapa !== 'Ninguna') {
-            where.etapas = {
-                nombre: query.etapa,
+            where.Etapas = {
+                Nombre: query.etapa,
             };
         }
 
         if (query.tipo) {
-            where.tiposunidad = {
-                nombre: query.tipo,
+            where.TiposUnidad = {
+                Nombre: query.tipo,
             };
         }
 
         if (query.sectorid) {
-            where.sectorid = query.sectorid;
+            where.SectorId = query.sectorid;
         }
 
         if (query.nrounidad) {
-            where.nrounidad = query.nrounidad;
+            where.NroUnidad = query.nrounidad;
         }
 
         // Usar select en lugar de include para reducir ~60% datos transferidos
         const unidades = await this.prisma.unidades.findMany({
             where,
             select: {
-                id: true,
-                sectorid: true,
-                piso: true,
-                nrounidad: true,
-                dormitorios: true,
-                manzana: true,
-                destino: true,
-                frente: true,
-                edificios: {
+                Id: true,
+                SectorId: true,
+                Piso: true,
+                NroUnidad: true,
+                Dormitorio: true,
+                Manzana: true,
+                Destino: true,
+                Frente: true,
+                Edificios: {
                     select: {
-                        id: true,
-                        nombreedificio: true,
-                        proyectos: {
+                        Id: true,
+                        NombreEdificio: true,
+                        Proyectos: {
                             select: {
-                                id: true,
-                                nombre: true,
+                                Id: true,
+                                Nombre: true,
                             },
                         },
                     },
                 },
-                etapas: {
+                Etapas: {
                     select: {
-                        id: true,
-                        nombre: true,
+                        Id: true,
+                        Nombre: true,
                     },
                 },
-                tiposunidad: {
+                TiposUnidad: {
                     select: {
-                        id: true,
-                        nombre: true,
+                        Id: true,
+                        Nombre: true,
                     },
                 },
-                detallesventa_detallesventa_unidad_idTounidades: {
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
                     select: {
-                        preciousd: true,
-                        usdm2: true,
-                        estadocomercial: {
+                        PrecioUsd: true,
+                        UsdM2: true,
+                        EstadoComercial: {
                             select: {
-                                id: true,
-                                nombreestado: true,
+                                Id: true,
+                                NombreEstado: true,
                             },
                         },
                     },
                 },
-                unidadesmetricas: {
+                UnidadesMetricas: {
                     select: {
-                        m2exclusivos: true,
-                        m2totales: true,
-                        m2cubiertos: true,
+                        M2Exclusivo: true,
+                        M2Total: true,
+                        M2Cubierto: true,
                     },
                 },
             },
-            orderBy: [{ sectorid: 'asc' }, { nrounidad: 'asc' }],
+            orderBy: [{ SectorId: 'asc' }, { NroUnidad: 'asc' }],
         });
 
-        // Eliminar duplicados por sectorid (clave única)
+        // Eliminar duplicados por SectorId (clave única)
         const uniqueUnidades = unidades.filter(
             (unidad, index, self) =>
-                index === self.findIndex((u) => u.sectorid === unidad.sectorid)
+                index === self.findIndex((u) => u.SectorId === unidad.SectorId)
         );
 
         return uniqueUnidades;
@@ -140,22 +140,22 @@ export class UnidadesQueryService {
     async findOne(id: string) {
         // id ahora es UUID
         return this.prisma.unidades.findUnique({
-            where: { id },
+            where: { Id: id },
             include: {
-                edificios: {
+                Edificios: {
                     include: {
-                        proyectos: true,
+                        Proyectos: true,
                     },
                 },
-                etapas: true,
-                tiposunidad: true,
-                detallesventa_detallesventa_unidad_idTounidades: {
+                Etapas: true,
+                TiposUnidad: true,
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
                     include: {
-                        estadocomercial: true,
-                        comerciales: true,
+                        EstadoComercial: true,
+                        Comerciales: true,
                     },
                 },
-                unidadesmetricas: true,
+                UnidadesMetricas: true,
             },
         });
     }
@@ -165,22 +165,22 @@ export class UnidadesQueryService {
         if (!ids.length) return [];
 
         return this.prisma.unidades.findMany({
-            where: { id: { in: ids } },
+            where: { Id: { in: ids } },
             include: {
-                edificios: {
+                Edificios: {
                     include: {
-                        proyectos: true,
+                        Proyectos: true,
                     },
                 },
-                etapas: true,
-                tiposunidad: true,
-                detallesventa_detallesventa_unidad_idTounidades: {
+                Etapas: true,
+                TiposUnidad: true,
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
                     include: {
-                        estadocomercial: true,
-                        comerciales: true,
+                        EstadoComercial: true,
+                        Comerciales: true,
                     },
                 },
-                unidadesmetricas: true,
+                UnidadesMetricas: true,
             },
         });
     }
@@ -188,22 +188,22 @@ export class UnidadesQueryService {
     async getNaturalezas(): Promise<string[]> {
         // Naturaleza viene de proyectos -> naturalezas
         const result = await this.prisma.naturalezas.findMany({
-            select: { nombre: true },
-            orderBy: { nombre: 'asc' },
+            select: { Nombre: true },
+            orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter(Boolean);
     }
 
     /**
      * Get all available unit types across all projects
      */
     async getTiposDisponibles(): Promise<string[]> {
-        // Usar tabla tiposunidad
-        const result = await this.prisma.tiposunidad.findMany({
-            select: { nombre: true },
-            orderBy: { nombre: 'asc' },
+        // Usar tabla TiposUnidad
+        const result = await this.prisma.tiposUnidad.findMany({
+            select: { Nombre: true },
+            orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter(Boolean);
     }
 
     /**
@@ -213,26 +213,26 @@ export class UnidadesQueryService {
         // Query via unidades -> tiposunidad -> proyectostiposunidad -> proyectos
         const result = await this.prisma.proyectos.findMany({
             where: {
-                proyectostiposunidad: {
+                ProyectosTiposUnidad: {
                     some: {
-                        tiposunidad: {
-                            nombre: tipo,
+                        TiposUnidad: {
+                            Nombre: tipo,
                         },
                     },
                 },
             },
-            select: { nombre: true },
-            orderBy: { nombre: 'asc' },
+            select: { Nombre: true },
+            orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.nombre);
+        return result.map((r) => r.Nombre);
     }
 
     async getEtapas(nombreProyecto: string): Promise<string[]> {
         if (!nombreProyecto) return [];
 
         const proyecto = await this.prisma.proyectos.findFirst({
-            where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
-            select: { id: true },
+            where: { Nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+            select: { Id: true },
         });
 
         if (!proyecto) {
@@ -242,65 +242,65 @@ export class UnidadesQueryService {
         // Query unidades -> edificios -> proyectos + etapas
         const result = await this.prisma.unidades.findMany({
             where: {
-                edificios: {
-                    proyecto_id: proyecto.id,
+                Edificios: {
+                    ProyectoId: proyecto.Id,
                 },
-                etapa_id: { not: null },
+                EtapaId: { not: null },
             },
             select: {
-                etapas: {
-                    select: { nombre: true },
+                Etapas: {
+                    select: { Nombre: true },
                 },
             },
-            distinct: ['etapa_id'],
+            distinct: ['EtapaId'],
             orderBy: {
-                etapas: {
-                    nombre: 'asc',
+                Etapas: {
+                    Nombre: 'asc',
                 },
             },
         });
 
-        return result.map((r) => r.etapas?.nombre).filter(Boolean);
+        return result.map((r) => r.Etapas?.Nombre).filter(Boolean);
     }
 
     async getTipos(nombreProyecto: string, etapa?: string): Promise<string[]> {
         if (!nombreProyecto) return [];
 
         const proyecto = await this.prisma.proyectos.findFirst({
-            where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+            where: { Nombre: { equals: nombreProyecto, mode: 'insensitive' } },
         });
 
         if (!proyecto) return [];
 
         const where: any = {
-            edificios: {
-                proyecto_id: proyecto.id,
+            Edificios: {
+                ProyectoId: proyecto.Id,
             },
         };
 
         if (etapa && etapa !== 'Ninguna') {
-            where.etapas = {
-                nombre: etapa,
+            where.Etapas = {
+                Nombre: etapa,
             };
         }
 
-        // Query unidades -> tiposunidad
+        // Query unidades -> TiposUnidad
         const result = await this.prisma.unidades.findMany({
             where,
             select: {
-                tiposunidad: {
-                    select: { nombre: true },
+                TiposUnidad: {
+                    select: { Nombre: true },
                 },
             },
-            distinct: ['tipounidad_id'],
+            distinct: ['TipoUnidadId'],
             orderBy: {
-                tiposunidad: {
-                    nombre: 'asc',
+                TiposUnidad: {
+                    Nombre: 'asc',
                 },
             },
         });
 
-        return result.map((r) => r.tiposunidad.nombre).filter(Boolean);
+        return result.map((r) => r.TiposUnidad.Nombre).filter(Boolean);
     }
 
     async getSectores(
@@ -310,8 +310,8 @@ export class UnidadesQueryService {
     ): Promise<string[]> {
         try {
             const proyecto = await this.prisma.proyectos.findFirst({
-                where: { nombre: { equals: nombreProyecto, mode: 'insensitive' } },
-                select: { id: true },
+                where: { Nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+                select: { Id: true },
             });
 
             if (!proyecto) {
@@ -319,33 +319,33 @@ export class UnidadesQueryService {
             }
 
             const where: any = {
-                edificios: {
-                    proyecto_id: proyecto.id,
+                Edificios: {
+                    ProyectoId: proyecto.Id,
                 },
             };
 
             if (etapa && etapa !== 'Ninguna') {
-                where.etapas = {
-                    nombre: etapa,
+                where.Etapas = {
+                    Nombre: etapa,
                 };
             }
 
             if (tipo) {
-                where.tiposunidad = {
-                    nombre: tipo,
+                where.TiposUnidad = {
+                    Nombre: tipo,
                 };
             }
 
             // Query unidades con filtros de relaciones
             const result = await this.prisma.unidades.findMany({
                 where,
-                select: { sectorid: true },
-                distinct: ['sectorid'],
-                orderBy: { sectorid: 'asc' },
+                select: { SectorId: true },
+                distinct: ['SectorId'],
+                orderBy: { SectorId: 'asc' },
             });
 
             return result
-                .map((r) => r.sectorid)
+                .map((r) => r.SectorId)
                 .filter((s) => s != null && s !== '');
         } catch (error) {
             console.error('[ERROR] getSectores failed:', error);
