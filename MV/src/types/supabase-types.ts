@@ -1,42 +1,41 @@
-// Definición de tipos basada en el esquema de vista_buscador_propiedades
-// NOTA: esta vista NO tiene natdelproyecto ni algunos otros campos de la tabla original
+// Definición de tipos basada en el esquema de vista_buscador_propiedades (PascalCase)
 export interface TablaItem {
-  id: string | null;
-  idx: number | null;
-  sectorid: string;
-  proyecto: string | null;
-  tipo: string | null;
-  etapa: string | null;
-  edificiotorre: string | null;
-  nrounidad: string | null;
-  piso: string | null;
-  dormitorios: string | null;
-  frente: string | null;
-  destino: string | null;
-  tamano: string | null;
-  m2totales: string | null; // La vista devuelve string, no number
-  m2cubiertos: number | null;
-  m2semicubiert: number | null; // Nota: nombre acortado en la vista
-  m2exclusivos: string | null; // La vista devuelve string
-  m2patioterraza: number | null;
-  m2comunes: string | null; // La vista devuelve string
-  preciousd: string | null; // La vista devuelve string
-  usdm2: string | null; // La vista devuelve string
-  estado: string | null;
-  motivonodisp: string | null;
-  tipocochera: string | null;
-  obs: string | null;
-  fechareserva: string | null;
-  comercial: string | null;
-  clienteinteresado: string | null;
-  titular: string | null;
+  Id: string | null;
+  Idx: number | null;
+  SectorId: string;
+  Proyecto: string | null;
+  Tipo: string | null;
+  Etapa: string | null;
+  EdificioTorre: string | null;
+  NroUnidad: string | null;
+  Piso: string | null;
+  Dormitorios: string | null;
+  Frente: string | null;
+  Destino: string | null;
+  Tamano: string | null;
+  M2Totales: string | null;
+  M2Cubiertos: number | null;
+  M2Semicubiert: number | null;
+  M2Exclusivos: string | null;
+  M2PatioTerraza: number | null;
+  M2Comunes: string | null;
+  PrecioUsd: string | null;
+  UsdM2: string | null;
+  Estado: string | null;
+  MotivoNoDisp: string | null;
+  TipoCochera: string | null;
+  Obs: string | null;
+  FechaReserva: string | null;
+  Comercial: string | null;
+  ClienteInteresado: string | null;
+  Titular: string | null;
 }
 
 // Tipo para crear un nuevo registro (sin ID)
-export type TablaInsert = Omit<TablaItem, 'id'>;
+export type TablaInsert = Omit<TablaItem, 'Id'>;
 
 // Tipo para actualizar un registro (todos los campos opcionales excepto ID)
-export type TablaUpdate = Partial<Omit<TablaItem, 'id'>> & { id: string };
+export type TablaUpdate = Partial<Omit<TablaItem, 'Id'>> & { Id: string };
 
 // Mapeo de estados para la UI
 export type EstadoUnidad = 'Disponible' | 'Reservado' | 'Vendido' | 'No disponible';
@@ -55,41 +54,41 @@ export function normalizeEstado(estado: string | null): EstadoUnidad {
   if (estadoLower.includes('vendid')) return 'Vendido';
 
   return 'No disponible'; // Estado por defecto para estados desconocidos
-};
+}
 
-// Mapeo entre el tipo de Supabase y el tipo de la UI
+// Mapeo entre el tipo de Supabase (PascalCase) y el tipo de la UI
 export function mapTablaToUnit(tabla: TablaItem): Unit {
   return {
-    id: tabla.id || '',
+    id: tabla.Id || '',
     natdelproyecto: '', // La vista no tiene este campo
-    proyecto: tabla.proyecto || '',
+    proyecto: tabla.Proyecto || '',
     manzana: '', // La vista no tiene este campo
-    destino: tabla.destino || '',
-    sectorId: tabla.sectorid,
-    frente: tabla.frente || '',
-    etapa: tabla.etapa || '',
-    tipo: tabla.tipo || '',
-    numeroUnidad: tabla.nrounidad || '',
-    edificioTorre: tabla.edificiotorre || '',
-    piso: tabla.piso || '',
-    dormitorios: parseInt(tabla.dormitorios || '0'),
-    tamano: parseFloat(tabla.tamano || '0'),
-    m2PatioTerraza: tabla.m2patioterraza || 0,
+    destino: tabla.Destino || '',
+    sectorId: tabla.SectorId || '',
+    frente: tabla.Frente || '',
+    etapa: tabla.Etapa || '',
+    tipo: tabla.Tipo || '',
+    numeroUnidad: tabla.NroUnidad || '',
+    edificioTorre: tabla.EdificioTorre || '',
+    piso: tabla.Piso || '',
+    dormitorios: Number.parseInt(tabla.Dormitorios || '0'),
+    tamano: Number.parseFloat(tabla.Tamano || '0'),
+    m2PatioTerraza: tabla.M2PatioTerraza || 0,
     patioTerraza: '', // La vista no tiene este campo
-    m2Exclusivos: parseFloat(tabla.m2exclusivos || '0'),
-    m2Comunes: parseFloat(tabla.m2comunes || '0'),
+    m2Exclusivos: Number.parseFloat(tabla.M2Exclusivos || '0'),
+    m2Comunes: Number.parseFloat(tabla.M2Comunes || '0'),
     m2ParaCalculo: 0, // La vista no tiene este campo
-    m2Totales: parseFloat(tabla.m2totales || '0'),
-    precioUSD: parseFloat(tabla.preciousd || '0'),
-    usdM2: parseFloat(tabla.usdm2 || '0'),
-    estado: normalizeEstado(tabla.estado),
-    motivoNoDisponibilidad: tabla.motivonodisp || '',
-    observaciones: tabla.obs || '',
-    fechaReserva: tabla.fechareserva || '',
-    comercial: tabla.comercial || '',
-    clienteInteresado: tabla.clienteinteresado || '',
+    m2Totales: Number.parseFloat(tabla.M2Totales || '0'),
+    precioUSD: Number.parseFloat(tabla.PrecioUsd || '0'),
+    usdM2: Number.parseFloat(tabla.UsdM2 || '0'),
+    estado: normalizeEstado(tabla.Estado),
+    motivoNoDisponibilidad: tabla.MotivoNoDisp || '',
+    observaciones: tabla.Obs || '',
+    fechaReserva: tabla.FechaReserva || '',
+    comercial: tabla.Comercial || '',
+    clienteInteresado: tabla.ClienteInteresado || '',
     fechaFirmaBoleto: '', // La vista no tiene este campo
-    clienteTitularBoleto: tabla.titular || '', // Ahora viene de la vista
+    clienteTitularBoleto: tabla.Titular || '',
     fechaPosesionBoleto: '', // La vista no tiene este campo
   };
 }
@@ -98,30 +97,31 @@ export function mapTablaToUnit(tabla: TablaItem): Unit {
 // NOTA: Las vistas generalmente son de solo lectura
 export function mapUnitToTabla(unit: Unit): TablaUpdate {
   return {
-    id: unit.id,
-    proyecto: unit.proyecto,
-    destino: unit.destino,
-    sectorid: unit.sectorId,
-    frente: unit.frente,
-    etapa: unit.etapa,
-    tipo: unit.tipo,
-    nrounidad: unit.numeroUnidad,
-    edificiotorre: unit.edificioTorre,
-    piso: unit.piso,
-    dormitorios: unit.dormitorios.toString(),
-    tamano: unit.tamano.toString(),
-    m2patioterraza: unit.m2PatioTerraza,
-    m2exclusivos: unit.m2Exclusivos.toString(),
-    m2comunes: unit.m2Comunes.toString(),
-    m2totales: unit.m2Totales.toString(),
-    preciousd: unit.precioUSD.toString(),
-    usdm2: unit.usdM2.toString(),
-    estado: unit.estado,
-    motivonodisp: unit.motivoNoDisponibilidad,
-    obs: unit.observaciones,
-    fechareserva: unit.fechaReserva,
-    comercial: unit.comercial,
-    clienteinteresado: unit.clienteInteresado,
+    Id: unit.id,
+    Proyecto: unit.proyecto,
+    Destino: unit.destino,
+    SectorId: unit.sectorId,
+    Frente: unit.frente,
+    Etapa: unit.etapa,
+    Tipo: unit.tipo,
+    NroUnidad: unit.numeroUnidad,
+    EdificioTorre: unit.edificioTorre,
+    Piso: unit.piso,
+    Dormitorios: unit.dormitorios.toString(),
+    Tamano: unit.tamano.toString(),
+    M2PatioTerraza: unit.m2PatioTerraza,
+    M2Exclusivos: unit.m2Exclusivos.toString(),
+    M2Comunes: unit.m2Comunes.toString(),
+    M2Totales: unit.m2Totales.toString(),
+    PrecioUsd: unit.precioUSD.toString(),
+    UsdM2: unit.usdM2.toString(),
+    Estado: unit.estado,
+    MotivoNoDisp: unit.motivoNoDisponibilidad,
+    Obs: unit.observaciones,
+    FechaReserva: unit.fechaReserva,
+    Comercial: unit.comercial,
+    ClienteInteresado: unit.clienteInteresado,
+    Titular: unit.clienteTitularBoleto,
   };
 }
 

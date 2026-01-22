@@ -16,11 +16,7 @@ interface EnrollMFAProps {
  * EnrollMFA - Componente para configurar 2FA por primera vez
  * Muestra un código QR que el usuario escanea con Google Authenticator, 1Password, etc.
  */
-<<<<<<< HEAD
-export function EnrollMFA({ onEnrolled, onCancelled }: Readonly<EnrollMFAProps>) {
-=======
 export function EnrollMFA({ onEnrolled, onCancelled }: EnrollMFAProps) {
->>>>>>> 321c444ac886421694c5304e301925e1e4b8e1a0
     const [factorId, setFactorId] = useState('');
     const [qrCode, setQrCode] = useState('');
     const [secret, setSecret] = useState('');
@@ -57,11 +53,7 @@ export function EnrollMFA({ onEnrolled, onCancelled }: EnrollMFAProps) {
     }, []);
 
     const handleVerify = async () => {
-<<<<<<< HEAD
-        if (verifyCode?.length !== 6) {
-=======
         if (!verifyCode || verifyCode.length !== 6) {
->>>>>>> 321c444ac886421694c5304e301925e1e4b8e1a0
             setError('Ingresa el código de 6 dígitos');
             return;
         }

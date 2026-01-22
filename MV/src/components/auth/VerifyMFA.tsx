@@ -16,21 +16,13 @@ interface VerifyMFAProps {
  * VerifyMFA - Pantalla de verificación 2FA durante login
  * El usuario ingresa el código de 6 dígitos de su app de autenticación
  */
-<<<<<<< HEAD
-export function VerifyMFA({ onVerified, onCancel }: Readonly<VerifyMFAProps>) {
-=======
 export function VerifyMFA({ onVerified, onCancel }: VerifyMFAProps) {
->>>>>>> 321c444ac886421694c5304e301925e1e4b8e1a0
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleVerify = async () => {
-<<<<<<< HEAD
-        if (code?.length !== 6) {
-=======
         if (!code || code.length !== 6) {
->>>>>>> 321c444ac886421694c5304e301925e1e4b8e1a0
             setError('Ingresa el código de 6 dígitos');
             return;
         }

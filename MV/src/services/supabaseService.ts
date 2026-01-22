@@ -34,7 +34,7 @@ export const supabaseService = {
       const { data, error } = await supabase
         .from(TABLE_NAME)
         .select('*')
-        .eq('proyecto', proyecto);
+        .eq('Proyecto', proyecto);  // PascalCase
 
       if (error) {
         console.error(`Error fetching units for project ${proyecto}:`, error);
@@ -56,7 +56,7 @@ export const supabaseService = {
       const { data, error } = await supabase
         .from(TABLE_NAME)
         .select('*')
-        .eq('id', id)
+        .eq('Id', id)  // PascalCase
         .single();
 
       if (error) {
@@ -183,7 +183,7 @@ export const supabaseService = {
       const { error } = await supabase
         .from(TABLE_NAME)
         .delete()
-        .eq('id', id);
+        .eq('Id', id);  // PascalCase
 
       if (error) {
         throw error;
@@ -200,15 +200,15 @@ export const supabaseService = {
     try {
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .select('proyecto')
-        .not('proyecto', 'is', null);
+        .select('Proyecto')  // PascalCase
+        .not('Proyecto', 'is', null);  // PascalCase
 
       if (error) {
         throw error;
       }
 
       // Extraer proyectos únicos
-      const projects = [...new Set(data.map(item => item.proyecto))].filter(Boolean) as string[];
+      const projects = [...new Set(data.map(item => item.Proyecto))].filter(Boolean) as string[];
       return projects;
     } catch (error) {
       throw error;
@@ -217,21 +217,12 @@ export const supabaseService = {
 
   /**
    * Obtiene todas las naturalezas de proyecto únicas
+   * NOTA: La vista actual no tiene este campo
    */
   async getNaturalezasProyecto(): Promise<string[]> {
     try {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .select('natdelproyecto')
-        .not('natdelproyecto', 'is', null);
-
-      if (error) {
-        throw error;
-      }
-
-      // Extraer naturalezas únicas
-      const naturalezas = [...new Set(data.map(item => item.natdelproyecto))].filter(Boolean) as string[];
-      return naturalezas;
+      // La vista no tiene natdelproyecto, retornar vacío
+      return [];
     } catch (error) {
       throw error;
     }
@@ -246,15 +237,15 @@ export const supabaseService = {
     try {
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .select('proyecto')
-        .not('proyecto', 'is', null);
+        .select('Proyecto')  // PascalCase
+        .not('Proyecto', 'is', null);  // PascalCase
 
       if (error) {
         throw error;
       }
 
       // Extraer proyectos únicos
-      const uniqueProjects = [...new Set(data.map(item => item.proyecto))].filter(Boolean) as string[];
+      const uniqueProjects = [...new Set(data.map(item => item.Proyecto))].filter(Boolean) as string[];
 
       // Retornar todos los proyectos bajo un solo grupo "Proyectos"
       const result = [{
@@ -270,20 +261,12 @@ export const supabaseService = {
 
   /**
    * Obtiene unidades por naturaleza del proyecto
+   * NOTA: La vista actual no tiene este campo
    */
   async getUnitsByNaturaleza(naturaleza: string): Promise<Unit[]> {
     try {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
-        .eq('natdelproyecto', naturaleza);
-
-      if (error) {
-        console.error(`Error fetching units for naturaleza ${naturaleza}:`, error);
-        throw error;
-      }
-
-      return (data || []).map(mapTablaToUnit);
+      // La vista no tiene natdelproyecto, retornar todas las unidades
+      return this.getAllUnits();
     } catch (error) {
       console.error('Error in getUnitsByNaturaleza:', error);
       throw error;
@@ -297,8 +280,8 @@ export const supabaseService = {
     try {
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .select(field)
-        .not(field, 'is', null);
+        .select(field as string)
+        .not(field as string, 'is', null);
 
       if (error) {
         console.error(`Error fetching unique values for ${field}:`, error);
@@ -321,9 +304,9 @@ export const supabaseService = {
     try {
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .select(field)
-        .eq('proyecto', proyecto)
-        .not(field, 'is', null);
+        .select(field as string)
+        .eq('Proyecto', proyecto)  // PascalCase
+        .not(field as string, 'is', null);
 
       if (error) {
         console.error(`Error fetching unique values for ${field} in project ${proyecto}:`, error);

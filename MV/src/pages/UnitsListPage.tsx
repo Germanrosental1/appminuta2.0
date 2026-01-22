@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabaseService } from '@/services/supabaseService';
-import { supabase } from '@/lib/supabase';
 import { Unit, EstadoUnidad } from '@/types/supabase-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -141,7 +140,7 @@ export default function UnitsListPage() {
           data = await supabaseService.getUnitsByProject(selectedProject);
 
           // Cargar los tipos disponibles para este proyecto
-          const tipos = await supabaseService.getUniqueValuesByProject('tipo', selectedProject);
+          const tipos = await supabaseService.getUniqueValuesByProject('Tipo', selectedProject);
           setTiposDisponibles(tipos);
 
           // Obtener la naturaleza del proyecto
@@ -162,7 +161,7 @@ export default function UnitsListPage() {
         } else {
           // selectedProject es '' o 'all' - cargar todas las unidades
           data = await supabaseService.getAllUnits();
-          const tipos = await supabaseService.getUniqueValues('tipo');
+          const tipos = await supabaseService.getUniqueValues('Tipo');
           setTiposDisponibles(tipos);
           setProjectNaturaleza('');
         }
@@ -187,7 +186,7 @@ export default function UnitsListPage() {
   };
 
   const handleDelete = async (unitId: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta unidad?')) {
+    if (globalThis.confirm('¿Estás seguro de que deseas eliminar esta unidad?')) {
       try {
         await supabaseService.deleteUnit(unitId);
         setUnits(units.filter(unit => unit.id !== unitId));
@@ -233,20 +232,20 @@ export default function UnitsListPage() {
       if (filtroDormitorios === 'null') {
         if (unit.dormitorios !== 0 && unit.dormitorios !== null) return false;
       } else {
-        const dormitoriosNum = parseInt(filtroDormitorios);
+        const dormitoriosNum = Number.parseInt(filtroDormitorios);
         if (unit.dormitorios !== dormitoriosNum) return false;
       }
     }
 
     // Filtro por precio mínimo
-    if (filtroPrecioMin && !isNaN(parseFloat(filtroPrecioMin))) {
-      const precioMin = parseFloat(filtroPrecioMin);
+    if (filtroPrecioMin && !Number.isNaN(Number.parseFloat(filtroPrecioMin))) {
+      const precioMin = Number.parseFloat(filtroPrecioMin);
       if (unit.precioUSD < precioMin) return false;
     }
 
     // Filtro por precio máximo
-    if (filtroPrecioMax && !isNaN(parseFloat(filtroPrecioMax))) {
-      const precioMax = parseFloat(filtroPrecioMax);
+    if (filtroPrecioMax && !Number.isNaN(Number.parseFloat(filtroPrecioMax))) {
+      const precioMax = Number.parseFloat(filtroPrecioMax);
       if (unit.precioUSD > precioMax) return false;
     }
 
@@ -319,7 +318,7 @@ export default function UnitsListPage() {
                   // Quick hack: trigger re-fetch by toggling a state or calling the fetcher if exposed. 
                   // ideally refactor loadUnits to be outside useEffect or use react-query.
                   // For now, refreshing page is safest or we can force a reload.
-                  window.location.reload();
+                  globalThis.location.reload();
                 } catch (error: any) {
                   toast.error(error.message || 'Error al importar el archivo');
                 } finally {
@@ -353,7 +352,7 @@ export default function UnitsListPage() {
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="w-full md:w-1/3">
-              <label className="text-sm font-medium mb-1 block">Proyecto</label>
+              <span className="text-sm font-medium mb-1 block">Proyecto</span>
               <Select value={selectedProject} onValueChange={setSelectedProject}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar proyecto" />
@@ -371,8 +370,9 @@ export default function UnitsListPage() {
               </Select>
             </div>
             <div className="w-full md:w-2/3">
-              <label className="text-sm font-medium mb-1 block">Búsqueda</label>
+              <label htmlFor="search-input" className="text-sm font-medium mb-1 block">Búsqueda</label>
               <Input
+                id="search-input"
                 placeholder="Buscar por unidad, sector ID, edificio, piso, estado o cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -382,7 +382,7 @@ export default function UnitsListPage() {
 
           <div className="flex flex-col md:flex-row gap-4">
             <div className="w-full md:w-1/5">
-              <label className="text-sm font-medium mb-1 block">Tipo</label>
+              <span className="text-sm font-medium mb-1 block">Tipo</span>
               <Select value={filtroTipo} onValueChange={setFiltroTipo}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
@@ -401,7 +401,7 @@ export default function UnitsListPage() {
             {/* Filtro de Dormitorios - Solo para naturaleza distinta a Naves */}
             {projectNaturaleza !== 'Naves' && (
               <div className="w-full md:w-1/5">
-                <label className="text-sm font-medium mb-1 block">Dormitorios</label>
+                <span className="text-sm font-medium mb-1 block">Dormitorios</span>
                 <Select value={filtroDormitorios} onValueChange={setFiltroDormitorios}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todos" />
@@ -420,7 +420,7 @@ export default function UnitsListPage() {
             )}
 
             <div className="w-full md:w-1/5">
-              <label className="text-sm font-medium mb-1 block">Estado</label>
+              <span className="text-sm font-medium mb-1 block">Estado</span>
               <Select value={filtroEstado} onValueChange={setFiltroEstado}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
@@ -438,8 +438,9 @@ export default function UnitsListPage() {
             </div>
 
             <div className="w-full md:w-1/5">
-              <label className="text-sm font-medium mb-1 block">Precio mínimo (USD)</label>
+              <label htmlFor="precio-min" className="text-sm font-medium mb-1 block">Precio mínimo (USD)</label>
               <Input
+                id="precio-min"
                 type="number"
                 placeholder="Precio mínimo"
                 value={filtroPrecioMin}
@@ -448,8 +449,9 @@ export default function UnitsListPage() {
             </div>
 
             <div className="w-full md:w-1/5">
-              <label className="text-sm font-medium mb-1 block">Precio máximo (USD)</label>
+              <label htmlFor="precio-max" className="text-sm font-medium mb-1 block">Precio máximo (USD)</label>
               <Input
+                id="precio-max"
                 type="number"
                 placeholder="Precio máximo"
                 value={filtroPrecioMax}

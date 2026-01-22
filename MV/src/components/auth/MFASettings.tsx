@@ -60,11 +60,7 @@ export function MFASettings() {
         loadFactors();
     }, []);
 
-<<<<<<< HEAD
-    //  Require TOTP verification before unenroll
-=======
     // 🔒 SECURITY: Require TOTP verification before unenroll
->>>>>>> 321c444ac886421694c5304e301925e1e4b8e1a0
     const handleUnenroll = async () => {
         if (!unenrollFactorId || unenrollCode.length !== 6) {
             setError('Ingresa el código de 6 dígitos');
