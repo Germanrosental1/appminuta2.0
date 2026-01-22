@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe, ForbiddenException } from '@nestjs/common';
-=======
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe } from '@nestjs/common';
->>>>>>> 321c444ac886421694c5304e301925e1e4b8e1a0
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
@@ -10,10 +6,6 @@ import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-<<<<<<< HEAD
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-=======
->>>>>>> 321c444ac886421694c5304e301925e1e4b8e1a0
 
 /**
  * 🔒 SEGURIDAD: Controller protegido con autenticación
@@ -64,8 +56,6 @@ export class ProyectosController {
 
     /**
      * 🔒 Obtener proyecto por ID (validado como UUID)
-    /**
-     * 🔒 Obtener proyecto por ID (validado como UUID)
      * SEGURIDAD: Verifica que el usuario tenga acceso al proyecto
      */
     @Get(':id')
@@ -74,7 +64,7 @@ export class ProyectosController {
 
         // 🔒 SEGURIDAD: Verificar que el usuario tiene acceso a este proyecto
         const userProjects = await this.proyectosService.findByUserId(userId);
-        const hasAccess = userProjects.some(p => p.id === id);
+        const hasAccess = userProjects.some(p => p.Id === id);
 
         if (!hasAccess) {
             throw new ForbiddenException('No tienes acceso a este proyecto');
