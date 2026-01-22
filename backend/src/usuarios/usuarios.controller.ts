@@ -50,7 +50,7 @@ export class UsuariosController {
         }
 
         const roles = await this.usuariosRolesService.getUserRoles(userId);
-        const hasRole = roles.some(r => r.nombre === role);
+        const hasRole = roles.some(r => r.Nombre.toLowerCase() === role.toLowerCase());
         return { hasRole };
     }
 

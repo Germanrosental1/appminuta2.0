@@ -67,15 +67,15 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
         setMinuta(minutaData);
 
         // Inicializar comentarios con los existentes
-        if (minutaData.comentarios) {
-          setComentarios(minutaData.comentarios);
+        if (minutaData.Comentario) {
+          setComentarios(minutaData.Comentario);
         }
 
         // Inicializar datos editados con los datos actuales
-        setDatosEditados(structuredClone(minutaData.datos));
+        setDatosEditados(structuredClone(minutaData.Dato));
 
         // Obtener datos del mapa de ventas
-        setDatosMapaVentas(minutaData.datos_mapa_ventas || null);
+        setDatosMapaVentas(minutaData.Dato_mapa_ventas || null);
 
       } catch (err) {
         setError('No se pudieron cargar los datos de la minuta');
@@ -92,7 +92,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
     try {
       setProcesando(true);
-      await actualizarEstadoMinutaDefinitiva(id, minuta.estado, comentarios);
+      await actualizarEstadoMinutaDefinitiva(id, minuta.Estado, comentarios);
 
       toast({
         title: "Comentarios guardados",
@@ -119,7 +119,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
   const handleCancelarEdicion = () => {
     // Restaurar datos originales
-    setDatosEditados(structuredClone(minuta.datos));
+    setDatosEditados(structuredClone(minuta.Dato));
     setEditandoDatos(false);
   };
 
@@ -191,7 +191,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
   const handleGenerarPDFClick = () => {
     if (minuta?.proyecto) {
-      generarPDF(minuta.proyecto);
+      generarPDF(minuta.Proyecto);
     }
   };
 
@@ -279,7 +279,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                 <CardTitle className="flex items-center justify-between">
                   <span>Información de la Minuta</span>
                   <div className="flex items-center gap-2">
-                    {getEstadoBadge(minuta.estado)}
+                    {getEstadoBadge(minuta.Estado)}
                     <Button
                       variant="outline"
                       size="sm"
@@ -299,15 +299,15 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-2">
                     <div>
                       <span className="font-medium">Proyecto: </span>
-                      <span>{minuta.proyecto}</span>
+                      <span>{minuta.Proyecto}</span>
                     </div>
                     <div>
                       <span className="font-medium">Unidad: </span>
-                      <span>{minuta.datos?.unidadDescripcion || minuta.unidad_id}</span>
+                      <span>{minuta.Dato?.unidadDescripcion || minuta.UnidadId}</span>
                     </div>
                     <div>
                       <span className="font-medium">Fecha: </span>
-                      <span>{new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</span>
+                      <span>{new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}</span>
                     </div>
                   </div>
                 </CardDescription>
@@ -324,7 +324,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   </div>
 
                   <TabsContent value="resumen" className="mt-4">
-                    <ResumenCompleto wizardData={minuta.datos} />
+                    <ResumenCompleto wizardData={minuta.Dato} />
                   </TabsContent>
 
                   <TabsContent value="mapa-ventas" className="mt-4">
@@ -356,7 +356,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                       editandoDatos={editandoDatos}
                       guardandoDatos={guardandoDatos}
                       datosEditados={datosEditados}
-                      minutaDatos={minuta.datos}
+                      minutaDatos={minuta.Dato}
                       onEditar={handleEditarDatos}
                       onCancelar={handleCancelarEdicion}
                       onGuardar={handleGuardarDatos}
@@ -419,7 +419,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {minuta.estado === 'pendiente' && (
+                {minuta.Estado === 'pendiente' && (
                   <>
                     <Button
                       className="w-full bg-green-600 hover:bg-green-700"
@@ -441,7 +441,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   </>
                 )}
 
-                {minuta.estado === 'aprobada' && (
+                {minuta.Estado === 'aprobada' && (
                   <Button
                     className="w-full bg-blue-600 hover:bg-blue-700"
                     onClick={() => handleCambiarEstado('firmada')}
@@ -452,14 +452,14 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                   </Button>
                 )}
 
-                {minuta.estado === 'firmada' && (
+                {minuta.Estado === 'firmada' && (
                   <div className="text-center py-4 text-green-600">
                     <CheckCircle className="h-8 w-8 mx-auto mb-2" />
                     <p className="font-medium">Esta minuta ha sido firmada</p>
                   </div>
                 )}
 
-                {minuta.estado === 'cancelada' && (
+                {minuta.Estado === 'cancelada' && (
                   <div className="text-center py-4 text-red-600">
                     <XCircle className="h-8 w-8 mx-auto mb-2" />
                     <p className="font-medium">Esta minuta ha sido cancelada</p>
@@ -555,17 +555,17 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
             <>
               <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold mb-2">Minuta Definitiva</h1>
-                <p className="text-lg">{minuta.proyecto}</p>
-                <p className="text-sm">Fecha: {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</p>
+                <p className="text-lg">{minuta.Proyecto}</p>
+                <p className="text-sm">Fecha: {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}</p>
                 <div className="inline-block mt-2">
-                  {getEstadoBadge(minuta.estado)}
+                  {getEstadoBadge(minuta.Estado)}
                 </div>
               </div>
 
               <div className="mb-6">
                 <h2 className="text-xl font-bold mb-4">Datos de la Minuta Comercial</h2>
-                {minuta.datos && (
-                  <ResumenCompleto wizardData={minuta.datos} />
+                {minuta.Dato && (
+                  <ResumenCompleto wizardData={minuta.Dato} />
                 )}
               </div>
 
@@ -583,10 +583,10 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                 </div>
               )}
 
-              {minuta.comentarios && (
+              {minuta.Comentario && (
                 <div className="mb-6">
                   <h2 className="text-xl font-bold mb-4">Comentarios</h2>
-                  <p>{minuta.comentarios}</p>
+                  <p>{minuta.Comentario}</p>
                 </div>
               )}
             </>

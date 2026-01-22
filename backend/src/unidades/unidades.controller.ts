@@ -173,7 +173,7 @@ export class UnidadesController {
     private async validateProjectAccess(userId: string, projectName: string): Promise<void> {
         const userProjects = await this.authService.getUserProjectsDetailed(userId);
         const hasAccess = userProjects.some(p =>
-            p.nombre.toLowerCase() === projectName.toLowerCase()
+            p.Nombre.toLowerCase() === projectName.toLowerCase()
         );
         if (!hasAccess) {
             throw new ForbiddenException('No tienes acceso a este proyecto');

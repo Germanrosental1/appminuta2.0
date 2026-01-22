@@ -102,7 +102,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
     if (!minutaId || !minuta) return;
 
     // ⚡ OPTIMISTIC UI: Guardar estado anterior para poder revertir
-    const estadoAnterior = minuta.estado;
+    const estadoAnterior = minuta.Estado;
 
     // ⚡ OPTIMISTIC UI: Actualizar UI inmediatamente (sin esperar al backend)
     setMinuta(prev => ({ ...prev, estado: nuevoEstado }));
@@ -134,7 +134,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
       setIsGeneratingPDF(true);
 
       // Crear nombre del archivo
-      const fileName = `Minuta_Consolidada_${minuta.proyecto || 'Proyecto'}_${minuta.datos?.unidadDescripcion || 'Unidad'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = `Minuta_Consolidada_${minuta.Proyecto || 'Proyecto'}_${minuta.Dato?.unidadDescripcion || 'Unidad'}_${new Date().toISOString().split('T')[0]}.pdf`;
 
       // Enfoque simple: usar jsPDF y html2canvas directamente
       const pdf = new jsPDF({
@@ -237,46 +237,50 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
             <div ref={consolidadoRef} className="p-4 bg-white rounded-md">
               <div className="mb-6">
                 <h2 className="text-xl font-bold mb-4">Datos de la Minuta Comercial</h2>
-                <ResumenCompleto wizardData={minuta.datos} />
+                <ResumenCompleto wizardData={minuta.Dato} />
               </div>
 
-              {minuta.datos_mapa_ventas && (
+              {(minuta.DatoMapaVenta || minuta.Dato_mapa_ventas) && (
                 <div className="mb-6">
                   <h2 className="text-xl font-bold mb-4">Datos del Mapa de Ventas</h2>
                   <div className="space-y-4">
                     {(() => {
-                      let mapData = minuta.datos_mapa_ventas;
+                      let mapData = minuta.DatoMapaVenta || minuta.Dato_mapa_ventas;
                       if (typeof mapData === 'string') {
                         try { mapData = JSON.parse(mapData); } catch { /* ignore */ }
                       }
                       const mapas = Array.isArray(mapData) ? mapData : [mapData];
 
                       return mapas.map((item: any, index: number) => {
-                        const proyecto = item.edificios?.proyectos?.nombre || '-';
-                        const etapa = item.etapas?.nombre || '-';
-                        const edificio = item.edificios?.nombreedificio || '-';
-                        const tipoUnidad = item.tiposunidad?.nombre || '-';
-                        const sector = item.sectorid || '-';
-                        const nroUnidad = item.nrounidad || '-';
-                        const piso = item.piso || '-';
-                        const dormitorios = item.dormitorios || '-';
+                        if (!item) return null; // Defensive check
+                        const proyecto = item.Edificios?.Proyectos?.Nombre || item.edificios?.proyectos?.nombre || '-';
+                        const etapa = item.Etapas?.Nombre || item.etapas?.nombre || '-';
+                        const edificio = item.Edificios?.NombreEdificio || item.edificios?.nombreedificio || '-';
+                        const tipoUnidad = item.TiposUnidad?.Nombre || item.tiposunidad?.nombre || '-';
+                        const sector = item.SectorId || item.sectorid || '-';
+                        const nroUnidad = item.NroUnidad || item.nrounidad || '-';
+                        const piso = item.Piso || item.piso || '-';
+                        const dormitorios = item.Dormitorio || item.dormitorios || '-';
+                        const frente = item.Frente || item.frente || '-';
+                        const destino = item.Destino || item.destino || '-';
+                        const manzana = item.Manzana || item.manzana || '-';
 
-                        const metricas = item.unidadesmetricas || {};
-                        const m2Totales = metricas.m2totales || '-';
-                        const m2Cubiertos = metricas.m2cubiertos || '-';
-                        const m2Exclusivos = metricas.m2exclusivos || '-';
-                        const m2Semicubiertos = metricas.m2semicubiertos || '-';
-                        const m2PatioTerraza = metricas.m2patioterraza || '-';
+                        const metricas = item.UnidadesMetricas || item.unidadesmetricas || {};
+                        const m2Totales = metricas.M2Total || metricas.m2totales || '-';
+                        const m2Cubiertos = metricas.M2Cubierto || metricas.m2cubiertos || '-';
+                        const m2Exclusivos = metricas.M2Exclusivo || metricas.m2exclusivos || '-';
+                        const m2Semicubiertos = metricas.M2Semicubierto || metricas.m2semicubiertos || '-';
+                        const m2PatioTerraza = metricas.M2PatioTerraza || metricas.m2patioterraza || '-';
 
-                        const detallesVenta = item.detallesventa_detallesventa_unidad_idTounidades || {};
-                        const precioUsd = detallesVenta.preciousd ? `USD ${Number(detallesVenta.preciousd).toLocaleString('es-AR')}` : '-';
-                        const usdM2 = detallesVenta.usdm2 ? `USD ${Number(detallesVenta.usdm2).toLocaleString('es-AR')}` : '-';
-                        const estado = detallesVenta.estadocomercial?.nombreestado || '-';
+                        const detallesVenta = item.DetallesVenta_DetallesVenta_UnidadIdToUnidades || item.detallesventa_detallesventa_unidad_idTounidades || {};
+                        const precioUsd = detallesVenta.PrecioUsd || detallesVenta.preciousd ? `USD ${Number(detallesVenta.PrecioUsd || detallesVenta.preciousd).toLocaleString('es-AR')}` : '-';
+                        const usdM2 = detallesVenta.UsdM2 || detallesVenta.usdm2 ? `USD ${Number(detallesVenta.UsdM2 || detallesVenta.usdm2).toLocaleString('es-AR')}` : '-';
+                        const estado = detallesVenta.EstadoComercial?.NombreEstado || detallesVenta.estadocomercial?.nombreestado || '-';
 
                         const descripcionUnidad = item._unidad_descripcion || `${sector} - ${edificio} - Unidad ${nroUnidad}`;
 
                         return (
-                          <div key={item.id || index} className="border rounded-lg overflow-hidden">
+                          <div key={item.Id || item.id || index} className="border rounded-lg overflow-hidden">
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 border-b">
                               <h3 className="font-semibold flex items-center gap-2">
                                 <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Unidad {index + 1}</span>
@@ -294,6 +298,9 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                                   <div><span className="font-medium">Sector:</span> {sector}</div>
                                   <div><span className="font-medium">Piso:</span> {piso}</div>
                                   <div><span className="font-medium">Nro Unidad:</span> {nroUnidad}</div>
+                                  {/* Agregar manzana, frente, destino si faltaban antes */}
+                                  <div><span className="font-medium">Manzana:</span> {manzana}</div>
+                                  <div><span className="font-medium">Frente:</span> {frente}</div>
                                 </div>
                               </div>
                               {/* Características */}
@@ -302,6 +309,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                                 <div className="space-y-1">
                                   <div><span className="font-medium">Tipo:</span> {tipoUnidad}</div>
                                   <div><span className="font-medium">Dormitorios:</span> {dormitorios}</div>
+                                  <div><span className="font-medium">Destino:</span> {destino}</div>
                                 </div>
                               </div>
                               {/* Superficies */}
@@ -315,21 +323,6 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                                   <div><span className="font-medium">Patio/Terraza:</span> {m2PatioTerraza} m²</div>
                                 </div>
                               </div>
-                              {/* Info Comercial */}
-                              <div className="md:col-span-3 mt-2 pt-2 border-t">
-                                <h4 className="font-semibold text-muted-foreground mb-2">💰 Información Comercial</h4>
-                                <div className="flex flex-wrap gap-4">
-                                  <div className="bg-green-50 px-3 py-1 rounded">
-                                    <span className="text-green-700 font-medium">Precio:</span> <span className="font-bold text-green-800">{precioUsd}</span>
-                                  </div>
-                                  <div className="bg-blue-50 px-3 py-1 rounded">
-                                    <span className="text-blue-700 font-medium">USD/m²:</span> <span className="font-bold text-blue-800">{usdM2}</span>
-                                  </div>
-                                  <div className="bg-purple-50 px-3 py-1 rounded">
-                                    <span className="text-purple-700 font-medium">Estado:</span> <span className="font-bold text-purple-800">{estado}</span>
-                                  </div>
-                                </div>
-                              </div>
                             </div>
                           </div>
                         );
@@ -339,10 +332,10 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                 </div>
               )}
 
-              {minuta.comentarios && (
+              {minuta.Comentario && (
                 <div className="mb-6">
                   <h2 className="text-xl font-bold mb-4">Comentarios</h2>
-                  <p>{minuta.comentarios}</p>
+                  <p>{minuta.Comentario}</p>
                 </div>
               )}
             </div>
@@ -350,46 +343,51 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
 
           <TabsContent value="resumen">
             <div>
-              <ResumenCompleto wizardData={minuta.datos} />
+              <ResumenCompleto wizardData={minuta.Dato} />
             </div>
           </TabsContent>
 
           <TabsContent value="mapa-ventas">
             <div className="space-y-6">
               {(() => {
-                let mapData = minuta.datos_mapa_ventas;
+                let mapData = minuta.DatoMapaVenta || minuta.Dato_mapa_ventas;
 
                 // Parse strings if necessary (fallback)
+                if (typeof mapData === 'string') {
+                  try { mapData = JSON.parse(mapData); } catch { /* ignore */ }
+                }
+
                 const mapas = Array.isArray(mapData) ? mapData : [mapData];
 
                 return mapas.map((item: any, index: number) => {
-                  // Extraer datos de forma estructurada
-                  const proyecto = item.edificios?.proyectos?.nombre || '-';
-                  const etapa = item.etapas?.nombre || '-';
-                  const edificio = item.edificios?.nombreedificio || '-';
-                  const tipoUnidad = item.tiposunidad?.nombre || '-';
-                  const sector = item.sectorid || '-';
-                  const nroUnidad = item.nrounidad || '-';
-                  const piso = item.piso || '-';
-                  const dormitorios = item.dormitorios || '-';
-                  const frente = item.frente || '-';
-                  const destino = item.destino || '-';
-                  const manzana = item.manzana || '-';
+                  if (!item) return null; // Defensive check
+                  // Extraer datos de forma estructurada - Usando PascalCase
+                  const proyecto = item.Edificios?.Proyectos?.Nombre || item.edificios?.proyectos?.nombre || '-';
+                  const etapa = item.Etapas?.Nombre || item.etapas?.nombre || '-';
+                  const edificio = item.Edificios?.NombreEdificio || item.edificios?.nombreedificio || '-';
+                  const tipoUnidad = item.TiposUnidad?.Nombre || item.tiposunidad?.nombre || '-';
+                  const sector = item.SectorId || item.sectorid || '-';
+                  const nroUnidad = item.NroUnidad || item.nrounidad || '-';
+                  const piso = item.Piso || item.piso || '-';
+                  const dormitorios = item.Dormitorio || item.dormitorios || '-'; // Dormitorio singular en backend nuevo
+                  const frente = item.Frente || item.frente || '-';
+                  const destino = item.Destino || item.destino || '-';
+                  const manzana = item.Manzana || item.manzana || '-';
 
                   // Datos métricos
-                  const metricas = item.unidadesmetricas || {};
-                  const m2Totales = metricas.m2totales || '-';
-                  const m2Cubiertos = metricas.m2cubiertos || '-';
-                  const m2Exclusivos = metricas.m2exclusivos || '-';
-                  const m2Semicubiertos = metricas.m2semicubiertos || '-';
-                  const m2PatioTerraza = metricas.m2patioterraza || '-';
+                  const metricas = item.UnidadesMetricas || item.unidadesmetricas || {};
+                  const m2Totales = metricas.M2Total || metricas.m2totales || '-';
+                  const m2Cubiertos = metricas.M2Cubierto || metricas.m2cubiertos || '-';
+                  const m2Exclusivos = metricas.M2Exclusivo || metricas.m2exclusivos || '-';
+                  const m2Semicubiertos = metricas.M2Semicubierto || metricas.m2semicubiertos || '-';
+                  const m2PatioTerraza = metricas.M2PatioTerraza || metricas.m2patioterraza || '-';
 
                   // Removed unused variables: detallesVenta, precioUsd, usdM2, estado
 
                   const descripcionUnidad = item._unidad_descripcion || `${sector} - ${edificio} - Unidad ${nroUnidad}`;
 
                   return (
-                    <Card key={item.id || index} className="overflow-hidden border-2">
+                    <Card key={item.Id || item.id || index} className="overflow-hidden border-2">
                       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-3">
                         <CardTitle className="text-lg flex items-center gap-2">
                           <Badge variant="outline" className="bg-white">Unidad {index + 1}</Badge>
@@ -456,10 +454,10 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           </TabsContent>
         </Tabs>
 
-        {minuta.comentarios && (
+        {minuta.Comentario && (
           <div className="mt-4 p-4 bg-muted rounded-md">
-            <h3 className="font-medium mb-2">Comentarios de Administración:</h3>
-            <p className="text-sm">{minuta.comentarios}</p>
+            <h3 className="font-medium mb-2">Observaciones:</h3>
+            <p className="text-sm">{minuta.Comentario}</p>
           </div>
         )}
 
@@ -491,7 +489,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           )}
 
           {/* Botones para cambiar estado (solo visibles para administradores, no para comerciales) */}
-          {minuta.estado === 'pendiente' && !isComercial && (
+          {minuta.Estado === 'pendiente' && !isComercial && (
             <div className="flex gap-2 w-full mt-4 justify-end">
               <Button
                 onClick={() => handleChangeEstado('cancelada')}
@@ -533,7 +531,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
             {minuta && (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-muted-foreground">Estado:</span>
-                {getEstadoBadge(minuta.estado)}
+                {getEstadoBadge(minuta.Estado)}
               </div>
             )}
           </DialogTitle>
@@ -547,11 +545,11 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
               <div className="flex justify-between items-center text-sm">
                 <div>
                   <span className="font-medium">Proyecto: </span>
-                  <span>{minuta.proyectos?.nombre || minuta.proyecto}</span>
+                  <span>{minuta.Proyectos?.nombre || minuta.Proyecto}</span>
                 </div>
                 <div>
                   <span className="font-medium">Fecha: </span>
-                  <span>{new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}</span>
+                  <span>{new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}</span>
                 </div>
               </div>
 
@@ -573,7 +571,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                     'aprobada': 'Aprobada',
                     'firmada': 'Firmada'
                   };
-                  const estadoActual = minuta.estado;
+                  const estadoActual = minuta.Estado;
                   const indexActual = estados.indexOf(estadoActual);
 
                   // Si está cancelada/rechazada, mostrar diferente

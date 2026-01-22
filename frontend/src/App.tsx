@@ -76,12 +76,12 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
       try {
         // 1. Check Password Requirement
         const { data } = await supabase
-          .from('profiles')
-          .select('require_password_change')
-          .eq('id', user.id)
+          .from('Profiles')
+          .select('RequirePasswordChange')
+          .eq('Id', user.id)
           .single();
 
-        const pwdRequired = data?.require_password_change || false;
+        const pwdRequired = data?.RequirePasswordChange || false;
         setRequiresPasswordChange(pwdRequired);
 
         if (pwdRequired) {
@@ -168,7 +168,7 @@ const PasswordChangeRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Si NO requiere cambio de contraseña, redirigir al dashboard según rol RBAC
-  if (!user.require_password_change) {
+  if (!user.RequirePasswordChange) {
     // comercial → dashboard comercial
     // administrador, firmante, viewer → dashboard admin
     if (hasRole('comercial')) {

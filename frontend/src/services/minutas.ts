@@ -10,36 +10,36 @@ import {
 } from '@/schemas/minuta.schema';
 
 export interface MinutaProvisoria {
-  id?: string;
-  proyecto: string;
-  unidad_id: string;
-  usuario_id: string;
-  fecha_creacion: string;
-  datos: WizardData;
-  estado: 'pendiente' | 'revisada' | 'aprobada' | 'rechazada';
-  comentarios?: string;
+  Id?: string;
+  Proyecto: string;
+  UnidadId: string;
+  UsuarioId: string;
+  FechaCreacion: string;
+  Dato: WizardData;
+  Estado: 'pendiente' | 'revisada' | 'aprobada' | 'rechazada';
+  Comentario?: string;
 }
 
 export interface MinutaDefinitiva {
-  id: string;
-  usuario_id: string;
-  fecha_creacion: string;
-  datos: any; // Incluye la información de la unidad
-  datos_adicionales?: any; // Campo existente en la tabla
-  datos_mapa_ventas?: any;
-  estado: string;
-  comentarios?: string;
-  url_documento?: string;
-  created_at: string;
-  updated_at: string;
-  proyecto?: string;
-  clienteInteresadoDni?: number; // DNI del cliente interesado
+  Id: string;
+  UsuarioId: string;
+  FechaCreacion: string;
+  Dato: any; // Incluye la información de la unidad
+  DatoAdicional?: any; // Campo existente en la tabla
+  DatoMapaVenta?: any;
+  Estado: string;
+  Comentario?: string;
+  UrlDocumento?: string;
+  CreatedAt: string;
+  UpdatedAt: string;
+  Proyecto?: string;
+  ClienteInteresadoDni?: number; // DNI del cliente interesado
   // Relaciones agregadas por el backend
   users?: {
     email: string;
   };
-  proyectos?: {
-    nombre: string;
+  Proyectos?: {
+    Nombre: string;
   };
 }
 
@@ -49,16 +49,19 @@ export { ValidationError } from '@/utils/validateRequest';
 export async function guardarMinutaProvisoria(minuta: Omit<MinutaProvisoria, 'id' | 'fecha_creacion'>) {
   try {
     // 1. VALIDAR los datos de la minuta
-    const validatedData = validateRequest(createMinutaSchema, minuta.datos);
+    const validatedData = validateRequest(createMinutaSchema, minuta.Dato);
 
     // 2. Extraer el proyecto del objeto datos validado
     const proyecto = validatedData.proyecto || 'Sin proyecto';
 
     // 3. Guardar en Backend
     const minutaParaGuardar = {
-      ...minuta,
+      proyecto: minuta.Proyecto,
+      unidad_id: minuta.UnidadId,
+      usuario_id: minuta.UsuarioId,
+      estado: minuta.Estado,
+      comentarios: minuta.Comentario,
       datos: validatedData, // Usar datos validados
-      proyecto,
       fecha_creacion: new Date().toISOString(),
     };
 
@@ -257,22 +260,22 @@ export async function getDatosMapaVentasBatch(unidadIds: string[]) {
 }
 
 // Guardar directamente una minuta definitiva (VALIDACIÓN DESHABILITADA TEMPORALMENTE)
-export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id' | 'fecha_creacion' | 'created_at' | 'updated_at'>) {
+export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id' | 'FechaCreacion' | 'CreatedAt' | 'UpdatedAt'>) {
   try {
     // Obtener unidad_id de la primera unidad seleccionada
-    const primeraUnidad = minuta.datos?.unidades?.[0];
-    const unidadId = primeraUnidad?.id || minuta.datos?.unidad_id || null;
+    const primeraUnidad = minuta.Dato?.unidades?.[0];
+    const unidadId = primeraUnidad?.id || minuta.Dato?.unidad_id || null;
 
     let proyectoId = null;
-    if (minuta.datos?.proyecto_id && isValidUUID(minuta.datos.proyecto_id)) {
-      proyectoId = minuta.datos.proyecto_id;
+    if (minuta.Dato?.proyecto_id && isValidUUID(minuta.Dato.proyecto_id)) {
+      proyectoId = minuta.Dato.proyecto_id;
     }
 
     // ⚡ OPTIMIZACIÓN: Obtener datos del mapa de ventas con batch (1 request vs N requests)
     let datosMapaVentas: any[] = [];
 
     try {
-      const unidades = minuta.datos?.unidades || [];
+      const unidades = minuta.Dato?.unidades || [];
 
       if (unidades.length > 0) {
         // ⚡ BATCH: Extraer todos los IDs y hacer UNA sola request
@@ -292,7 +295,7 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id
 
       } else {
         // Caso: Sin array de unidades (legacy o single unit directa)
-        const unidadCodigo = unidadId || minuta.datos?.unidadCodigo || minuta.datos?.unidad?.codigo || '';
+        const unidadCodigo = unidadId || minuta.Dato?.unidadCodigo || minuta.Dato?.unidad?.codigo || '';
 
         if (unidadCodigo) {
           const data = await getDatosMapaVentasByUnidadId(unidadCodigo);
@@ -308,11 +311,11 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'id
     // Preparar minuta para guardar - proyecto puede ser null
     const minutaParaGuardar = {
       proyecto: proyectoId, // UUID o null
-      datos: minuta.datos, // El nombre del proyecto está en datos.proyecto
+      datos: minuta.Dato, // El nombre del proyecto está en datos.proyecto
       datos_mapa_ventas: datosMapaVentas,
-      estado: minuta.estado || 'pendiente',
-      comentarios: minuta.comentarios || null,
-      clienteInteresadoDni: minuta.clienteInteresadoDni || null,
+      estado: minuta.Estado || 'pendiente',
+      comentarios: minuta.Comentario || null,
+      clienteInteresadoDni: minuta.ClienteInteresadoDni || null,
     };
 
     // Guardar en Backend
@@ -351,7 +354,7 @@ export async function getMinutasWithFilters(filters: Partial<MinutaFilters>) {
     const params = new URLSearchParams();
     if (filters.proyecto) params.append('proyecto', filters.proyecto);
     if (filters.estado) params.append('estado', filters.estado);
-    if (filters.usuario_id) params.append('usuario_id', filters.usuario_id);
+    if (filters.UsuarioId) params.append('usuario_id', filters.UsuarioId);
 
     // Pagination
     params.append('page', (filters.page || 1).toString());
@@ -399,17 +402,17 @@ export async function getMinutasStats(usuarioId?: string) {
     // Calcular estadísticas
     const stats = {
       total: data.length,
-      pendientes: data.filter(m => m.estado === 'pendiente').length,
-      aprobadas: data.filter(m => m.estado === 'aprobada').length,
-      firmadas: data.filter(m => m.estado === 'firmada').length,
-      canceladas: data.filter(m => m.estado === 'cancelada').length,
+      pendientes: data.filter(m => m.Estado === 'pendiente').length,
+      aprobadas: data.filter(m => m.Estado === 'aprobada').length,
+      firmadas: data.filter(m => m.Estado === 'firmada').length,
+      canceladas: data.filter(m => m.Estado === 'cancelada').length,
       rechazadas: 0, // 'rechazada' not in MinutaDefinitiva type
       porEstado: {} as Record<string, number>,
     };
 
     // Agrupar por estado
     data.forEach(minuta => {
-      stats.porEstado[minuta.estado] = (stats.porEstado[minuta.estado] || 0) + 1;
+      stats.porEstado[minuta.Estado] = (stats.porEstado[minuta.Estado] || 0) + 1;
     });
 
     return stats;

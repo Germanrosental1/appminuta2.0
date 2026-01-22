@@ -32,8 +32,8 @@ export class ProjectAccessGuard implements CanActivate {
         }
 
         // Obtener la minuta para saber a qué proyecto pertenece
-        const minuta = await this.prisma.minutas_definitivas.findUnique({
-            where: { id: minutaId },
+        const minuta = await this.prisma.minutasDefinitivas.findUnique({
+            where: { Id: minutaId },
         });
 
         if (!minuta) {
@@ -42,7 +42,7 @@ export class ProjectAccessGuard implements CanActivate {
 
         // Obtener el proyecto por nombre (ya que minuta tiene proyecto como string)
         const proyecto = await this.prisma.proyectos.findFirst({
-            where: { nombre: minuta.proyecto },
+            where: { Nombre: minuta.Proyecto },
         });
 
         if (!proyecto) {
@@ -54,7 +54,7 @@ export class ProjectAccessGuard implements CanActivate {
         // Verificar si el usuario tiene acceso al proyecto
         const hasAccess = await this.usuariosProyectosService.hasAccess(
             user.id,
-            proyecto.id,
+            proyecto.Id,
         );
 
         if (!hasAccess) {

@@ -51,10 +51,10 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         setLoading(true);
         const data = await getMinutaProvisoriaById(id);
         setMinuta(data);
-        setComentarios(data.comentarios || '');
+        setComentarios(data.Comentario || '');
 
         // Cargar datos del mapa de ventas relacionados con esta unidad
-        fetchDatosMapaVentas(data.unidad_id);
+        fetchDatosMapaVentas(data.UnidadId);
       } catch (err) {
         setError('No se pudo cargar la información de la minuta');
       } finally {
@@ -149,7 +149,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
 
     try {
       setProcesando(true);
-      await actualizarEstadoMinutaProvisoria(id, minuta.estado, comentarios);
+      await actualizarEstadoMinutaProvisoria(id, minuta.Estado, comentarios);
 
       toast({
         title: "Comentarios guardados",
@@ -272,8 +272,8 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold">Minuta Provisoria #{id?.substring(0, 8)}</h1>
           <p className="text-muted-foreground">
-            Proyecto: {minuta.proyecto} | Unidad: {minuta.unidad?.unidad || minuta.unidad_id} |
-            Estado: {minuta.estado.charAt(0).toUpperCase() + minuta.estado.slice(1)}
+            Proyecto: {minuta.Proyecto} | Unidad: {minuta.unidad?.unidad || minuta.UnidadId} |
+            Estado: {minuta.Estado.charAt(0).toUpperCase() + minuta.Estado.slice(1)}
           </p>
         </div>
       </div>
@@ -291,7 +291,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResumenCompleto wizardData={minuta.datos} />
+              <ResumenCompleto wizardData={minuta.Dato} />
             </CardContent>
           </Card>
         </div>
@@ -350,7 +350,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {minuta.estado === 'pendiente' && (
+                {minuta.Estado === 'pendiente' && (
                   <Button
                     variant="outline"
                     className="w-full"
@@ -362,7 +362,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
                   </Button>
                 )}
 
-                {(minuta.estado === 'pendiente' || minuta.estado === 'revisada') && (
+                {(minuta.Estado === 'pendiente' || minuta.Estado === 'revisada') && (
                   <>
                     <Button
                       variant="default"
@@ -386,7 +386,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
                   </>
                 )}
 
-                {minuta.estado === 'aprobada' && (
+                {minuta.Estado === 'aprobada' && (
                   <Button
                     variant="default"
                     className="w-full"

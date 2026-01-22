@@ -44,7 +44,7 @@ export class PermissionsGuard implements CanActivate {
 
         // Verificar si el usuario tiene al menos uno de los permisos requeridos
         const hasPermission = requiredPermissions.some((permission) =>
-            userPermissions.some((p) => p.nombre === permission),
+            userPermissions.some((p) => p.Nombre === permission),
         );
 
         if (!hasPermission) {

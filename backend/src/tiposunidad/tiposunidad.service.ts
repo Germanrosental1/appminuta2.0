@@ -22,7 +22,7 @@ export class TiposUnidadService {
 
     async create(dto: CreateTipoUnidadDto) {
         try {
-            const result = await this.prisma.tiposunidad.create({ data: dto });
+            const result = await this.prisma.tiposUnidad.create({ data: { Nombre: dto.nombre } });
             await this.invalidateCache();
             return result;
         } catch (error) {
@@ -38,15 +38,15 @@ export class TiposUnidadService {
         const cached = await this.cacheManager.get(CACHE_KEY);
         if (cached) return cached;
 
-        const data = await this.prisma.tiposunidad.findMany({ orderBy: { nombre: 'asc' } });
+        const data = await this.prisma.tiposUnidad.findMany({ orderBy: { Nombre: 'asc' } });
         await this.cacheManager.set(CACHE_KEY, data);
         return data;
     }
 
     async findOne(id: string) {
-        const tipo = await this.prisma.tiposunidad.findUnique({
-            where: { id },
-            include: { unidades: { select: { id: true, sectorid: true, nrounidad: true } } },
+        const tipo = await this.prisma.tiposUnidad.findUnique({
+            where: { Id: id },
+            include: { Unidades: { select: { Id: true, SectorId: true, NroUnidad: true } } },
         });
         if (!tipo) throw new NotFoundException(`Tipo de unidad con ID "${id}" no encontrado`);
         return tipo;
@@ -54,7 +54,7 @@ export class TiposUnidadService {
 
     async update(id: string, dto: UpdateTipoUnidadDto) {
         try {
-            const result = await this.prisma.tiposunidad.update({ where: { id }, data: dto });
+            const result = await this.prisma.tiposUnidad.update({ where: { Id: id }, data: { Nombre: dto.nombre } });
             await this.invalidateCache();
             return result;
         } catch (error) {
@@ -68,7 +68,7 @@ export class TiposUnidadService {
 
     async remove(id: string) {
         try {
-            const result = await this.prisma.tiposunidad.delete({ where: { id } });
+            const result = await this.prisma.tiposUnidad.delete({ where: { Id: id } });
             await this.invalidateCache();
             return result;
         } catch (error) {

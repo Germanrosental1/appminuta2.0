@@ -257,9 +257,9 @@ const minutaBaseSchema = z.object({
   comentarios: z.string().max(1000, 'Comentarios muy largos').optional(),
 
   // Auditoría
-  usuario_id: uuidSchema.optional(),
-  created_at: z.string().datetime().optional(),
-  updated_at: z.string().datetime().optional(),
+  UsuarioId: uuidSchema.optional(),
+  CreatedAt: z.string().datetime().optional(),
+  UpdatedAt: z.string().datetime().optional(),
 })
   // Validaciones cruzadas
   .refine((data) => data.precioNegociado <= data.precioLista, {
@@ -464,7 +464,7 @@ export const minutaFilterSchema = z.object({
   fechaHasta: z.string().datetime().optional(),
   precioMin: positiveNumberSchema.optional(),
   precioMax: positiveNumberSchema.optional(),
-  usuario_id: uuidSchema.optional(),
+  UsuarioId: uuidSchema.optional(),
   page: z.number().int().positive().default(1),
   limit: z.number().int().positive().max(100).default(20),
   sortBy: z.enum(['created_at', 'updated_at', 'precioNegociado', 'fechaPosesion']).optional().default('created_at'),

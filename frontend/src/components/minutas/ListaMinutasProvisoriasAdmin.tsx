@@ -65,7 +65,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
       filtered = filtered.filter(m =>
         m.proyecto.toLowerCase().includes(term) ||
         m.datos?.unidadDescripcion?.toLowerCase().includes(term) ||
-        m.usuario_id.toLowerCase().includes(term)
+        m.UsuarioId.toLowerCase().includes(term)
       );
     }
 
@@ -174,29 +174,29 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                         </TableRow>
                       ) : (
                         filteredMinutas.map((minuta) => (
-                          <TableRow key={minuta.id}>
-                            <TableCell>{minuta.proyecto}</TableCell>
-                            <TableCell>{minuta.datos?.unidadDescripcion || minuta.unidad_id}</TableCell>
-                            <TableCell>{minuta.usuario_id}</TableCell>
+                          <TableRow key={minuta.Id}>
+                            <TableCell>{minuta.Proyecto}</TableCell>
+                            <TableCell>{minuta.Dato?.unidadDescripcion || minuta.UnidadId}</TableCell>
+                            <TableCell>{minuta.UsuarioId}</TableCell>
                             <TableCell>
-                              {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
+                              {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
                             </TableCell>
-                            <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
+                            <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="sm" asChild>
-                                  <a href={`/ admin / minutas / ${minuta.id} `}>
+                                  <a href={`/ admin / minutas / ${minuta.Id} `}>
                                     <Eye className="h-4 w-4 mr-1" />
                                     Ver
                                   </a>
                                 </Button>
 
-                                {minuta.estado === 'pendiente' && (
+                                {minuta.Estado === 'pendiente' && (
                                   <>
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleChangeEstado(minuta.id, 'revisada')}
+                                      onClick={() => handleChangeEstado(minuta.Id, 'revisada')}
                                     >
                                       <Clock className="h-4 w-4 mr-1" />
                                       Revisar
@@ -205,7 +205,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       className="text-green-600"
-                                      onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
+                                      onClick={() => handleChangeEstado(minuta.Id, 'aprobada')}
                                     >
                                       <CheckCircle className="h-4 w-4 mr-1" />
                                       Aprobar
@@ -214,7 +214,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       className="text-red-600"
-                                      onClick={() => handleChangeEstado(minuta.id, 'rechazada')}
+                                      onClick={() => handleChangeEstado(minuta.Id, 'rechazada')}
                                     >
                                       <XCircle className="h-4 w-4 mr-1" />
                                       Rechazar
@@ -222,13 +222,13 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                   </>
                                 )}
 
-                                {minuta.estado === 'revisada' && (
+                                {minuta.Estado === 'revisada' && (
                                   <>
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       className="text-green-600"
-                                      onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
+                                      onClick={() => handleChangeEstado(minuta.Id, 'aprobada')}
                                     >
                                       <CheckCircle className="h-4 w-4 mr-1" />
                                       Aprobar
@@ -237,7 +237,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       className="text-red-600"
-                                      onClick={() => handleChangeEstado(minuta.id, 'rechazada')}
+                                      onClick={() => handleChangeEstado(minuta.Id, 'rechazada')}
                                     >
                                       <XCircle className="h-4 w-4 mr-1" />
                                       Rechazar
@@ -245,13 +245,13 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                   </>
                                 )}
 
-                                {minuta.estado === 'aprobada' && (
+                                {minuta.Estado === 'aprobada' && (
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     asChild
                                   >
-                                    <a href={`/ admin / minutas / ${minuta.id}/definitiva`}>
+                                    <a href={`/ admin / minutas / ${minuta.Id}/definitiva`}>
                                       <FileText className="h-4 w-4 mr-1" />
                                       Crear Definitiva
                                     </a >

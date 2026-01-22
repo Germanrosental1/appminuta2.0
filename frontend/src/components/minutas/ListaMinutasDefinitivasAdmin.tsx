@@ -272,34 +272,34 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
                         </TableRow>
                       ) : (
                         filteredMinutas.map((minuta) => (
-                          <TableRowStagger key={minuta.id}>
-                            <TableCell>{minuta.proyectos?.nombre || minuta.proyecto || 'Sin proyecto'}</TableCell>
-                            <TableCell>{minuta.datos?.unidadDescripcion || minuta.datos?.unidadCodigo || 'Sin unidad'}</TableCell>
-                            <TableCell>{minuta.users?.email || minuta.usuario_id}</TableCell>
+                          <TableRowStagger key={minuta.Id}>
+                            <TableCell>{minuta.Proyectos?.Nombre || minuta.Proyecto || 'Sin proyecto'}</TableCell>
+                            <TableCell>{minuta.Dato?.unidadDescripcion || minuta.Dato?.unidadCodigo || 'Sin unidad'}</TableCell>
+                            <TableCell>{minuta.users?.email || minuta.UsuarioId}</TableCell>
                             <TableCell>
-                              {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
+                              {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
                             </TableCell>
-                            <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
+                            <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex flex-col items-end gap-1">
                                 <div className="flex justify-end gap-2 flex-wrap">
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleVerMinuta(minuta.id || '')}
+                                    onClick={() => handleVerMinuta(minuta.Id || '')}
                                   >
                                     <Eye className="h-4 w-4 mr-1" />
                                     Ver
                                   </Button>
 
                                   {/* Botones para minutas PENDIENTES (solo si no es readOnly) */}
-                                  {!readOnly && minuta.estado === 'pendiente' && (
+                                  {!readOnly && minuta.Estado === 'pendiente' && (
                                     <>
                                       <Button
                                         variant="outline"
                                         size="sm"
                                         className="bg-green-50 hover:bg-green-100"
-                                        onClick={() => handleChangeEstado(minuta.id, 'aprobada')}
+                                        onClick={() => handleChangeEstado(minuta.Id, 'aprobada')}
                                       >
                                         <CheckCircle className="h-4 w-4 mr-1" />
                                         Aprobar
@@ -308,7 +308,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
                                         variant="outline"
                                         size="sm"
                                         className="bg-orange-50 hover:bg-orange-100"
-                                        onClick={() => handleChangeEstado(minuta.id, 'en_edicion')}
+                                        onClick={() => handleChangeEstado(minuta.Id, 'en_edicion')}
                                       >
                                         <Edit className="h-4 w-4 mr-1" />
                                         Editar
@@ -317,7 +317,7 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
                                         variant="outline"
                                         size="sm"
                                         className="bg-red-50 hover:bg-red-100"
-                                        onClick={() => handleOpenCancelModal(minuta.id)}
+                                        onClick={() => handleOpenCancelModal(minuta.Id)}
                                       >
                                         <XCircle className="h-4 w-4 mr-1" />
                                         Cancelar
@@ -328,14 +328,14 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
 
                                 {/* Textos informativos debajo de los botones */}
                                 {/* Minutas APROBADAS - Admin no puede hacer nada, el firmante se encarga */}
-                                {minuta.estado === 'aprobada' && (
+                                {minuta.Estado === 'aprobada' && (
                                   <span className="text-xs text-muted-foreground italic">
                                     Pendiente de firma
                                   </span>
                                 )}
 
                                 {/* Estados finales - nadie puede hacer nada */}
-                                {(minuta.estado === 'firmada' || minuta.estado === 'cancelada') && (
+                                {(minuta.Estado === 'firmada' || minuta.Estado === 'cancelada') && (
                                   <span className="text-xs text-muted-foreground italic">
                                     Estado final
                                   </span>

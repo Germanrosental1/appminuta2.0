@@ -1,17 +1,17 @@
 import { apiFetch } from '../lib/api-client';
 
 export interface Role {
-    id: string;
-    nombre: string;
-    created_at: string;
+    Id: string;
+    Nombre: string;
+    CreatedAt: string;
 }
 
 export interface Permission {
-    id: string;
-    nombre: string;
-    descripcion: string | null;
-    created_at: string;
-    updated_at: string | null;
+    Id: string;
+    Nombre: string;
+    Descripcion: string | null;
+    CreatedAt: string;
+    UpdatedAt: string | null;
 }
 
 /**

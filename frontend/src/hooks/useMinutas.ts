@@ -115,7 +115,7 @@ export function useUpdateMinutaEstado() {
                     return {
                         ...old,
                         data: old.data.map((m: any) =>
-                            m.id === variables.id ? { ...m, estado: variables.estado } : m
+                            m.Id === variables.id ? { ...m, Estado: variables.estado, Comentario: variables.comentarios } : m
                         ),
                     };
                 }
@@ -124,7 +124,7 @@ export function useUpdateMinutaEstado() {
             // Actualizar optimistamente el caché de la minuta individual
             queryClient.setQueryData(
                 ['minutas', 'definitiva', variables.id],
-                (old: any) => old ? { ...old, estado: variables.estado } : old
+                (old: any) => old ? { ...old, Estado: variables.estado, Comentario: variables.comentarios } : old
             );
 
             // Retornar contexto con datos anteriores para rollback
@@ -162,7 +162,7 @@ export function useSaveMinuta() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (minuta: Omit<MinutaDefinitiva, 'id' | 'fecha_creacion'>) =>
+        mutationFn: (minuta: Omit<MinutaDefinitiva, 'Id' | 'FechaCreacion' | 'CreatedAt' | 'UpdatedAt'>) =>
             guardarMinutaDefinitiva(minuta),
 
         onSuccess: () => {

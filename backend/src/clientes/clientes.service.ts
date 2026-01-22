@@ -15,15 +15,15 @@ export class ClientesService {
 
         // Try to find by nombreApellido first
         let cliente = await this.prisma.clientes.findFirst({
-            where: { nombreApellido }
+            where: { NombreApellido: nombreApellido }
         });
 
         if (cliente) {
             // Update telefono if provided and different
-            if (telefono && telefono !== cliente.telefono) {
+            if (telefono && telefono !== cliente.Telefono) {
                 cliente = await this.prisma.clientes.update({
-                    where: { id: cliente.id },
-                    data: { telefono }
+                    where: { Id: cliente.Id },
+                    data: { Telefono: telefono }
                 });
             }
             return { ...cliente, created: false };
@@ -32,9 +32,9 @@ export class ClientesService {
         // Create new cliente
         const newCliente = await this.prisma.clientes.create({
             data: {
-                nombreApellido,
-                telefono: telefono || '',
-                dni: dni ? BigInt(dni) : null
+                NombreApellido: nombreApellido,
+                Telefono: telefono || '',
+                Dni: dni ? BigInt(dni) : null
             }
         });
 
@@ -46,7 +46,7 @@ export class ClientesService {
      */
     async buscarPorDni(dni: number) {
         const cliente = await this.prisma.clientes.findFirst({
-            where: { dni: BigInt(dni) }
+            where: { Dni: BigInt(dni) }
         });
 
         if (!cliente) {
@@ -62,13 +62,13 @@ export class ClientesService {
     async buscarClientes(query: string) {
         return this.prisma.clientes.findMany({
             where: {
-                nombreApellido: {
+                NombreApellido: {
                     contains: query,
                     mode: 'insensitive'
                 }
             },
             take: 20,
-            orderBy: { nombreApellido: 'asc' }
+            orderBy: { NombreApellido: 'asc' }
         });
     }
 
@@ -77,7 +77,7 @@ export class ClientesService {
      */
     async findById(id: string) {
         const cliente = await this.prisma.clientes.findUnique({
-            where: { id }
+            where: { Id: id }
         });
 
         if (!cliente) {

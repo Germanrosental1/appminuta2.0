@@ -24,20 +24,20 @@ export class RolesService {
      * Se llama cuando cambian los permisos de un rol
      */
     private async invalidateCacheForUsersWithRole(roleId: string): Promise<void> {
-        const usersWithRole = await this.prisma.usuarios_roles.findMany({
-            where: { idrol: roleId },
-            select: { idusuario: true },
+        const usersWithRole = await this.prisma.usuariosRoles.findMany({
+            where: { IdRol: roleId },
+            select: { IdUsuario: true },
         });
 
         for (const user of usersWithRole) {
-            this.usuariosRolesService.invalidateUserRolesCache(user.idusuario);
+            this.usuariosRolesService.invalidateUserRolesCache(user.IdUsuario);
         }
     }
 
     async create(createRoleDto: CreateRoleDto) {
         // Verificar si el rol ya existe
         const existingRole = await this.prisma.roles.findFirst({
-            where: { nombre: createRoleDto.nombre },
+            where: { Nombre: createRoleDto.nombre },
         });
 
         if (existingRole) {
@@ -47,23 +47,25 @@ export class RolesService {
         }
 
         return this.prisma.roles.create({
-            data: createRoleDto,
+            data: {
+                Nombre: createRoleDto.nombre,
+            },
         });
     }
 
     async findAll() {
         return this.prisma.roles.findMany({
-            orderBy: { nombre: 'asc' },
+            orderBy: { Nombre: 'asc' },
         });
     }
 
     async findOne(id: string) {
         const role = await this.prisma.roles.findUnique({
-            where: { id },
+            where: { Id: id },
             include: {
-                roles_permisos: {
+                RolesPermisos: {
                     include: {
-                        permisos: true,
+                        Permisos: true,
                     },
                 },
             },
@@ -84,8 +86,8 @@ export class RolesService {
         if (updateRoleDto.nombre) {
             const existingRole = await this.prisma.roles.findFirst({
                 where: {
-                    nombre: updateRoleDto.nombre,
-                    NOT: { id },
+                    Nombre: updateRoleDto.nombre,
+                    NOT: { Id: id },
                 },
             });
 
@@ -97,8 +99,10 @@ export class RolesService {
         }
 
         return this.prisma.roles.update({
-            where: { id },
-            data: updateRoleDto,
+            where: { Id: id },
+            data: {
+                Nombre: updateRoleDto.nombre,
+            },
         });
     }
 
@@ -107,8 +111,8 @@ export class RolesService {
         await this.findOne(id);
 
         // Verificar si el rol está siendo usado
-        const usersWithRole = await this.prisma.usuarios_roles.count({
-            where: { idrol: id },
+        const usersWithRole = await this.prisma.usuariosRoles.count({
+            where: { IdRol: id },
         });
 
         if (usersWithRole > 0) {
@@ -118,7 +122,7 @@ export class RolesService {
         }
 
         return this.prisma.roles.delete({
-            where: { id },
+            where: { Id: id },
         });
     }
 
@@ -126,14 +130,14 @@ export class RolesService {
         // Verificar que el rol existe
         await this.findOne(roleId);
 
-        const rolePermissions = await this.prisma.roles_permisos.findMany({
-            where: { idrol: roleId },
+        const rolePermissions = await this.prisma.rolesPermisos.findMany({
+            where: { IdRol: roleId },
             include: {
-                permisos: true,
+                Permisos: true,
             },
         });
 
-        return rolePermissions.map((rp) => rp.permisos);
+        return rolePermissions.map((rp) => rp.Permisos);
     }
 
     async assignPermission(roleId: string, permisoId: string) {
@@ -142,7 +146,7 @@ export class RolesService {
 
         // Verificar que el permiso existe
         const permiso = await this.prisma.permisos.findUnique({
-            where: { id: permisoId },
+            where: { Id: permisoId },
         });
 
         if (!permiso) {
@@ -150,11 +154,11 @@ export class RolesService {
         }
 
         // Verificar si ya existe la asignación
-        const existing = await this.prisma.roles_permisos.findUnique({
+        const existing = await this.prisma.rolesPermisos.findUnique({
             where: {
-                idrol_idpermiso: {
-                    idrol: roleId,
-                    idpermiso: permisoId,
+                IdRol_IdPermiso: {
+                    IdRol: roleId,
+                    IdPermiso: permisoId,
                 },
             },
         });
@@ -165,13 +169,13 @@ export class RolesService {
             );
         }
 
-        const result = await this.prisma.roles_permisos.create({
+        const result = await this.prisma.rolesPermisos.create({
             data: {
-                idrol: roleId,
-                idpermiso: permisoId,
+                IdRol: roleId,
+                IdPermiso: permisoId,
             },
             include: {
-                permisos: true,
+                Permisos: true,
             },
         });
 
@@ -186,11 +190,11 @@ export class RolesService {
         await this.findOne(roleId);
 
         // Verificar que la asignación existe
-        const existing = await this.prisma.roles_permisos.findUnique({
+        const existing = await this.prisma.rolesPermisos.findUnique({
             where: {
-                idrol_idpermiso: {
-                    idrol: roleId,
-                    idpermiso: permisoId,
+                IdRol_IdPermiso: {
+                    IdRol: roleId,
+                    IdPermiso: permisoId,
                 },
             },
         });
@@ -201,11 +205,11 @@ export class RolesService {
             );
         }
 
-        const result = await this.prisma.roles_permisos.delete({
+        const result = await this.prisma.rolesPermisos.delete({
             where: {
-                idrol_idpermiso: {
-                    idrol: roleId,
-                    idpermiso: permisoId,
+                IdRol_IdPermiso: {
+                    IdRol: roleId,
+                    IdPermiso: permisoId,
                 },
             },
         });

@@ -47,10 +47,10 @@ export const GuardarMinutaDefinitivaButton: React.FC<GuardarMinutaDefinitivaButt
 
       await guardarMinutaDefinitiva({
         proyecto: wizardData.proyecto || 'Sin proyecto',
-        usuario_id: user.id,
+        UsuarioId: user.id,
         datos: { ...wizardData, unidad: unidadId },
         estado: 'pendiente',
-        datos_adicionales: {}
+        DatoAdicional: {}
       });
 
       toast({

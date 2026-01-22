@@ -8,14 +8,14 @@ export class LoggerService implements ILogger {
 
     async agregarLog(params: LogParams): Promise<void> {
         try {
-            await this.prisma.changes_logs.create({
+            await this.prisma.changesLogs.create({
                 data: {
-                    motivo: params.motivo,
-                    descripcion: params.descripcion,
-                    impacto: params.impacto,
-                    tablaaftectada: params.tablaafectada,
-                    usuarioID: params.usuarioID || '00000000-0000-0000-0000-000000000000',
-                    usuriomail: params.usuarioemail || 'system',
+                    Motivo: params.motivo,
+                    Descripcion: params.descripcion,
+                    Impacto: params.impacto,
+                    TablaAfectada: params.tablaafectada,
+                    UsuarioId: params.usuarioID || '00000000-0000-0000-0000-000000000000',
+                    UsuarioMail: params.usuarioemail || 'system',
                 },
             });
         } catch (error) {

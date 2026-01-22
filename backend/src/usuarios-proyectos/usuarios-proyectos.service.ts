@@ -17,19 +17,19 @@ export class UsuariosProyectosService {
         // ⚡ OPTIMIZACIÓN: Dejar que Prisma valide FKs automáticamente
         // Reducción: 4 queries → 1 query (75% mejora)
         try {
-            return await this.prisma.usuarios_proyectos.create({
+            return await this.prisma.usuariosProyectos.create({
                 data: {
-                    idusuario: userId,
-                    idproyecto: projectId,
-                    idrol: roleId,
+                    IdUsuario: userId,
+                    IdProyecto: projectId,
+                    IdRol: roleId,
                 },
                 select: {
-                    // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
-                    idproyecto: true,
-                    idrol: true,
-                    created_at: true,
-                    proyectos: true,
-                    roles: true,
+                    // 🔒 SEGURIDAD: NO incluir IdUsuario en la respuesta
+                    IdProyecto: true,
+                    IdRol: true,
+                    CreatedAt: true,
+                    Proyectos: true,
+                    Roles: true,
                 },
             });
         } catch (error) {
@@ -53,12 +53,12 @@ export class UsuariosProyectosService {
         roleId: string,
     ) {
         // Verificar que la asignación existe
-        const existing = await this.prisma.usuarios_proyectos.findUnique({
+        const existing = await this.prisma.usuariosProyectos.findUnique({
             where: {
-                idusuario_idproyecto_idrol: {
-                    idusuario: userId,
-                    idproyecto: projectId,
-                    idrol: roleId,
+                IdUsuario_IdProyecto_IdRol: {
+                    IdUsuario: userId,
+                    IdProyecto: projectId,
+                    IdRol: roleId,
                 },
             },
         });
@@ -69,12 +69,12 @@ export class UsuariosProyectosService {
             );
         }
 
-        return this.prisma.usuarios_proyectos.delete({
+        return this.prisma.usuariosProyectos.delete({
             where: {
-                idusuario_idproyecto_idrol: {
-                    idusuario: userId,
-                    idproyecto: projectId,
-                    idrol: roleId,
+                IdUsuario_IdProyecto_IdRol: {
+                    IdUsuario: userId,
+                    IdProyecto: projectId,
+                    IdRol: roleId,
                 },
             },
         });
@@ -82,11 +82,11 @@ export class UsuariosProyectosService {
 
     async getUserProjects(userId: string) {
         // ⚡ OPTIMIZACIÓN: Eliminar query de validación previa
-        const userProjects = await this.prisma.usuarios_proyectos.findMany({
-            where: { idusuario: userId },
+        const userProjects = await this.prisma.usuariosProyectos.findMany({
+            where: { IdUsuario: userId },
             include: {
-                proyectos: true,
-                roles: true,
+                Proyectos: true,
+                Roles: true,
             },
         });
 
@@ -95,49 +95,49 @@ export class UsuariosProyectosService {
         }
 
         return userProjects.map((up) => ({
-            proyecto: up.proyectos,
-            rol: up.roles,
+            proyecto: up.Proyectos,
+            rol: up.Roles,
         }));
     }
 
     async getProjectUsers(projectId: string) {
         // Verificar que el proyecto existe
         const project = await this.prisma.proyectos.findUnique({
-            where: { id: projectId },
+            where: { Id: projectId },
         });
 
         if (!project) {
             throw new NotFoundException(`Proyecto con ID ${projectId} no encontrado`);
         }
 
-        const projectUsers = await this.prisma.usuarios_proyectos.findMany({
-            where: { idproyecto: projectId },
+        const projectUsers = await this.prisma.usuariosProyectos.findMany({
+            where: { IdProyecto: projectId },
             select: {
-                // 🔒 SEGURIDAD: NO incluir idusuario en la respuesta
-                profiles: {
+                // 🔒 SEGURIDAD: NO incluir IdUsuario en la respuesta
+                Profiles: {
                     select: {
-                        email: true,
-                        nombre: true,
-                        apellido: true,
-                        activo: true,
-                        // id: EXCLUIDO por seguridad
+                        Email: true,
+                        Nombre: true,
+                        Apellido: true,
+                        Activo: true,
+                        // Id: EXCLUIDO por seguridad
                     },
                 },
-                roles: true,
+                Roles: true,
             },
         });
 
         return projectUsers.map((pu) => ({
-            usuario: pu.profiles,
-            rol: pu.roles,
+            usuario: pu.Profiles,
+            rol: pu.Roles,
         }));
     }
 
     async hasAccess(userId: string, projectId: string): Promise<boolean> {
-        const access = await this.prisma.usuarios_proyectos.findFirst({
+        const access = await this.prisma.usuariosProyectos.findFirst({
             where: {
-                idusuario: userId,
-                idproyecto: projectId,
+                IdUsuario: userId,
+                IdProyecto: projectId,
             },
         });
 
@@ -145,13 +145,13 @@ export class UsuariosProyectosService {
     }
 
     async getUserProjectRole(userId: string, projectId: string) {
-        const assignment = await this.prisma.usuarios_proyectos.findFirst({
+        const assignment = await this.prisma.usuariosProyectos.findFirst({
             where: {
-                idusuario: userId,
-                idproyecto: projectId,
+                IdUsuario: userId,
+                IdProyecto: projectId,
             },
             include: {
-                roles: true,
+                Roles: true,
             },
         });
 
@@ -161,6 +161,6 @@ export class UsuariosProyectosService {
             );
         }
 
-        return assignment.roles;
+        return assignment.Roles;
     }
 }

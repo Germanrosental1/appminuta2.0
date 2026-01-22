@@ -10,7 +10,7 @@ export interface ClienteResponse {
     dni: number;
     nombreApellido: string;
     telefono?: string | null;
-    created_at: Date;
+    CreatedAt: Date;
     created: boolean;
 }
 

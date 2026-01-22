@@ -15,7 +15,7 @@ export class PermisosService {
     async create(createPermisoDto: CreatePermisoDto) {
         // Verificar si el permiso ya existe
         const existingPermiso = await this.prisma.permisos.findFirst({
-            where: { nombre: createPermisoDto.nombre },
+            where: { Nombre: createPermisoDto.nombre },
         });
 
         if (existingPermiso) {
@@ -25,19 +25,22 @@ export class PermisosService {
         }
 
         return this.prisma.permisos.create({
-            data: createPermisoDto,
+            data: {
+                Nombre: createPermisoDto.nombre,
+                Descripcion: createPermisoDto.descripcion,
+            },
         });
     }
 
     async findAll() {
         return this.prisma.permisos.findMany({
-            orderBy: { nombre: 'asc' },
+            orderBy: { Nombre: 'asc' },
         });
     }
 
     async findOne(id: string) {
         const permiso = await this.prisma.permisos.findUnique({
-            where: { id },
+            where: { Id: id },
         });
 
         if (!permiso) {
@@ -55,8 +58,8 @@ export class PermisosService {
         if (updatePermisoDto.nombre) {
             const existingPermiso = await this.prisma.permisos.findFirst({
                 where: {
-                    nombre: updatePermisoDto.nombre,
-                    NOT: { id },
+                    Nombre: updatePermisoDto.nombre,
+                    NOT: { Id: id },
                 },
             });
 
@@ -68,8 +71,11 @@ export class PermisosService {
         }
 
         return this.prisma.permisos.update({
-            where: { id },
-            data: updatePermisoDto,
+            where: { Id: id },
+            data: {
+                Nombre: updatePermisoDto.nombre,
+                Descripcion: updatePermisoDto.descripcion,
+            },
         });
     }
 
@@ -78,8 +84,8 @@ export class PermisosService {
         await this.findOne(id);
 
         // Verificar si el permiso está siendo usado
-        const rolesWithPermission = await this.prisma.roles_permisos.count({
-            where: { idpermiso: id },
+        const rolesWithPermission = await this.prisma.rolesPermisos.count({
+            where: { IdPermiso: id },
         });
 
         if (rolesWithPermission > 0) {
@@ -89,7 +95,7 @@ export class PermisosService {
         }
 
         return this.prisma.permisos.delete({
-            where: { id },
+            where: { Id: id },
         });
     }
 }

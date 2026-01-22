@@ -2,71 +2,49 @@ import { apiFetch } from '../lib/api-client';
 import { getProyectosActivos } from './proyectos';
 
 // Interfaz para la nueva estructura de unidades normalizadas
+// Interfaz para la nueva estructura de unidades normalizadas (PascalCase from Backend)
 export interface UnidadTabla {
-  id: number | string;
-  natdelproyecto?: string;
-  proyecto?: string;
-  etapa?: string;
-  tipo?: string;
-  sectorid: string;
-  edificiotorre?: string;
-  piso?: string;
-  nrounidad?: string;
-  dormitorios?: string | number;
-  frente?: string;
-  manzana?: string;
-  destino?: string;
-  tipocochera?: string;
-  tamano?: string;
-  m2cubiertos?: number;
-  m2semicubiertos?: number;
-  m2exclusivos?: number;
-  m2patioterraza?: number;
-  patioterraza?: string;
-  m2comunes?: number;
-  m2calculo?: number;
-  m2totales?: number;
-  preciousd?: number;
-  usdm2?: number;
-  estado?: string;
-  motivonodisp?: string;
-  obs?: string;
-  fechareserva?: string;
-  comercial?: string;
-  clienteinteresado?: string;
-  fechafirmaboleto?: string;
-  clientetitularboleto?: string;
-  fechaposesionporboletocompraventa?: string;
-  deptocomprador?: string;
-  // Nested structure from new normalized DB
-  edificios?: {
-    id: string;
-    nombreedificio: string;
-    proyectos?: {
-      id: string;
-      nombre: string;
+  Id: string;
+  SectorId: string;
+  EdificioId?: string;
+  EtapaId?: string;
+  TipoUnidadId?: string;
+  Piso?: string;
+  NroUnidad?: string;
+  Dormitorio?: string;
+  Manzana?: string;
+  Destino?: string;
+  Frente?: string;
+
+  // Relaciones
+  Edificios?: {
+    Id: string;
+    NombreEdificio: string;
+    Proyectos?: {
+      Id: string;
+      Nombre: string;
     };
   };
-  etapas?: {
-    id: string;
-    nombre: string;
+  Etapas?: {
+    Id: string;
+    Nombre: string;
   };
-  tiposunidad?: {
-    id: string;
-    nombre: string;
+  TiposUnidad?: {
+    Id: string;
+    Nombre: string;
   };
-  detallesventa_detallesventa_unidad_idTounidades?: {
-    preciousd?: number;
-    usdm2?: number;
-    estadocomercial?: {
-      id: string;
-      nombreestado: string;
+  DetallesVenta_DetallesVenta_UnidadIdToUnidades?: {
+    PrecioUsd?: number;
+    UsdM2?: number;
+    EstadoComercial?: {
+      Id: string;
+      NombreEstado: string;
     };
   };
-  unidadesmetricas?: {
-    m2exclusivos?: number;
-    m2totales?: number;
-    m2cubiertos?: number;
+  UnidadesMetricas?: {
+    M2Exclusivo?: number;
+    M2Total?: number;
+    M2Cubierto?: number;
   };
 }
 
@@ -97,7 +75,7 @@ export interface UnidadResumen {
 export async function getProyectosDisponibles(): Promise<string[]> {
   try {
     const proyectos = await getProyectosActivos();
-    return proyectos.map(p => p.nombre);
+    return proyectos.map(p => p.Nombre);
   } catch (error) {
     return ['Arboria'];
   }
@@ -141,46 +119,42 @@ function formatearUnidadResumen(unidad: UnidadTabla): UnidadResumen {
   // Crear descripción para mostrar en UI
   let descripcion = '';
 
-  if (unidad.sectorid) descripcion += `${unidad.sectorid} - `;
-  if (unidad.edificios?.nombreedificio) descripcion += `${unidad.edificios.nombreedificio} - `;
-  else if (unidad.edificiotorre) descripcion += `${unidad.edificiotorre} - `;
-  if (unidad.piso) descripcion += `Piso ${unidad.piso} - `;
-  if (unidad.nrounidad) descripcion += `Unidad ${unidad.nrounidad}`;
+  if (unidad.SectorId) descripcion += `${unidad.SectorId} - `;
+  if (unidad.Edificios?.NombreEdificio) descripcion += `${unidad.Edificios.NombreEdificio} - `;
+  if (unidad.Piso) descripcion += `Piso ${unidad.Piso} - `;
+  if (unidad.NroUnidad) descripcion += `Unidad ${unidad.NroUnidad}`;
 
   // Si no hay suficientes datos, usar ID
   if (!descripcion || descripcion.endsWith(' - ')) {
-    descripcion += `ID: ${unidad.id}`;
+    descripcion += `ID: ${unidad.Id}`;
   }
 
-  // Get price from nested structure or fallback to flat field
-  const precio = unidad.detallesventa_detallesventa_unidad_idTounidades?.preciousd
-    ?? unidad.preciousd
-    ?? 0;
+  // Get price from nested structure
+  const precio = unidad.DetallesVenta_DetallesVenta_UnidadIdToUnidades?.PrecioUsd ?? 0;
 
-  // Get estado from nested structure or fallback
-  const estado = unidad.detallesventa_detallesventa_unidad_idTounidades?.estadocomercial?.nombreestado
-    ?? unidad.estado;
+  // Get estado from nested structure
+  const estado = unidad.DetallesVenta_DetallesVenta_UnidadIdToUnidades?.EstadoComercial?.NombreEstado ?? 'Desconocido';
 
-  // Get proyecto from nested structure or fallback
-  const proyecto = unidad.edificios?.proyectos?.nombre ?? unidad.proyecto ?? '';
+  // Get proyecto from nested structure
+  const proyecto = unidad.Edificios?.Proyectos?.Nombre ?? '';
 
-  // Get etapa from nested structure or fallback
-  const etapa = unidad.etapas?.nombre ?? unidad.etapa;
+  // Get etapa from nested structure
+  const etapa = unidad.Etapas?.Nombre ?? '';
 
-  // Get tipo from nested structure or fallback
-  const tipo = unidad.tiposunidad?.nombre ?? unidad.tipo;
+  // Get tipo from nested structure
+  const tipo = unidad.TiposUnidad?.Nombre ?? '';
 
   return {
-    id: String(unidad.id), // Keep as string for UUID support
+    id: unidad.Id,
     proyecto,
-    sector: unidad.sectorid,
+    sector: unidad.SectorId,
     etapa,
     tipo,
-    numero: unidad.nrounidad,
-    edificio: unidad.edificios?.nombreedificio ?? unidad.edificiotorre,
-    piso: unidad.piso,
-    dormitorios: String(unidad.dormitorios ?? ''),
-    metrosTotales: unidad.unidadesmetricas?.m2totales ?? unidad.m2totales,
+    numero: unidad.NroUnidad,
+    edificio: unidad.Edificios?.NombreEdificio,
+    piso: unidad.Piso,
+    dormitorios: unidad.Dormitorio || '',
+    metrosTotales: unidad.UnidadesMetricas?.M2Total,
     precioUSD: Number(precio),
     estado,
     descripcion: descripcion.trim()
@@ -243,7 +217,7 @@ export async function getEtapasPorProyecto(nombreProyecto: string): Promise<stri
 export async function getProyectosPorNaturaleza(naturaleza: string): Promise<string[]> {
   try {
     const proyectos = await getProyectosActivos();
-    return proyectos.map(p => p.nombre);
+    return proyectos.map(p => p.Nombre);
   } catch (error) {
     return [];
   }

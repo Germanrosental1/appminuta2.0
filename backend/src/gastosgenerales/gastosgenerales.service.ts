@@ -32,7 +32,7 @@ export class GastosgeneralesService {
     async updateByProject(projectId: string, updateDto: UpdateGastosGeneralesDto): Promise<GastosGenerales> {
         // Verificamos que el proyecto exista
         const projectExists = await this.prisma.proyectos.findUnique({
-            where: { id: projectId },
+            where: { Id: projectId },
         });
 
         if (!projectExists) {

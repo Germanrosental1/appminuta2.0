@@ -55,17 +55,17 @@ export const DashboardComercial: React.FC = () => {
   // Filter minutas by status
   const filteredMinutas = useMemo(() => {
     if (!statusFilter) return minutas;
-    return minutas.filter(m => m.estado === statusFilter);
+    return minutas.filter(m => m.Estado === statusFilter);
   }, [minutas, statusFilter]);
 
   // Calculate statistics
   const stats = useMemo(() => {
     const total = minutas.length;
-    const pendientes = minutas.filter(m => m.estado === 'pendiente').length;
-    const enEdicion = minutas.filter(m => m.estado === 'en_edicion').length;
-    const aprobadas = minutas.filter(m => m.estado === 'aprobada').length;
-    const firmadas = minutas.filter(m => m.estado === 'firmada').length;
-    const canceladas = minutas.filter(m => m.estado === 'cancelada').length;
+    const pendientes = minutas.filter(m => m.Estado === 'pendiente').length;
+    const enEdicion = minutas.filter(m => m.Estado === 'en_edicion').length;
+    const aprobadas = minutas.filter(m => m.Estado === 'aprobada').length;
+    const firmadas = minutas.filter(m => m.Estado === 'firmada').length;
+    const canceladas = minutas.filter(m => m.Estado === 'cancelada').length;
 
     return { total, pendientes, enEdicion, aprobadas, firmadas, canceladas };
   }, [minutas]);
@@ -148,29 +148,29 @@ export const DashboardComercial: React.FC = () => {
           </TableHeader>
           <StaggerTableBody>
             {filteredMinutas.map((minuta) => (
-              <TableRowStagger key={minuta.id}>
-                <TableCell>{minuta.datos?.proyecto || minuta.proyectos?.nombre || 'Sin proyecto'}</TableCell>
-                <TableCell>{minuta.datos?.unidadDescripcion || 'Sin unidad'}</TableCell>
+              <TableRowStagger key={minuta.Id}>
+                <TableCell>{minuta.Dato?.proyecto || minuta.Proyectos?.Nombre || 'Sin proyecto'}</TableCell>
+                <TableCell>{minuta.Dato?.unidadDescripcion || 'Sin unidad'}</TableCell>
                 <TableCell>
-                  {new Date(minuta.fecha_creacion).toLocaleDateString('es-AR')}
+                  {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
                 </TableCell>
-                <TableCell>{getEstadoBadge(minuta.estado)}</TableCell>
+                <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleVerMinuta(minuta.id)}
+                      onClick={() => handleVerMinuta(minuta.Id)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       Ver
                     </Button>
-                    {minuta.estado === 'en_edicion' && (
+                    {minuta.Estado === 'en_edicion' && (
                       <Button
                         variant="outline"
                         size="sm"
                         className="bg-orange-50 hover:bg-orange-100"
-                        onClick={() => navigate(`/wizard?edit=${minuta.id}`)}
+                        onClick={() => navigate(`/wizard?edit=${minuta.Id}`)}
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Editar
@@ -186,7 +186,7 @@ export const DashboardComercial: React.FC = () => {
     );
   };
 
-  const userName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.email || 'Usuario';
+  const userName = user?.Nombre && user?.Apellido ? `${user.Nombre} ${user.Apellido}` : user?.email || 'Usuario';
 
   return (
     <div className="container mx-auto py-8 space-y-6">

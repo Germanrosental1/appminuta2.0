@@ -11,39 +11,42 @@ export class EdificiosService {
     async create(createEdificioDto: CreateEdificioDto) {
         // Verify project exists
         const proyecto = await this.prisma.proyectos.findUnique({
-            where: { id: createEdificioDto.proyecto_id },
+            where: { Id: createEdificioDto.proyecto_id },
         });
         if (!proyecto) {
             throw new BadRequestException(`Proyecto con ID "${createEdificioDto.proyecto_id}" no encontrado`);
         }
 
         return await this.prisma.edificios.create({
-            data: createEdificioDto,
-            include: { proyectos: true },
+            data: {
+                NombreEdificio: createEdificioDto.nombreedificio,
+                ProyectoId: createEdificioDto.proyecto_id,
+            },
+            include: { Proyectos: true },
         });
     }
 
     async findAll(proyectoId?: string) {
-        const where = proyectoId ? { proyecto_id: proyectoId } : {};
+        const where = proyectoId ? { ProyectoId: proyectoId } : {};
         return await this.prisma.edificios.findMany({
             where,
             include: {
-                proyectos: { select: { id: true, nombre: true } },
-                unidades: { select: { id: true, sectorid: true, nrounidad: true } },
+                Proyectos: { select: { Id: true, Nombre: true } },
+                Unidades: { select: { Id: true, SectorId: true, NroUnidad: true } },
             },
-            orderBy: { nombreedificio: 'asc' },
+            orderBy: { NombreEdificio: 'asc' },
         });
     }
 
     async findOne(id: string) {
         const edificio = await this.prisma.edificios.findUnique({
-            where: { id },
+            where: { Id: id },
             include: {
-                proyectos: true,
-                unidades: {
+                Proyectos: true,
+                Unidades: {
                     include: {
-                        tiposunidad: true,
-                        etapas: true,
+                        TiposUnidad: true,
+                        Etapas: true,
                     },
                 },
             },
@@ -59,9 +62,12 @@ export class EdificiosService {
     async update(id: string, updateEdificioDto: UpdateEdificioDto) {
         try {
             return await this.prisma.edificios.update({
-                where: { id },
-                data: updateEdificioDto,
-                include: { proyectos: true },
+                where: { Id: id },
+                data: {
+                    NombreEdificio: updateEdificioDto.nombreedificio,
+                    ProyectoId: updateEdificioDto.proyecto_id,
+                },
+                include: { Proyectos: true },
             });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -73,7 +79,7 @@ export class EdificiosService {
 
     async remove(id: string) {
         try {
-            return await this.prisma.edificios.delete({ where: { id } });
+            return await this.prisma.edificios.delete({ where: { Id: id } });
         } catch (error) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
