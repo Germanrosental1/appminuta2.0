@@ -57,9 +57,9 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
         const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('nombre, apellido')
-            .eq('id', userId)
+            .from('Profiles')
+            .select('Nombre, Apellido')
+            .eq('Id', userId)
             .single();
 
         if (error) {
@@ -67,7 +67,11 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
             return null;
         }
 
-        return profile as UserProfile;
+        // Map PascalCase DB to camelCase Interface
+        return {
+            nombre: profile.Nombre,
+            apellido: profile.Apellido
+        } as UserProfile;
     } catch (error) {
         console.error('Exception fetching profile:', error);
         return null;
@@ -78,11 +82,11 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
 const fetchUserRoles = async (userId: string): Promise<Role[]> => {
     console.log('[fetchUserRoles DEBUG] Buscando roles para userId:', userId);
     try {
-        // Consulta simple a usuarios-roles
+        // Consulta simple a UsuariosRoles
         const { data: rawData, error: rawError } = await supabase
-            .from('usuarios-roles')
+            .from('UsuariosRoles')
             .select('*')
-            .eq('idusuario', userId);
+            .eq('IdUsuario', userId);
 
         console.log('[fetchUserRoles DEBUG] usuarios-roles:', { rawData, rawError });
 
@@ -91,20 +95,25 @@ const fetchUserRoles = async (userId: string): Promise<Role[]> => {
             return [];
         }
 
-        // Obtener TODOS los IDs de roles
-        const roleIds = rawData.map(r => r.idrol);
+        // Obtener TODOS los IDs de roles (PascalCase keys)
+        const roleIds = rawData.map((r: any) => r.IdRol);
         console.log('[fetchUserRoles DEBUG] Role IDs a buscar:', roleIds);
 
         // Consultar todos los roles en una sola query
         const { data: rolesData, error: rolesError } = await supabase
-            .from('roles')
+            .from('Roles')
             .select('*')
-            .in('id', roleIds);
+            .in('Id', roleIds);
 
         console.log('[fetchUserRoles DEBUG] Roles encontrados:', { rolesData, rolesError });
 
         if (rolesData && rolesData.length > 0) {
-            return rolesData as Role[];
+            // Map PascalCase DB to camelCase Interface
+            return rolesData.map((r: any) => ({
+                id: r.Id,
+                nombre: r.Nombre,
+                created_at: r.CreatedAt
+            })) as Role[];
         }
 
         return [];

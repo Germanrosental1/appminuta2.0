@@ -333,8 +333,8 @@ export default function PriceAdjustmentPage() {
                                 Estás a punto de <strong>{getConfirmationText()}</strong> en los siguientes proyectos:
                             </p>
                             <div className="flex flex-wrap gap-2 mb-4">
-                                {selectedProjectNames.map(name => (
-                                    <Badge key={name} variant="outline" className="border-orange-400">
+                                {selectedProjectNames.map((name, index) => (
+                                    <Badge key={`${name}-${index}`} variant="outline" className="border-orange-400">
                                         {name}
                                     </Badge>
                                 ))}

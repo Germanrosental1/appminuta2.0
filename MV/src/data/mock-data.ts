@@ -3,6 +3,7 @@ import { SalesMap, Unit, User, UserPermission } from '@/types/sales-map';
 export const mockUnits: Unit[] = [
   {
     id: '1',
+    natdelproyecto: 'Residencial',
     proyecto: 'Torres del Lago',
     manzana: 'A',
     destino: 'Residencial',
@@ -35,6 +36,7 @@ export const mockUnits: Unit[] = [
   },
   {
     id: '2',
+    natdelproyecto: 'Residencial',
     proyecto: 'Torres del Lago',
     manzana: 'A',
     destino: 'Residencial',
@@ -67,6 +69,7 @@ export const mockUnits: Unit[] = [
   },
   {
     id: '3',
+    natdelproyecto: 'Residencial',
     proyecto: 'Torres del Lago',
     manzana: 'B',
     destino: 'Residencial',
@@ -99,6 +102,7 @@ export const mockUnits: Unit[] = [
   },
   {
     id: '4',
+    natdelproyecto: 'Residencial',
     proyecto: 'Residencial Park',
     manzana: 'C',
     destino: 'Residencial',
@@ -131,6 +135,7 @@ export const mockUnits: Unit[] = [
   },
   {
     id: '5',
+    natdelproyecto: 'Residencial',
     proyecto: 'Residencial Park',
     manzana: 'C',
     destino: 'Residencial',

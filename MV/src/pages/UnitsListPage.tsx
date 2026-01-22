@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -482,7 +481,12 @@ export default function UnitsListPage() {
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <motion.tbody
+                  className="[&_tr:last-child]:border-0"
+                  variants={listContainerVariants}
+                  initial="hidden"
+                  animate="show"
+                >
                   <AnimatePresence mode='wait'>
                     {paginatedUnits.length === 0 ? (
                       <motion.tr
@@ -496,18 +500,12 @@ export default function UnitsListPage() {
                         </TableCell>
                       </motion.tr>
                     ) : (
-                      // We use a fragment to allow motion components inside
-                      <motion.tbody
-                        variants={listContainerVariants}
-                        initial="hidden"
-                        animate="show"
-                        className="contents" // Use contents to avoid breaking table structure, though tbody is valid here
-                      >
+                      <>
                         {paginatedUnits.map((unit) => (
                           <motion.tr
                             key={unit.id}
                             variants={listItemVariants}
-                            className="group hover:bg-muted/30 transition-colors" // Added gentle hover bg
+                            className="group hover:bg-muted/30 transition-colors"
                           >
                             <TableCell className="font-medium">{unit.edificioTorre || '-'}</TableCell>
                             <TableCell>{unit.piso || '-'}</TableCell>
@@ -559,10 +557,10 @@ export default function UnitsListPage() {
                             </TableCell>
                           </motion.tr>
                         ))}
-                      </motion.tbody>
+                      </>
                     )}
                   </AnimatePresence>
-                </TableBody>
+                </motion.tbody>
               </Table>
             </div>
 
