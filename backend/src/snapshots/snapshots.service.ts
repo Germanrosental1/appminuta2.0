@@ -156,21 +156,50 @@ export class SnapshotsService {
     }
 
     /**
-     * Get snapshots between two dates
+     * Get snapshots between two dates with pagination
      */
-    async getSnapshotsInRange(fechaDesde: Date, fechaHasta: Date) {
-        return this.prisma.snapshotsStock.findMany({
-            where: {
-                FechaSnapshot: {
-                    gte: fechaDesde,
-                    lte: fechaHasta,
+    async getSnapshotsInRange(fechaDesde: Date, fechaHasta: Date, page = 1, limit = 100) {
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.prisma.snapshotsStock.findMany({
+                where: {
+                    FechaSnapshot: {
+                        gte: fechaDesde,
+                        lte: fechaHasta,
+                    },
                 },
+                include: {
+                    Proyecto: {
+                        select: {
+                            Id: true,
+                            Nombre: true,
+                        },
+                    },
+                },
+                orderBy: { FechaSnapshot: 'asc' },
+                skip,
+                take: limit,
+            }),
+            this.prisma.snapshotsStock.count({
+                where: {
+                    FechaSnapshot: {
+                        gte: fechaDesde,
+                        lte: fechaHasta,
+                    },
+                },
+            }),
+        ]);
+
+        return {
+            data,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
             },
-            include: {
-                Proyecto: true,
-            },
-            orderBy: { FechaSnapshot: 'asc' },
-        });
+        };
     }
 
     /**

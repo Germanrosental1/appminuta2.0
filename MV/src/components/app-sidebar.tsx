@@ -14,7 +14,6 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { mockSalesMaps } from "@/data/mock-data";
 
 interface UserProject {
   id: string;
@@ -35,7 +34,6 @@ interface ProjectsByOrg {
 
 export function AppSidebar() {
   const { state } = useSidebar();
-  const [salesMaps] = useState(mockSalesMaps);
 
   // Estado para almacenar proyectos del usuario agrupados por organización
   const [projectsByOrg, setProjectsByOrg] = useState<ProjectsByOrg[]>([]);
