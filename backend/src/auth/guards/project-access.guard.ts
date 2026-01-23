@@ -5,7 +5,7 @@ import {
     ForbiddenException,
     NotFoundException,
 } from '@nestjs/common';
-import { UsuariosProyectosService } from '../../usuarios-proyectos/usuarios-proyectos.service';
+import { UsuariosProyectosService } from '../../Rosental/usuarios-proyectos/usuarios-proyectos.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()

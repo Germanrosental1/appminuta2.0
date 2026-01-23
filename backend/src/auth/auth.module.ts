@@ -7,9 +7,11 @@ import { AuthLoggerController } from './auth-logger.controller';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { ProjectAccessGuard } from './guards/project-access.guard';
 import { MFAGuard } from './guards/mfa.guard';
-import { UsuariosRolesModule } from '../usuarios-roles/usuarios-roles.module';
-import { UsuariosProyectosModule } from '../usuarios-proyectos/usuarios-proyectos.module';
+import { UsuariosRolesModule } from '../Rosental/usuarios-roles/usuarios-roles.module';
+import { UsuariosProyectosModule } from '../Rosental/usuarios-proyectos/usuarios-proyectos.module';
 import { LoggerModule } from '../logger/logger.module';
+
+import { UifSupabaseStrategy } from './uif-supabase.strategy';
 
 @Module({
     imports: [
@@ -22,6 +24,7 @@ import { LoggerModule } from '../logger/logger.module';
     controllers: [AuthLoggerController],
     providers: [
         SupabaseStrategy,
+        UifSupabaseStrategy,
         AuthLoggerService,
         PermissionsGuard,
         ProjectAccessGuard,
@@ -30,6 +33,7 @@ import { LoggerModule } from '../logger/logger.module';
     exports: [
         PassportModule,
         SupabaseStrategy,
+        UifSupabaseStrategy,
         AuthLoggerService,
         PermissionsGuard,
         ProjectAccessGuard,
