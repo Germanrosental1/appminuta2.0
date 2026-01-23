@@ -24,103 +24,25 @@ export class SnapshotsService {
 
         for (const proyecto of proyectos) {
             // Get current state of all units for this project via the view
-            const unidades = await this.prisma.$queryRaw<any[]>`
-        SELECT 
-          "Id",
-          "SectorId",
-          "Proyecto",
-          "Tipo",
-          "Estado",
-          "PrecioUsd",
-          "UsdM2"
-        FROM public.vista_buscador_propiedades
-        WHERE "Proyecto" = ${proyecto.Nombre}
-      `;
-
+            const unidades = await this.getProjectUnits(proyecto.Nombre);
             if (unidades.length === 0) continue;
 
             // Calculate aggregates
-            const stats = {
-                totalUnidades: unidades.length,
-                disponibles: 0,
-                reservadas: 0,
-                vendidas: 0,
-                noDisponibles: 0,
-                valorStockUSD: new Decimal(0),
-                m2TotalesStock: new Decimal(0),
-            };
+            const stats = this.calculateStats(unidades);
 
-            for (const u of unidades) {
-                const estado = (u.Estado || '').toLowerCase();
-                if (estado.includes('disponible') && !estado.includes('no disponible')) {
-                    stats.disponibles++;
-                    if (u.PrecioUsd) stats.valorStockUSD = stats.valorStockUSD.plus(new Decimal(u.PrecioUsd));
-                } else if (estado.includes('reserva')) {
-                    stats.reservadas++;
-                    if (u.PrecioUsd) stats.valorStockUSD = stats.valorStockUSD.plus(new Decimal(u.PrecioUsd));
-                } else if (estado.includes('vendid')) {
-                    stats.vendidas++;
-                } else {
-                    stats.noDisponibles++;
-                }
-            }
+            // Get previous snapshot for state comparison
+            const previousStateMap = await this.getPreviousStateMap(proyecto.Id);
 
-            // Get previous snapshot for this project to calculate EstadoAnterior and DiasEnEstado
-            const previousSnapshot = await this.prisma.snapshotsStock.findFirst({
-                where: { ProyectoId: proyecto.Id },
-                orderBy: { FechaSnapshot: 'desc' },
-                include: { Detalles: true },
-            });
-
-            const previousStateMap = new Map<string, { estado: string; dias: number }>();
-            if (previousSnapshot) {
-                for (const det of previousSnapshot.Detalles) {
-                    previousStateMap.set(det.UnidadId, {
-                        estado: det.Estado,
-                        dias: det.DiasEnEstado || 0,
-                    });
-                }
-            }
-
-            // Create the snapshot
-            const snapshot = await this.prisma.snapshotsStock.create({
-                data: {
-                    FechaSnapshot: fecha,
-                    TipoSnapshot: tipoSnapshot,
-                    ProyectoId: proyecto.Id,
-                    TotalUnidades: stats.totalUnidades,
-                    Disponibles: stats.disponibles,
-                    Reservadas: stats.reservadas,
-                    Vendidas: stats.vendidas,
-                    NoDisponibles: stats.noDisponibles,
-                    ValorStockUSD: stats.valorStockUSD,
-                    M2TotalesStock: stats.m2TotalesStock,
-                },
-            });
+            // Create the snapshot record
+            const snapshot = await this.createSnapshotRecord(
+                proyecto.Id,
+                fecha,
+                tipoSnapshot,
+                stats,
+            );
 
             // Create detail records
-            const detalles = unidades.map((u) => {
-                const prev = previousStateMap.get(u.Id);
-                const estadoAnterior = prev?.estado || null;
-                const diasEnEstado = prev && prev.estado === u.Estado ? (prev.dias || 0) + 1 : 1;
-
-                return {
-                    SnapshotId: snapshot.Id,
-                    UnidadId: u.Id,
-                    SectorId: u.SectorId || null,
-                    Proyecto: u.Proyecto || null,
-                    Tipo: u.Tipo || null,
-                    Estado: u.Estado || 'Desconocido',
-                    PrecioUSD: u.PrecioUsd ? new Decimal(u.PrecioUsd) : null,
-                    UsdM2: u.UsdM2 ? new Decimal(u.UsdM2) : null,
-                    EstadoAnterior: estadoAnterior,
-                    DiasEnEstado: diasEnEstado,
-                };
-            });
-
-            await this.prisma.snapshotsStockDetalle.createMany({
-                data: detalles,
-            });
+            await this.createSnapshotDetails(snapshot.Id, unidades, previousStateMap);
 
             results.push({
                 proyecto: proyecto.Nombre,
@@ -138,6 +60,114 @@ export class SnapshotsService {
             proyectosProcessados: results.length,
             detalles: results,
         };
+    }
+
+    private async getProjectUnits(projectName: string) {
+        return this.prisma.$queryRaw<any[]>`
+            SELECT 
+              "Id",
+              "SectorId",
+              "Proyecto",
+              "Tipo",
+              "Estado",
+              "PrecioUsd",
+              "UsdM2"
+            FROM public.vista_buscador_propiedades
+            WHERE "Proyecto" = ${projectName}
+        `;
+    }
+
+    private calculateStats(unidades: any[]) {
+        const stats = {
+            totalUnidades: unidades.length,
+            disponibles: 0,
+            reservadas: 0,
+            vendidas: 0,
+            noDisponibles: 0,
+            valorStockUSD: new Decimal(0),
+            m2TotalesStock: new Decimal(0),
+        };
+
+        for (const u of unidades) {
+            const estado = (u.Estado || '').toLowerCase();
+            if (estado.includes('disponible') && !estado.includes('no disponible')) {
+                stats.disponibles++;
+                if (u.PrecioUsd) stats.valorStockUSD = stats.valorStockUSD.plus(new Decimal(u.PrecioUsd));
+            } else if (estado.includes('reserva')) {
+                stats.reservadas++;
+                if (u.PrecioUsd) stats.valorStockUSD = stats.valorStockUSD.plus(new Decimal(u.PrecioUsd));
+            } else if (estado.includes('vendid')) {
+                stats.vendidas++;
+            } else {
+                stats.noDisponibles++;
+            }
+        }
+        return stats;
+    }
+
+    private async getPreviousStateMap(projectId: string) {
+        const previousSnapshot = await this.prisma.snapshotsStock.findFirst({
+            where: { ProyectoId: projectId },
+            orderBy: { FechaSnapshot: 'desc' },
+            include: { Detalles: true },
+        });
+
+        const previousStateMap = new Map<string, { estado: string; dias: number }>();
+        if (previousSnapshot) {
+            for (const det of previousSnapshot.Detalles) {
+                previousStateMap.set(det.UnidadId, {
+                    estado: det.Estado,
+                    dias: det.DiasEnEstado || 0,
+                });
+            }
+        }
+        return previousStateMap;
+    }
+
+    private async createSnapshotRecord(projectId: string, fecha: Date, tipoSnapshot: string, stats: any) {
+        return this.prisma.snapshotsStock.create({
+            data: {
+                FechaSnapshot: fecha,
+                TipoSnapshot: tipoSnapshot,
+                ProyectoId: projectId,
+                TotalUnidades: stats.totalUnidades,
+                Disponibles: stats.disponibles,
+                Reservadas: stats.reservadas,
+                Vendidas: stats.vendidas,
+                NoDisponibles: stats.noDisponibles,
+                ValorStockUSD: stats.valorStockUSD,
+                M2TotalesStock: stats.m2TotalesStock,
+            },
+        });
+    }
+
+    private async createSnapshotDetails(
+        snapshotId: string,
+        unidades: any[],
+        previousStateMap: Map<string, { estado: string; dias: number }>
+    ) {
+        const detalles = unidades.map((u) => {
+            const prev = previousStateMap.get(u.Id);
+            const estadoAnterior = prev?.estado || null;
+            const diasEnEstado = prev && prev.estado === u.Estado ? (prev.dias || 0) + 1 : 1;
+
+            return {
+                SnapshotId: snapshotId,
+                UnidadId: u.Id,
+                SectorId: u.SectorId || null,
+                Proyecto: u.Proyecto || null,
+                Tipo: u.Tipo || null,
+                Estado: u.Estado || 'Desconocido',
+                PrecioUSD: u.PrecioUsd ? new Decimal(u.PrecioUsd) : null,
+                UsdM2: u.UsdM2 ? new Decimal(u.UsdM2) : null,
+                EstadoAnterior: estadoAnterior,
+                DiasEnEstado: diasEnEstado,
+            };
+        });
+
+        await this.prisma.snapshotsStockDetalle.createMany({
+            data: detalles,
+        });
     }
 
     /**
