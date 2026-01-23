@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ILogger, LogParams } from '../common/interfaces/logger.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { maskEmail } from '../common/sanitize.helper';
 
 @Injectable()
 export class LoggerService implements ILogger {
@@ -15,7 +16,7 @@ export class LoggerService implements ILogger {
                     Impacto: params.impacto,
                     TablaAfectada: params.tablaafectada,
                     UsuarioId: params.usuarioID || '00000000-0000-0000-0000-000000000000',
-                    UsuarioMail: params.usuarioemail || 'system',
+                    UsuarioMail: maskEmail(params.usuarioemail || 'system'),
                 },
             });
         } catch (error) {
