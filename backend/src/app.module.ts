@@ -37,6 +37,9 @@ import { PrismaRetryInterceptor } from './common/interceptors/prisma-retry.inter
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
 import { GastosgeneralesModule } from './gastosgenerales/gastosgenerales.module';
+import { ScheduleModule } from '@nestjs/schedule';
+
+import { SnapshotsModule } from './snapshots/snapshots.module';
 
 // ⚡ Factory para configuración de cache (Redis o memoria)
 const getCacheConfig = (): any => {
@@ -79,6 +82,7 @@ const getCacheConfig = (): any => {
         UsuariosModule,
         UsuariosRolesModule,
         UsuariosProyectosModule,
+        SnapshotsModule,
         // Catalog modules
         ComercialesModule,
         EtapasModule,
@@ -96,6 +100,7 @@ const getCacheConfig = (): any => {
             limit: 100,
         }]),
         GastosgeneralesModule,
+        ScheduleModule.forRoot(),
     ],
     controllers: [AppController],
     providers: [

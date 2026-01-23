@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, MoreVertical, Edit2, Trash2, LayoutGrid, Home, Activity, Briefcase, Warehouse, Map as MapIcon, BarChart2, TrendingUp } from "lucide-react";
+import { Building2, LayoutGrid, Activity, Map as MapIcon, BarChart2, TrendingUp, History } from "lucide-react";
 import { backendAPI } from "@/services/backendAPI";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -15,13 +14,6 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { mockSalesMaps } from "@/data/mock-data";
 
 interface UserProject {
@@ -43,8 +35,6 @@ interface ProjectsByOrg {
 
 export function AppSidebar() {
   const { state } = useSidebar();
-  const location = useLocation();
-  const currentPath = location.pathname;
   const [salesMaps] = useState(mockSalesMaps);
 
   // Estado para almacenar proyectos del usuario agrupados por organización
@@ -68,7 +58,7 @@ export function AppSidebar() {
         });
       }
 
-      grouped.get(key)!.proyectos.push(project);
+      grouped.get(key).proyectos.push(project);
     });
 
     return Array.from(grouped.values());
@@ -92,7 +82,6 @@ export function AppSidebar() {
     loadProjects();
   }, []);
 
-  const isActive = (mapId: string) => currentPath.includes(mapId);
   const isCollapsed = state === "collapsed";
 
   return (
@@ -167,6 +156,18 @@ export function AppSidebar() {
                   >
                     <TrendingUp className="h-3.5 w-3.5" />
                     {!isCollapsed && <span className="text-xs">Ajuste de Precios</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="flex-1">
+                  <NavLink
+                    to="/stock-history"
+                    className="hover:bg-sidebar-accent transition-colors"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  >
+                    <History className="h-3.5 w-3.5" />
+                    {!isCollapsed && <span className="text-xs">Historial Stock</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -14,6 +14,7 @@ import UnitsListPage from "./pages/UnitsListPage";
 import UnitEditPage from "./pages/UnitEditPage";
 import DiagnosticPage from "./pages/DiagnosticPage";
 import PriceAdjustmentPage from "./pages/PriceAdjustmentPage";
+import StockHistoryPage from "./pages/StockHistoryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,9 @@ const App = () => (
 
               {/* Ajuste masivo de precios */}
               <Route path="/price-adjustment" element={<PriceAdjustmentPage />} />
+
+              {/* Historial de Stock */}
+              <Route path="/stock-history" element={<StockHistoryPage />} />
             </Route>
 
             {/* Catch-all route */}

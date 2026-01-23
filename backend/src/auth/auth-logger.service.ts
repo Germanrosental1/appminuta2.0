@@ -33,7 +33,7 @@ export class AuthLoggerService {
                 },
             });
 
-            // 📝 AUDIT LOG para cambios de contraseña
+            // AUDIT LOG para cambios de contraseña
             if (eventType === AuthEventType.PASSWORD_CHANGED) {
                 await this.logger.agregarLog({
                     motivo: 'Cambio de Contraseña',

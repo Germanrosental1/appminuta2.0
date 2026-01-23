@@ -734,6 +734,7 @@ model Proyectos {
   ProyectosTiposUnidad ProyectosTiposUnidad[]
   UsuariosProyectos    UsuariosProyectos[]
   tablas               tablas[]
+  SnapshotsStock       SnapshotsStock[]
 
   @@index([Activo], map: "idx_proyectos_activo")
   @@schema("public")
@@ -963,4 +964,46 @@ enum one_time_token_type {
   phone_change_token
 
   @@schema("auth")
+}
+
+// Stock History Models
+model SnapshotsStock {
+  Id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  FechaSnapshot   DateTime                 @db.Date
+  TipoSnapshot    String                   @db.VarChar(20) // DIARIO, MENSUAL
+  ProyectoId      String?                  @db.Uuid
+  TotalUnidades   Int
+  Disponibles     Int
+  Reservadas      Int
+  Vendidas        Int
+  NoDisponibles   Int
+  ValorStockUSD   Decimal?                 @db.Decimal(15, 2)
+  M2TotalesStock  Decimal?                 @db.Decimal(15, 2)
+  CreatedAt       DateTime                 @default(now()) @db.Timestamptz(6)
+
+  Proyecto        Proyectos?               @relation(fields: [ProyectoId], references: [Id])
+  Detalles        SnapshotsStockDetalle[]
+
+  @@index([FechaSnapshot, ProyectoId])
+  @@schema("public")
+}
+
+model SnapshotsStockDetalle {
+  Id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  SnapshotId      String          @db.Uuid
+  UnidadId        String          @db.Uuid
+  SectorId        String?         @db.VarChar(100)
+  Proyecto        String?         @db.VarChar(200)
+  Tipo            String?         @db.VarChar(100)
+  Estado          String          @db.VarChar(50)
+  PrecioUSD       Decimal?        @db.Decimal(15, 2)
+  UsdM2           Decimal?        @db.Decimal(10, 2)
+  EstadoAnterior  String?         @db.VarChar(50)
+  DiasEnEstado    Int?
+
+  Snapshot        SnapshotsStock  @relation(fields: [SnapshotId], references: [Id], onDelete: Cascade)
+
+  @@index([SnapshotId])
+  @@index([UnidadId])
+  @@schema("public")
 }
