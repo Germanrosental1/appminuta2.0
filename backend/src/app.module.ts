@@ -13,30 +13,30 @@ import { redisStore } from 'cache-manager-redis-store';
 import { ScheduleModule } from '@nestjs/schedule';
 
 // ==========================================
-// ROSENTAL MODULES (moved to ./Rosental/)
+// MAPA VENTA MODULES (moved to ./mapaVenta/)
 // ==========================================
-import { MinutasModule } from './Rosental/minutas/minutas.module';
-import { ProyectosModule } from './Rosental/proyectos/proyectos.module';
-import { UnidadesModule } from './Rosental/unidades/unidades.module';
-import { RolesModule } from './Rosental/roles/roles.module';
-import { PermisosModule } from './Rosental/permisos/permisos.module';
-import { UsuariosModule } from './Rosental/usuarios/usuarios.module';
-import { UsuariosRolesModule } from './Rosental/usuarios-roles/usuarios-roles.module';
-import { UsuariosProyectosModule } from './Rosental/usuarios-proyectos/usuarios-proyectos.module';
-import { SnapshotsModule } from './Rosental/snapshots/snapshots.module';
+import { MinutasModule } from './minutas/minutas.module';
+import { ProyectosModule } from './shared/proyectos/proyectos.module';
+import { UnidadesModule } from './shared/unidades/unidades.module';
+import { RolesModule } from './shared/iam/roles/roles.module';
+import { PermisosModule } from './shared/iam/permisos/permisos.module';
+import { UsuariosModule } from './shared/iam/usuarios/usuarios.module';
+import { UsuariosRolesModule } from './shared/iam/usuarios-roles/usuarios-roles.module';
+import { UsuariosProyectosModule } from './shared/iam/usuarios-proyectos/usuarios-proyectos.module';
+import { SnapshotsModule } from './mapaVenta/snapshots/snapshots.module';
 // Catalog modules
-import { ComercialesModule } from './Rosental/comerciales/comerciales.module';
-import { EtapasModule } from './Rosental/etapas/etapas.module';
-import { EstadoComercialModule } from './Rosental/estadocomercial/estadocomercial.module';
-import { MotivosNodispModule } from './Rosental/motivosnodisp/motivosnodisp.module';
-import { NaturalezasModule } from './Rosental/naturalezas/naturalezas.module';
-import { TiposCocheraModule } from './Rosental/tiposcochera/tiposcochera.module';
-import { TiposPatioTerrazaModule } from './Rosental/tipospatioterraza/tipospatioterraza.module';
-import { TiposUnidadModule } from './Rosental/tiposunidad/tiposunidad.module';
+import { ComercialesModule } from './mapaVenta/comerciales/comerciales.module';
+import { EtapasModule } from './mapaVenta/etapas/etapas.module';
+import { EstadoComercialModule } from './mapaVenta/estadocomercial/estadocomercial.module';
+import { MotivosNodispModule } from './mapaVenta/motivosnodisp/motivosnodisp.module';
+import { NaturalezasModule } from './mapaVenta/naturalezas/naturalezas.module';
+import { TiposCocheraModule } from './mapaVenta/tiposcochera/tiposcochera.module';
+import { TiposPatioTerrazaModule } from './mapaVenta/tipospatioterraza/tipospatioterraza.module';
+import { TiposUnidadModule } from './mapaVenta/tiposunidad/tiposunidad.module';
 // Business modules
-import { EdificiosModule } from './Rosental/edificios/edificios.module';
-import { ClientesModule } from './Rosental/clientes/clientes.module';
-import { GastosgeneralesModule } from './Rosental/gastosgenerales/gastosgenerales.module';
+import { EdificiosModule } from './mapaVenta/edificios/edificios.module';
+import { ClientesModule } from './minutas/modules/clientes/clientes.module';
+import { GastosgeneralesModule } from './shared/gastosgenerales/gastosgenerales.module';
 
 // ==========================================
 // UIF MODULES
