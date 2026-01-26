@@ -56,20 +56,6 @@ export class ProyectosService {
     async findByUserId(userId: string) {
         const projectsMap = new Map();
 
-        // Helper function to add projects with organization
-        const addProjectsWithOrg = (projects: any[]) => {
-            for (const p of projects) {
-                if (!projectsMap.has(p.Id)) {
-                    // Rename 'Organizaciones' to 'organizacion' for frontend compatibility
-                    const { Organizaciones, ...rest } = p;
-                    projectsMap.set(p.Id, {
-                        ...rest,
-                        organizacion: Organizaciones || null,
-                    });
-                }
-            }
-        };
-
         // Project select fields including organization
         const projectSelect = {
             Id: true,
@@ -113,8 +99,8 @@ export class ProyectosService {
 
         // Process direct projects
         for (const up of directProjects) {
-            if (up.Proyectos && up.Proyectos.Activo) {
-                addProjectsWithOrg([up.Proyectos]);
+            if (up.Proyectos?.Activo) {
+                this._addProjectsToMap([up.Proyectos], projectsMap);
             }
         }
 
@@ -122,62 +108,70 @@ export class ProyectosService {
         const roleIds = roles.map(r => r.Id);
 
         if (roleIds.length > 0) {
-            // New Step: Check if user has these roles GLOBALLY (in usuariosRoles)
-            // If so, they are Super Admins for the entire system, not just an org.
-            const globalAdminRole = await this.prisma.usuariosRoles.findFirst({
-                where: {
-                    IdUsuario: userId,
-                    IdRol: { in: roleIds } // Any of the admin roles
-                }
-            });
-
-            if (globalAdminRole) {
-                // User is a Global Admin -> See ALL Active Projects
-                const allProjects = await this.prisma.proyectos.findMany({
-                    where: { Activo: true },
-                    select: projectSelect,
-                });
-                for (const p of allProjects) {
-                    if (!projectsMap.has(p.Id)) {
-                        // Rename 'Organizaciones' to 'organizacion' for frontend compatibility
-                        const { Organizaciones, ...rest } = p;
-                        projectsMap.set(p.Id, {
-                            ...rest,
-                            organizacion: Organizaciones || null,
-                        });
-                    }
-                }
-            } else {
-                // Fallback: Org-based Admin
-                // 3. Get all distinct organizations where user has ANY of the admin roles
-                const userOrgs = await this.prisma.usuariosOrganizaciones.findMany({
-                    where: {
-                        UserId: userId,
-                        IdRol: { in: roleIds },
-                    },
-                    select: { IdOrg: true },
-                });
-
-                const orgIds = [...new Set(userOrgs.map(uo => uo.IdOrg))]; // Ensure uniqueness
-
-                if (orgIds.length > 0) {
-                    // 4. Fetch all active projects for these organizations in a SINGLE query
-                    const orgProjects = await this.prisma.proyectos.findMany({
-                        where: {
-                            IdOrg: { in: orgIds },
-                            Activo: true,
-                        },
-                        select: projectSelect,
-                    });
-
-                    addProjectsWithOrg(orgProjects);
-                }
-            }
+            await this._handleAdminProjects(userId, roleIds, projectsMap, projectSelect);
         }
 
         return Array.from(projectsMap.values()).sort((a, b) =>
             a.Nombre.localeCompare(b.Nombre)
         );
+    }
+
+    private _addProjectsToMap(projects: any[], projectsMap: Map<any, any>) {
+        for (const p of projects) {
+            if (!projectsMap.has(p.Id)) {
+                // Rename 'Organizaciones' to 'organizacion' for frontend compatibility
+                const { Organizaciones, ...rest } = p;
+                projectsMap.set(p.Id, {
+                    ...rest,
+                    organizacion: Organizaciones || null,
+                });
+            }
+        }
+    }
+
+    private async _handleAdminProjects(userId: string, roleIds: string[], projectsMap: Map<any, any>, projectSelect: any) {
+        // New Step: Check if user has these roles GLOBALLY (in usuariosRoles)
+        // If so, they are Super Admins for the entire system, not just an org.
+        const globalAdminRole = await this.prisma.usuariosRoles.findFirst({
+            where: {
+                IdUsuario: userId,
+                IdRol: { in: roleIds } // Any of the admin roles
+            }
+        });
+
+        if (globalAdminRole) {
+            // User is a Global Admin -> See ALL Active Projects
+            const allProjects = await this.prisma.proyectos.findMany({
+                where: { Activo: true },
+                select: projectSelect,
+            });
+            this._addProjectsToMap(allProjects, projectsMap);
+        } else {
+            // Fallback: Org-based Admin
+            // 3. Get all distinct organizations where user has ANY of the admin roles
+            const userOrgs = await this.prisma.usuariosOrganizaciones.findMany({
+                where: {
+                    UserId: userId,
+                    IdRol: { in: roleIds },
+                },
+                select: { IdOrg: true },
+            });
+
+            const orgIds = [...new Set(userOrgs.map(uo => uo.IdOrg))]; // Ensure uniqueness
+
+            if (orgIds.length > 0) {
+                // 4. Fetch all active projects for these organizations in a SINGLE query
+                const orgProjects = await this.prisma.proyectos.findMany({
+                    where: {
+                        IdOrg: { in: orgIds },
+                        Activo: true,
+                    },
+                    select: projectSelect,
+                });
+
+                this._addProjectsToMap(orgProjects, projectsMap);
+            }
+        }
     }
 
     async findOne(id: string) {

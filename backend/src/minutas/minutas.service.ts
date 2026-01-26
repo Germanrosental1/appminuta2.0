@@ -8,8 +8,10 @@ import { sanitizeString, sanitizeObject } from '../common/sanitize.helper';
 import { PrivacyHelpers } from '../common/privacy.helper';
 import { UnitStateService } from './services/unit-state.service';
 import { LoggerService } from '../logger/logger.service';
+import { AuthorizationService } from '../auth/authorization/authorization.service'; // 🔒 Import AuthorizationService
+import { ROLE_PERMISSIONS } from '../auth/authorization/roles.constants'; // 🔒 Import Role Constants
 
-// Definir transiciones de estado válidas (todo en minúsculas)
+// Definir transiciones de estado válidas (todoo en minúsculas)
 const VALID_STATE_TRANSITIONS: Record<string, string[]> = {
   'pendiente': ['aprobada', 'cancelada', 'en_edicion'],
   'aprobada': ['firmada', 'cancelada', 'en_edicion'],
@@ -44,6 +46,7 @@ export class MinutasService {
     private readonly prisma: PrismaService,
     private readonly unitStateService: UnitStateService,
     private readonly logger: LoggerService,
+    private readonly authService: AuthorizationService, // 🔒 Injected AuthorizationService
     @Optional() @Inject(forwardRef(() => MinutasGateway)) private readonly gateway?: MinutasGateway,
   ) { }
 
@@ -58,23 +61,45 @@ export class MinutasService {
     }
 
     // Si no hay cache o expiró, hacer la query
-    // ⚡ OPTIMIZED QUERY: Fetch Permissions, Roles, and Projects in one go
-    const userDataRaw: any[] = await this.prisma.$queryRaw`
-      SELECT 
-        DISTINCT p."Nombre" as permiso_nombre, 
-        up."IdProyecto",
-        r."Nombre" as rol_nombre
-      FROM "UsuariosRoles" ur
-      LEFT JOIN "Roles" r ON ur."IdRol" = r."Id"
-      LEFT JOIN "RolesPermisos" rp ON ur."IdRol" = rp."IdRol"
-      LEFT JOIN "Permisos" p ON rp."IdPermiso" = p."Id"
-      LEFT JOIN "UsuariosProyectos" up ON ur."IdUsuario" = up."IdUsuario"
-      WHERE ur."IdUsuario" = ${userId}::uuid
-    `;
+    // ⚡ OPTIMIZED QUERY: Fetch Permissions, Roles, and Projects using Prisma Client to avoid SQL Injection Hotspots
+    const [userRoles, userProjects] = await Promise.all([
+      this.prisma.usuariosRoles.findMany({
+        where: { IdUsuario: userId },
+        include: {
+          Roles: {
+            select: {
+              Nombre: true,
+              RolesPermisos: {
+                include: {
+                  Permisos: {
+                    select: { Nombre: true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }),
+      this.prisma.usuariosProyectos.findMany({
+        where: { IdUsuario: userId },
+        select: { IdProyecto: true }
+      })
+    ]);
 
-    const permissions = [...new Set(userDataRaw.map(row => row.permiso_nombre).filter(Boolean))] as string[];
-    const projectIds = [...new Set(userDataRaw.map(row => row.idproyecto).filter(Boolean))] as string[];
-    const roles = [...new Set(userDataRaw.map(row => row.rol_nombre).filter(Boolean))] as string[];
+    // Flatten and extract distinct values
+    const permissions = [...new Set(
+      userRoles.flatMap(ur =>
+        ur.Roles.RolesPermisos.map(rp => rp.Permisos?.Nombre).filter(Boolean)
+      )
+    )] as string[];
+
+    const roles = [...new Set(
+      userRoles.map(ur => ur.Roles.Nombre).filter(Boolean)
+    )] as string[];
+
+    const projectIds = [...new Set(
+      userProjects.map(up => up.IdProyecto).filter(Boolean)
+    )] as string[];
 
     // Guardar en cache
     userPermissionsCache.set(userId, {
@@ -201,18 +226,21 @@ export class MinutasService {
   }
 
   async createProvisoria(data: CreateMinutaProvisoriaDto, userId: string) {
-    // TODO: Table 'minutas_provisorias' doesn't exist in current schema
     // Need to create this table or use minutas_definitivas with estado='Provisoria'
     throw new Error('createProvisoria not implemented - table migration needed');
   }
 
   async updateProvisoria(id: string, data: any) {
-    // TODO: Table 'minutas_provisorias' doesn't exist in current schema
     throw new Error('updateProvisoria not implemented - table migration needed');
   }
 
   async findAll(query: FindAllMinutasQueryDto, userId: string) {
-    const where: any = {};
+    // ⚡ OPTIMIZACIÓN: Usar cache para permisos y proyectos del usuario
+    const { permissions: userPermissions, projectIds: userProjectIds } = await this.getCachedUserPermissions(userId);
+
+    // Construir where clause usando helper
+    const where = await this._buildWhereClause(query, userId, userPermissions, userProjectIds);
+
     const page = query.page || 1;
     const limit = Math.min(query.limit || 20, 100); // Máximo 100
     const skip = (page - 1) * limit;
@@ -223,73 +251,6 @@ export class MinutasService {
       ? query.sortBy
       : 'FechaCreacion';
     const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
-
-    // ⚡ OPTIMIZACIÓN: Usar cache para permisos y proyectos del usuario
-    const { permissions: userPermissions, projectIds: userProjectIds } = await this.getCachedUserPermissions(userId);
-    const canViewAll = userPermissions.includes('verTodasMinutas');
-    const canSign = userPermissions.includes('firmarMinuta');
-
-    // Si NO es admin y NO es firmante, filtrar por proyectos del usuario O minutas propias
-    if (!canViewAll && !canSign) {
-      // Construir condición OR: minutas de proyectos asignados O minutas propias
-      const orConditions = [];
-
-      // Siempre incluir las minutas creadas por el propio usuario
-      orConditions.push({ UsuarioId: userId });
-
-      // Si tiene proyectos asignados, también incluir minutas de esos proyectos
-      if (userProjectIds.length > 0) {
-        // Validar que el proyecto solicitado esté en los proyectos del usuario
-        if (query.proyecto) {
-          if (userProjectIds.includes(query.proyecto)) {
-            orConditions.push({ Proyecto: query.proyecto });
-          }
-          // Si solicita un proyecto al que no tiene acceso, solo verá sus propias minutas
-        } else {
-          orConditions.push({ Proyecto: { in: userProjectIds } });
-        }
-      }
-
-      where.OR = orConditions;
-    } else if (canSign && !canViewAll) {
-      // Firmante: puede ver TODAS las minutas aprobadas y firmadas + sus propias minutas
-      where.OR = [
-        { Estado: 'aprobada' },
-        { Estado: 'firmada' },
-        { UsuarioId: userId }
-      ];
-    } else {
-      // Admin puede filtrar por proyecto específico si lo solicita
-      if (query.proyecto) {
-        where.Proyecto = query.proyecto;
-      }
-      // Admin también puede filtrar por usuario_id si lo solicita
-      if (query.usuario_id) where.UsuarioId = query.usuario_id;
-    }
-
-    // Filtro de estado (aplica a todos)
-    if (query.estado) where.Estado = query.estado;
-
-    // Validar y construir filtro de fechas
-    if (query.fechaDesde || query.fechaHasta) {
-      where.FechaCreacion = {};
-
-      if (query.fechaDesde) {
-        const fecha = new Date(query.fechaDesde);
-        if (Number.isNaN(fecha.getTime())) {
-          throw new BadRequestException('fechaDesde inválida');
-        }
-        where.FechaCreacion.gte = fecha;
-      }
-
-      if (query.fechaHasta) {
-        const fecha = new Date(query.fechaHasta);
-        if (Number.isNaN(fecha.getTime())) {
-          throw new BadRequestException('fechaHasta inválida');
-        }
-        where.FechaCreacion.lte = fecha;
-      }
-    }
 
     // ⚡⚡ OPTIMIZACIÓN CRÍTICA: Ejecutar count y findMany EN PARALELO
     const [total, minutasRaw] = await Promise.all([
@@ -339,6 +300,90 @@ export class MinutasService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  // 🔒 Helper privado para reducir complejidad de findAll
+  // 🔒 Helper privado simplificado
+  private async _buildWhereClause(
+    query: FindAllMinutasQueryDto,
+    userId: string,
+    userPermissions: string[],
+    userProjectIds: string[]
+  ): Promise<any> {
+    const where: any = {};
+
+    // 1. Filtros de Permisos
+    const permissionFilter = this._buildPermissionsFilter(query, userId, userPermissions, userProjectIds);
+    if (permissionFilter) {
+      Object.assign(where, permissionFilter);
+    }
+
+    // 2. Filtro de Estado
+    if (query.estado) where.Estado = query.estado;
+
+    // 3. Filtros de Fechas
+    const dateFilter = this._buildDateFilter(query);
+    if (dateFilter) {
+      where.FechaCreacion = dateFilter;
+    }
+
+    return where;
+  }
+
+  // Helper para filtros de permisos
+  private _buildPermissionsFilter(query: FindAllMinutasQueryDto, userId: string, userPermissions: string[], userProjectIds: string[]): any {
+    const canViewAll = userPermissions.includes('verTodasMinutas');
+    const canSign = userPermissions.includes('firmarMinuta');
+
+    if (canViewAll) {
+      if (query.proyecto) return { Proyecto: query.proyecto };
+      if (query.usuario_id) return { UsuarioId: query.usuario_id };
+      return null;
+    }
+
+    if (canSign) {
+      return {
+        OR: [
+          { Estado: 'aprobada' },
+          { Estado: 'firmada' },
+          { UsuarioId: userId }
+        ]
+      };
+    }
+
+    // Default: Proyectos asignados o Propias
+    const orConditions = [{ UsuarioId: userId }];
+
+    if (userProjectIds.length > 0) {
+      if (query.proyecto) {
+        if (userProjectIds.includes(query.proyecto)) {
+          orConditions.push({ Proyecto: query.proyecto } as any);
+        }
+      } else {
+        orConditions.push({ Proyecto: { in: userProjectIds } } as any);
+      }
+    }
+
+    return { OR: orConditions };
+  }
+
+  // Helper para filtros de fecha
+  private _buildDateFilter(query: FindAllMinutasQueryDto): any {
+    if (!query.fechaDesde && !query.fechaHasta) return null;
+
+    const dateFilter: any = {};
+    if (query.fechaDesde) {
+      const fecha = new Date(query.fechaDesde);
+      if (Number.isNaN(fecha.getTime())) throw new BadRequestException('fechaDesde inválida');
+      dateFilter.gte = fecha;
+    }
+
+    if (query.fechaHasta) {
+      const fecha = new Date(query.fechaHasta);
+      if (Number.isNaN(fecha.getTime())) throw new BadRequestException('fechaHasta inválida');
+      dateFilter.lte = fecha;
+    }
+    return dateFilter;
   }
 
   async findOne(id: string, userId: string) {
@@ -414,8 +459,8 @@ export class MinutasService {
     const { UsuarioId: _, ...safeMinuta } = minuta;
 
     // 🔒 SEGURIDAD: Enmascarar email del usuario
-    if ((safeMinuta as any).users) {
-      (safeMinuta as any).users.email = PrivacyHelpers.maskEmail((safeMinuta as any).users.email);
+    if ((safeMinuta).users) {
+      (safeMinuta).users.email = PrivacyHelpers.maskEmail((safeMinuta).users.email);
     }
 
     return safeMinuta;
@@ -442,18 +487,9 @@ export class MinutasService {
       throw new NotFoundException(`Minuta con ID ${id} no encontrada.`);
     }
 
-    // ⚡ OPTIMIZACIÓN: Verificar permisos usando datos ya obtenidos
-    const canViewAll = userPermissions.permissions.includes('verTodasMinutas');
-    const canSign = userPermissions.permissions.includes('firmarMinuta'); // Permitir firmantes
-    const isOwner = minuta.UsuarioId === userId;
-    const hasProjectAccess = minuta.Proyecto ? userPermissions.projectIds.includes(minuta.Proyecto) : false;
-
-    // Explicit bypass for global admins
-    const isGlobalAdmin = userPermissions.roles && userPermissions.roles.some(r => ['superadminmv', 'adminmv'].includes(r));
-
-    if (!canViewAll && !isOwner && !hasProjectAccess && !isGlobalAdmin && !canSign) {
-      throw new ForbiddenException(`No tienes permiso para acceder a esta minuta.`);
-    }
+    // 1. Validar permisos para esta operación (Scope aware)
+    // Devuelve el rol en el proyecto si existe, para usarlo en validaciones posteriores
+    const userRoleInProject = await this._validateUpdatePermissions(minuta, userId, userPermissions);
 
     // SEGURIDAD: Validar version para optimistic locking
     if (updateMinutaDto.version !== undefined && updateMinutaDto.version !== minuta.Version) {
@@ -462,177 +498,194 @@ export class MinutasService {
       );
     }
 
-    // Validar transición de estado si se está cambiando
+    // Explicit bypass for global admins (SuperAdminMV / AdminMV)
+    const isGlobalAdmin = userPermissions.roles?.some(r => ['superadminmv', 'adminmv'].includes(r));
+
+    // 2. Validar transición de estado
     if (updateMinutaDto.estado && updateMinutaDto.estado !== minuta.Estado) {
-      // Normalizar estados a minúsculas para validación
-      const estadoActual = normalizeEstado(minuta.Estado);
-      const estadoNuevo = normalizeEstado(updateMinutaDto.estado);
-
-      const validTransitions = VALID_STATE_TRANSITIONS[estadoActual];
-
-      if (!validTransitions) {
-        throw new BadRequestException(`Estado actual '${minuta.Estado}' no es válido`);
-      }
-
-      if (!validTransitions.includes(estadoNuevo)) {
-        throw new BadRequestException(
-          `Transición de estado inválida: '${minuta.Estado}' → '${updateMinutaDto.estado}'. ` +
-          `Transiciones válidas: ${validTransitions.join(', ')}`
-        );
-      }
-
-      // 🔒 VALIDACIÓN: Motivo obligatorio al cancelar
-      const estadoLower = updateMinutaDto.estado.toLowerCase();
-
-      // Validar motivo obligatorio para 'cancelada'
-      if (['cancelada'].includes(estadoLower)) {
-        if (!updateMinutaDto.comentarios || updateMinutaDto.comentarios.trim() === '') {
-          const accion = estadoLower === 'cancelada' ? 'cancelación' : 'edición';
-          throw new BadRequestException(
-            `El motivo de ${accion} es obligatorio. Por favor, proporcione un comentario.`
-          );
-        }
-      }
-
-      // Validar permisos para aprobar minutas
-      if (['Definitiva'].includes(updateMinutaDto.estado)) {
-        const hasApprovalPermission = userPermissions.permissions.includes('aprobarRechazarMinuta');
-        if (!hasApprovalPermission) {
-          throw new ForbiddenException(
-            'No tienes permiso para aprobar minutas. Se requiere el permiso "aprobarRechazarMinuta"'
-          );
-        }
-      }
-
-      // 📦 Actualizar estados de unidades según el nuevo estado de la minuta
-      const minutaData = minuta.Dato as { unidades?: { id: string }[] };
-      const unidadIds = minutaData?.unidades?.map((u) => u.id).filter(Boolean) || [];
-
-      if (unidadIds.length > 0) {
-        if (estadoNuevo === 'cancelada') {
-          // Al cancelar, liberar unidades (vuelven a Disponible)
-          await this.unitStateService.liberarUnidades(unidadIds);
-
-          // Limpiar el cliente interesado de los detalles de venta
-          for (const unidadId of unidadIds) {
-            await this.prisma.detallesVenta.updateMany({
-              where: { UnidadId: unidadId },
-              data: { ClienteInteresado: null },
-            });
-          }
-        }
-        // Al firmar, las unidades se mantienen como "Reservada" - no se hace nada
-      }
+      await this._handleStateChange(minuta, updateMinutaDto, userRoleInProject, isGlobalAdmin || false);
     }
 
-    // Sanitizar datos antes de actualizar
-    const sanitizedData = {
-      ...updateMinutaDto,
-      comentarios: updateMinutaDto.comentarios
-        ? sanitizeString(updateMinutaDto.comentarios)
-        : undefined,
-      datos: updateMinutaDto.datos ? sanitizeObject(updateMinutaDto.datos) : undefined,
-      datos_adicionales: updateMinutaDto.datos_adicionales
-        ? sanitizeObject(updateMinutaDto.datos_adicionales)
-        : undefined,
-      datos_mapa_ventas: updateMinutaDto.datos_mapa_ventas
-        ? sanitizeObject(updateMinutaDto.datos_mapa_ventas)
-        : undefined,
-    };
-
-    // ⚡ OPTIMIZACIÓN: Usar raw SQL para update más rápido
-    try {
-      // Reemplazar Raw SQL con Prisma ORM seguro para manejar nombres PascalCase automáticamente
-      const result = await this.prisma.minutasDefinitivas.update({
-        where: {
-          Id: id,
-          Version: minuta.Version, // 🔒 OPTIMISTIC LOCKING: Verificar versión
-        },
-        data: {
-          Estado: sanitizedData.estado || undefined,
-          Comentario: sanitizedData.comentarios || undefined,
-          Dato: sanitizedData.datos || undefined, // Prisma maneja el JSONB automáticamente
-          DatoAdicional: sanitizedData.datos_adicionales || undefined,
-          DatoMapaVenta: sanitizedData.datos_mapa_ventas || undefined,
-          Version: { increment: 1 },
-          UpdatedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      // P2025: Record to update not found (significa que la versión cambió o el ID no existe)
-      if (error.code === 'P2025') {
-        throw new ConflictException(
-          'La minuta ha sido modificada por otro usuario. Por favor, recarga la página y vuelve a intentar.'
-        );
-      }
-
-      if (error instanceof ConflictException) throw error;
-      if (error.message?.includes('state') || error.message?.includes('estado')) {
-        throw new BadRequestException(
-          `Error de base de datos: ${error.message}. Esto puede ser causado por un trigger de validación.`
-        );
-      }
-      throw error;
-    }
+    // Sanitizar datos y ejecutar Update en DB
+    const sanitizedData = this._sanitizeUpdateData(updateMinutaDto);
+    await this._executeUpdateInDb(id, minuta.Version, sanitizedData);
 
     // ⚡ OPTIMIZACIÓN: Retornar solo campos necesarios
     const updatedMinuta = await this.prisma.minutasDefinitivas.findUnique({
       where: { Id: id },
       select: {
-        Id: true,
-        Proyecto: true,
-        Estado: true,
-        Comentario: true,
-        FechaCreacion: true,
-        UpdatedAt: true,
-        Version: true,
-        UsuarioId: true, // Necesario para WebSocket
+        Id: true, Proyecto: true, Estado: true, Comentario: true, FechaCreacion: true,
+        UpdatedAt: true, Version: true, UsuarioId: true,
         users: { select: { email: true } },
         Proyectos: { select: { Nombre: true } },
       },
     });
 
-    // 📡 Emitir evento WebSocket si cambió el estado
-    if (this.gateway && updateMinutaDto.estado && updateMinutaDto.estado !== minuta.Estado) {
+    // 📡 Emitir eventos
+    if (updatedMinuta) {
+      await this._emitUpdateEvents(minuta, updatedMinuta, updateMinutaDto, userId);
+    }
+
+    // 🔒 SEGURIDAD: Retornar limpio
+    return this._cleanResponse(updatedMinuta);
+  }
+
+  private _sanitizeUpdateData(dto: any) {
+    return {
+      ...dto,
+      comentarios: dto.comentarios ? sanitizeString(dto.comentarios) : undefined,
+      datos: dto.datos ? sanitizeObject(dto.datos) : undefined,
+      datos_adicionales: dto.datos_adicionales ? sanitizeObject(dto.datos_adicionales) : undefined,
+      datos_mapa_ventas: dto.datos_mapa_ventas ? sanitizeObject(dto.datos_mapa_ventas) : undefined,
+    };
+  }
+
+  private async _executeUpdateInDb(id: string, version: number, data: any) {
+    try {
+      await this.prisma.minutasDefinitivas.update({
+        where: { Id: id, Version: version },
+        data: {
+          Estado: data.estado || undefined,
+          Comentario: data.comentarios || undefined,
+          Dato: data.datos || undefined,
+          DatoAdicional: data.datos_adicionales || undefined,
+          DatoMapaVenta: data.datos_mapa_ventas || undefined,
+          Version: { increment: 1 },
+          UpdatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw new ConflictException('La minuta ha sido modificada por otro usuario.');
+      if (error instanceof ConflictException) throw error;
+      throw error;
+    }
+  }
+
+  private async _emitUpdateEvents(originalMinuta: any, updatedMinuta: any, dto: any, userId: string) {
+    if (this.gateway && dto.estado && dto.estado !== originalMinuta.Estado) {
       this.gateway.emitMinutaStateChanged({
-        minutaId: id,
-        proyecto: updatedMinuta?.Proyecto || undefined,
-        estado: updateMinutaDto.estado,
-        // 🔒 SEGURIDAD: usuarioId eliminado para no exponer IDs internos
-        // usuarioId: minuta.UsuarioId, 
+        minutaId: updatedMinuta.Id,
+        proyecto: updatedMinuta.Proyecto || undefined,
+        estado: dto.estado,
       });
 
-      // 📝 AUDIT LOG: Cambio de Estado
-      const userEmailRaw = await this.prisma.users.findUnique({
-        where: { id: userId },
-        select: { email: true }
-      });
-
-      // Determinar impacto based on new state
-      const impacto = updateMinutaDto.estado === 'cancelada' ? 'Alto' : 'Medio';
-
+      const userEmailRaw = await this.prisma.users.findUnique({ where: { id: userId }, select: { email: true } });
       await this.logger.agregarLog({
         motivo: 'Cambio de Estado de Minuta',
-        descripcion: `Estado cambiado de '${minuta.Estado}' a '${updateMinutaDto.estado}'.`,
-        impacto: impacto,
+        descripcion: `Estado cambiado de '${originalMinuta.Estado}' a '${dto.estado}'.`,
+        impacto: dto.estado === 'cancelada' ? 'Alto' : 'Medio',
         tablaafectada: 'minutas_definitivas',
         usuarioID: userId,
         usuarioemail: userEmailRaw?.email || 'unknown',
       });
     }
+  }
 
-    // 🔒 SEGURIDAD: Eliminar UsuarioId de la respuesta
-    if (updatedMinuta) {
-      const { UsuarioId: _, ...safeMinuta } = updatedMinuta;
+  private _cleanResponse(minuta: any) {
+    if (!minuta) return null;
+    const { UsuarioId: _, ...safe } = minuta;
+    if (safe.users) safe.users.email = PrivacyHelpers.maskEmail(safe.users.email);
+    return safe;
+  }
 
-      // 🔒 SEGURIDAD: Enmascarar email
-      if ((safeMinuta as any).users) {
-        (safeMinuta as any).users.email = PrivacyHelpers.maskEmail((safeMinuta as any).users.email);
+  // 🔒 Helper para validar permisos de update
+  private async _validateUpdatePermissions(minuta: any, userId: string, userPermissions: any): Promise<string | null> {
+    const canViewAll = userPermissions.permissions.includes('verTodasMinutas');
+    const isOwner = minuta.UsuarioId === userId;
+
+    const projectId = minuta.Proyecto;
+    let userRoleInProject = null;
+
+    if (projectId) {
+      userRoleInProject = await this.authService.getUserRoleInProject(userId, projectId);
+    }
+    const hasProjectAccess = !!userRoleInProject;
+
+    const isGlobalAdmin = userPermissions.roles?.some((r: string) => ['superadminmv', 'adminmv'].includes(r));
+
+    if (!isGlobalAdmin && !canViewAll && !isOwner) {
+      if (!hasProjectAccess) {
+        throw new ForbiddenException(`No tienes acceso al proyecto de esta minuta.`);
       }
 
-      return safeMinuta;
+      const rolePermissions = userRoleInProject ? (ROLE_PERMISSIONS[userRoleInProject] || []) : [];
+      const canSign = rolePermissions.includes('firmarMinuta');
+      const canSignerView = canSign && ['aprobada', 'firmada'].includes(minuta.Estado?.toLowerCase());
+
+      if (!canSignerView) {
+        const canEdit = rolePermissions.includes('editarMinuta') || rolePermissions.includes('aprobarRechazarMinuta');
+        if (!canEdit) {
+          throw new ForbiddenException(`No tienes permiso para editar minutas en este proyecto.`);
+        }
+      }
     }
-    return updatedMinuta;
+    return userRoleInProject;
+  }
+
+  // 🔒 Helper para manejar lógica de cambio de estado
+  private async _handleStateChange(
+    minuta: any,
+    updateMinutaDto: any,
+    userRoleInProject: string | null,
+    isGlobalAdmin: boolean
+  ) {
+    // 1. Validar Transición
+    this._validateStateTransition(minuta.Estado, updateMinutaDto.estado, updateMinutaDto.comentarios);
+
+    // 2. Validar Permisos de Aprobación
+    this._validateApprovalPermissions(updateMinutaDto.estado, userRoleInProject, isGlobalAdmin);
+
+    // 3. Manejar Efectos en Unidades
+    await this._handleUnitEffects(minuta, updateMinutaDto.estado);
+  }
+
+  private _validateStateTransition(currentState: string, newState: string, comments?: string) {
+    const estadoActual = normalizeEstado(currentState);
+    const estadoNuevo = normalizeEstado(newState);
+
+    const validTransitions = VALID_STATE_TRANSITIONS[estadoActual];
+    if (!validTransitions) {
+      throw new BadRequestException(`Estado actual '${currentState}' no es válido`);
+    }
+
+    if (!validTransitions.includes(estadoNuevo)) {
+      throw new BadRequestException(
+        `Transición de estado inválida: '${currentState}' → '${newState}'. Transiciones válidas: ${validTransitions.join(', ')}`
+      );
+    }
+
+    if (['cancelada'].includes(estadoNuevo)) {
+      if (!comments || comments.trim() === '') {
+        throw new BadRequestException('El motivo de cancelación es obligatorio.');
+      }
+    }
+  }
+
+  private _validateApprovalPermissions(newState: string, userRoleInProject: string | null, isGlobalAdmin: boolean) {
+    if (['Definitiva'].includes(newState)) {
+      if (!isGlobalAdmin) {
+        const permissionsInProject = userRoleInProject ? (ROLE_PERMISSIONS[userRoleInProject] || []) : [];
+        if (!permissionsInProject.includes('aprobarRechazarMinuta')) {
+          throw new ForbiddenException('No tienes permiso para aprobar minutas en este proyecto.');
+        }
+      }
+    }
+  }
+
+  private async _handleUnitEffects(minuta: any, newState: string) {
+    const estadoNuevo = normalizeEstado(newState);
+    const minutaData = minuta.Dato as { unidades?: { id: string }[] };
+    const unidadIds = minutaData?.unidades?.map((u) => u.id).filter(Boolean) || [];
+
+    if (unidadIds.length > 0 && estadoNuevo === 'cancelada') {
+      await this.unitStateService.liberarUnidades(unidadIds);
+      for (const unidadId of unidadIds) {
+        await this.prisma.detallesVenta.updateMany({
+          where: { UnidadId: unidadId },
+          data: { ClienteInteresado: null },
+        });
+      }
+    }
   }
 
   private async getUserPermissions(userId: string) {

@@ -6,7 +6,7 @@ import {
     Logger,
 } from '@nestjs/common';
 import { Observable, throwError, timer } from 'rxjs';
-import { retryWhen, mergeMap } from 'rxjs/operators';
+import { retry } from 'rxjs/operators';
 
 @Injectable()
 export class PrismaRetryInterceptor implements NestInterceptor {
@@ -15,23 +15,18 @@ export class PrismaRetryInterceptor implements NestInterceptor {
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         return next.handle().pipe(
-            retryWhen((errors) =>
-                errors.pipe(
-                    mergeMap((error, index) => {
-                        const retryAttempt = index + 1;
-                        if (
-                            retryAttempt <= this.maxRetries &&
-                            this.isConnectionError(error)
-                        ) {
-                            this.logger.warn(
-                                `Database connection error, retry ${retryAttempt}/${this.maxRetries}: ${error.message}`,
-                            );
-                            return timer(1000 * retryAttempt);
-                        }
-                        return throwError(() => error);
-                    }),
-                ),
-            ),
+            retry({
+                count: this.maxRetries,
+                delay: (error, retryCount) => {
+                    if (this.isConnectionError(error)) {
+                        this.logger.warn(
+                            `Database connection error, retry ${retryCount}/${this.maxRetries}: ${error.message}`,
+                        );
+                        return timer(1000 * retryCount);
+                    }
+                    return throwError(() => error);
+                },
+            }),
         );
     }
 
