@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/sidebar";
 
 interface UserProject {
-  id: string;
-  nombre: string;
-  created_at: string;
-  id_org: bigint | null;
+  Id: string;
+  Nombre: string;
+  CreatedAt: string;
+  IdOrg: string | null;
   organizacion: {
-    id: bigint;
-    nombre: string;
+    Id: string;
+    Nombre: string;
   } | null;
 }
 
@@ -44,8 +44,9 @@ export function AppSidebar() {
     const grouped = new Map<string, ProjectsByOrg>();
 
     projects.forEach(project => {
-      const orgName = project.organizacion?.nombre || 'Sin Organización';
-      const orgId = project.organizacion?.id?.toString() || null;
+      // Backend returns PascalCase for organization details too
+      const orgName = project.organizacion?.Nombre || 'Sin Organización';
+      const orgId = project.organizacion?.Id || null;
       const key = orgId || 'no-org';
 
       if (!grouped.has(key)) {
@@ -213,16 +214,16 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {group.proyectos.map((proyecto) => (
-                    <SidebarMenuItem key={proyecto.id}>
+                    <SidebarMenuItem key={proyecto.Id}>
                       <SidebarMenuButton asChild className="flex-1">
                         <NavLink
-                          to={`/map/${proyecto.nombre}`}
+                          to={`/map/${proyecto.Nombre}`}
                           className="hover:bg-sidebar-accent transition-colors"
                           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         >
                           <MapIcon className="h-3.5 w-3.5" />
                           {!isCollapsed && (
-                            <span className="text-xs">{proyecto.nombre}</span>
+                            <span className="text-xs">{proyecto.Nombre}</span>
                           )}
                         </NavLink>
                       </SidebarMenuButton>

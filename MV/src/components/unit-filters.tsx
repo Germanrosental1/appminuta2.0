@@ -31,7 +31,7 @@ declare module "@/types/sales-map" {
 
 export function UnitFiltersComponent({ filters, onFilterChange, proyecto, naturaleza }: UnitFiltersProps) {
   const [tiposDisponibles, setTiposDisponibles] = useState<string[]>([]);
-  
+
   // Estados disponibles para las unidades
   const estadosDisponibles: EstadoUnidad[] = [
     'Disponible',
@@ -39,7 +39,7 @@ export function UnitFiltersComponent({ filters, onFilterChange, proyecto, natura
     'Vendido',
     'No disponible'
   ];
-  
+
   // Cargar tipos disponibles cuando cambia el proyecto
   useEffect(() => {
     const loadTipos = async () => {
@@ -55,7 +55,7 @@ export function UnitFiltersComponent({ filters, onFilterChange, proyecto, natura
         console.error('Error loading tipos:', error);
       }
     };
-    
+
     loadTipos();
   }, [proyecto]);
   const updateFilter = (key: keyof UnitFilters, value: string) => {
@@ -113,7 +113,7 @@ export function UnitFiltersComponent({ filters, onFilterChange, proyecto, natura
             </Select>
           </div>
         )}
-        
+
         {/* Filtro de Estado */}
         <div className="space-y-2">
           <Label>Estado</Label>

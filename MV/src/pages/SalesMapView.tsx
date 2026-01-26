@@ -40,7 +40,10 @@ export default function SalesMapView() {
   // Cargar unidades del proyecto seleccionado
   useEffect(() => {
     const loadUnits = async () => {
-      if (!mapId) return;
+      if (!mapId || mapId === 'undefined') {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
