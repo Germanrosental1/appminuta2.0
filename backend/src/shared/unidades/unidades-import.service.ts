@@ -150,13 +150,13 @@ export class UnidadesImportService {
 
         // 2. Resolve Simple Catalogs
         const [etapaId, tipoId, estadoId, comercialId, patioId, tipoCocheraId, motivoNodispId] = await Promise.all([
-            this.resolveCatalogo(tx, 'etapas', 'nombre', normalizedRow.etapa, cache),
-            this.resolveCatalogo(tx, 'tiposunidad', 'nombre', normalizedRow.tipo || 'Departamento', cache),
-            this.resolveCatalogo(tx, 'estadocomercial', 'nombreestado', normalizedRow.estado || 'Disponible', cache),
-            this.resolveCatalogo(tx, 'comerciales', 'nombre', normalizedRow.comercial, cache),
-            this.resolveCatalogo(tx, 'tipospatioterraza', 'nombre', normalizedRow.tipopatio || 'Patio', cache),
-            this.resolveCatalogo(tx, 'tiposcochera', 'nombre', normalizedRow.tipocochera, cache),
-            this.resolveCatalogo(tx, 'motivosnodisp', 'nombre', normalizedRow.motivonodisponibilidad, cache)
+            this.resolveCatalogo(tx, 'etapas', 'Nombre', normalizedRow.etapa, cache),
+            this.resolveCatalogo(tx, 'tiposUnidad', 'Nombre', normalizedRow.tipo || 'Departamento', cache),
+            this.resolveCatalogo(tx, 'estadoComercial', 'NombreEstado', normalizedRow.estado || 'Disponible', cache),
+            this.resolveCatalogo(tx, 'comerciales', 'Nombre', normalizedRow.comercial, cache),
+            this.resolveCatalogo(tx, 'tiposPatioTerraza', 'Nombre', normalizedRow.tipopatio || 'Patio', cache),
+            this.resolveCatalogo(tx, 'tiposCochera', 'Nombre', normalizedRow.tipocochera, cache),
+            this.resolveCatalogo(tx, 'motivosNoDisp', 'Nombre', normalizedRow.motivonodisponibilidad, cache)
         ]);
         console.log('📁 Catálogos - Etapa:', etapaId, '| Tipo:', tipoId, '| Estado:', estadoId, '| Comercial:', comercialId);
         console.log('📁 Catálogos - Patio:', patioId, '| TipoCochera:', tipoCocheraId, '| MotivoNoDisp:', motivoNodispId);
@@ -166,46 +166,53 @@ export class UnidadesImportService {
         const fechaFirmaBoleto = this.parseDate(normalizedRow.fechafirmaboleto);
         const fechaPisada = this.parseDate(normalizedRow.fechapisada);
         const fechaPosesion = this.parseDate(normalizedRow.fechaposesion);
+        const fechaPosesionPorBoleto = this.parseDate(normalizedRow.fechaposesionporboleto);
+
         console.log('📅 Fechas - Reserva:', fechaReserva, '| FirmaBoleto:', fechaFirmaBoleto, '| Pisada:', fechaPisada, '| Posesion:', fechaPosesion);
+
+        // Validation for PrecioM2
+        if (normalizedRow.preciom2 === undefined || normalizedRow.preciom2 === null || String(normalizedRow.preciom2).trim() === '') {
+            throw new Error('El campo PrecioM2 es obligatorio.');
+        }
 
         // 4. Create/Find Unit
         const sectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
         console.log('🔑 SectorID:', sectorId);
 
         let unidadId: string;
-        const existingUnidad = await tx.unidades.findUnique({ where: { sectorid: sectorId } });
+        const existingUnidad = await tx.unidades.findUnique({ where: { SectorId: sectorId } });
 
         if (existingUnidad) {
-            unidadId = existingUnidad.id;
+            unidadId = existingUnidad.Id;
             console.log('♻️  Unidad existente encontrada, actualizando:', unidadId);
             // Update existing unit
             await tx.unidades.update({
-                where: { id: unidadId },
+                where: { Id: unidadId },
                 data: {
-                    edificio_id: edificioId,
-                    etapa_id: etapaId,
-                    tipounidad_id: tipoId,
-                    piso: String(normalizedRow.piso || ''),
-                    nrounidad: String(normalizedRow.numerounidad || ''),
-                    dormitorios: Number(normalizedRow.dormitorios) || 0,
-                    frente: normalizedRow.frente,
-                    manzana: normalizedRow.manzana,
-                    destino: normalizedRow.destino
+                    EdificioId: edificioId,
+                    EtapaId: etapaId,
+                    TipoUnidadId: tipoId,
+                    Piso: String(normalizedRow.piso || ''),
+                    NroUnidad: String(normalizedRow.numerounidad || ''),
+                    Dormitorio: Number(normalizedRow.dormitorios) || 0,
+                    Frente: normalizedRow.frente,
+                    Manzana: normalizedRow.manzana,
+                    Destino: normalizedRow.destino
                 }
             });
         } else {
             const newUnidad = await tx.unidades.create({
                 data: {
-                    sectorid: sectorId,
-                    edificio_id: edificioId,
-                    etapa_id: etapaId,
-                    tipounidad_id: tipoId,
-                    piso: String(normalizedRow.piso || ''),
-                    nrounidad: String(normalizedRow.numerounidad || ''),
-                    dormitorios: Number(normalizedRow.dormitorios) || 0,
-                    frente: normalizedRow.frente,
-                    manzana: normalizedRow.manzana,
-                    destino: normalizedRow.destino
+                    SectorId: sectorId,
+                    EdificioId: edificioId,
+                    EtapaId: etapaId,
+                    TipoUnidadId: tipoId,
+                    Piso: String(normalizedRow.piso || ''),
+                    NroUnidad: String(normalizedRow.numerounidad || ''),
+                    Dormitorio: Number(normalizedRow.dormitorios) || 0,
+                    Frente: normalizedRow.frente,
+                    Manzana: normalizedRow.manzana,
+                    Destino: normalizedRow.destino
                 }
             });
             unidadId = newUnidad.id;
@@ -235,7 +242,8 @@ export class UnidadesImportService {
             fechaReserva,
             fechaFirmaBoleto,
             fechaPisada,
-            fechaPosesion
+            fechaPosesion,
+            fechaPosesionPorBoleto
         });
 
         // 8. Process Cliente Titular (comma-separated names -> Clientes + ClientesUnidadesTitulares)
@@ -278,7 +286,13 @@ export class UnidadesImportService {
             'preciousd': 'preciousd',
             'precio': 'preciousd',
             'usdm2': 'usdm2',
-            'usd/m2': 'usdm2'
+            'usd/m2': 'usdm2',
+            'preciom2': 'preciom2',
+            'precio m2': 'preciom2',
+            'precio/m2': 'preciom2',
+            'naturaleza': 'naturaleza',
+            'fechaposesionporboleto': 'fechaposesionporboleto',
+            'fecha posesion por boleto': 'fechaposesionporboleto'
         };
 
         for (const key of Object.keys(row)) {
@@ -309,21 +323,21 @@ export class UnidadesImportService {
         if (cached) return cached;
 
         // Try to find by nombreApellido
-        const existing = await tx.Clientes.findFirst({
-            where: { nombreApellido: cleanName }
+        const existing = await tx.clientes.findFirst({
+            where: { NombreApellido: cleanName }
         });
 
         if (existing) {
-            cache.set(cacheKey, existing.id);
-            return existing.id;
+            cache.set(cacheKey, existing.Id);
+            return existing.Id;
         }
 
         // Create new cliente
-        const created = await tx.Clientes.create({
-            data: { nombreApellido: cleanName }
+        const created = await tx.clientes.create({
+            data: { NombreApellido: cleanName }
         });
-        cache.set(cacheKey, created.id);
-        return created.id;
+        cache.set(cacheKey, created.Id);
+        return created.Id;
     }
 
     // Process comma-separated ClienteTitular field
@@ -342,19 +356,19 @@ export class UnidadesImportService {
         const porcentaje = 100 / nombres.length;
 
         // First, delete existing ClientesUnidadesTitulares for this unit
-        await tx.ClientesUnidadesTitulares.deleteMany({
-            where: { idUnidad: unidadId }
+        await tx.clientesUnidadesTitulares.deleteMany({
+            where: { IdUnidad: unidadId }
         });
 
         // Create/resolve each cliente and link to unit
         for (const nombre of nombres) {
             const clienteId = await this.resolveCliente(tx, nombre, cache);
             if (clienteId) {
-                await tx.ClientesUnidadesTitulares.create({
+                await tx.clientesUnidadesTitulares.create({
                     data: {
-                        idCliente: clienteId,
-                        idUnidad: unidadId,
-                        porcentaje: porcentaje
+                        IdCliente: clienteId,
+                        IdUnidad: unidadId,
+                        Porcentaje: porcentaje
                     }
                 });
             }
@@ -371,12 +385,12 @@ export class UnidadesImportService {
         if (cached) return cached;
 
         const existing = await tx.unidades.findUnique({
-            where: { sectorid: cleanSectorId }
+            where: { SectorId: cleanSectorId }
         });
 
         if (existing) {
-            cache.set(cacheKey, existing.id);
-            return existing.id;
+            cache.set(cacheKey, existing.Id);
+            return existing.Id;
         }
 
         return null; // Unit doesn't exist yet
@@ -385,31 +399,73 @@ export class UnidadesImportService {
     private async resolveProyecto(tx: any, row: any, cache: Map<string, string>): Promise<string> {
         const proyNombre = row.proyecto;
         if (!proyNombre) throw new Error('Nombre de proyecto es requerido');
+
+        // Resolve Naturaleza if provided
+        const naturalezaId = await this.resolveNaturaleza(tx, row.naturaleza, cache);
+
         const cacheKey = `proyectos:${proyNombre}`;
         const cached = cache.get(cacheKey);
-        if (cached) return cached;
-
-        const existing = await tx.proyectos.findUnique({ where: { nombre: proyNombre } });
-        if (existing) {
-            cache.set(cacheKey, existing.id);
-            return existing.id;
+        if (cached) {
+            // Even if cached, check if we need to update nature
+            if (naturalezaId) {
+                await tx.proyectos.update({
+                    where: { Id: cached },
+                    data: { Naturaleza: naturalezaId }
+                });
+            }
+            return cached;
         }
 
-        // Get or create default naturaleza
-        let naturalezaId: string | undefined;
-        const defaultNat = await tx.naturalezas.findFirst({ where: { nombre: 'Residencial' } });
-        if (defaultNat) naturalezaId = defaultNat.id;
+        const existing = await tx.proyectos.findUnique({ where: { Nombre: proyNombre } });
+        if (existing) {
+            if (naturalezaId && existing.Naturaleza !== naturalezaId) {
+                console.log(`Updating naturaleza for project ${proyNombre}`);
+                await tx.proyectos.update({
+                    where: { Id: existing.Id },
+                    data: { Naturaleza: naturalezaId }
+                });
+            }
+            cache.set(cacheKey, existing.Id);
+            return existing.Id;
+        }
+
+        // Get or create default naturaleza (only if not provided in row)
+        let finalNaturalezaId = naturalezaId;
+        if (!finalNaturalezaId) {
+            const defaultNat = await tx.naturalezas.findFirst({ where: { Nombre: 'Residencial' } });
+            if (defaultNat) finalNaturalezaId = defaultNat.Id;
+        }
 
         const created = await tx.proyectos.create({
             data: {
-                nombre: proyNombre,
-                tabla_nombre: proyNombre.toLowerCase().replaceAll(' ', '_'),
-                naturaleza: naturalezaId,
-                id_org: null // Explicitly null to avoid FK constraint error
+                Nombre: proyNombre,
+                TablaNombre: proyNombre.toLowerCase().replaceAll(' ', '_'),
+                Naturaleza: finalNaturalezaId,
+                IdOrg: null
             }
         });
-        cache.set(cacheKey, created.id);
-        return created.id;
+        cache.set(cacheKey, created.Id);
+        return created.Id;
+    }
+
+    private async resolveNaturaleza(tx: any, naturalezaName: any, cache: Map<string, string>): Promise<string | undefined> {
+        if (!naturalezaName) return undefined;
+
+        const natName = String(naturalezaName).trim();
+        const natCacheKey = `naturaleza:${natName}`;
+        const cachedNat = cache.get(natCacheKey);
+        if (cachedNat) return cachedNat;
+
+        let naturalezaId: string;
+        const existingNat = await tx.naturalezas.findFirst({ where: { Nombre: natName } });
+        if (existingNat) {
+            naturalezaId = existingNat.Id;
+        } else {
+            const newNat = await tx.naturalezas.create({ data: { Nombre: natName } });
+            naturalezaId = newNat.Id;
+        }
+        cache.set(natCacheKey, naturalezaId);
+        return naturalezaId;
     }
 
     private async resolveEdificio(tx: any, row: any, proyectoId: string, cache: Map<string, string>): Promise<string> {
@@ -419,18 +475,18 @@ export class UnidadesImportService {
         if (cached) return cached;
 
         const existing = await tx.edificios.findFirst({
-            where: { nombreedificio: nombre, proyecto_id: proyectoId }
+            where: { NombreEdificio: nombre, ProyectoId: proyectoId }
         });
         if (existing) {
-            cache.set(cacheKey, existing.id);
-            return existing.id;
+            cache.set(cacheKey, existing.Id);
+            return existing.Id;
         }
 
         const created = await tx.edificios.create({
-            data: { nombreedificio: nombre, proyecto_id: proyectoId }
+            data: { NombreEdificio: nombre, ProyectoId: proyectoId }
         });
-        cache.set(cacheKey, created.id);
-        return created.id;
+        cache.set(cacheKey, created.Id);
+        return created.Id;
     }
 
     private async resolveCatalogo(tx: any, table: string, field: string, value: string | number, cache: Map<string, string>): Promise<string | null> {
@@ -442,11 +498,11 @@ export class UnidadesImportService {
 
         const existing = await tx[table].findFirst({ where: { [field]: stringValue } });
         if (existing) {
-            cache.set(cacheKey, existing.id);
-            return existing.id;
+            cache.set(cacheKey, existing.Id);
+            return existing.Id;
         }
         const created = await tx[table].create({ data: { [field]: stringValue } });
-        cache.set(cacheKey, created.id);
+        cache.set(cacheKey, created.Id);
         return created.id;
     }
 
@@ -470,22 +526,22 @@ export class UnidadesImportService {
 
     private async upsertMetrics(tx: any, unidadId: string, row: any, patioId: string | null) {
         const data = {
-            m2cubiertos: this.parseNumber(row.m2cubierto),
-            m2semicubiertos: this.parseNumber(row.m2semicubierto),
-            m2exclusivos: this.parseNumber(row.m2exclusivos),
-            m2patioterraza: this.parseNumber(row.m2patioterraza),
-            m2comunes: this.parseNumber(row.m2comunes),
-            m2totales: this.parseNumber(row.m2totales),
-            m2calculo: this.parseNumber(row.m2totales), // Default to m2totales
-            tipopatio_id: patioId,
-            tamano: row.tamano
+            M2Cubierto: this.parseNumber(row.m2cubierto),
+            M2Semicubierto: this.parseNumber(row.m2semicubierto),
+            M2Exclusivo: this.parseNumber(row.m2exclusivos),
+            M2PatioTerraza: this.parseNumber(row.m2patioterraza),
+            M2Comun: this.parseNumber(row.m2comunes),
+            M2Total: this.parseNumber(row.m2totales),
+            M2Calculo: this.parseNumber(row.m2totales), // Default to m2totales
+            TipoPatioId: patioId,
+            Tamano: row.tamano
         };
 
-        const existing = await tx.unidadesmetricas.findUnique({ where: { unidad_id: unidadId } });
+        const existing = await tx.unidadesMetricas.findUnique({ where: { UnidadId: unidadId } });
         if (existing) {
-            await tx.unidadesmetricas.update({ where: { unidad_id: unidadId }, data });
+            await tx.unidadesMetricas.update({ where: { UnidadId: unidadId }, data });
         } else {
-            await tx.unidadesmetricas.create({ data: { ...data, unidad_id: unidadId } });
+            await tx.unidadesMetricas.create({ data: { ...data, UnidadId: unidadId } });
         }
     }
 
@@ -504,30 +560,33 @@ export class UnidadesImportService {
             fechaFirmaBoleto: Date | null;
             fechaPisada: Date | null;
             fechaPosesion: Date | null;
+            fechaPosesionPorBoleto: Date | null;
         }
     ) {
         const data = {
-            preciousd: this.parseNumber(row.preciousd),
-            usdm2: this.parseNumber(row.usdm2),
-            estado_id: ids.estadoId,
-            comercial_id: ids.comercialId,
-            tipocochera_id: ids.tipoCocheraId,
-            motivonodisp_id: ids.motivoNodispId,
-            clienteInteresado: ids.clienteInteresadoId,
-            unidadcomprador_id: ids.unidadCompradorId,
-            fechareserva: ids.fechaReserva,
-            fechafirmaboleto: ids.fechaFirmaBoleto,
-            fechapisada: ids.fechaPisada,
-            fechaposesion: ids.fechaPosesion,
-            titular: row.titular,
-            obs: row.observaciones
+            PrecioUsd: this.parseNumber(row.preciousd),
+            UsdM2: this.parseNumber(row.usdm2),
+            EstadoId: ids.estadoId,
+            ComercialId: ids.comercialId,
+            TipoCocheraId: ids.tipoCocheraId,
+            MotivoNoDispId: ids.motivoNodispId,
+            ClienteInteresado: ids.clienteInteresadoId,
+            UnidadCompradorId: ids.unidadCompradorId,
+            FechaReserva: ids.fechaReserva,
+            FechaFirmaBoleto: ids.fechaFirmaBoleto,
+            FechaPisada: ids.fechaPisada,
+            FechaPosesion: ids.fechaPosesion,
+            FechaPosesionPorBoleto: ids.fechaPosesionPorBoleto,
+            PrecioM2: this.parseNumber(row.preciom2),
+            Titular: row.titular,
+            Obs: row.observaciones
         };
 
-        const existing = await tx.detallesventa.findUnique({ where: { unidad_id: unidadId } });
+        const existing = await tx.detallesVenta.findUnique({ where: { UnidadId: unidadId } });
         if (existing) {
-            await tx.detallesventa.update({ where: { unidad_id: unidadId }, data });
+            await tx.detallesVenta.update({ where: { UnidadId: unidadId }, data });
         } else {
-            await tx.detallesventa.create({ data: { ...data, unidad_id: unidadId } });
+            await tx.detallesVenta.create({ data: { ...data, UnidadId: unidadId } });
         }
     }
 

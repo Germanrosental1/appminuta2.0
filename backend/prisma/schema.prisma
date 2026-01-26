@@ -546,6 +546,8 @@ model DetallesVenta {
   Titular                                            String?
   FechaPisada                                        DateTime?        @db.Date
   ClienteInteresado                                  String?          @db.Uuid
+  FechaPosesionPorBoleto                             DateTime?        @db.Date
+  PrecioM2                                           Decimal?         @db.Decimal
   Clientes                                           Clientes?        @relation(fields: [ClienteInteresado], references: [Id], map: "detallesventa_clienteInteresado_fkey")
   Comerciales                                        Comerciales?     @relation(fields: [ComercialId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "detallesventa_comercial_id_fkey")
   EstadoComercial                                    EstadoComercial? @relation(fields: [EstadoId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "detallesventa_estado_id_fkey")
@@ -732,9 +734,9 @@ model Proyectos {
   Organizaciones       Organizaciones?        @relation(fields: [IdOrg], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "proyectos_id_org_fkey")
   Naturalezas          Naturalezas?           @relation(fields: [Naturaleza], references: [Id], onUpdate: NoAction, map: "proyectos_naturaleza_fkey")
   ProyectosTiposUnidad ProyectosTiposUnidad[]
+  SnapshotsStock       SnapshotsStock[]
   UsuariosProyectos    UsuariosProyectos[]
   tablas               tablas[]
-  SnapshotsStock       SnapshotsStock[]
 
   @@index([Activo], map: "idx_proyectos_activo")
   @@schema("public")
@@ -896,6 +898,45 @@ model UsuariosRoles {
   @@schema("public")
 }
 
+model SnapshotsStock {
+  Id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  FechaSnapshot  DateTime                @db.Date
+  TipoSnapshot   String                  @db.VarChar(20)
+  ProyectoId     String?                 @db.Uuid
+  TotalUnidades  Int
+  Disponibles    Int
+  Reservadas     Int
+  Vendidas       Int
+  NoDisponibles  Int
+  ValorStockUSD  Decimal?                @db.Decimal(15, 2)
+  M2TotalesStock Decimal?                @db.Decimal(15, 2)
+  CreatedAt      DateTime?               @default(now()) @db.Timestamptz(6)
+  Proyecto       Proyectos?              @relation(fields: [ProyectoId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
+  Detalles       SnapshotsStockDetalle[]
+
+  @@index([FechaSnapshot, ProyectoId], map: "idx_snapshots_fecha")
+  @@schema("public")
+}
+
+model SnapshotsStockDetalle {
+  Id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  SnapshotId     String?         @db.Uuid
+  UnidadId       String          @db.Uuid
+  SectorId       String?         @db.VarChar(100)
+  Proyecto       String?         @db.VarChar(200)
+  Tipo           String?         @db.VarChar(100)
+  Estado         String          @db.VarChar(50)
+  PrecioUSD      Decimal?        @db.Decimal(15, 2)
+  UsdM2          Decimal?        @db.Decimal(10, 2)
+  EstadoAnterior String?         @db.VarChar(50)
+  DiasEnEstado   Int?
+  Snapshot       SnapshotsStock? @relation(fields: [SnapshotId], references: [Id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([SnapshotId], map: "idx_detalle_snapshot")
+  @@index([UnidadId], map: "idx_detalle_unidad")
+  @@schema("public")
+}
+
 enum aal_level {
   aal1
   aal2
@@ -964,46 +1005,4 @@ enum one_time_token_type {
   phone_change_token
 
   @@schema("auth")
-}
-
-// Stock History Models
-model SnapshotsStock {
-  Id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  FechaSnapshot   DateTime                 @db.Date
-  TipoSnapshot    String                   @db.VarChar(20) // DIARIO, MENSUAL
-  ProyectoId      String?                  @db.Uuid
-  TotalUnidades   Int
-  Disponibles     Int
-  Reservadas      Int
-  Vendidas        Int
-  NoDisponibles   Int
-  ValorStockUSD   Decimal?                 @db.Decimal(15, 2)
-  M2TotalesStock  Decimal?                 @db.Decimal(15, 2)
-  CreatedAt       DateTime                 @default(now()) @db.Timestamptz(6)
-
-  Proyecto        Proyectos?               @relation(fields: [ProyectoId], references: [Id])
-  Detalles        SnapshotsStockDetalle[]
-
-  @@index([FechaSnapshot, ProyectoId])
-  @@schema("public")
-}
-
-model SnapshotsStockDetalle {
-  Id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  SnapshotId      String          @db.Uuid
-  UnidadId        String          @db.Uuid
-  SectorId        String?         @db.VarChar(100)
-  Proyecto        String?         @db.VarChar(200)
-  Tipo            String?         @db.VarChar(100)
-  Estado          String          @db.VarChar(50)
-  PrecioUSD       Decimal?        @db.Decimal(15, 2)
-  UsdM2           Decimal?        @db.Decimal(10, 2)
-  EstadoAnterior  String?         @db.VarChar(50)
-  DiasEnEstado    Int?
-
-  Snapshot        SnapshotsStock  @relation(fields: [SnapshotId], references: [Id], onDelete: Cascade)
-
-  @@index([SnapshotId])
-  @@index([UnidadId])
-  @@schema("public")
 }
