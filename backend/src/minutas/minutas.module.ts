@@ -5,6 +5,7 @@ import { MinutasController } from './minutas.controller';
 import { MinutasGateway } from './minutas.gateway';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UsuariosRolesModule } from '../shared/iam/usuarios-roles/usuarios-roles.module';
+import { AuthorizationModule } from '../auth/authorization/authorization.module'; // 🔒 Import AuthorizationModule
 import { PrismaMinutasRepository } from './repositories/prisma-minutas.repository';
 import { DocumentGenerationService } from './services/document-generation/document-generation.service';
 import { N8nDocumentGenerator } from './services/document-generation/n8n-generator.service';
@@ -15,6 +16,7 @@ import { LoggerModule } from '../logger/logger.module';
   imports: [
     PrismaModule,
     UsuariosRolesModule,
+    AuthorizationModule, // 🔒 Import AuthorizationModule
     JwtModule.register({
       secret: process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET,
     }),

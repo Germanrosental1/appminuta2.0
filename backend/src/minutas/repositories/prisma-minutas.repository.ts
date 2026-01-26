@@ -151,27 +151,11 @@ export class PrismaMinutasRepository implements IMinutasRepository {
         const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
 
         // Permission-based filtering
-        const canViewAll = userPermissions.includes('verTodasMinutas');
-
-        if (canViewAll) {
-            if (query.proyecto) {
-                where.Proyecto = query.proyecto;
-            }
-        } else {
-            if (userProjectIds.length === 0) {
-                return { data: [], total: 0, page, limit, totalPages: 0 };
-            }
-
-            if (query.proyecto) {
-                if (userProjectIds.includes(query.proyecto)) {
-                    where.Proyecto = query.proyecto;
-                } else {
-                    return { data: [], total: 0, page, limit, totalPages: 0 };
-                }
-            } else {
-                where.Proyecto = { in: userProjectIds };
-            }
+        const permissionWhere = this._buildPermissionsWhere(userPermissions, userProjectIds, query.proyecto);
+        if (!permissionWhere) {
+            return { data: [], total: 0, page, limit, totalPages: 0 };
         }
+        Object.assign(where, permissionWhere);
 
         // Additional filters
         if (query.usuario_id) where.UsuarioId = query.usuario_id;
@@ -179,25 +163,7 @@ export class PrismaMinutasRepository implements IMinutasRepository {
 
         // Date filters
         if (query.fechaDesde || query.fechaHasta) {
-            const fechaFilter: Record<string, Date> = {};
-
-            if (query.fechaDesde) {
-                const fecha = new Date(query.fechaDesde);
-                if (Number.isNaN(fecha.getTime())) {
-                    throw new BadRequestException('fechaDesde inválida');
-                }
-                fechaFilter.gte = fecha;
-            }
-
-            if (query.fechaHasta) {
-                const fecha = new Date(query.fechaHasta);
-                if (Number.isNaN(fecha.getTime())) {
-                    throw new BadRequestException('fechaHasta inválida');
-                }
-                fechaFilter.lte = fecha;
-            }
-
-            where.FechaCreacion = fechaFilter;
+            where.FechaCreacion = this._buildDateWhere(query.fechaDesde, query.fechaHasta);
         }
 
         // Execute queries in parallel
@@ -242,5 +208,51 @@ export class PrismaMinutasRepository implements IMinutasRepository {
             orderBy: { FechaCreacion: 'desc' },
         });
         return result as unknown as MinutaEntity[];
+    }
+
+    private _buildPermissionsWhere(
+        userPermissions: string[],
+        userProjectIds: string[],
+        requestedProject?: string
+    ): Record<string, unknown> | null {
+        const canViewAll = userPermissions.includes('verTodasMinutas');
+
+        if (canViewAll) {
+            return requestedProject ? { Proyecto: requestedProject } : {};
+        }
+
+        if (userProjectIds.length === 0) {
+            return null; // No access to any projects
+        }
+
+        if (requestedProject) {
+            return userProjectIds.includes(requestedProject)
+                ? { Proyecto: requestedProject }
+                : null; // Access denied to requested project
+        }
+
+        return { Proyecto: { in: userProjectIds } };
+    }
+
+    private _buildDateWhere(fechaDesde?: string, fechaHasta?: string): Record<string, Date> {
+        const fechaFilter: Record<string, Date> = {};
+
+        if (fechaDesde) {
+            const fecha = new Date(fechaDesde);
+            if (Number.isNaN(fecha.getTime())) {
+                throw new BadRequestException('fechaDesde inválida');
+            }
+            fechaFilter.gte = fecha;
+        }
+
+        if (fechaHasta) {
+            const fecha = new Date(fechaHasta);
+            if (Number.isNaN(fecha.getTime())) {
+                throw new BadRequestException('fechaHasta inválida');
+            }
+            fechaFilter.lte = fecha;
+        }
+
+        return fechaFilter;
     }
 }
