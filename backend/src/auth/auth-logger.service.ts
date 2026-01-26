@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthEventType } from './dto/log-auth-event.dto';
 import { LoggerService } from '../logger/logger.service';
+import { maskEmail } from '../common/sanitize.helper';
 
 @Injectable()
 export class AuthLoggerService {
@@ -25,7 +26,7 @@ export class AuthLoggerService {
             await this.prisma.authLogs.create({
                 data: {
                     UserId: userId,
-                    Email: email,
+                    Email: maskEmail(email || 'unknown'),
                     EventType: eventType,
                     Timestamp: new Date(),
                     Detail: details ? structuredClone(details) : null,
@@ -33,7 +34,7 @@ export class AuthLoggerService {
                 },
             });
 
-            // 📝 AUDIT LOG para cambios de contraseña
+            // AUDIT LOG para cambios de contraseña
             if (eventType === AuthEventType.PASSWORD_CHANGED) {
                 await this.logger.agregarLog({
                     motivo: 'Cambio de Contraseña',

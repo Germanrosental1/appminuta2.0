@@ -1,3 +1,4 @@
+
 import * as sanitizeHtml from 'sanitize-html';
 
 /**
@@ -91,4 +92,32 @@ export function sanitizeHTML(html: string): string {
         allowedSchemesByTag: {},
         allowProtocolRelative: false,
     });
+}
+
+/**
+ * Enmascara un email para logs (e.g. j***@gmail.com)
+ */
+export function maskEmail(email: string): string {
+    if (!email || typeof email !== 'string') return 'unknown';
+
+    const [user, domain] = email.split('@');
+    if (!domain) return '***'; // No es un email válido
+
+    const maskedUser = user.length > 2
+        ? `${user.substring(0, 2)}***` // ju***
+        : `${user.substring(0, 1)}***`; // j***
+
+    return `${maskedUser}@${domain}`;
+}
+
+/**
+ * Enmascara datos sensibles generales (Nombre, Teléfono, DNI)
+ * Mantiene los primeros 2 caracteres visibles si es posible
+ */
+export function maskPII(value: string | number | null | undefined): string {
+    if (!value) return '';
+    const str = String(value);
+
+    if (str.length <= 4) return '****';
+    return `${str.substring(0, 2)}****${str.substring(str.length - 2)}`; // 12****34
 }

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
  * Service for making authenticated requests to the NestJS backend
  */
 class BackendAPI {
-    private baseURL: string;
+    private readonly baseURL: string;
 
     constructor() {
         this.baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
@@ -101,7 +101,22 @@ class BackendAPI {
             }
 
             const projects = await response.json();
-            return projects;
+
+            // Transform PascalCase keys from backend to camelCase for frontend
+            return projects.map((p: any) => ({
+                id: p.Id,
+                nombre: p.Nombre,
+                descripcion: p.Descripcion,
+                naturaleza: p.Naturaleza,
+                direccion: p.Direccion,
+                localidad: p.Localidad,
+                provincia: p.Provincia,
+                activo: p.Activo,
+                iva: p.Iva,
+                idOrg: p.IdOrg,
+                createdAt: p.CreatedAt,
+                organizacion: p.organizacion, // Already transformed by backend
+            }));
         } catch (error) {
             console.error('Error fetching user projects:', error);
             throw error;

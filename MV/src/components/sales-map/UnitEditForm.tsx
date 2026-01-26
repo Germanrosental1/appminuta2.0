@@ -18,9 +18,9 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 interface UnitEditFormProps {
-  unitId?: string;
-  onSaved: (unit: Unit) => void;
-  onCancel: () => void;
+  readonly unitId?: string;
+  readonly onSaved: (unit: Unit) => void;
+  readonly onCancel: () => void;
 }
 
 type AdjustMode = 'none' | 'PERCENTAGE_TOTAL' | 'PERCENTAGE_M2' | 'FIXED_TOTAL' | 'FIXED_M2';
@@ -34,7 +34,7 @@ export function UnitEditForm({ unitId, onSaved, onCancel }: UnitEditFormProps) {
   const [adjustMode, setAdjustMode] = useState<AdjustMode>('none');
   const [adjustValue, setAdjustValue] = useState<number>(0);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<Unit>();
+  const { register, handleSubmit, setValue, watch } = useForm<Unit>();
 
   // Observar el estado para mostrar/ocultar el campo de motivo y precios actuales
   const estadoValue = watch('estado');
