@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, FileText, BarChart3, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FileText, BarChart3, Loader2 } from 'lucide-react';
 import { DocumentsTab } from '@/components/client/DocumentsTab';
 import { AnalysisTab } from '@/components/client/AnalysisTab';
 import { AnalysisList } from '@/components/client/AnalysisList';
@@ -35,25 +35,22 @@ export default function ClientDetailPage() {
     try {
       if (!id) return;
 
-      // 1. Fetch Client
-      const clientData = await uifApi.clients.get(id);
+      // Parallel fetching for better performance
+      const [clientData, analysesData, docsData] = await Promise.all([
+        uifApi.clients.get(id),
+        uifApi.analyses.list(id).catch((e) => {
+          console.warn('Could not fetch analyses', e);
+          return [];
+        }),
+        uifApi.documents.list(id).catch((e) => {
+          console.warn('Could not fetch documents', e);
+          return [];
+        }),
+      ]);
+
       setClient(clientData);
-
-      // 2. Fetch Analyses
-      try {
-        const analysesData = await uifApi.analyses.list(id);
-        setAnalyses(analysesData || []);
-      } catch (error) {
-        console.warn('Could not fetch analyses', error);
-      }
-
-      // 3. Fetch Documents (All)
-      try {
-        const docsData = await uifApi.documents.list(id);
-        setDocuments(docsData || []);
-      } catch (error) {
-        console.warn('Could not fetch documents', error);
-      }
+      setAnalyses(analysesData || []);
+      setDocuments(docsData || []);
 
     } catch (error: any) {
       console.error(error);
@@ -125,7 +122,7 @@ export default function ClientDetailPage() {
               setSelectedAnalysisId(null);
             } else {
               // Navigate back to home
-              window.history.back(); // Or use navigate('/')
+              globalThis.history.back(); // Or use navigate('/')
             }
           }}>
             <ArrowLeft className="h-4 w-4" />

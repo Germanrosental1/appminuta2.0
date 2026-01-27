@@ -15,7 +15,17 @@ export class UifAnalysesService {
         return this.prisma.analyses.findMany({
             where: { client_id: clientId },
             include: {
-                documents: { orderBy: { created_at: 'desc' } },
+                documents: {
+                    select: {
+                        id: true,
+                        doc_type: true,
+                        original_filename: true,
+                        status: true,
+                        created_at: true,
+                        // Omit extracted_data and reviewed_data for performance
+                    },
+                    orderBy: { created_at: 'desc' },
+                },
             },
             orderBy: { created_at: 'desc' },
         });

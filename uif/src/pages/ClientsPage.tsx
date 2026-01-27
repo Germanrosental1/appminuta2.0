@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { uifApi } from '@/lib/api-client';
@@ -33,12 +33,21 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientCuit, setNewClientCuit] = useState('');
   const [newClientType, setNewClientType] = useState<PersonType>('PF');
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     fetchClients();
@@ -113,11 +122,14 @@ export default function ClientsPage() {
     }
   };
 
-  const filteredClients = clients.filter(
-    (client) =>
-      client.name.toLowerCase().includes(search.toLowerCase()) ||
-      (client.cuit && client.cuit.includes(search))
-  );
+  // Memoized filtered clients for better performance
+  const filteredClients = useMemo(() => {
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (client.cuit?.includes(debouncedSearch))
+    );
+  }, [clients, debouncedSearch]);
 
   return (
     <div className="space-y-6 animate-in">

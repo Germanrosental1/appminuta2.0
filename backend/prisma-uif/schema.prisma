@@ -46,6 +46,11 @@ model documents {
   client            clients   @relation(fields: [client_id], references: [id], onDelete: Cascade)
   analysis          analyses? @relation(fields: [analysis_id], references: [id], onDelete: SetNull)
 
+  // Performance indexes
+  @@index([client_id])
+  @@index([analysis_id])
+  @@index([client_id, status])
+
   @@schema("public")
 }
 
@@ -61,6 +66,9 @@ model analyses {
   
   client            clients     @relation(fields: [client_id], references: [id], onDelete: Cascade)
   documents         documents[]
+
+  // Performance index
+  @@index([client_id])
 
   @@schema("public")
 }

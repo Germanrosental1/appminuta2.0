@@ -80,7 +80,18 @@ export class UifClientsService {
     ) { }
 
     async findAll() {
+        // Only select essential fields for list view (exclude large JSON objects)
         return this.prisma.clients.findMany({
+            select: {
+                id: true,
+                name: true,
+                cuit: true,
+                status: true,
+                person_type: true,
+                created_at: true,
+                updated_at: true,
+                // Omit financial_data and analysis_settings for performance
+            },
             orderBy: { updated_at: 'desc' },
         });
     }
