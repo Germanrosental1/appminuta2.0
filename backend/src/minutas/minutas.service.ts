@@ -789,8 +789,24 @@ export class MinutasService {
       throw new Error(`Error generating document: ${response.statusText}`);
     }
 
+    // 🔒 SEGURIDAD: Validar Content-Length si existe
+    const contentLength = response.headers.get('content-length');
+    const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50MB Limit
+
+    if (contentLength && parseInt(contentLength) > MAX_SIZE_BYTES) {
+      throw new BadRequestException('El documento generado excede el límite de tamaño permitido (50MB).');
+    }
+
     const contentType = response.headers.get('content-type') || 'application/pdf';
-    const buffer = Buffer.from(await response.arrayBuffer());
+    
+    // Obtener buffer con límite de tamaño
+    const arrayBuffer = await response.arrayBuffer();
+    
+    if (arrayBuffer.byteLength > MAX_SIZE_BYTES) {
+       throw new BadRequestException('El documento generado excede el límite de tamaño permitido (50MB).');
+    }
+
+    const buffer = Buffer.from(arrayBuffer);
 
     return { buffer, contentType };
   }
