@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+  :root {
+    /* Corporate Navy Fintech Theme */
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary: Deep Navy */
+    --primary: 222 47% 20%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary: Soft Blue-Gray */
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 20% 45%;
+
+    /* Accent: Vibrant Blue */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 86%;
+    --input: 214 32% 86%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.625rem;
+
+    /* Status Colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    /* Analysis Dashboard Colors */
+    --score-excellent: 142 71% 45%;
+    --score-good: 160 64% 43%;
+    --score-acceptable: 38 92% 50%;
+    --score-risk: 25 95% 53%;
+    --score-insolvent: 0 84% 60%;
+
+    /* Card Accents */
+    --card-income: 217 91% 60%;
+    --card-patrimony: 262 83% 58%;
+    --card-simulator: 38 92% 50%;
+    --card-result: 199 89% 48%;
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 214 32% 91%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 18%;
+    --sidebar-accent-foreground: 214 32% 91%;
+    --sidebar-border: 222 47% 18%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(222 47% 20%), hsl(217 91% 40%));
+    --gradient-accent: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%));
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(160 64% 43%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(25 95% 53%));
+    --gradient-danger: linear-gradient(135deg, hsl(0 84% 60%), hsl(350 89% 50%));
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 222 47% 16%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 47% 16%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 47% 18%;
+    --input: 222 47% 18%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 214 32% 91%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 12%;
+    --sidebar-accent-foreground: 214 32% 91%;
+    --sidebar-border: 222 47% 12%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .card-income {
+    @apply border-l-4 border-l-[hsl(var(--card-income))];
+  }
+
+  .card-patrimony {
+    @apply border-l-4 border-l-[hsl(var(--card-patrimony))];
+  }
+
+  .card-simulator {
+    @apply bg-[hsl(38_92%_50%/0.08)] border-[hsl(var(--card-simulator))];
+  }
+
+  .card-result {
+    @apply bg-[hsl(199_89%_48%/0.08)] border-[hsl(var(--card-result))];
+  }
+
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .status-pendiente {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .status-procesando {
+    @apply bg-[hsl(var(--info)/0.15)] text-[hsl(var(--info))];
+  }
+
+  .status-listo {
+    @apply bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))];
+  }
+
+  .status-validado {
+    @apply bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))];
+  }
+
+  .status-error {
+    @apply bg-destructive/15 text-destructive;
+  }
+
+  .score-excellent {
+    @apply text-[hsl(var(--score-excellent))];
+  }
+
+  .score-good {
+    @apply text-[hsl(var(--score-good))];
+  }
+
+  .score-acceptable {
+    @apply text-[hsl(var(--score-acceptable))];
+  }
+
+  .score-risk {
+    @apply text-[hsl(var(--score-risk))];
+  }
+
+  .score-insolvent {
+    @apply text-[hsl(var(--score-insolvent))];
+  }
+
+  .input-currency {
+    @apply font-mono tabular-nums;
+  }
+
+  .analysis-card {
+    @apply bg-card rounded-lg border shadow-sm overflow-hidden transition-shadow hover:shadow-md;
+  }
+
+  .analysis-card-header {
+    @apply px-4 py-3 border-b bg-muted/30 flex items-center justify-between;
+  }
+
+  .analysis-card-body {
+    @apply p-4 space-y-3;
+  }
+
+  .metric-label {
+    @apply text-xs text-muted-foreground uppercase tracking-wider;
+  }
+
+  .metric-value {
+    @apply text-lg font-semibold font-mono tabular-nums;
+  }
+
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors;
+  }
+
+  .sidebar-nav-item.active {
+    @apply bg-sidebar-accent text-sidebar-foreground;
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: animateIn 0.3s ease-out forwards;
+  }
+
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-pulse-subtle {
+    animation: pulseSubtle 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseSubtle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .glass {
+    @apply bg-card/80 backdrop-blur-sm;
+  }
+}

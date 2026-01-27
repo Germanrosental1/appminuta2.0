@@ -1,0 +1,617 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "uif-pf",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -1328,
+                1072
+            ],
+            "id": "fe6b9f12-d5b3-4b62-acc3-bb2c73db690e",
+            "name": "Webhook",
+            "webhookId": "d81b8f1d-5024-4b1e-8ade-213fbdab2b29"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.body.document_url }}",
+                "options": {
+                    "redirect": {
+                        "redirect": {}
+                    },
+                    "response": {
+                        "response": {
+                            "responseFormat": "file",
+                            "outputPropertyName": "data0"
+                        }
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                -1056,
+                1072
+            ],
+            "id": "b13cac3e-20a7-4296-af1b-7af907473275",
+            "name": "Download Document1"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 2
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $('Download Document1').item.binary.data0.mimeType }}",
+                                        "rightValue": "pdf",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        },
+                                        "id": "e6bf961d-a58e-4010-aa97-17145c8199a4"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "PDF"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 2
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "c68c1636-ef88-4a02-a779-f3c93756ec93",
+                                        "leftValue": "={{ $('Download Document1').item.binary.data0.mimeType }}",
+                                        "rightValue": "image",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Image"
+                        }
+                    ]
+                },
+                "options": {
+                    "fallbackOutput": "extra"
+                }
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.2,
+            "position": [
+                -832,
+                1056
+            ],
+            "id": "2e385940-e56f-4c11-8c9d-ea677fc61117",
+            "name": "Detect File Type1"
+        },
+        {
+            "parameters": {
+                "operation": "pdf",
+                "binaryPropertyName": "data0",
+                "options": {
+                    "keepSource": "both"
+                }
+            },
+            "type": "n8n-nodes-base.extractFromFile",
+            "typeVersion": 1,
+            "position": [
+                -544,
+                896
+            ],
+            "id": "5ba36bc3-7588-4e7f-9ee4-3f4de91c3a6d",
+            "name": "Extract PDF Text1"
+        },
+        {
+            "parameters": {
+                "resource": "image",
+                "operation": "analyze",
+                "modelId": {
+                    "__rl": true,
+                    "value": "models/gemini-2.5-flash",
+                    "mode": "list"
+                },
+                "text": "Extraé TODO el texto visible de esta imagen. Devolvé el resultado en formato JSON con la estructura:\n{\n  \"text\": \"todo el texto extraído\",\n  \"is_readable\": true/false,\n  \"document_quality\": \"buena/regular/mala\"\n}",
+                "inputType": "binary",
+                "binaryPropertyName": "data0",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.googleGemini",
+            "typeVersion": 1,
+            "position": [
+                -544,
+                1216
+            ],
+            "id": "67573322-5d53-460e-a8b7-62f5bd14fc55",
+            "name": "OCR Image (Gemini Vision)1",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "YowjXhsouhFjYbhD",
+                    "name": "Google Gemini(PaLM) Api account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Normaliza el output de imagen a texto plano\nconst item = $input.first();\ntry {\n  const raw = item.json.content?.parts?.[0]?.text || item.json.text || '';\n  const cleaned = raw.replace(/^```(json)?\\s*/i, '').replace(/\\s*```$/, '');\n  const parsed = JSON.parse(cleaned);\n  \n  return [{\n    json: {\n      text: parsed.text || '',\n      is_readable: parsed.is_readable ?? true,\n      document_quality: parsed.document_quality || 'regular',\n      source: 'image_ocr'\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      text: item.json.content?.parts?.[0]?.text || '',\n      is_readable: true,\n      document_quality: 'unknown',\n      source: 'image_ocr_fallback'\n    }\n  }];\n}"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -320,
+                1216
+            ],
+            "id": "ff3aea75-66ee-479e-8abc-7976c4a9114c",
+            "name": "Parse OCR Output1"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Normaliza el output de PDF a la misma estructura\nconst item = $input.first();\nreturn [{\n  json: {\n    text: item.json.text || '',\n    is_readable: (item.json.text?.length || 0) > 50,\n    document_quality: (item.json.text?.length || 0) > 500 ? 'buena' : 'regular',\n    source: 'pdf_extract'\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -320,
+                896
+            ],
+            "id": "5051b7fa-1ec2-4578-999d-a18251e76676",
+            "name": "Parse PDF Output1"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "id": "check-readable",
+                            "leftValue": "={{ $json.is_readable }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                128,
+                1056
+            ],
+            "id": "fcabcf18-9cbe-4d59-9ba0-4227ae158413",
+            "name": "Is Document Readable?1"
+        },
+        {
+            "parameters": {
+                "jsCode": "// TABLA DE PROMPTS DINÁMICOS - Centralizada y versionable\nconst EXTRACTORS = {\n  'BienesPersonales': {\n    systemPrompt: `Sos un analista contable experto. Extraé los datos de esta Declaración Jurada de Bienes Personales.\n\nDatos a extraer:\n- Año fiscal\n- Fecha de presentación\n- Efectivo en el país (Pesos)\n- Efectivo en el exterior\n- Bienes exentos o no alcanzados\n\nSi un valor no aparece, poné 0.`,\n    outputSchema: {\n      anio_fiscal: 'string',\n      fecha_declaracion_jurada: 'string',\n      efectivo_pais: 'number',\n      efectivo_exterior: 'number',\n      exento_no_alcanzado: 'number'\n    }\n  },\n  'ReciboHaberes': {\n    systemPrompt: `Extraé el sueldo neto a cobrar de este recibo de haberes.`,\n    outputSchema: { sueldo_neto: 'number' }\n  },\n  'CertificacionContable': {\n    systemPrompt: `Extraé el monto total certificado de esta certificación contable.`,\n    outputSchema: { certificacion_firmada: 'number' }\n  },\n  'Ganancias': {\n    systemPrompt: `Extraé de esta DDJJ de Ganancias:\n- Año fiscal\n- Fecha de presentación\n- Resultado de cada categoría (1ra, 2da acciones, 2da instrumentos, 2da dividendos, 3ra, 4ta)\n- Monto consumido (de Justificación Patrimonial)\n\nSi un valor es negativo, incluiló con signo menos. Si no aparece, poné 0.`,\n    outputSchema: {\n      anio_fiscal: 'string',\n      fecha_declaracion_jurada: 'string',\n      primera_cat: 'number',\n      segunda_cat_acciones: 'number',\n      segunda_cat_instrumentos: 'number',\n      segunda_cat_dividendos: 'number',\n      tercera_cat: 'number',\n      cuarta_cat: 'number',\n      monto_consumido: 'number'\n    }\n  },\n  'IVA': {\n    systemPrompt: `Extraé de estas declaraciones de IVA:\n- Año fiscal\n- Fecha de la última presentación\n- Lista de débitos fiscales de cada mes (pueden ser de 1 a 12 meses)\n\nDevolvé los débitos como un array de números, un elemento por cada mes encontrado. El array puede tener entre 1 y 12 elementos según cuántos meses haya en el documento.`,\n    outputSchema: {\n      anio_fiscal: 'string',\n      fecha_declaracion_jurada: 'string',\n      debitos_fiscales: 'array'\n    }\n  },\n  'Monotributo': {\n    systemPrompt: `Extraé la categoría de Monotributo (letra A-K).`,\n    outputSchema: { categoria: 'string' }\n  },\n  'Otros': {\n    systemPrompt: `Extraé los montos de:\n- Venta de propiedad (en USD)\n- Contratos de arrendamiento\n- Escrituras/Cesiones/Ventas\n- Blanqueo\n\nSi un campo no aparece, poné 0.`,\n    outputSchema: {\n      venta_propiedad: 'number',\n      arrendamiento: 'number',\n      escrituras_cesiones_ventas: 'number',\n      blanqueo: 'number'\n    }\n  },\n  'EECC': {\n    systemPrompt: `Extraé del Estado Contable/Balance los siguientes datos:\n\nDel ACTIVO:\n- Caja y Bancos (efectivo y equivalentes)\n\nDel PATRIMONIO NETO:\n- Total de Patrimonio Neto\n\nDel ESTADO DE RESULTADOS:\n- Ingresos (ventas, servicios, facturación bruta)\n- Costos (costo de ventas, costo de mercaderías vendidas)\n\nEl Resultado Bruto = Ingresos - Costos. Extraé Ingresos y Costos por separado.\nSi un valor no aparece, poné 0.`,\n    outputSchema: {\n      caja_y_bancos: 'number',\n      patrimonio_neto: 'number',\n      ingresos: 'number',\n      costos: 'number'\n    }\n  },\n  'DNI': {\n    systemPrompt: `Extraé del DNI:\n- Nombre completo\n- Número de documento\n- Fecha de nacimiento (formato YYYY-MM-DD)\n- Sexo`,\n    outputSchema: {\n      nombre_completo: 'string',\n      numero_documento: 'string',\n      fecha_nacimiento: 'string',\n      sexo: 'string'\n    }\n  }\n};\n\n// CAMBIO AQUÍ: Usamos 'Webhook' en lugar de 'Webhook1'\nconst webhookData = $('Webhook').first().json.body;\nconst docType = webhookData.doc_type;\nconst config = EXTRACTORS[docType];\n\nif (!config) {\n  return [{\n    json: {\n      error: true,\n      message: `Tipo de documento no soportado: ${docType}`,\n      doc_type: docType\n    }\n  }];\n}\n\nconst schemaAsExample = JSON.stringify(config.outputSchema, null, 2);\nconst inputText = $input.first().json.text;\n\nreturn [{\n  json: {\n    doc_type: docType,\n    system_prompt: config.systemPrompt,\n    output_schema: config.outputSchema,\n    user_prompt: `${config.systemPrompt}\\n\\nDevolvé SOLO un JSON válido con esta estructura:\\n${schemaAsExample}\\n\\n---\\nDOCUMENTO A ANALIZAR:\\n\\n${inputText}`,\n    document_text: inputText,\n    document_id: webhookData.document_id,\n    original_filename: webhookData.original_filename\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                352,
+                1040
+            ],
+            "id": "cd845ffd-19b0-4e80-81ac-a81f504368aa",
+            "name": "Build Dynamic Prompt1"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.user_prompt }}",
+                "messages": {
+                    "messageValues": [
+                        {
+                            "message": "Sos un experto en análisis de documentos financieros y contables argentinos. Tu tarea es extraer información estructurada de documentos. SIEMPRE respondé con JSON válido, sin explicaciones adicionales."
+                        }
+                    ]
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.6,
+            "position": [
+                576,
+                1040
+            ],
+            "id": "4196d4d4-7f78-427e-83d8-179c9865ef16",
+            "name": "LLM Extractor (Universal)1"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "value": "gpt-5.1",
+                    "mode": "list",
+                    "cachedResultName": "gpt-5.1"
+                },
+                "options": {
+                    "responseFormat": "json_object",
+                    "temperature": 0.1
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.2,
+            "position": [
+                576,
+                1280
+            ],
+            "id": "3f910897-efa1-425a-868b-b777e44a39ac",
+            "name": "OpenAI GPT-5.",
+            "credentials": {
+                "openAiApi": {
+                    "id": "QrcncjfpfCcpR7S4",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parsea y valida el output del LLM\nconst item = $input.first();\nconst prevData = $('Build Dynamic Prompt1').item.json;\n\ntry {\n  let extractedData;\n  const rawText = item.json.text || item.json.output;\n\n  // Si el input ya es el objeto con los datos (como se ve en tu captura)\n  if (!rawText && typeof item.json === 'object') {\n    extractedData = item.json;\n  } else {\n    // Si es un texto, aplicamos la limpieza y el parseo\n    let cleanText = (rawText || '').replace(/^```(json)?\\s*/i, '').replace(/\\s*```$/, '').trim();\n    if (!cleanText) throw new Error(\"El LLM devolvió un resultado vacío o no se encontró el campo 'text'\");\n    extractedData = JSON.parse(cleanText);\n  }\n  \n  // Calcula un score de confianza básico\n  const expectedFields = Object.keys(prevData.output_schema);\n  const presentFields = expectedFields.filter(f => extractedData[f] !== undefined && extractedData[f] !== null);\n  const confidence = presentFields.length / expectedFields.length;\n  \n  return [{\n    json: {\n      success: true,\n      document_id: prevData.document_id,\n      doc_type: prevData.doc_type,\n      original_filename: prevData.original_filename,\n      extracted_data: extractedData,\n      confidence: confidence,\n      missing_fields: expectedFields.filter(f => !presentFields.includes(f)),\n      extraction_timestamp: new Date().toISOString()\n    }\n  }];\n  \n} catch (error) {\n  return [{\n    json: {\n      success: false,\n      document_id: prevData.document_id,\n      doc_type: prevData.doc_type,\n      original_filename: prevData.original_filename,\n      error: error.message,\n      raw_output: item.json.text || item.json.output || item.json,\n      extraction_timestamp: new Date().toISOString()\n    }\n  }];\n}"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                928,
+                1040
+            ],
+            "id": "1190d5dd-cbf4-40e0-92c6-af3bcddee762",
+            "name": "Parse & Validate LLM Output1"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 2
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.success }}",
+                                        "rightValue": "",
+                                        "operator": {
+                                            "type": "boolean",
+                                            "operation": "true",
+                                            "singleValue": true
+                                        },
+                                        "id": "success-check"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Success"
+                        }
+                    ]
+                },
+                "options": {
+                    "fallbackOutput": "extra",
+                    "renameFallbackOutput": "Error"
+                }
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.3,
+            "position": [
+                1136,
+                1040
+            ],
+            "id": "316055b3-cf13-4e0c-b8d1-6b80ce155b0b",
+            "name": "Extraction Succeeded?1"
+        },
+        {
+            "parameters": {
+                "url": "https://dolarapi.com/v1/dolares/oficial",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1360,
+                960
+            ],
+            "id": "868f83cb-35b9-4b20-9006-2741d7511b0e",
+            "name": "Get Dolar Rate1"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://jgtetutmrjkxfjxnlcki.supabase.co/functions/v1/document-processed",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"document_id\": \"{{ $('Parse & Validate LLM Output1').item.json.document_id }}\",\n  \"doc_type\": \"{{ $('Parse & Validate LLM Output1').item.json.doc_type }}\",\n  \"extracted_data\": {{ $('Parse & Validate LLM Output1').item.json.extracted_data.toJsonString() }},\n  \"confidence\": {{ $('Parse & Validate LLM Output1').item.json.confidence }},\n  \"missing_fields\": {{ $('Parse & Validate LLM Output1').item.json.missing_fields.toJsonString() }},\n  \"dolar_rate\": {{ $json.venta }},\n  \"status\": \"{{ $('Parse & Validate LLM Output1').item.json.confidence >= 0.8 ? 'ListoParaRevision' : 'RequiereRevisionManual' }}\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1584,
+                960
+            ],
+            "id": "d9f6d0ae-c497-474a-ac8d-53cc20c9f5df",
+            "name": "Send Success to Supabase1"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://jgtetutmrjkxfjxnlcki.supabase.co/functions/v1/document-processed",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"document_id\": \"{{ $json.document_id }}\",\n  \"doc_type\": \"{{ $json.doc_type }}\",\n  \"extracted_data\": null,\n  \"error_message\": \"{{ $json.error }}\",\n  \"raw_output\": \"{{ $json.raw_output }}\",\n  \"status\": \"Error\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1360,
+                1136
+            ],
+            "id": "519cbe34-d2f2-422d-b3d5-725685321733",
+            "name": "Send Error to Supabase1"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://jgtetutmrjkxfjxnlcki.supabase.co/functions/v1/document-processed",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"document_id\": \"{{ $('Webhook1').item.json.body.document_id }}\",\n  \"doc_type\": \"{{ $('Webhook1').item.json.body.doc_type }}\",\n  \"extracted_data\": null,\n  \"error_message\": \"Documento ilegible o de mala calidad. Calidad detectada: {{ $json.document_quality }}\",\n  \"status\": \"Error\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                128,
+                1296
+            ],
+            "id": "c42c9ce2-09e6-4c78-899c-65cb39e3db4e",
+            "name": "Send Unreadable Error1"
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Download Document1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download Document1": {
+            "main": [
+                [
+                    {
+                        "node": "Detect File Type1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Detect File Type1": {
+            "main": [
+                [
+                    {
+                        "node": "Extract PDF Text1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "OCR Image (Gemini Vision)1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract PDF Text1": {
+            "main": [
+                [
+                    {
+                        "node": "Parse PDF Output1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OCR Image (Gemini Vision)1": {
+            "main": [
+                [
+                    {
+                        "node": "Parse OCR Output1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse OCR Output1": {
+            "main": [
+                [
+                    {
+                        "node": "Is Document Readable?1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse PDF Output1": {
+            "main": [
+                [
+                    {
+                        "node": "Is Document Readable?1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Document Readable?1": {
+            "main": [
+                [
+                    {
+                        "node": "Build Dynamic Prompt1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Send Unreadable Error1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Dynamic Prompt1": {
+            "main": [
+                [
+                    {
+                        "node": "LLM Extractor (Universal)1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "LLM Extractor (Universal)1": {
+            "main": [
+                [
+                    {
+                        "node": "Parse & Validate LLM Output1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI GPT-5.": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "LLM Extractor (Universal)1",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse & Validate LLM Output1": {
+            "main": [
+                [
+                    {
+                        "node": "Extraction Succeeded?1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extraction Succeeded?1": {
+            "main": [
+                [
+                    {
+                        "node": "Get Dolar Rate1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Send Error to Supabase1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Dolar Rate1": {
+            "main": [
+                [
+                    {
+                        "node": "Send Success to Supabase1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {
+        "Webhook": [
+            {
+                "headers": {
+                    "host": "n8nxwebhook.botec.tech",
+                    "user-agent": "Deno/2.1.4 (variant; SupabaseEdgeRuntime/1.70.0)",
+                    "content-length": "640",
+                    "accept": "*/*",
+                    "accept-encoding": "gzip,br",
+                    "accept-language": "*",
+                    "content-type": "application/json",
+                    "x-forwarded-for": "18.228.238.108",
+                    "x-forwarded-host": "n8nxwebhook.botec.tech",
+                    "x-forwarded-port": "443",
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-server": "f49bb2ce238a",
+                    "x-real-ip": "18.228.238.108"
+                },
+                "params": {},
+                "query": {},
+                "body": {
+                    "document_id": "41426af3-39d4-45f2-ae9f-b78f33017e07",
+                    "document_url": "https://jgtetutmrjkxfjxnlcki.supabase.co/storage/v1/object/sign/documents/afbd6bd5-13c1-471f-9c5a-03f095f53d31/1769048934496_Ximena_Munoz_RC_Sueldo.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82M2I5ZDcyYy0yYzJkLTRmZmYtYWI5MC1hYzljNjFiNDI1ZTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYWZiZDZiZDUtMTNjMS00NzFmLTljNWEtMDNmMDk1ZjUzZDMxLzE3NjkwNDg5MzQ0OTZfWGltZW5hX011bm96X1JDX1N1ZWxkby5wZGYiLCJpYXQiOjE3NjkwNDg5MzYsImV4cCI6MTc2OTA1MjUzNn0.t39nwP4TtJj04oxj50ZOBiIMas4cU7tXMTjCS_MTiPs",
+                    "doc_type": "ReciboHaberes",
+                    "original_filename": "Ximena Muñoz RC Sueldo.pdf"
+                },
+                "webhookUrl": "https://n8nxwebhook.botec.tech/webhook/uif-pf",
+                "executionMode": "production"
+            }
+        ]
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "c8085af403f0720ad422bba323c0671c40dc4d0363514c2f810b8384fb4f1e66"
+    }
+}
