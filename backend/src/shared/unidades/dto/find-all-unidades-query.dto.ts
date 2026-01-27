@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsIn } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsOptional, IsString, IsIn, IsInt, Min, Max } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 /**
  * DTO para validar query params del endpoint GET /unidades
@@ -43,4 +43,18 @@ export class FindAllUnidadesQueryDto {
     @IsOptional()
     @IsString()
     nrounidad?: string;
+
+    // ⚡ PERFORMANCE: Paginación
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    page?: number = 1;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    @Max(500)
+    limit?: number = 100;
 }

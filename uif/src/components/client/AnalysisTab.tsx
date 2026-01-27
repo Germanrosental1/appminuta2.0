@@ -1,21 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Client, FinancialData, AnalysisSettings, MONOTRIBUTO_CATEGORIES, Analysis } from '@/types/database';
+import { Client, FinancialData, AnalysisSettings, MONOTRIBUTO_CATEGORIES, Analysis, Document } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Calculator, TrendingUp, DollarSign, Loader2 } from 'lucide-react';
+import { Save, Calculator, DollarSign, Loader2, Download, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { Document } from '@/types/database';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
-import { Download, Package } from 'lucide-react';
+// ⚡ PERFORMANCE: jsPDF, JSZip, file-saver son lazy imports en las funciones de descarga
 import ExpandableCard from './ExpandableCard';
 
 interface AnalysisTabProps {
@@ -50,7 +44,7 @@ const DEFAULT_ESTADO_RESULTADOS_SETTINGS = {
   usar_resultado_bruto: false,
 };
 
-export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisTabProps) {
+export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<AnalysisTabProps>) {
   const [financialData, setFinancialData] = useState<FinancialData>(analysis.financial_data);
   const [settings, setSettings] = useState<AnalysisSettings>(analysis.analysis_settings);
   const [saving, setSaving] = useState(false);
@@ -80,7 +74,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
       cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
     }
 
-    const num = parseFloat(cleanValue) || 0;
+    const num = Number.parseFloat(cleanValue) || 0;
     if (currency === 'USD') return num;
     return num / dolar;
   };
@@ -92,7 +86,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
 
   // Calculate all values in real-time
   const calculations = useMemo(() => {
-    const dolar = parseFloat(financialData.datos.dolar) || 1;
+    const dolar = Number.parseFloat(financialData.datos.dolar) || 1;
 
     // Ensure weights has all required keys with defaults (for older clients without datos_balance)
     const weights = {
@@ -103,7 +97,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
     // Helper to ensure numeric values (handles strings from JSON)
     const toNum = (val: unknown): number => {
       if (typeof val === 'number') return val;
-      if (typeof val === 'string') return parseFloat(val) || 0;
+      if (typeof val === 'string') return Number.parseFloat(val) || 0;
       return 0;
     };
 
@@ -247,7 +241,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
     } else if (ratio_cobertura > 1.1) {
       status = 'Aceptable';
       statusClass = 'score-acceptable';
-    } else if (ratio_cobertura > 1.0) {
+    } else if (ratio_cobertura > 1) {
       status = 'Precaución';
       statusClass = 'score-risk';
     } else {
@@ -331,7 +325,13 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
     }));
   };
 
-  const generatePDF = () => {
+  // ⚡ PERFORMANCE: generatePDF ahora usa dynamic import
+  const generatePDF = async () => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const today = new Date();
@@ -366,16 +366,20 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
     // Subtotals by Category Table
     const subtotalData: [string, string, string][] = [];
     if (client.person_type === 'PF') {
-      subtotalData.push(['Ganancias', `${settings.weights.ganancias}%`, formatCurrency(calculations.subtotals.ganancias)]);
-      subtotalData.push(['Monotributo', `${settings.weights.monotributo}%`, formatCurrency(calculations.subtotals.monotributo)]);
-      subtotalData.push(['Recibo de Haberes', `${settings.weights.haberes}%`, formatCurrency(calculations.subtotals.haberes)]);
-      subtotalData.push(['Certificación Contable', `${settings.weights.certificacion_contable}%`, formatCurrency(calculations.subtotals.certificacion)]);
-      subtotalData.push(['Bienes Personales', `${settings.weights.bienes_personales}%`, formatCurrency(calculations.subtotals.bienes_personales)]);
+      subtotalData.push(
+        ['Ganancias', `${settings.weights.ganancias}%`, formatCurrency(calculations.subtotals.ganancias)],
+        ['Monotributo', `${settings.weights.monotributo}%`, formatCurrency(calculations.subtotals.monotributo)],
+        ['Recibo de Haberes', `${settings.weights.haberes}%`, formatCurrency(calculations.subtotals.haberes)],
+        ['Certificación Contable', `${settings.weights.certificacion_contable}%`, formatCurrency(calculations.subtotals.certificacion)],
+        ['Bienes Personales', `${settings.weights.bienes_personales}%`, formatCurrency(calculations.subtotals.bienes_personales)]
+      );
     } else {
       subtotalData.push(['Estado de Resultados', `${settings.weights.datos_balance || 0}%`, formatCurrency(calculations.subtotals.datos_balance)]);
     }
-    subtotalData.push(['IVA', `${settings.weights.iva}%`, formatCurrency(calculations.subtotals.iva)]);
-    subtotalData.push(['Otros Ingresos', `${settings.weights.otros}%`, formatCurrency(calculations.subtotals.otros)]);
+    subtotalData.push(
+      ['IVA', `${settings.weights.iva}%`, formatCurrency(calculations.subtotals.iva)],
+      ['Otros Ingresos', `${settings.weights.otros}%`, formatCurrency(calculations.subtotals.otros)]
+    );
 
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 10,
@@ -467,7 +471,8 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
       if (recibosDocs.length > 1) {
         recibosDocs.forEach((d, i) => {
           const rd = d.reviewed_data as any;
-          habData.splice(i, 0, [`  • ${d.original_filename || `Recibo ${i + 1}`}`, formatCurrency(Number(rd?.sueldo_neto) || 0)]);
+          const filename = d.original_filename || `Recibo ${i + 1}`;
+          habData.splice(i, 0, [`  • ${filename}`, formatCurrency(Number(rd?.sueldo_neto) || 0)]);
         });
       }
       addSectionTable('RECIBO DE HABERES', habData, [46, 204, 113]);
@@ -534,21 +539,39 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
     return doc;
   };
 
-  const handleDownloadUIF = () => {
-    const doc = generatePDF();
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    const filename = `${client.name.replace(/\s+/g, '_')}_${dateStr}.pdf`;
-    doc.save(filename);
+  const handleDownloadUIF = async () => {
+    setSaving(true);
+    try {
+      const doc = await generatePDF();
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const filename = `${client.name.replace(/\s+/g, '_')}_${dateStr}.pdf`;
+      doc.save(filename);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo generar el PDF',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDownloadPackage = async () => {
     setSaving(true);
     try {
+      // ⚡ PERFORMANCE: Dynamic imports para JSZip y file-saver
+      const [{ default: JSZip }, { saveAs }] = await Promise.all([
+        import('jszip'),
+        import('file-saver'),
+      ]);
+
       const zip = new JSZip();
 
-      // Add PDF
-      const doc = generatePDF();
+      // Add PDF (await since generatePDF is now async)
+      const doc = await generatePDF();
       const pdfBlob = doc.output('blob');
       const pdfDate = new Date();
       const pdfDateStr = `${pdfDate.getFullYear()}-${String(pdfDate.getMonth() + 1).padStart(2, '0')}-${String(pdfDate.getDate()).padStart(2, '0')}`;
@@ -556,7 +579,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
       const downloadPromises = documents.map(async (d) => {
         if (!d.storage_path) return;
 
-        const { data, error } = await supabase.storage
+        const { data } = await supabase.storage
           .from(d.storage_bucket || 'documents')
           .download(d.storage_path);
 
@@ -680,9 +703,9 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
                   <Input
                     type="text"
                     inputMode="decimal"
-                    value={formatCurrencyInput(settings.simulacion.importe_operacion, simCurrency, parseFloat(financialData.datos.dolar) || 1)}
+                    value={formatCurrencyInput(settings.simulacion.importe_operacion, simCurrency, Number.parseFloat(financialData.datos.dolar) || 1)}
                     onChange={(e) => {
-                      const val = parseCurrencyInput(e.target.value, simCurrency, parseFloat(financialData.datos.dolar) || 1);
+                      const val = parseCurrencyInput(e.target.value, simCurrency, Number.parseFloat(financialData.datos.dolar) || 1);
                       updateSimulation('importe_operacion', val);
                     }}
                     className="h-7 text-xs input-currency"
@@ -693,9 +716,9 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
                   <Input
                     type="text"
                     inputMode="decimal"
-                    value={formatCurrencyInput(settings.simulacion.aporte_operacion, simCurrency, parseFloat(financialData.datos.dolar) || 1)}
+                    value={formatCurrencyInput(settings.simulacion.aporte_operacion, simCurrency, Number.parseFloat(financialData.datos.dolar) || 1)}
                     onChange={(e) => {
-                      const val = parseCurrencyInput(e.target.value, simCurrency, parseFloat(financialData.datos.dolar) || 1);
+                      const val = parseCurrencyInput(e.target.value, simCurrency, Number.parseFloat(financialData.datos.dolar) || 1);
                       updateSimulation('aporte_operacion', val);
                     }}
                     className="h-7 text-xs input-currency"
@@ -707,7 +730,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
                     type="text"
                     inputMode="decimal"
                     value={settings.simulacion.cantidad_cuotas}
-                    onChange={(e) => updateSimulation('cantidad_cuotas', Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
+                    onChange={(e) => updateSimulation('cantidad_cuotas', Number(e.target.value.replace(/\D/g, '')) || 0)}
                     className="h-7 text-xs input-currency"
                   />
                 </div>
@@ -719,7 +742,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
                   <p className="text-sm font-mono font-semibold">
                     {simCurrency === 'USD'
                       ? formatUSD(calculations.saldo_a_financiar_usd)
-                      : formatCurrency(calculations.saldo_a_financiar_usd * (parseFloat(financialData.datos.dolar) || 1))}
+                      : formatCurrency(calculations.saldo_a_financiar_usd * (Number.parseFloat(financialData.datos.dolar) || 1))}
                   </p>
                 </div>
                 <div className="space-y-0.5">
@@ -727,7 +750,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
                   <p className="text-sm font-mono font-semibold">
                     {simCurrency === 'USD'
                       ? formatUSD(calculations.cuota_mensual_usd)
-                      : formatCurrency(calculations.cuota_mensual_usd * (parseFloat(financialData.datos.dolar) || 1))}
+                      : formatCurrency(calculations.cuota_mensual_usd * (Number.parseFloat(financialData.datos.dolar) || 1))}
                   </p>
                 </div>
                 <div className="space-y-0.5">
@@ -873,8 +896,8 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
                   const val = e.target.value;
                   const numbers = val.split(',').map(s => {
                     const clean = s.trim();
-                    return clean === '' ? NaN : parseFloat(clean);
-                  }).filter(n => !isNaN(n));
+                    return clean === '' ? Number.NaN : Number.parseFloat(clean);
+                  }).filter(n => !Number.isNaN(n));
 
                   setFinancialData(prev => ({
                     ...prev,
@@ -1000,9 +1023,9 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: AnalysisT
                       }))}
                       className={cn(
                         "px-3 py-1 text-xs font-medium rounded transition-all",
-                        !financialData.estado_resultados_settings?.usar_resultado_bruto
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
+                        financialData.estado_resultados_settings?.usar_resultado_bruto
+                          ? "text-muted-foreground hover:text-foreground"
+                          : "bg-background shadow-sm text-foreground"
                       )}
                     >
                       Ingresos
@@ -1158,18 +1181,18 @@ interface CompactFieldProps {
   isText?: boolean;
 }
 
-function CompactField({ label, value, onChange, isText }: CompactFieldProps) {
+function CompactField({ label, value, onChange, isText }: Readonly<CompactFieldProps>) {
   // Format number with commas as thousand separators
   const formatWithCommas = (num: number | string): string => {
-    const n = typeof num === 'string' ? parseFloat(num.replace(/,/g, '')) : num;
-    if (isNaN(n) || n === 0) return '0';
+    const n = typeof num === 'string' ? Number.parseFloat(num.replace(/,/g, '')) : num;
+    if (Number.isNaN(n) || n === 0) return '0';
     return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
   };
 
   // Parse string with commas back to number
   const parseFromCommas = (str: string): number => {
     const clean = str.replace(/,/g, '').replace(/[^0-9.-]/g, '');
-    return parseFloat(clean) || 0;
+    return Number.parseFloat(clean) || 0;
   };
 
   return (

@@ -14,8 +14,50 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Download, Eye, ArrowRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FileText, Download, Eye, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+// Skeleton para la tabla de documentos
+const DocumentsTableSkeleton = () => (
+    <div className="space-y-6 animate-in">
+        <div className="flex flex-col gap-2">
+            <Skeleton className="h-8 w-56" />
+            <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="rounded-lg border bg-card overflow-hidden">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Archivo</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                            <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                    <Skeleton className="h-8 w-8 rounded" />
+                                    <Skeleton className="h-8 w-8 rounded" />
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    </div>
+);
 
 export default function DocumentsPage() {
     const [documents, setDocuments] = useState<(Document & { clients: { name: string } | null })[]>([]);
@@ -89,11 +131,7 @@ export default function DocumentsPage() {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        );
+        return <DocumentsTableSkeleton />;
     }
 
     return (

@@ -1,67 +1,94 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { uifApi } from '@/lib/api-client';
-import { Client, Document, Analysis } from '@/types/database';
+import { Analysis } from '@/types/database';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, FileText, BarChart3, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, BarChart3 } from 'lucide-react';
 import { DocumentsTab } from '@/components/client/DocumentsTab';
 import { AnalysisTab } from '@/components/client/AnalysisTab';
 import { AnalysisList } from '@/components/client/AnalysisList';
 
+// Skeleton para la página de detalle del cliente
+const ClientDetailSkeleton = () => (
+  <div className="space-y-6 animate-in">
+    {/* Header skeleton */}
+    <div className="flex items-start justify-between">
+      <div className="flex items-start gap-4">
+        <Skeleton className="h-9 w-9 rounded" />
+        <div>
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-32 mt-2" />
+        </div>
+      </div>
+    </div>
+
+    {/* Analysis list skeleton */}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-9 w-32" />
+      </div>
+      <div className="grid gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-8 w-8 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [client, setClient] = useState<Client | null>(null);
-  const [analyses, setAnalyses] = useState<Analysis[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Selection State
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('analisis'); // Default to analysis when entered
+  const [activeTab, setActiveTab] = useState('analisis');
 
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  // ⚡ PERFORMANCE: useQuery con cache automático
+  const { data: client, isLoading: clientLoading } = useQuery({
+    queryKey: ['client', id],
+    queryFn: () => uifApi.clients.get(id),
+    enabled: !!id,
+  });
 
-  useEffect(() => {
-    if (id) {
-      fetchData();
-    }
-  }, [id]);
+  const { data: analyses = [], isLoading: analysesLoading } = useQuery({
+    queryKey: ['analyses', id],
+    queryFn: () => uifApi.analyses.list(id),
+    enabled: !!id,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      if (!id) return;
+  const { data: documents = [] } = useQuery({
+    queryKey: ['documents', id],
+    queryFn: () => uifApi.documents.list(id),
+    enabled: !!id,
+  });
 
-      // Parallel fetching for better performance
-      const [clientData, analysesData, docsData] = await Promise.all([
-        uifApi.clients.get(id),
-        uifApi.analyses.list(id).catch((e) => {
-          console.warn('Could not fetch analyses', e);
-          return [];
-        }),
-        uifApi.documents.list(id).catch((e) => {
-          console.warn('Could not fetch documents', e);
-          return [];
-        }),
-      ]);
+  const loading = clientLoading;
 
-      setClient(clientData);
-      setAnalyses(analysesData || []);
-      setDocuments(docsData || []);
-
-    } catch (error: any) {
-      console.error(error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo cargar la información del cliente.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Refetch function para componentes hijos
+  const refetchData = () => {
+    queryClient.invalidateQueries({ queryKey: ['client', id] });
+    queryClient.invalidateQueries({ queryKey: ['analyses', id] });
+    queryClient.invalidateQueries({ queryKey: ['documents', id] });
   };
 
   const updateAnalysis = async (updates: Partial<Analysis>) => {
@@ -69,9 +96,8 @@ export default function ClientDetailPage() {
 
     try {
       await uifApi.analyses.update(selectedAnalysisId, updates);
-
-      // Update local state
-      setAnalyses(prev => prev.map(a => a.id === selectedAnalysisId ? { ...a, ...updates } : a));
+      // ⚡ PERFORMANCE: Invalidar cache para refetch
+      queryClient.invalidateQueries({ queryKey: ['analyses', id] });
       return true;
     } catch (error: any) {
       toast({
@@ -94,11 +120,7 @@ export default function ClientDetailPage() {
     : [];
 
   if (loading && !client) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ClientDetailSkeleton />;
   }
 
   if (!client) {
@@ -153,17 +175,7 @@ export default function ClientDetailPage() {
         )}
       </div>
 
-      {!selectedAnalysisId ? (
-        // LIST VIEW
-        <AnalysisList
-          clientId={client.id}
-          clientName={client.name}
-          analyses={analyses}
-          documents={documents}
-          onSelectAnalysis={handleAnalysisSelect}
-          onRefresh={fetchData}
-        />
-      ) : (
+      {selectedAnalysisId ? (
         // DETAIL VIEW (TABS)
         activeAnalysis ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -189,16 +201,27 @@ export default function ClientDetailPage() {
 
             <TabsContent value="documentos" className="mt-6">
               <DocumentsTab
-                client={client} // Keep client for context if needed
-                analysisId={activeAnalysis.id} // Pass Analysis ID for uploading
+                client={client}
+                analysisId={activeAnalysis.id}
                 documents={filteredDocuments}
-                onDocumentsChange={fetchData}
+                onDocumentsChange={refetchData}
               />
             </TabsContent>
           </Tabs>
         ) : (
           <div className="text-center py-12">Análisis no encontrado</div>
         )
+      ) : (
+        // LIST VIEW
+        <AnalysisList
+          clientId={client.id}
+          clientName={client.name}
+          analyses={analyses}
+          documents={documents}
+          isLoading={analysesLoading}
+          onSelectAnalysis={handleAnalysisSelect}
+          onRefresh={refetchData}
+        />
       )}
     </div>
   );

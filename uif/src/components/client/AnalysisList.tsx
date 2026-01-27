@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Calendar, FileText } from 'lucide-react';
 import { CreateAnalysisDialog } from './CreateAnalysisDialog';
 
@@ -11,11 +12,70 @@ interface AnalysisListProps {
     clientName: string;
     analyses: Analysis[];
     documents: Document[]; // All client docs, for selection in create dialog
+    isLoading?: boolean;
     onSelectAnalysis: (analysisId: string) => void;
     onRefresh: () => void;
 }
 
-export function AnalysisList({ clientId, clientName, analyses, documents, onSelectAnalysis, onRefresh }: AnalysisListProps) {
+// Skeleton para la lista de análisis
+const AnalysisListSkeleton = () => (
+    <div className="space-y-6">
+        <div className="flex items-center justify-between">
+            <div>
+                <Skeleton className="h-7 w-48 mb-2" />
+                <Skeleton className="h-4 w-72" />
+            </div>
+            <Skeleton className="h-9 w-32" />
+        </div>
+
+        <Card>
+            <CardHeader className="pb-3">
+                <Skeleton className="h-6 w-24 mb-1" />
+                <Skeleton className="h-4 w-80" />
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Fecha Creación</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <Skeleton className="h-4 w-4 rounded" />
+                                        <Skeleton className="h-4 w-32" />
+                                    </div>
+                                </TableCell>
+                                <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <Skeleton className="h-3 w-3 rounded" />
+                                        <Skeleton className="h-4 w-24" />
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Skeleton className="h-8 w-8 rounded ml-auto" />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    </div>
+);
+
+export function AnalysisList({ clientId, clientName, analyses, documents, isLoading, onSelectAnalysis, onRefresh }: AnalysisListProps) {
+    if (isLoading) {
+        return <AnalysisListSkeleton />;
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">

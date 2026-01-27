@@ -298,7 +298,7 @@ export class UnidadesService {
                     ProyectoId: proyecto.Id,
                 };
             } else {
-                return [];
+                return { data: [], pagination: { page: 1, limit: query.limit || 100, total: 0, totalPages: 0 } };
             }
         }
 
@@ -347,64 +347,74 @@ export class UnidadesService {
             where.NroUnidad = query.nrounidad;
         }
 
-        // Usar select en lugar de include para reducir ~60% datos transferidos
-        const unidades = await this.prisma.unidades.findMany({
-            where,
-            select: {
-                Id: true,
-                SectorId: true,
-                Piso: true,
-                NroUnidad: true,
-                Dormitorio: true,
-                Manzana: true,
-                Destino: true,
-                Frente: true,
-                Edificios: {
-                    select: {
-                        Id: true,
-                        NombreEdificio: true,
-                        Proyectos: {
-                            select: {
-                                Id: true,
-                                Nombre: true,
+        // ⚡ PERFORMANCE: Paginación
+        const page = query.page || 1;
+        const limit = query.limit || 100;
+        const skip = (page - 1) * limit;
+
+        // Ejecutar count y findMany en paralelo para mejor performance
+        const [total, unidades] = await Promise.all([
+            this.prisma.unidades.count({ where }),
+            this.prisma.unidades.findMany({
+                where,
+                select: {
+                    Id: true,
+                    SectorId: true,
+                    Piso: true,
+                    NroUnidad: true,
+                    Dormitorio: true,
+                    Manzana: true,
+                    Destino: true,
+                    Frente: true,
+                    Edificios: {
+                        select: {
+                            Id: true,
+                            NombreEdificio: true,
+                            Proyectos: {
+                                select: {
+                                    Id: true,
+                                    Nombre: true,
+                                },
                             },
                         },
                     },
-                },
-                Etapas: {
-                    select: {
-                        Id: true,
-                        Nombre: true,
+                    Etapas: {
+                        select: {
+                            Id: true,
+                            Nombre: true,
+                        },
                     },
-                },
-                TiposUnidad: {
-                    select: {
-                        Id: true,
-                        Nombre: true,
+                    TiposUnidad: {
+                        select: {
+                            Id: true,
+                            Nombre: true,
+                        },
                     },
-                },
-                DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
-                    select: {
-                        PrecioUsd: true,
-                        UsdM2: true,
-                        EstadoComercial: {
-                            select: {
-                                Id: true,
-                                NombreEstado: true,
+                    DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
+                        select: {
+                            PrecioUsd: true,
+                            UsdM2: true,
+                            EstadoComercial: {
+                                select: {
+                                    Id: true,
+                                    NombreEstado: true,
+                                },
                             },
                         },
                     },
-                },
-                UnidadesMetricas: {
-                    select: {
-                        M2Exclusivo: true,
-                        M2Total: true,
-                        M2Cubierto: true,
+                    UnidadesMetricas: {
+                        select: {
+                            M2Exclusivo: true,
+                            M2Total: true,
+                            M2Cubierto: true,
+                        },
                     },
                 },
-            },
-            orderBy: [{ SectorId: 'asc' }, { NroUnidad: 'asc' }],
-        });
+                orderBy: [{ SectorId: 'asc' }, { NroUnidad: 'asc' }],
+                skip,
+                take: limit,
+            }),
+        ]);
 
         // Eliminar duplicados por sectorid (clave única)
         const uniqueUnidades = unidades.filter(
@@ -412,7 +422,15 @@ export class UnidadesService {
                 index === self.findIndex((u) => u.SectorId === unidad.SectorId)
         );
 
-        return uniqueUnidades;
+        return {
+            data: uniqueUnidades,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findOne(id: string) {

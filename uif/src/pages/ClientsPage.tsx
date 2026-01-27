@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { uifApi } from '@/lib/api-client';
 import { Client, DEFAULT_FINANCIAL_DATA, DEFAULT_ANALYSIS_SETTINGS, PersonType } from '@/types/database';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,14 +25,42 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Users, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+// Skeleton para la tabla de clientes
+const ClientsTableSkeleton = () => (
+  <div className="rounded-lg border bg-card overflow-hidden">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nombre</TableHead>
+          <TableHead>CUIT</TableHead>
+          <TableHead>Estado</TableHead>
+          <TableHead>Última modificación</TableHead>
+          <TableHead className="w-[50px]"></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <TableRow key={i}>
+            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+            <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+            <TableCell><Skeleton className="h-8 w-8 rounded" /></TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+);
+
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -41,6 +70,12 @@ export default function ClientsPage() {
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
 
+  // ⚡ PERFORMANCE: useQuery con cache automático
+  const { data: clients = [], isLoading: loading } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => uifApi.clients.list(),
+  });
+
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -49,41 +84,40 @@ export default function ClientsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => {
-    fetchClients();
+  // ⚡ PERFORMANCE: Realtime handlers extraídos para evitar nesting > 4 niveles
+  const handleRealtimeInsert = useCallback((payload: { new: unknown }) => {
+    queryClient.setQueryData<Client[]>(['clients'], (old = []) =>
+      [payload.new as Client, ...old]
+    );
+  }, [queryClient]);
 
-    // Realtime subscription
+  const handleRealtimeUpdate = useCallback((payload: { new: unknown }) => {
+    const updated = payload.new as Client;
+    queryClient.setQueryData<Client[]>(['clients'], (old = []) =>
+      old.map((c) => (c.id === updated.id ? updated : c))
+    );
+  }, [queryClient]);
+
+  const handleRealtimeDelete = useCallback((payload: { old: unknown }) => {
+    const deleted = payload.old as Client;
+    queryClient.setQueryData<Client[]>(['clients'], (old = []) =>
+      old.filter((c) => c.id !== deleted.id)
+    );
+  }, [queryClient]);
+
+  // Realtime subscription
+  useEffect(() => {
     const channel = supabase
       .channel('clients-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'clients' },
-        () => {
-          fetchClients();
-        }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clients' }, handleRealtimeInsert)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clients' }, handleRealtimeUpdate)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'clients' }, handleRealtimeDelete)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  const fetchClients = async () => {
-    try {
-      const data = await uifApi.clients.list();
-      setClients(data);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar los clientes',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [handleRealtimeInsert, handleRealtimeUpdate, handleRealtimeDelete]);
 
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +144,7 @@ export default function ClientsPage() {
       setNewClientName('');
       setNewClientCuit('');
       setNewClientType('PF');
-      fetchClients();
+      // El realtime se encarga de actualizar el cache automáticamente
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -231,9 +265,7 @@ export default function ClientsPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <ClientsTableSkeleton />
       ) : filteredClients.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -262,7 +294,17 @@ export default function ClientsPage() {
             </TableHeader>
             <TableBody>
               {filteredClients.map((client) => (
-                <TableRow key={client.id}>
+                <TableRow
+                  key={client.id}
+                  // ⚡ PERFORMANCE: Prefetch al hover para navegación instantánea
+                  onMouseEnter={() => {
+                    queryClient.prefetchQuery({
+                      queryKey: ['client', client.id],
+                      queryFn: () => uifApi.clients.get(client.id),
+                      staleTime: 30_000,
+                    });
+                  }}
+                >
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell className="font-mono text-sm">
                     {client.cuit || '-'}
