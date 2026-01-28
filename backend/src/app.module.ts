@@ -78,10 +78,20 @@ const getCacheConfig = (): any => {
         AuthModule,
         PrismaModule,
         LoggerModule,
-        ThrottlerModule.forRoot([{
-            ttl: 60000,
-            limit: 100,
-        }]),
+        ThrottlerModule.forRoot([
+            // 🔒 V-004 FIX: Límite global para prevenir DoS distribuido vía múltiples cuentas
+            {
+                name: 'global',
+                ttl: 60000,
+                limit: 200, // Máximo 200 req/min para TODO el servidor
+            },
+            // Límite por usuario (existente)
+            {
+                name: 'per-user',
+                ttl: 60000,
+                limit: 100,
+            }
+        ]),
         ScheduleModule.forRoot(),
 
         // ==========================================

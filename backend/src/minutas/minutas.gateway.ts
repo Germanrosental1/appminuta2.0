@@ -10,6 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthorizationService } from '../auth/authorization/authorization.service'; // 🔒 Import AuthorizationService
+import { validate as isUUID } from 'uuid'; // 🔒 V-003 FIX: UUID validation
 
 interface MinutaEventPayload {
     minutaId: string;
@@ -53,10 +54,31 @@ export class MinutasGateway
                 return;
             }
 
-            // Verificar JWT
+            // 🔒 V-001 FIX: Verificar JWT con validación explícita de expiración
             const payload = this.jwtService.verify(token, {
                 secret: process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET,
+                ignoreExpiration: false, // ✅ Forzar validación de expiración
             });
+
+            // 🔒 V-001 FIX: Defense-in-depth - validación manual de expiración
+            const now = Math.floor(Date.now() / 1000);
+            if (payload.exp && payload.exp < now) {
+                this.logger.warn(
+                    `Client ${client.id} attempted connection with expired token ` +
+                    `(exp: ${new Date(payload.exp * 1000).toISOString()}, now: ${new Date().toISOString()})`
+                );
+                client.emit('error', { message: 'Token expired. Please refresh your session.' });
+                client.disconnect();
+                return;
+            }
+
+            // 🔒 Validar que token tenga campo exp (requerido por seguridad)
+            if (!payload.exp) {
+                this.logger.warn(`Client ${client.id} connected with token without expiration claim`);
+                client.emit('error', { message: 'Invalid token: missing expiration' });
+                client.disconnect();
+                return;
+            }
 
             const userId = payload.sub;
             const userEmail = payload.email || 'unknown';
@@ -166,7 +188,28 @@ export class MinutasGateway
      */
     @SubscribeMessage('joinProject')
     async handleJoinProject(client: Socket, payload: { projectId: string }) {
-        if (!payload.projectId) return;
+        // 🔒 V-003 FIX: Validar estructura del payload
+        if (!payload || typeof payload !== 'object') {
+            this.logger.warn(`Invalid payload type from client ${client.id}`);
+            client.emit('error', { message: 'Invalid request format' });
+            return;
+        }
+
+        // 🔒 V-003 FIX: Validar que projectId existe y es string
+        if (!payload.projectId || typeof payload.projectId !== 'string') {
+            client.emit('error', { message: 'Missing or invalid projectId' });
+            return;
+        }
+
+        // 🔒 V-003 FIX: Validar formato UUID
+        if (!isUUID(payload.projectId)) {
+            this.logger.warn(
+                `Invalid UUID format from client ${client.id}. ` +
+                `Attempted projectId: ${payload.projectId.substring(0, 20)}...`
+            );
+            client.emit('error', { message: 'Invalid project ID format' });
+            return;
+        }
 
         // Recuperar userId de la conexión
         const clientData = this.connectedClients.get(client.id);

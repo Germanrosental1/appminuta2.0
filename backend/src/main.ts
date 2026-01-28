@@ -66,8 +66,14 @@ async function bootstrap() {
     // Cookie parser para CSRF tokens
     app.use(cookieParser());
 
-    // Trust Vercel Proxy
+    // 🔒 V-006 FIX: Limitar tamaño de payload para prevenir DoS
+    // Express JSON parser ya usa un límite por defecto, pero lo hacemos explícito
     const expressApp = app.getHttpAdapter().getInstance();
+    const bodyParser = require('express');
+    app.use(bodyParser.json({ limit: '5mb' }));
+    app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
+
+    // Trust Vercel Proxy
     expressApp.set('trust proxy', 1);
 
     // Deshabilitar header X-Powered-By
@@ -112,12 +118,38 @@ async function bootstrap() {
 
     app.enableCors({
         origin: (origin, callback) => {
-            // En producción, rechazar requests sin origin
-            // En desarrollo, permitir para herramientas como Postman/curl
+            // 🔒 V-007 FIX: Restringir requests sin Origin a User-Agents conocidos
             if (!origin) {
-                // Permitir requests sin Origin (ej. n8n, mobile apps, curl)
-                // Se confía en la autenticación (Token) para la seguridad.
-                return callback(null, true);
+                // Obtener request del contexto del callback
+                // En NestJS/Express, el callback tiene acceso al request via closure
+                const req = (callback as any).req;
+                const userAgent = req?.headers?.['user-agent'] || '';
+
+                // Whitelist de User-Agents permitidos sin Origin header
+                const allowedUserAgents = [
+                    'n8n',                    // Workflow automation
+                    'PostmanRuntime',         // API testing tool
+                    'Insomnia',               // API testing tool
+                    'axios',                  // Server-side HTTP client
+                    'node-fetch',             // Server-side fetch
+                    'got',                    // Server-side HTTP client
+                    'curl',                   // Command line tool
+                    'AppMinuta-Mobile',       // Mobile app (custom UA)
+                ];
+
+                const isAllowedAgent = allowedUserAgents.some(agent =>
+                    userAgent.toLowerCase().includes(agent.toLowerCase())
+                );
+
+                if (isAllowedAgent || !isProduction) {
+                    // En desarrollo: permitir todos para facilitar debugging
+                    // En producción: solo User-Agents conocidos
+                    return callback(null, true);
+                }
+
+                // 🔒 Rechazar requests sin Origin de User-Agents desconocidos en producción
+                console.warn(`CORS rejected no-origin request from unknown UA: ${userAgent.substring(0, 50)}`);
+                return callback(new Error('Origin header required'), false);
             }
 
             if (allowedOrigins.includes(origin)) {

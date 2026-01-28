@@ -26,18 +26,42 @@ export class UnidadesImportService {
 
         const cache = new Map<string, string>();
 
-        for (const [index, row] of data.entries()) {
-            results.processed++;
+        // ⚡ P-002 FIX: Batch processing - procesar en lotes de 50 filas por transacción
+        // Reduce overhead de transacciones de N a N/50
+        const BATCH_SIZE = 50;
+        const totalBatches = Math.ceil(data.length / BATCH_SIZE);
+
+        for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+            const startIdx = batchIndex * BATCH_SIZE;
+            const batch = data.slice(startIdx, startIdx + BATCH_SIZE);
+
             try {
                 await this.prisma.$transaction(async (tx) => {
-                    await this.processRow(tx, row, cache);
-                }, { timeout: 30000 });
-
-                results.success++;
-            } catch (error) {
-                results.errors++;
-                console.error(`Error processing row ${index + 2}:`, error);
-                results.details.push({ row: index + 2, error: error.message || 'Unknown error' });
+                    for (const [localIdx, row] of batch.entries()) {
+                        const globalIdx = startIdx + localIdx;
+                        results.processed++;
+                        try {
+                            await this.processRow(tx, row, cache);
+                            results.success++;
+                        } catch (rowError) {
+                            results.errors++;
+                            console.error(`Error processing row ${globalIdx + 2}:`, rowError);
+                            results.details.push({ row: globalIdx + 2, error: rowError.message || 'Unknown error' });
+                            // Continuar con la siguiente fila del batch
+                        }
+                    }
+                }, { timeout: 60000 }); // Timeout extendido para batch más grande
+            } catch (batchError) {
+                // Si falla todo el batch, marcar todas las filas restantes como error
+                console.error(`Error in batch ${batchIndex + 1}/${totalBatches}:`, batchError);
+                for (let i = 0; i < batch.length; i++) {
+                    const globalIdx = startIdx + i;
+                    if (!results.details.some(d => d.row === globalIdx + 2)) {
+                        results.processed++;
+                        results.errors++;
+                        results.details.push({ row: globalIdx + 2, error: `Batch failed: ${batchError.message}` });
+                    }
+                }
             }
         }
 
@@ -271,6 +295,10 @@ export class UnidadesImportService {
             'm2cubierto': 'm2cubierto',
             'm2semicubiertos': 'm2semicubierto',
             'm2semicubierto': 'm2semicubierto',
+            'm2calculo': 'm2calculo',
+            'm2cálculo': 'm2calculo',
+            'm2 calculo': 'm2calculo',
+            'm2 cálculo': 'm2calculo',
             'motivonodisponibilidad': 'motivonodisponibilidad',
             'motivonodisp': 'motivonodisponibilidad',
             'clientetitularboleto': 'clientetitular',
@@ -532,7 +560,7 @@ export class UnidadesImportService {
             M2PatioTerraza: this.parseNumber(row.m2patioterraza),
             M2Comun: this.parseNumber(row.m2comunes),
             M2Total: this.parseNumber(row.m2totales),
-            M2Calculo: this.parseNumber(row.m2totales), // Default to m2totales
+            M2Calculo: this.parseNumber(row.m2calculo),
             TipoPatioId: patioId,
             Tamano: row.tamano
         };

@@ -37,7 +37,9 @@ interface UserPermissionsCache {
   roles: string[];
   cachedAt: number;
 }
-const PERMISSIONS_CACHE_TTL_MS = 1 * 60 * 1000; // 1 minuto (Reducido para mayor seguridad)
+// 🔒 V-002 FIX: TTL reducido a 10 segundos para minimizar ventana de escalación de privilegios
+// tras revocación de permisos. Balance entre seguridad y performance.
+const PERMISSIONS_CACHE_TTL_MS = 10 * 1000; // 10 segundos
 const userPermissionsCache = new Map<string, UserPermissionsCache>();
 
 @Injectable()
@@ -182,8 +184,9 @@ export class MinutasService {
     if (createMinutaDto.clienteInteresadoDni && unidadIds.length > 0) {
       // 🔒 SEGURIDAD: No loguear DNIs de clientes
 
-      for (const unidadId of unidadIds) {
-        await this.prisma.detallesVenta.upsert({
+      // ⚡ P-001 FIX: Parallel upserts en lugar de secuenciales
+      const upsertOperations = unidadIds.map(unidadId =>
+        this.prisma.detallesVenta.upsert({
           where: { UnidadId: unidadId },
           update: {
             ClienteInteresado: createMinutaDto.clienteInteresadoId || null,
@@ -192,8 +195,9 @@ export class MinutasService {
             UnidadId: unidadId,
             ClienteInteresado: createMinutaDto.clienteInteresadoId || null,
           },
-        });
-      }
+        })
+      );
+      await Promise.all(upsertOperations);
     }
 
 
@@ -654,9 +658,18 @@ export class MinutasService {
       );
     }
 
-    if (['cancelada'].includes(estadoNuevo)) {
+    // 🔒 V-005 FIX: Requiere comentarios para cancelada Y rechazada
+    if (['cancelada', 'rechazada'].includes(estadoNuevo)) {
       if (!comments || comments.trim() === '') {
-        throw new BadRequestException('El motivo de cancelación es obligatorio.');
+        const accion = estadoNuevo === 'cancelada' ? 'cancelación' : 'rechazo';
+        throw new BadRequestException(`El motivo de ${accion} es obligatorio para fines de auditoría.`);
+      }
+
+      // 🔒 V-005 FIX: Validar longitud mínima de comentario (evitar "x" como motivo)
+      if (comments.trim().length < 10) {
+        throw new BadRequestException(
+          'El motivo debe tener al menos 10 caracteres para ser descriptivo.'
+        );
       }
     }
   }
@@ -679,12 +692,15 @@ export class MinutasService {
 
     if (unidadIds.length > 0 && estadoNuevo === 'cancelada') {
       await this.unitStateService.liberarUnidades(unidadIds);
-      for (const unidadId of unidadIds) {
-        await this.prisma.detallesVenta.updateMany({
+
+      // ⚡ P-001 FIX: Parallel updates en lugar de secuenciales
+      const updateOperations = unidadIds.map(unidadId =>
+        this.prisma.detallesVenta.updateMany({
           where: { UnidadId: unidadId },
           data: { ClienteInteresado: null },
-        });
-      }
+        })
+      );
+      await Promise.all(updateOperations);
     }
   }
 
@@ -793,17 +809,17 @@ export class MinutasService {
     const contentLength = response.headers.get('content-length');
     const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50MB Limit
 
-    if (contentLength && parseInt(contentLength) > MAX_SIZE_BYTES) {
+    if (contentLength && Number.parseInt(contentLength) > MAX_SIZE_BYTES) {
       throw new BadRequestException('El documento generado excede el límite de tamaño permitido (50MB).');
     }
 
     const contentType = response.headers.get('content-type') || 'application/pdf';
-    
+
     // Obtener buffer con límite de tamaño
     const arrayBuffer = await response.arrayBuffer();
-    
+
     if (arrayBuffer.byteLength > MAX_SIZE_BYTES) {
-       throw new BadRequestException('El documento generado excede el límite de tamaño permitido (50MB).');
+      throw new BadRequestException('El documento generado excede el límite de tamaño permitido (50MB).');
     }
 
     const buffer = Buffer.from(arrayBuffer);

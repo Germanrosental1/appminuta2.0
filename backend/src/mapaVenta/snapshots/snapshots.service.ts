@@ -20,38 +20,26 @@ export class SnapshotsService {
             select: { Id: true, Nombre: true },
         });
 
-        const results = [];
+        // ⚡ P-003 FIX: Parallel project processing con límite de concurrencia
+        // Procesar proyectos en paralelo, máximo 5 a la vez para no saturar DB
+        const CONCURRENCY_LIMIT = 5;
+        const results: any[] = [];
 
-        for (const proyecto of proyectos) {
-            // Get current state of all units for this project via the view
-            const unidades = await this.getProjectUnits(proyecto.Nombre);
-            if (unidades.length === 0) continue;
+        for (let i = 0; i < proyectos.length; i += CONCURRENCY_LIMIT) {
+            const batch = proyectos.slice(i, i + CONCURRENCY_LIMIT);
 
-            // Calculate aggregates
-            const stats = this.calculateStats(unidades);
-
-            // Get previous snapshot for state comparison
-            const previousStateMap = await this.getPreviousStateMap(proyecto.Id);
-
-            // Create the snapshot record
-            const snapshot = await this.createSnapshotRecord(
-                proyecto.Id,
-                fecha,
-                tipoSnapshot,
-                stats,
+            const batchResults = await Promise.all(
+                batch.map(async (proyecto) => {
+                    try {
+                        return await this.processProjectSnapshot(proyecto, fecha, tipoSnapshot);
+                    } catch (error) {
+                        console.error(`Error processing project ${proyecto.Nombre}:`, error);
+                        return null;
+                    }
+                })
             );
 
-            // Create detail records
-            await this.createSnapshotDetails(snapshot.Id, unidades, previousStateMap);
-
-            results.push({
-                proyecto: proyecto.Nombre,
-                snapshotId: snapshot.Id,
-                totalUnidades: stats.totalUnidades,
-                disponibles: stats.disponibles,
-                reservadas: stats.reservadas,
-                vendidas: stats.vendidas,
-            });
+            results.push(...batchResults.filter(Boolean));
         }
 
         return {
@@ -59,6 +47,45 @@ export class SnapshotsService {
             tipoSnapshot,
             proyectosProcessados: results.length,
             detalles: results,
+        };
+    }
+
+    /**
+     * ⚡ P-003 FIX: Método extraído para procesar un proyecto individualmente
+     */
+    private async processProjectSnapshot(
+        proyecto: { Id: string; Nombre: string },
+        fecha: Date,
+        tipoSnapshot: string
+    ) {
+        // Get current state of all units for this project via the view
+        const unidades = await this.getProjectUnits(proyecto.Nombre);
+        if (unidades.length === 0) return null;
+
+        // Calculate aggregates
+        const stats = this.calculateStats(unidades);
+
+        // Get previous snapshot for state comparison
+        const previousStateMap = await this.getPreviousStateMap(proyecto.Id);
+
+        // Create the snapshot record
+        const snapshot = await this.createSnapshotRecord(
+            proyecto.Id,
+            fecha,
+            tipoSnapshot,
+            stats,
+        );
+
+        // Create detail records
+        await this.createSnapshotDetails(snapshot.Id, unidades, previousStateMap);
+
+        return {
+            proyecto: proyecto.Nombre,
+            snapshotId: snapshot.Id,
+            totalUnidades: stats.totalUnidades,
+            disponibles: stats.disponibles,
+            reservadas: stats.reservadas,
+            vendidas: stats.vendidas,
         };
     }
 
