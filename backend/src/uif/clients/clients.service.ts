@@ -99,9 +99,41 @@ export class UifClientsService {
     async findOne(id: string) {
         const client = await this.prisma.clients.findUnique({
             where: { id },
-            include: {
-                documents: { orderBy: { created_at: 'desc' } },
-                analyses: { orderBy: { created_at: 'desc' } },
+            select: {
+                id: true,
+                name: true,
+                cuit: true,
+                status: true,
+                person_type: true,
+                created_at: true,
+                updated_at: true,
+                // financial_data: false, // Excluded
+                // analysis_settings: false, // Excluded
+                documents: {
+                    select: {
+                        id: true,
+                        doc_type: true,
+                        status: true,
+                        original_filename: true,
+                        mime_type: true,
+                        created_at: true,
+                        // extracted_data: false, // Excluded
+                        // reviewed_data: false, // Excluded
+                    },
+                    orderBy: { created_at: 'desc' },
+                },
+                analyses: {
+                    select: {
+                        id: true,
+                        name: true,
+                        status: true,
+                        created_at: true,
+                        updated_at: true,
+                        // financial_data: false, // Excluded
+                        // analysis_settings: false, // Excluded
+                    },
+                    orderBy: { created_at: 'desc' },
+                },
             },
         });
 

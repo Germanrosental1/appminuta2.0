@@ -266,7 +266,9 @@ export class UnidadesQueryService {
         });
 
         // Map null EtapaId to 'Sin Etapa'
-        const etapas: string[] = result.map((r) => r.Etapas?.Nombre || 'Sin Etapa').filter((e): e is string => Boolean(e));
+        const etapas: string[] = (result as any[])
+            .map((r: any) => (r.Etapas?.Nombre as string) || 'Sin Etapa')
+            .filter((e): e is string => !!e);
 
         // Remove duplicates (in case 'Sin Etapa' appears multiple times due to distinct logic quirks or if it matches a real name)
         return [...new Set(etapas)] as string[];
