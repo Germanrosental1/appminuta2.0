@@ -38,7 +38,7 @@ const ClientDetailSkeleton = () => (
         <Skeleton className="h-9 w-32" />
       </div>
       <div className="grid gap-3">
-        {Array.from({ length: 3 }).map((_, i) => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="rounded-lg border p-4">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -53,6 +53,85 @@ const ClientDetailSkeleton = () => (
     </div>
   </div>
 );
+
+const AnalysisDetailView = ({
+  client,
+  analysisId,
+  initialAnalysis,
+  documents,
+  onUpdate,
+  onDocumentsChange,
+  activeTab,
+  setActiveTab
+}: {
+  client: any;
+  analysisId: string;
+  initialAnalysis: Analysis;
+  documents: any[];
+  onUpdate: (updates: Partial<Analysis>) => Promise<boolean>;
+  onDocumentsChange: () => void;
+  activeTab: string;
+  setActiveTab: (val: string) => void;
+}) => {
+  // ⚡ PERFORMANCE: Fetch full analysis details (including financial_data) only when viewing details
+  const { data: fullAnalysis, isLoading, error } = useQuery({
+    queryKey: ['analysis', analysisId],
+    queryFn: () => uifApi.analyses.get(analysisId),
+    // Only fetch if we suspect data is missing (e.g. financial_data is undefined in list view)
+    enabled: !!analysisId,
+  });
+
+  if (isLoading || !fullAnalysis?.financial_data) {
+    if (error) {
+      return (
+        <div className="flex items-center justify-center p-12 text-red-500">
+          <p>Error al cargar el análisis. Por favor intente nuevamente.</p>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center space-y-4">
+          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
+          <p className="text-muted-foreground">Cargando detalles del análisis...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList>
+        <TabsTrigger value="analisis" className="gap-2">
+          <BarChart3 className="h-4 w-4" />
+          Análisis
+        </TabsTrigger>
+        <TabsTrigger value="documentos" className="gap-2">
+          <FileText className="h-4 w-4" />
+          Documentos
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="analisis" className="mt-6">
+        <AnalysisTab
+          client={client}
+          analysis={fullAnalysis}
+          documents={documents}
+          onUpdate={onUpdate}
+        />
+      </TabsContent>
+
+      <TabsContent value="documentos" className="mt-6">
+        <DocumentsTab
+          client={client}
+          analysisId={analysisId}
+          documents={documents}
+          onDocumentsChange={onDocumentsChange}
+        />
+      </TabsContent>
+    </Tabs>
+  );
+};
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -178,36 +257,16 @@ export default function ClientDetailPage() {
       {selectedAnalysisId ? (
         // DETAIL VIEW (TABS)
         activeAnalysis ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="analisis" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Análisis
-              </TabsTrigger>
-              <TabsTrigger value="documentos" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Documentos
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="analisis" className="mt-6">
-              <AnalysisTab
-                client={client}
-                analysis={activeAnalysis} // Pass specific analysis
-                documents={filteredDocuments}
-                onUpdate={updateAnalysis}
-              />
-            </TabsContent>
-
-            <TabsContent value="documentos" className="mt-6">
-              <DocumentsTab
-                client={client}
-                analysisId={activeAnalysis.id}
-                documents={filteredDocuments}
-                onDocumentsChange={refetchData}
-              />
-            </TabsContent>
-          </Tabs>
+          <AnalysisDetailView
+            client={client}
+            analysisId={activeAnalysis.id}
+            initialAnalysis={activeAnalysis}
+            documents={filteredDocuments}
+            onUpdate={updateAnalysis}
+            onDocumentsChange={refetchData}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
         ) : (
           <div className="text-center py-12">Análisis no encontrado</div>
         )

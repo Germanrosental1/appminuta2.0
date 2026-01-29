@@ -50,6 +50,7 @@ model documents {
   @@index([client_id])
   @@index([analysis_id])
   @@index([client_id, status])
+  @@index([client_id, created_at(sort: Desc)])
 
   @@schema("public")
 }
@@ -69,6 +70,7 @@ model analyses {
 
   // Performance index
   @@index([client_id])
+  @@index([client_id, created_at(sort: Desc)])
 
   @@schema("public")
 }
