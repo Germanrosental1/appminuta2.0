@@ -14,10 +14,9 @@ COPY tsconfig*.json ./
 COPY prisma ./prisma
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
-
-# Generate Prisma Client
-RUN npx prisma generate
+# Install dependencies and generate Prisma Client
+RUN npm ci && npm cache clean --force && \
+    npx prisma generate
 
 # Copy source code
 COPY src ./src
@@ -42,10 +41,9 @@ LABEL org.opencontainers.image.description="AppMinuta Backend API"
 # Copy only production dependencies and Prisma schema
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm ci --only=production && npm cache clean --force
-
-# Generate Prisma Client in production stage
-RUN npx prisma generate
+# Install dependencies and generate Prisma Client
+RUN npm ci --only=production && npm cache clean --force && \
+    npx prisma generate
 
 # Copy built assets from builder
 COPY --from=builder /app/dist ./dist
