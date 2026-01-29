@@ -32,12 +32,34 @@ export const Step35IVACalculo: React.FC = () => {
         ? (precioTotal * (data.porcA || 0)) / 100
         : (data.impA || 0);
 
-    // Manejar cambio de porcentaje
+    // Manejar cambio de base imponible
+    const handleBaseImponibleChange = (value: string) => {
+        const numValue = Number.parseFloat(value);
+        if (!Number.isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+            // Recalcular IVA con la nueva base imponible
+            const baseImponible = montoA * (numValue / 100);
+            const nuevoMontoIVA = baseImponible * ((data.porcentajeIVA || 0) / 100);
+            updateData({
+                baseImponiblePorc: numValue,
+                montoIVA: nuevoMontoIVA
+            });
+        } else if (value === '') {
+            updateData({
+                baseImponiblePorc: 100,
+                montoIVA: montoA * ((data.porcentajeIVA || 0) / 100)
+            });
+        }
+    };
+
+    // Manejar cambio de porcentaje de IVA
     const handlePorcentajeChange = (value: string) => {
         const numValue = Number.parseFloat(value);
         if (!Number.isNaN(numValue) && numValue >= 0) {
-            // Calcular nuevo monto de IVA (EN USD)
-            const nuevoMontoIVA = montoA * (numValue / 100);
+            // Calcular base imponible primero
+            const baseImponiblePorc = data.baseImponiblePorc || 100; // Default 100%
+            const baseImponible = montoA * (baseImponiblePorc / 100);
+            // Calcular nuevo monto de IVA sobre la base imponible
+            const nuevoMontoIVA = baseImponible * (numValue / 100);
             updateData({
                 porcentajeIVA: numValue,
                 montoIVA: nuevoMontoIVA
@@ -53,8 +75,11 @@ export const Step35IVACalculo: React.FC = () => {
     // Efecto inicial: calcular si ya hay porcentaje pero cambió el monto base
     useEffect(() => {
         if (data.porcentajeIVA && data.porcentajeIVA > 0) {
-            // Recalcular en USD
-            const nuevoMontoIVA = montoA * (data.porcentajeIVA / 100);
+            // Calcular base imponible
+            const baseImponiblePorc = data.baseImponiblePorc || 100; // Default 100%
+            const baseImponible = montoA * (baseImponiblePorc / 100);
+            // Recalcular IVA sobre la base imponible
+            const nuevoMontoIVA = baseImponible * (data.porcentajeIVA / 100);
 
             // Solo actualizar si hay diferencia significativa
             if (Math.abs(nuevoMontoIVA - (data.montoIVA || 0)) > 0.01) {
@@ -63,7 +88,7 @@ export const Step35IVACalculo: React.FC = () => {
                 });
             }
         }
-    }, [montoA, data.porcentajeIVA]);
+    }, [montoA, data.porcentajeIVA, data.baseImponiblePorc]);
 
 
     // Helpers de formato
@@ -92,20 +117,45 @@ export const Step35IVACalculo: React.FC = () => {
                         </AlertDescription>
                     </Alert>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div className="space-y-6">
                         {/* Visualización del Monto Base (Parte F) */}
-                        <div className="space-y-2 p-4 bg-secondary/20 rounded-lg border border-secondary/30">
-                            <Label className="text-muted-foreground">Base Imponible (Parte F)</Label>
+                        <div className="p-4 bg-secondary/20 rounded-lg border border-secondary/30">
+                            <Label className="text-muted-foreground">Parte F (Financiada)</Label>
                             <p className="text-3xl font-bold tracking-tight">
                                 USD {formatCurrency(montoA)}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Monto sobre el cual se calculará el impuesto (en USD).
+                                Monto total de la Parte F (en USD).
                             </p>
                         </div>
 
-                        {/* Input de Porcentaje */}
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Input de Base Imponible */}
+                            <div className="space-y-2">
+                                <Label htmlFor="baseImponible" className="text-lg">Base Imponible (%)</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="baseImponible"
+                                        type="number"
+                                        placeholder="100"
+                                        value={data.baseImponiblePorc !== undefined ? data.baseImponiblePorc : 100}
+                                        onChange={(e) => handleBaseImponibleChange(e.target.value)}
+                                        className="text-xl h-12 pr-8"
+                                        min="0"
+                                        max="100"
+                                        step="0.01"
+                                    />
+                                    <span className="absolute right-3 top-3 text-muted-foreground font-medium">%</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Porcentaje de F sobre el que se calcula el IVA
+                                </p>
+                                <p className="text-sm font-medium text-primary">
+                                    = USD {formatCurrency(montoA * ((data.baseImponiblePorc || 100) / 100))}
+                                </p>
+                            </div>
+
+                            {/* Input de Porcentaje de IVA */}
                             <div className="space-y-2">
                                 <Label htmlFor="porcentajeIVA" className="text-lg">Porcentaje de IVA (%)</Label>
                                 <div className="relative">
@@ -121,6 +171,9 @@ export const Step35IVACalculo: React.FC = () => {
                                     />
                                     <span className="absolute right-3 top-3 text-muted-foreground font-medium">%</span>
                                 </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Porcentaje de IVA sobre la base imponible
+                                </p>
                             </div>
                         </div>
                     </div>

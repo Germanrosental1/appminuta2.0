@@ -135,9 +135,18 @@ export interface WizardData {
 
   // Paso Intermedio: IVA (si aplica)
   ivaProyecto?: string; // "incluido" | "no incluido"
+  baseImponiblePorc?: number; // Porcentaje de F sobre el que se calcula el IVA
   porcentajeIVA?: number;
   montoIVA?: number;
 }
+
+// Helper para obtener el mes actual en formato YYYY-MM
+const getCurrentMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+};
 
 export const initialWizardData: WizardData = {
   proyecto: "",
@@ -158,7 +167,7 @@ export const initialWizardData: WizardData = {
   monedaB: "USD",
   tipoPago: "contado",
   tcFuente: "MEP",
-  tcValor: 0,
+  tcValor: 1100,
   valorArsConIVA: 0,
   valorUsdConIVA: 0,
   anticipoArs: 0,
@@ -170,7 +179,7 @@ export const initialWizardData: WizardData = {
   totalFinanciarArs: 0,
   totalFinanciarUsd: 0,
   fechaFirmaBoleto: "",
-  fechaBaseCAC: "",
+  fechaBaseCAC: getCurrentMonth(),
   certificacionFirmas: 80000,
   certificacionFirmasPago: "Firma de Boleto",
   selladoPorcentaje: 0.5,
@@ -197,6 +206,7 @@ export const initialWizardData: WizardData = {
   dolarRef: 0,
   formatoSalida: "PDF",
   ivaProyecto: "incluido",
+  baseImponiblePorc: 100,
   porcentajeIVA: 0,
   montoIVA: 0,
 };

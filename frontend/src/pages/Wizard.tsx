@@ -172,7 +172,9 @@ const Wizard: React.FC = () => {
     if (currentStep === 0 && !validateStep0ProyectoUnidad(data)) return false;
 
     // Validación IVA (Paso 3 si aplica)
-    if (aplicaIVA && currentStep === 3 && !validateIVAStep()) return false;
+    if (aplicaIVA && currentStep === 3) {
+      return validateIVAStep();
+    }
 
     // Step Pago
     const pagoValidation = validatePagoStep(aplicaIVA, currentStep);
