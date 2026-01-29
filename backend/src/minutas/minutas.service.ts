@@ -558,8 +558,9 @@ export class MinutasService {
           UpdatedAt: new Date(),
         },
       });
-    } catch (error) {
-      if (error.code === 'P2025') throw new ConflictException('La minuta ha sido modificada por otro usuario.');
+    } catch (error: unknown) {
+      const prismaError = error as { code?: string };
+      if (prismaError.code === 'P2025') throw new ConflictException('La minuta ha sido modificada por otro usuario.');
       if (error instanceof ConflictException) throw error;
       throw error;
     }

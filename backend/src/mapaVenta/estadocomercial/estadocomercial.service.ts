@@ -28,7 +28,7 @@ export class EstadoComercialService {
             });
             await this.invalidateCache();
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
                     throw new ConflictException(
@@ -81,7 +81,7 @@ export class EstadoComercialService {
             });
             await this.invalidateCache();
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Estado comercial con ID "${id}" no encontrado`);
@@ -103,7 +103,7 @@ export class EstadoComercialService {
             });
             await this.invalidateCache();
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Estado comercial con ID "${id}" no encontrado`);

@@ -108,7 +108,7 @@ export class MinutasGateway
                 // y rooms por proyecto para admins regulares.
 
                 if (userRole === 'superadminmv' || userRole === 'adminmv') {
-                    client.join('admins'); // Superadmins ven todo
+                    client.join('admins');
                 }
 
                 // Nota: Para una solución completa, el cliente debería emitir un evento 'joinProjectRoom'
@@ -116,8 +116,8 @@ export class MinutasGateway
             }
 
             this.logger.log(`Client connected - userId: ${userId}, email: ${userEmail}`);
-        } catch (error) {
-            this.logger.error(`Connection error: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`Connection error: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
             client.disconnect();
         }
     }
@@ -189,68 +189,26 @@ export class MinutasGateway
     @SubscribeMessage('joinProject')
     async handleJoinProject(client: Socket, payload: { projectId: string }) {
         // 🔒 V-003 FIX: Validar estructura del payload
-        if (!payload || typeof payload !== 'object') {
-            this.logger.warn(`Invalid payload type from client ${client.id}`);
+        if (!payload || typeof payload !== 'object' || !payload.projectId || typeof payload.projectId !== 'string') {
             client.emit('error', { message: 'Invalid request format' });
-            return;
-        }
-
-        // 🔒 V-003 FIX: Validar que projectId existe y es string
-        if (!payload.projectId || typeof payload.projectId !== 'string') {
-            client.emit('error', { message: 'Missing or invalid projectId' });
             return;
         }
 
         // 🔒 V-003 FIX: Validar formato UUID
         if (!isUUID(payload.projectId)) {
-            this.logger.warn(
-                `Invalid UUID format from client ${client.id}. ` +
-                `Attempted projectId: ${payload.projectId.substring(0, 20)}...`
-            );
+            this.logger.warn(`Invalid UUID format from client ${client.id}`);
             client.emit('error', { message: 'Invalid project ID format' });
             return;
         }
 
         // Recuperar userId de la conexión
         const clientData = this.connectedClients.get(client.id);
-        if (!clientData?.userId) {
-            // No autenticado
-            return;
-        }
+        if (!clientData?.userId) return;
 
         const { userId, isAdmin } = clientData;
 
         try {
-            // Verificar permisos usando AuthService
-
-            // 1. Obtener rol en el proyecto
-            const roleInProject = await this.authService.getUserRoleInProject(userId, payload.projectId);
-
-            let hasAccess = false;
-
-            if (roleInProject) {
-                // 2. Si tiene rol, verificar si tiene permisos de "lectura general / admin"
-                const permissions = await this.authService.getUserPermissions(userId, payload.projectId);
-
-                if (permissions.includes('verTodasMinutas') ||
-                    permissions.includes('editarMinuta') ||
-                    permissions.includes('aprobarRechazarMinuta')) {
-                    hasAccess = true;
-                }
-            }
-
-            // 3. Si no tiene acceso por proyecto, verificar si es SuperAdmin global
-            // (Asumiendo que isAdmin flag ya captura admin/superadmin roles globales correctamente en handleConnection)
-            if (!hasAccess && isAdmin) {
-                // Aquí podríamos hacer una validación más estricta si fuera necesario
-                // Por ahora, asumimos que si es Admin Global, puede ver todo.
-                // Sin embargo, para ser estrictos, deberíamos confirmar que tiene acceso a este proyecto/org.
-                // Como fallback seguro:
-                const canAccessProject = await this.authService.canAccessProject(userId, payload.projectId);
-                if (canAccessProject) {
-                    hasAccess = true;
-                }
-            }
+            const hasAccess = await this.checkProjectAccess(userId, payload.projectId, isAdmin);
 
             if (hasAccess) {
                 client.join(`project-admins:${payload.projectId}`);
@@ -258,9 +216,30 @@ export class MinutasGateway
             } else {
                 this.logger.warn(`User ${userId} tried to join project-admins:${payload.projectId} without sufficient permissions`);
             }
-
-        } catch (error) {
-            this.logger.error(`Error validating joinProject for user ${userId}: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`Error validating joinProject for user ${userId}: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
         }
+    }
+
+    /**
+     * Helper para verificar acceso al proyecto - reduce complejidad cognitiva
+     */
+    private async checkProjectAccess(userId: string, projectId: string, isAdmin: boolean): Promise<boolean> {
+        const roleInProject = await this.authService.getUserRoleInProject(userId, projectId);
+
+        if (roleInProject) {
+            const permissions = await this.authService.getUserPermissions(userId, projectId);
+            const requiredPermissions = new Set(['verTodasMinutas', 'editarMinuta', 'aprobarRechazarMinuta']);
+            if (permissions.some(p => requiredPermissions.has(p))) {
+                return true;
+            }
+        }
+
+        // Si es Admin global, verificar acceso al proyecto
+        if (isAdmin) {
+            return await this.authService.canAccessProject(userId, projectId);
+        }
+
+        return false;
     }
 }

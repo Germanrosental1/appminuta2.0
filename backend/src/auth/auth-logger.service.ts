@@ -45,8 +45,8 @@ export class AuthLoggerService {
                     usuarioemail: email || 'unknown',
                 });
             }
-        } catch (error) {
-            console.error('Error al registrar evento de autenticación:', error);
+        } catch (error: unknown) {
+            console.error('Error al registrar evento de autenticación:', error instanceof Error ? error.message : error);
             // No lanzar error para no interrumpir el flujo de autenticación
         }
     }
@@ -74,8 +74,8 @@ export class AuthLoggerService {
             });
 
             return events;
-        } catch (error) {
-            console.error('Error al obtener eventos de autenticación:', error);
+        } catch (error: unknown) {
+            console.error('Error al obtener eventos de autenticación:', error instanceof Error ? error.message : error);
             return [];
         }
     }
@@ -105,8 +105,8 @@ export class AuthLoggerService {
 
             // Si hay más de 5 inicios de sesión en la última hora, es sospechoso
             return recentLogins.length > 5;
-        } catch (error) {
-            console.error('Error al detectar actividad sospechosa:', error);
+        } catch (error: unknown) {
+            console.error('Error al detectar actividad sospechosa:', error instanceof Error ? error.message : error);
             return false;
         }
     }

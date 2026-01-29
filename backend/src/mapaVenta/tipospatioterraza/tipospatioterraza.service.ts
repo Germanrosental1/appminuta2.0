@@ -10,7 +10,7 @@ export class TiposPatioTerrazaService {
     async create(dto: CreateTipoPatioTerrazaDto) {
         try {
             return await this.prisma.tiposPatioTerraza.create({ data: { Nombre: dto.nombre } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un tipo de patio/terraza con el nombre "${dto.nombre}"`);
             }
@@ -31,7 +31,7 @@ export class TiposPatioTerrazaService {
     async update(id: string, dto: UpdateTipoPatioTerrazaDto) {
         try {
             return await this.prisma.tiposPatioTerraza.update({ where: { Id: id }, data: { Nombre: dto.nombre } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Tipo de patio/terraza con ID "${id}" no encontrado`);
                 if (error.code === 'P2002') throw new ConflictException(`Ya existe un tipo con el nombre "${dto.nombre}"`);
@@ -43,7 +43,7 @@ export class TiposPatioTerrazaService {
     async remove(id: string) {
         try {
             return await this.prisma.tiposPatioTerraza.delete({ where: { Id: id } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Tipo de patio/terraza con ID "${id}" no encontrado`);
             }

@@ -28,7 +28,7 @@ export class EtapasService {
             });
             await this.invalidateCache(); // Invalidar cache al crear
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
                     throw new ConflictException(
@@ -85,7 +85,7 @@ export class EtapasService {
                 await this.invalidateCache();
                 return result;
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Etapa con ID "${id}" no encontrada`);
@@ -108,7 +108,7 @@ export class EtapasService {
                 await this.invalidateCache();
                 return result;
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Etapa con ID "${id}" no encontrada`);

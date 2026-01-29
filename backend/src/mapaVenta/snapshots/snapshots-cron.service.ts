@@ -24,8 +24,8 @@ export class SnapshotsCronService {
             this.logger.log(
                 `Daily snapshot completed: ${result.proyectosProcessados} projects processed`,
             );
-        } catch (error) {
-            this.logger.error(`Daily snapshot failed: ${error.message}`, error.stack);
+        } catch (error: unknown) {
+            this.logger.error(`Daily snapshot failed: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
         }
     }
 
@@ -54,8 +54,8 @@ export class SnapshotsCronService {
             this.logger.log(
                 `Monthly snapshot completed: ${result.proyectosProcessados} projects processed`,
             );
-        } catch (error) {
-            this.logger.error(`Monthly snapshot failed: ${error.message}`, error.stack);
+        } catch (error: unknown) {
+            this.logger.error(`Monthly snapshot failed: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
         }
     }
 

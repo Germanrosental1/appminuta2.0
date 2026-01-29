@@ -48,8 +48,8 @@ export class UnitStateService {
             );
 
             this.logger.log(`✅ ${unidadIds.length} unidades reservadas correctamente`);
-        } catch (error) {
-            this.logger.error(`Error al reservar unidades: ${error.message}`, error.stack);
+        } catch (error: unknown) {
+            this.logger.error(`Error al reservar unidades: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
             throw error;
         }
     }
@@ -78,8 +78,8 @@ export class UnitStateService {
             });
 
             this.logger.log(`✅ ${unidadIds.length} unidades liberadas correctamente`);
-        } catch (error) {
-            this.logger.error(`Error al liberar unidades: ${error.message}`, error.stack);
+        } catch (error: unknown) {
+            this.logger.error(`Error al liberar unidades: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
             throw error;
         }
     }
@@ -106,8 +106,8 @@ export class UnitStateService {
             });
 
             this.logger.log(`✅ ${unidadIds.length} unidades marcadas como vendidas`);
-        } catch (error) {
-            this.logger.error(`Error al marcar unidades como vendidas: ${error.message}`, error.stack);
+        } catch (error: unknown) {
+            this.logger.error(`Error al marcar unidades como vendidas: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
             throw error;
         }
     }

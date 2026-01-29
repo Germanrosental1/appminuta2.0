@@ -32,15 +32,16 @@ export class UsuariosProyectosService {
                     Roles: true,
                 },
             });
-        } catch (error) {
+        } catch (error: unknown) {
+            const prismaError = error as { code?: string };
             // P2002: Unique constraint violation (ya asignado)
-            if (error.code === 'P2002') {
+            if (prismaError.code === 'P2002') {
                 throw new ConflictException(
                     'El usuario ya está asignado a este proyecto con este rol',
                 );
             }
             // P2003: Foreign key constraint violation (usuario, proyecto o rol no existe)
-            if (error.code === 'P2003') {
+            if (prismaError.code === 'P2003') {
                 throw new NotFoundException('Usuario, proyecto o rol no encontrado');
             }
             throw error;

@@ -144,18 +144,14 @@ export class UnidadesController {
         @CurrentUser() user: any,
         @Query('etapa') etapa?: string
     ) {
-        console.log(`[DEBUG] getTipos requested for project: ${proyecto}, user: ${user.id}`);
         if (proyecto) {
             try {
                 await this.validateProjectAccess(user.id, proyecto);
-                console.log(`[DEBUG] Access granted for user ${user.id} to project ${proyecto}`);
-            } catch (error) {
-                console.error(`[DEBUG] Access DENIED for user ${user.id} to project ${proyecto}`, error);
+            } catch (error: unknown) {
                 throw error;
             }
         }
         const result = await this.unidadesQueryService.getTipos(proyecto, etapa);
-        console.log(`[DEBUG] getTipos result for ${proyecto}: ${result.length} types found`);
         return result;
     }
 
