@@ -3,7 +3,7 @@
  * Valida variables de entorno al inicio para fallar rápido si falta configuración.
  */
 import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, IsUrl, MinLength, validateSync } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUrl, Matches, MinLength, validateSync } from 'class-validator';
 
 enum Environment {
     Development = 'development',
@@ -21,8 +21,8 @@ class EnvironmentVariables {
     @IsOptional()
     PORT: number = 3000;
 
-    // Database
-    @IsUrl({}, { message: 'DATABASE_URL debe ser una URL válida' })
+    // Database - Using regex instead of @IsUrl to support URL-encoded special characters in password
+    @Matches(/^postgres(ql)?:\/\/.+/, { message: 'DATABASE_URL debe ser una URL de PostgreSQL válida' })
     DATABASE_URL: string;
 
     // Auth
