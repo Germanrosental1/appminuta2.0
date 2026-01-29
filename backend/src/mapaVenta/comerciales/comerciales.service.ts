@@ -13,7 +13,7 @@ export class ComercialesService {
             return await this.prisma.comerciales.create({
                 data: { Nombre: createComercialDto.nombre },
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
                     throw new ConflictException(
@@ -62,7 +62,7 @@ export class ComercialesService {
                 where: { Id: id },
                 data: { Nombre: updateComercialDto.nombre },
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Comercial con ID "${id}" no encontrado`);
@@ -82,7 +82,7 @@ export class ComercialesService {
             return await this.prisma.comerciales.delete({
                 where: { Id: id },
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Comercial con ID "${id}" no encontrado`);

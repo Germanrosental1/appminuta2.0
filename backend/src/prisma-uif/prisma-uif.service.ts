@@ -36,9 +36,9 @@ export class PrismaUifService extends PrismaClient implements OnModuleInit, OnMo
         try {
             await this.$connect();
             this.logger.log('UIF Database connection established successfully');
-        } catch (error) {
+        } catch (error: unknown) {
             this.logger.warn(
-                `UIF DB connection attempt ${attempt}/${this.maxRetries} failed: ${error.message}`
+                `UIF DB connection attempt ${attempt}/${this.maxRetries} failed: ${error instanceof Error ? error.message : String(error)}`
             );
 
             if (attempt < this.maxRetries) {

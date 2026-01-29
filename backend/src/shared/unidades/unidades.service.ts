@@ -254,7 +254,7 @@ export class UnidadesService {
             }, {
                 timeout: 10000
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error in updateComplete transaction:', error);
             throw error;
         }
@@ -643,7 +643,7 @@ export class UnidadesService {
             return result
                 .map((r) => r.SectorId)
                 .filter((s) => s != null && s !== '');
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('[ERROR] getSectores failed:', error);
             return []; // Return empty instead of crashing
         }

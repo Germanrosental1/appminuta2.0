@@ -10,7 +10,7 @@ export class TiposCocheraService {
     async create(dto: CreateTipoCocheraDto) {
         try {
             return await this.prisma.tiposCochera.create({ data: { Nombre: dto.nombre } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un tipo de cochera con el nombre "${dto.nombre}"`);
             }
@@ -31,7 +31,7 @@ export class TiposCocheraService {
     async update(id: string, dto: UpdateTipoCocheraDto) {
         try {
             return await this.prisma.tiposCochera.update({ where: { Id: id }, data: { Nombre: dto.nombre } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Tipo de cochera con ID "${id}" no encontrado`);
                 if (error.code === 'P2002') throw new ConflictException(`Ya existe un tipo con el nombre "${dto.nombre}"`);
@@ -43,7 +43,7 @@ export class TiposCocheraService {
     async remove(id: string) {
         try {
             return await this.prisma.tiposCochera.delete({ where: { Id: id } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Tipo de cochera con ID "${id}" no encontrado`);
             }

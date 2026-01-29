@@ -7,6 +7,7 @@ import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { CsrfInterceptor } from './common/interceptors/csrf.interceptor';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
+import { validateEnv } from './config/env.validation';
 
 // Polyfill for BigInt serialization
 (BigInt.prototype as any).toJSON = function () {
@@ -14,6 +15,9 @@ import { PerformanceInterceptor } from './common/interceptors/performance.interc
 };
 
 async function bootstrap() {
+    // 🔒 S-002: Validar entorno antes de iniciar
+    validateEnv();
+
     const app = await NestFactory.create(AppModule);
 
     // Headers de seguridad con Helmet (MEJORADO para 10/10)

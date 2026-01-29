@@ -69,7 +69,7 @@ export class EdificiosService {
                 },
                 include: { Proyectos: true },
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Edificio con ID "${id}" no encontrado`);
             }
@@ -80,7 +80,7 @@ export class EdificiosService {
     async remove(id: string) {
         try {
             return await this.prisma.edificios.delete({ where: { Id: id } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
                     throw new NotFoundException(`Edificio con ID "${id}" no encontrado`);

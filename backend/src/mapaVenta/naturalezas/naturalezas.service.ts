@@ -25,7 +25,7 @@ export class NaturalezasService {
     async update(id: string, updateNaturalezaDto: UpdateNaturalezaDto) {
         try {
             return await this.prisma.naturalezas.update({ where: { Id: id }, data: { Nombre: updateNaturalezaDto.nombre } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Naturaleza con ID "${id}" no encontrada`);
             }
@@ -36,7 +36,7 @@ export class NaturalezasService {
     async remove(id: string) {
         try {
             return await this.prisma.naturalezas.delete({ where: { Id: id } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Naturaleza con ID "${id}" no encontrada`);
             }

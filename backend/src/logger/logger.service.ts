@@ -19,7 +19,7 @@ export class LoggerService implements ILogger {
                     UsuarioMail: maskEmail(params.usuarioemail || 'system'),
                 },
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error al guardar log en database:', error);
             // No re-throw para no interrumpir el flujo principal si el log falla
         }

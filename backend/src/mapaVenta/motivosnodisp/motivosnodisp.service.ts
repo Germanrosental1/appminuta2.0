@@ -13,7 +13,7 @@ export class MotivosNodispService {
             return await this.prisma.motivosNoDisp.create({
                 data: { Nombre: createMotivoNodispDto.nombre },
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un motivo con el nombre "${createMotivoNodispDto.nombre}"`);
             }
@@ -43,7 +43,7 @@ export class MotivosNodispService {
                 where: { Id: id },
                 data: { Nombre: updateMotivoNodispDto.nombre },
             });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Motivo con ID "${id}" no encontrado`);
                 if (error.code === 'P2002') throw new ConflictException(`Ya existe un motivo con el nombre "${updateMotivoNodispDto.nombre}"`);
@@ -55,7 +55,7 @@ export class MotivosNodispService {
     async remove(id: string) {
         try {
             return await this.prisma.motivosNoDisp.delete({ where: { Id: id } });
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Motivo con ID "${id}" no encontrado`);
                 if (error.code === 'P2003') throw new ConflictException('No se puede eliminar porque tiene ventas asociadas');

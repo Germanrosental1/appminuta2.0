@@ -313,8 +313,6 @@ export class UnidadesQueryService {
             },
         });
 
-        console.log(`[DEBUG] QueryService getTipos found ${result.length} distinct types`);
-        result.forEach(r => console.log(`[DEBUG] Found type: ${r.TiposUnidad?.Nombre}`));
 
         return result.map((r) => r.TiposUnidad.Nombre).filter(Boolean);
     }
@@ -367,7 +365,7 @@ export class UnidadesQueryService {
             return result
                 .map((r) => r.SectorId)
                 .filter((s) => s != null && s !== '');
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('[ERROR] getSectores failed:', error);
             return []; // Return empty instead of crashing
         }

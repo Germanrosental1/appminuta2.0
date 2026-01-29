@@ -145,11 +145,11 @@ export class UifDocumentsService {
             if (!response.ok) {
                 throw new Error(`N8N Error: ${response.statusText}`);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             // Revert status on error
             await this.prisma.documents.update({
                 where: { id },
-                data: { status: 'Error', error_message: 'Error al iniciar análisis: ' + error.message },
+                data: { status: 'Error', error_message: 'Error al iniciar análisis: ' + (error instanceof Error ? error.message : JSON.stringify(error)) },
             });
             throw error;
         }

@@ -80,7 +80,6 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
 
 // Helper function: Fetch user roles from usuarios-roles table
 const fetchUserRoles = async (userId: string): Promise<Role[]> => {
-    console.log('[fetchUserRoles DEBUG] Buscando roles para userId:', userId);
     try {
         // Consulta simple a UsuariosRoles
         const { data: rawData, error: rawError } = await supabase
@@ -88,16 +87,13 @@ const fetchUserRoles = async (userId: string): Promise<Role[]> => {
             .select('*')
             .eq('IdUsuario', userId);
 
-        console.log('[fetchUserRoles DEBUG] usuarios-roles:', { rawData, rawError });
 
         if (!rawData || rawData.length === 0) {
-            console.log('[fetchUserRoles DEBUG] No se encontraron asignaciones de rol');
             return [];
         }
 
         // Obtener TODOS los IDs de roles (PascalCase keys)
         const roleIds = rawData.map((r: any) => r.IdRol);
-        console.log('[fetchUserRoles DEBUG] Role IDs a buscar:', roleIds);
 
         // Consultar todos los roles en una sola query
         const { data: rolesData, error: rolesError } = await supabase
@@ -105,7 +101,6 @@ const fetchUserRoles = async (userId: string): Promise<Role[]> => {
             .select('*')
             .in('Id', roleIds);
 
-        console.log('[fetchUserRoles DEBUG] Roles encontrados:', { rolesData, rolesError });
 
         if (rolesData && rolesData.length > 0) {
             // Map PascalCase DB to camelCase Interface
@@ -180,14 +175,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [hasPermission]);
 
     const hasRole = useCallback((role: string): boolean => {
-        const result = roles.some(r => r.nombre === role);
-        // DEBUG: Ver qué roles tiene el usuario y por qué hasRole falla
-        console.log('[hasRole DEBUG]', {
-            checkingRole: role,
-            userRoles: roles.map(r => r.nombre),
-            result
-        });
-        return result;
+        return roles.some(r => r.nombre === role);
     }, [roles]);
 
     const refreshRoles = useCallback(async (providedUser?: AuthUser) => {

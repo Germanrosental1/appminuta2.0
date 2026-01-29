@@ -38,13 +38,14 @@ export class UsuariosRolesService {
             this.invalidateUserRolesCache(userId);
 
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
+            const prismaError = error as { code?: string };
             // P2002: Unique constraint violation (rol ya asignado)
-            if (error.code === 'P2002') {
+            if (prismaError.code === 'P2002') {
                 throw new ConflictException('El rol ya está asignado a este usuario');
             }
             // P2003: Foreign key constraint violation (usuario o rol no existe)
-            if (error.code === 'P2003') {
+            if (prismaError.code === 'P2003') {
                 throw new NotFoundException('Usuario o rol no encontrado');
             }
             throw error;

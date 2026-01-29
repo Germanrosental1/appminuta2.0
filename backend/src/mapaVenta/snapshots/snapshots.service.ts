@@ -32,7 +32,7 @@ export class SnapshotsService {
                 batch.map(async (proyecto) => {
                     try {
                         return await this.processProjectSnapshot(proyecto, fecha, tipoSnapshot);
-                    } catch (error) {
+                    } catch (error: unknown) {
                         console.error(`Error processing project ${proyecto.Nombre}:`, error);
                         return null;
                     }

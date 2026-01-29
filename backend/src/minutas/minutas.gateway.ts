@@ -116,8 +116,8 @@ export class MinutasGateway
             }
 
             this.logger.log(`Client connected - userId: ${userId}, email: ${userEmail}`);
-        } catch (error) {
-            this.logger.error(`Connection error: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`Connection error: ${error instanceof Error ? error.message : String(error)}`);
             client.disconnect();
         }
     }
@@ -259,8 +259,8 @@ export class MinutasGateway
                 this.logger.warn(`User ${userId} tried to join project-admins:${payload.projectId} without sufficient permissions`);
             }
 
-        } catch (error) {
-            this.logger.error(`Error validating joinProject for user ${userId}: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`Error validating joinProject for user ${userId}: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

@@ -25,7 +25,7 @@ export class TiposUnidadService {
             const result = await this.prisma.tiposUnidad.create({ data: { Nombre: dto.nombre } });
             await this.invalidateCache();
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
                 throw new ConflictException(`Ya existe un tipo de unidad con el nombre "${dto.nombre}"`);
             }
@@ -57,7 +57,7 @@ export class TiposUnidadService {
             const result = await this.prisma.tiposUnidad.update({ where: { Id: id }, data: { Nombre: dto.nombre } });
             await this.invalidateCache();
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') throw new NotFoundException(`Tipo de unidad con ID "${id}" no encontrado`);
                 if (error.code === 'P2002') throw new ConflictException(`Ya existe un tipo con el nombre "${dto.nombre}"`);
@@ -71,7 +71,7 @@ export class TiposUnidadService {
             const result = await this.prisma.tiposUnidad.delete({ where: { Id: id } });
             await this.invalidateCache();
             return result;
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
                 throw new NotFoundException(`Tipo de unidad con ID "${id}" no encontrado`);
             }
