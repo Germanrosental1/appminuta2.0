@@ -10,13 +10,14 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-# Copy Prisma schema
+# Copy Prisma schemas (main and UIF)
 COPY prisma ./prisma
+COPY prisma-uif ./prisma-uif
 
-# Install dependencies (including devDependencies for build)
-# Install dependencies and generate Prisma Client
+# Install dependencies and generate both Prisma Clients
 RUN npm ci && npm cache clean --force && \
-    npx prisma generate
+    npx prisma generate && \
+    npx prisma generate --schema=prisma-uif/schema.prisma
 
 # Copy source code
 COPY src ./src
@@ -38,12 +39,14 @@ ENV NODE_ENV=production
 LABEL org.opencontainers.image.source="https://github.com/Germanrosental1/appminuta"
 LABEL org.opencontainers.image.description="AppMinuta Backend API"
 
-# Copy only production dependencies and Prisma schema
+# Copy only production dependencies and Prisma schemas
 COPY package*.json ./
 COPY prisma ./prisma
-# Install dependencies and generate Prisma Client
+COPY prisma-uif ./prisma-uif
+# Install dependencies and generate both Prisma Clients
 RUN npm ci --only=production && npm cache clean --force && \
-    npx prisma generate
+    npx prisma generate && \
+    npx prisma generate --schema=prisma-uif/schema.prisma
 
 # Copy built assets from builder
 COPY --from=builder /app/dist ./dist
