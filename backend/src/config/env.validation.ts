@@ -2,30 +2,57 @@
  * 🔒 S-002: Environment Validation
  * Valida variables de entorno al inicio para fallar rápido si falta configuración.
  */
-import { z } from 'zod';
+import { plainToInstance } from 'class-transformer';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUrl, MinLength, validateSync } from 'class-validator';
 
-const envSchema = z.object({
+enum Environment {
+    Development = 'development',
+    Production = 'production',
+    Test = 'test',
+}
+
+class EnvironmentVariables {
     // Core
-    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    PORT: z.string().transform(Number).default('3000'),
+    @IsEnum(Environment)
+    @IsOptional()
+    NODE_ENV: Environment = Environment.Development;
+
+    @IsNumber()
+    @IsOptional()
+    PORT: number = 3000;
 
     // Database
-    DATABASE_URL: z.string().url('DATABASE_URL debe ser una URL válida'),
+    @IsUrl({}, { message: 'DATABASE_URL debe ser una URL válida' })
+    DATABASE_URL: string;
 
     // Auth
-    JWT_SECRET: z.string().min(16, 'JWT_SECRET debe tener al menos 16 caracteres'),
-    SUPABASE_URL: z.string().url('SUPABASE_URL debe ser una URL válida'),
-    SUPABASE_KEY: z.string().min(20, 'SUPABASE_KEY es requerido'),
-    SUPABASE_JWT_SECRET: z.string().min(16, 'SUPABASE_JWT_SECRET es requerido'),
+    @IsString()
+    @MinLength(16, { message: 'JWT_SECRET debe tener al menos 16 caracteres' })
+    JWT_SECRET: string;
+
+    @IsUrl({}, { message: 'SUPABASE_URL debe ser una URL válida' })
+    SUPABASE_URL: string;
+
+    @IsString()
+    @MinLength(20, { message: 'SUPABASE_KEY es requerido' })
+    SUPABASE_KEY: string;
+
+    @IsString()
+    @MinLength(16, { message: 'SUPABASE_JWT_SECRET es requerido' })
+    SUPABASE_JWT_SECRET: string;
 
     // CORS
-    ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
+    @IsString()
+    @IsOptional()
+    ALLOWED_ORIGINS: string = 'http://localhost:3000';
 
     // Optional
-    REDIS_URL: z.string().url().optional(),
-});
+    @IsUrl()
+    @IsOptional()
+    REDIS_URL?: string;
+}
 
-export type EnvConfig = z.infer<typeof envSchema>;
+export type EnvConfig = EnvironmentVariables;
 
 let cachedEnv: EnvConfig | null = null;
 
@@ -36,12 +63,20 @@ let cachedEnv: EnvConfig | null = null;
 export function validateEnv(): EnvConfig {
     if (cachedEnv) return cachedEnv;
 
-    const result = envSchema.safeParse(process.env);
+    const config = plainToInstance(EnvironmentVariables, process.env, {
+        enableImplicitConversion: true, // Para convertir strings a numbers automáticamente
+    });
 
-    if (!result.success) {
-        const errors = result.error.format();
+    const errors = validateSync(config, { skipMissingProperties: false });
+
+    if (errors.length > 0) {
         console.error('❌ Invalid environment configuration:');
-        console.error(JSON.stringify(errors, null, 2));
+        const formattedErrors = errors.map((error) => ({
+            property: error.property,
+            constraints: error.constraints,
+            value: error.value,
+        }));
+        console.error(JSON.stringify(formattedErrors, null, 2));
 
         // En producción, fallar inmediatamente
         if (process.env.NODE_ENV === 'production') {
@@ -50,12 +85,11 @@ export function validateEnv(): EnvConfig {
 
         // En desarrollo, mostrar warning pero continuar
         console.warn('⚠️ Continuing with partial config (development mode)');
-        // Usar valores parciales
-        cachedEnv = result.data;
+        cachedEnv = config;
         return cachedEnv;
     }
 
-    cachedEnv = result.data;
+    cachedEnv = config;
     console.log('✅ Environment configuration validated');
     return cachedEnv;
 }

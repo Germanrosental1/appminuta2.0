@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,18 +7,27 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "@/pages/LoginPage";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard/index";
-import DashboardLayout from "./pages/DashboardLayout";
-import SalesMapView from "./pages/SalesMapView";
-import UnitsListPage from "./pages/UnitsListPage";
-import UnitEditPage from "./pages/UnitEditPage";
-import DiagnosticPage from "./pages/DiagnosticPage";
-import PriceAdjustmentPage from "./pages/PriceAdjustmentPage";
-import StockHistoryPage from "./pages/StockHistoryPage";
-import NotFound from "./pages/NotFound";
+
+// ⚡ PERFORMANCE: Lazy load pages
+const Index = lazy(() => import("./pages/Index"));
+const Dashboard = lazy(() => import("./pages/Dashboard/index"));
+const DashboardLayout = lazy(() => import("./pages/DashboardLayout"));
+const SalesMapView = lazy(() => import("./pages/SalesMapView"));
+const UnitsListPage = lazy(() => import("./pages/UnitsListPage"));
+const UnitEditPage = lazy(() => import("./pages/UnitEditPage"));
+const DiagnosticPage = lazy(() => import("./pages/DiagnosticPage"));
+const PriceAdjustmentPage = lazy(() => import("./pages/PriceAdjustmentPage"));
+const StockHistoryPage = lazy(() => import("./pages/StockHistoryPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+// Loading spinner component
+const PageLoader = () => (
+  <div className="flex h-screen w-full items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,50 +36,52 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/home" element={<Index />} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/home" element={<Index />} />
 
-            {/* Protected routes */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Dashboard />} />
-              <Route path="/map/:mapId" element={<SalesMapView />} />
-              <Route path="/units" element={<UnitsListPage />} />
+              {/* Protected routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Dashboard />} />
+                <Route path="/map/:mapId" element={<SalesMapView />} />
+                <Route path="/units" element={<UnitsListPage />} />
 
-              <Route
-                path="/unit/create"
-                element={
-                  <UnitEditPage />
-                }
-              />
-
-              {/* superadminmv y adminmv pueden editar */}
-              <Route
-                path="/unit/edit/:unitId"
-                element={
-                  <ProtectedRoute requireAnyRole={['superadminmv', 'adminmv']}>
+                <Route
+                  path="/unit/create"
+                  element={
                     <UnitEditPage />
-                  </ProtectedRoute>
-                }
-              />
+                  }
+                />
 
-              <Route path="/diagnostic" element={<DiagnosticPage />} />
+                {/* superadminmv y adminmv pueden editar */}
+                <Route
+                  path="/unit/edit/:unitId"
+                  element={
+                    <ProtectedRoute requireAnyRole={['superadminmv', 'adminmv']}>
+                      <UnitEditPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Ajuste masivo de precios */}
-              <Route path="/price-adjustment" element={<PriceAdjustmentPage />} />
+                <Route path="/diagnostic" element={<DiagnosticPage />} />
 
-              {/* Historial de Stock */}
-              <Route path="/stock-history" element={<StockHistoryPage />} />
-            </Route>
+                {/* Ajuste masivo de precios */}
+                <Route path="/price-adjustment" element={<PriceAdjustmentPage />} />
 
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+                {/* Historial de Stock */}
+                <Route path="/stock-history" element={<StockHistoryPage />} />
+              </Route>
+
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>

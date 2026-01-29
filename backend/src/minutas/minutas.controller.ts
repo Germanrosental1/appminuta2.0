@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards, ParseUUIDPipe, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { MinutasService } from './minutas.service';
@@ -42,16 +42,7 @@ export class MinutasController {
   @Permissions('generarMinuta')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute (resource intensive)
   async generar(@Body() data: any, @Res() res: Response) {
-    // 🔒 V-006 FIX: Validar tamaño de payload antes de procesar
-    const payloadSize = JSON.stringify(data).length;
-    const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5MB
 
-    if (payloadSize > MAX_PAYLOAD_BYTES) {
-      const sizeMB = (payloadSize / 1024 / 1024).toFixed(2);
-      throw new BadRequestException(
-        `Payload demasiado grande: ${sizeMB}MB. Límite máximo: 5MB`
-      );
-    }
 
     const { buffer, contentType } = await this.minutasService.generate(data);
     res.set('Content-Type', contentType);
