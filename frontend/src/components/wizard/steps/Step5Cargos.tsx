@@ -79,7 +79,6 @@ export const Step5Cargos: React.FC = () => {
         if (gastos) {
           const updates = mapGastosToUpdates(gastos);
           if (Object.keys(updates).length > 0) {
-            console.log('Loading gastos generales defaults:', updates);
             updateData(updates);
           }
         }

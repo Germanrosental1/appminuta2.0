@@ -83,7 +83,7 @@ const getCacheConfig = (): any => {
             {
                 name: 'global',
                 ttl: 60000,
-                limit: 200, // Máximo 200 req/min para TODO el servidor
+                limit: 200, // Máximo 200 req/min para el servidor
             },
             // Límite por usuario (existente)
             {

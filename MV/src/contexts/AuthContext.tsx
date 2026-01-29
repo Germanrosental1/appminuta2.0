@@ -82,7 +82,7 @@ const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => 
 const fetchUserRoles = async (userId: string): Promise<Role[]> => {
     try {
         // Consulta simple a UsuariosRoles
-        const { data: rawData, error: rawError } = await supabase
+        const { data: rawData } = await supabase
             .from('UsuariosRoles')
             .select('*')
             .eq('IdUsuario', userId);
@@ -96,7 +96,7 @@ const fetchUserRoles = async (userId: string): Promise<Role[]> => {
         const roleIds = rawData.map((r: any) => r.IdRol);
 
         // Consultar todos los roles en una sola query
-        const { data: rolesData, error: rolesError } = await supabase
+        const { data: rolesData } = await supabase
             .from('Roles')
             .select('*')
             .in('Id', roleIds);
@@ -277,7 +277,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const signIn = async (email: string, password: string) => {
         try {
-            const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
             return { error };
         } catch (error) {
             return { error };

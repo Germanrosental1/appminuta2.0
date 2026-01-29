@@ -1,23 +1,51 @@
 services:
   # --- Frontend (React + Vite) ---
   web:
+    container_name: appminuta-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
       - "8080:80"
     depends_on:
-      - api
-    restart: always
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - appminuta-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   # --- Backend (NestJS) ---
   api:
+    container_name: appminuta-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
+      - NODE_ENV=production
       - PORT=3000
-      # - DATABASE_URL=... (To be added later)
-    restart: always
+      # Configure these in your deployment environment:
+      # - DATABASE_URL=postgresql://user:password@host:5432/db
+      # - JWT_SECRET=your-secret-key
+    restart: unless-stopped
+    networks:
+      - appminuta-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+networks:
+  appminuta-network:
+    driver: bridge
