@@ -134,7 +134,8 @@ async function bootstrap() {
                     'n8n',                    // Workflow automation
                     'PostmanRuntime',         // API testing tool
                     'Insomnia',               // API testing tool
-                    'axios',                  // Server-side HTTP client
+                    'axios',                  // Server-side HTTP client (Used by n8n)
+                    'axiom',                  // n8n http client
                     'node-fetch',             // Server-side fetch
                     'got',                    // Server-side HTTP client
                     'curl',                   // Command line tool
@@ -148,11 +149,12 @@ async function bootstrap() {
                 if (isAllowedAgent || !isProduction) {
                     // En desarrollo: permitir todos para facilitar debugging
                     // En producción: solo User-Agents conocidos
+                    console.log(`[CORS-ALLOW] Allowed no-origin request. UA: '${userAgent}'`);
                     return callback(null, true);
                 }
 
                 // 🔒 Rechazar requests sin Origin de User-Agents desconocidos en producción
-                console.warn(`CORS rejected no-origin request from unknown UA: ${userAgent.substring(0, 50)}`);
+                console.warn(`[CORS-BLOCK] Rejected no-origin request. UA: '${userAgent}' (IP: ${req.ip})`);
                 return callback(new Error('Origin header required'), false);
             }
 
