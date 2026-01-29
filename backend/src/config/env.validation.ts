@@ -15,7 +15,7 @@ const envSchema = z.object({
     // Auth
     JWT_SECRET: z.string().min(16, 'JWT_SECRET debe tener al menos 16 caracteres'),
     SUPABASE_URL: z.string().url('SUPABASE_URL debe ser una URL válida'),
-    SUPABASE_KEY: z.string().min(20, 'SUPABASE_KEY es requerido'),
+    SUPABASE_ANON_KEY: z.string().min(20, 'SUPABASE_ANON_KEY es requerido'),
     SUPABASE_JWT_SECRET: z.string().min(16, 'SUPABASE_JWT_SECRET es requerido'),
 
     // CORS
