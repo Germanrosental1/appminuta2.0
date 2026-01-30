@@ -45,10 +45,10 @@ export function UnitFiltersComponent({ filters, onFilterChange, proyecto, natura
     const loadTipos = async () => {
       try {
         if (proyecto) {
-          const tipos = await supabaseService.getUniqueValuesByProject('tipo', proyecto);
+          const tipos = await supabaseService.getUniqueValuesByProject('Tipo', proyecto);
           setTiposDisponibles(tipos);
         } else {
-          const tipos = await supabaseService.getUniqueValues('tipo');
+          const tipos = await supabaseService.getUniqueValues('Tipo');
           setTiposDisponibles(tipos);
         }
       } catch (error) {
