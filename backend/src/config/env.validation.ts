@@ -34,8 +34,8 @@ class EnvironmentVariables {
     SUPABASE_URL: string;
 
     @IsString()
-    @MinLength(20, { message: 'SUPABASE_KEY es requerido' })
-    SUPABASE_KEY: string;
+    @MinLength(20, { message: 'SUPABASE_ANON_KEY es requerido' })
+    SUPABASE_ANON_KEY: string;
 
     @IsString()
     @MinLength(16, { message: 'SUPABASE_JWT_SECRET es requerido' })

@@ -266,10 +266,10 @@ export class UnidadesQueryService {
         });
 
         // Map null EtapaId to 'Sin Etapa'
-        const etapas = result.map((r) => r.Etapas?.Nombre || 'Sin Etapa').filter(Boolean);
+        const etapas: string[] = result.map((r) => r.Etapas?.Nombre || 'Sin Etapa').filter((e): e is string => Boolean(e));
 
         // Remove duplicates (in case 'Sin Etapa' appears multiple times due to distinct logic quirks or if it matches a real name)
-        return [...new Set(etapas)];
+        return [...new Set(etapas)] as string[];
     }
 
     async getTipos(nombreProyecto: string, etapa?: string): Promise<string[]> {
