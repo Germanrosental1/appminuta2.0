@@ -3,13 +3,16 @@
  * Valida variables de entorno al inicio para fallar rápido si falta configuración.
  */
 import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, IsUrl, MinLength, validateSync } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUrl, Matches, MinLength, validateSync } from 'class-validator';
 
 enum Environment {
     Development = 'development',
     Production = 'production',
     Test = 'test',
 }
+
+// Regex para PostgreSQL URLs que acepta caracteres URL-encoded en password
+const POSTGRES_URL_REGEX = /^postgresql:\/\/[^:]+:[^@]+@[^:]+:\d+\/\w+(\?.*)?$/;
 
 class EnvironmentVariables {
     // Core
@@ -21,8 +24,8 @@ class EnvironmentVariables {
     @IsOptional()
     PORT: number = 3000;
 
-    // Database
-    @IsUrl({}, { message: 'DATABASE_URL debe ser una URL válida' })
+    // Database - usa Matches en lugar de IsUrl para soportar caracteres encoded
+    @Matches(POSTGRES_URL_REGEX, { message: 'DATABASE_URL debe ser una URL válida de PostgreSQL (formato: postgresql://user:pass@host:port/db)' })
     DATABASE_URL: string;
 
     // Auth
@@ -34,8 +37,8 @@ class EnvironmentVariables {
     SUPABASE_URL: string;
 
     @IsString()
-    @MinLength(20, { message: 'SUPABASE_ANON_KEY es requerido' })
-    SUPABASE_ANON_KEY: string;
+    @MinLength(20, { message: 'SUPABASE_KEY es requerido' })
+    SUPABASE_KEY: string;
 
     @IsString()
     @MinLength(16, { message: 'SUPABASE_JWT_SECRET es requerido' })
@@ -46,8 +49,8 @@ class EnvironmentVariables {
     @IsOptional()
     ALLOWED_ORIGINS: string = 'http://localhost:3000';
 
-    // Optional
-    @IsUrl()
+    // Optional - usa Matches para soportar URLs con caracteres especiales
+    @Matches(/^redis(s)?:\/\/.+/, { message: 'REDIS_URL debe ser una URL válida de Redis' })
     @IsOptional()
     REDIS_URL?: string;
 }
