@@ -33,9 +33,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
             path: request.url,
             method: request.method,
             message: message,
-            // En desarrollo, incluir stack trace
-            ...((!isProduction && exception instanceof Error) ? { stack: exception.stack } : {}),
-            // NO incluir: req.headers.authorization, req.body con passwords, etc.
+            // SIEMPRE incluir stack trace en los logs internos para debugging
+            stack: exception instanceof Error ? exception.stack : undefined,
         });
 
         // Respuesta al cliente (sin detalles internos en producción)
