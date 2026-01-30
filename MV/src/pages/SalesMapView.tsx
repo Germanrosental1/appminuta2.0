@@ -49,7 +49,8 @@ export default function SalesMapView() {
         setLoading(true);
 
         // Primero obtener el ID del proyecto por nombre
-        const projectResponse = await fetch(`http://localhost:3000/proyectos/by-name/${mapId}`, {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+        const projectResponse = await fetch(`${backendUrl}/proyectos/by-name/${mapId}`, {
           headers: {
             'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
           },
