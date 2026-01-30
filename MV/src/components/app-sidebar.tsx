@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/sidebar";
 
 interface UserProject {
-  Id: string;
-  Nombre: string;
-  CreatedAt: string;
-  IdOrg: string | null;
+  id: string;
+  nombre: string;
+  createdAt: string;
+  idOrg: string | null;
   organizacion: {
     Id: string;
     Nombre: string;
@@ -44,7 +44,7 @@ export function AppSidebar() {
     const grouped = new Map<string, ProjectsByOrg>();
 
     projects.forEach(project => {
-      // Backend returns PascalCase for organization details too
+      // organizacion comes from backend with PascalCase inside
       const orgName = project.organizacion?.Nombre || 'Sin Organización';
       const orgId = project.organizacion?.Id || null;
       const key = orgId || 'no-org';
@@ -60,7 +60,12 @@ export function AppSidebar() {
       grouped.get(key).proyectos.push(project);
     });
 
-    return Array.from(grouped.values());
+    // Sort groups: "Sin Organización" last
+    return Array.from(grouped.values()).sort((a, b) => {
+      if (a.orgId === null) return 1;
+      if (b.orgId === null) return -1;
+      return a.organizacion.localeCompare(b.organizacion);
+    });
   };
 
   // Cargar proyectos accesibles por el usuario
@@ -214,16 +219,16 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {group.proyectos.map((proyecto) => (
-                    <SidebarMenuItem key={proyecto.Id}>
+                    <SidebarMenuItem key={proyecto.id}>
                       <SidebarMenuButton asChild className="flex-1">
                         <NavLink
-                          to={`/map/${proyecto.Nombre}`}
+                          to={`/map/${proyecto.nombre}`}
                           className="hover:bg-sidebar-accent transition-colors"
                           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         >
                           <MapIcon className="h-3.5 w-3.5" />
                           {!isCollapsed && (
-                            <span className="text-xs">{proyecto.Nombre}</span>
+                            <span className="text-xs">{proyecto.nombre}</span>
                           )}
                         </NavLink>
                       </SidebarMenuButton>

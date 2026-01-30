@@ -115,7 +115,7 @@ class BackendAPI {
                 iva: p.Iva,
                 idOrg: p.IdOrg,
                 createdAt: p.CreatedAt,
-                organizacion: p.organizacion, // Already transformed by backend
+                organizacion: p.organizacion, // Backend transforms Organizaciones -> organizacion
             }));
         } catch (error) {
             console.error('Error fetching user projects:', error);

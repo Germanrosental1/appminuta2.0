@@ -553,20 +553,37 @@ export const Step4Pago: React.FC = () => {
 
       {/* Resumen de pago de contado - Solo visible si es contado */}
       {
-        data.tipoPago === "contado" && (
-          <div className="rounded-lg bg-success/10 border border-success/20 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Check className="w-5 h-5 text-success" />
-              <p className="text-sm font-medium">Pago de contado</p>
+        data.tipoPago === "contado" && (() => {
+          const precioBase = calcularPrecioTotal();
+          const ivaUSD = (data.ivaProyecto === "no incluido" && data.montoIVA) ? data.montoIVA : 0;
+          const precioConIVA = precioBase + ivaUSD;
+          const tieneIVA = ivaUSD > 0;
+
+          return (
+            <div className="rounded-lg bg-success/10 border border-success/20 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Check className="w-5 h-5 text-success" />
+                <p className="text-sm font-medium">Pago de contado</p>
+                {tieneIVA && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-success/20 text-success">
+                    CON IVA
+                  </span>
+                )}
+              </div>
+              <p className="text-2xl font-bold text-success">
+                USD {precioConIVA.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+              </p>
+              {tieneIVA && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Incluye IVA ({data.porcentajeIVA}%): USD {ivaUSD.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground mt-1">
+                No se requieren anticipos ni financiamiento adicional.
+              </p>
             </div>
-            <p className="text-2xl font-bold text-success">
-              USD {calcularPrecioTotal().toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              No se requieren anticipos ni financiamiento adicional.
-            </p>
-          </div>
-        )
+          );
+        })()
       }
 
       {/* Tip */}
