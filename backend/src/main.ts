@@ -123,40 +123,11 @@ async function bootstrap() {
 
     app.enableCors({
         origin: (origin, callback) => {
-            // 🔒 V-007 FIX: Restringir requests sin Origin a User-Agents conocidos
+            // 🔒 Server-to-Server requests (como n8n, Mobile Apps, Postman) a menudo no envían Origin
+            // O envían User-Agents como axios/curl.
+            // Permitimos requests sin Origin explícito, delegando la seguridad a la autenticación (JWT).
             if (!origin) {
-                // Obtener request del contexto del callback
-                // En NestJS/Express, el callback tiene acceso al request via closure
-                const req = (callback as any).req;
-                const userAgent = req?.headers?.['user-agent'] || '';
-
-                // Whitelist de User-Agents permitidos sin Origin header
-                const allowedUserAgents = [
-                    'n8n',                    // Workflow automation
-                    'PostmanRuntime',         // API testing tool
-                    'Insomnia',               // API testing tool
-                    'axios',                  // Server-side HTTP client (Used by n8n)
-                    'axiom',                  // n8n http client
-                    'node-fetch',             // Server-side fetch
-                    'got',                    // Server-side HTTP client
-                    'curl',                   // Command line tool
-                    'AppMinuta-Mobile',       // Mobile app (custom UA)
-                ];
-
-                const isAllowedAgent = allowedUserAgents.some(agent =>
-                    userAgent.toLowerCase().includes(agent.toLowerCase())
-                );
-
-                if (isAllowedAgent || !isProduction) {
-                    // En desarrollo: permitir todos para facilitar debugging
-                    // En producción: solo User-Agents conocidos
-                    console.log(`[CORS-ALLOW] Allowed no-origin request. UA: '${userAgent}'`);
-                    return callback(null, true);
-                }
-
-                // 🔒 Rechazar requests sin Origin de User-Agents desconocidos en producción
-                console.warn(`[CORS-BLOCK] Rejected no-origin request. UA: '${userAgent}' (IP: ${req.ip})`);
-                return callback(new Error('Origin header required'), false);
+                return callback(null, true);
             }
 
             if (allowedOrigins.includes(origin)) {
