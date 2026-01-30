@@ -58,7 +58,8 @@ export default function SalesMapView() {
 
         if (projectResponse.ok) {
           const projectData = await projectResponse.json();
-          setProjectId(projectData.id);
+          // El backend devuelve Id (PascalCase)
+          setProjectId(projectData.Id || projectData.id);
         }
 
         // Luego cargar las unidades
