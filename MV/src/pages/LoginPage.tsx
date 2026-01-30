@@ -19,7 +19,13 @@ export const LoginPage: React.FC = () => {
     const hasRedirected = useRef(false);
 
     // Check MFA status after authentication
+    // ⚠️ 2FA DESHABILITADO TEMPORALMENTE - Para re-habilitar, descomentar el bloque de abajo
     const checkMFAStatus = async () => {
+        // 2FA deshabilitado - ir directamente a complete
+        setMfaState('complete');
+        return;
+        
+        /* ========== CÓDIGO 2FA ORIGINAL (DESHABILITADO) ==========
         try {
             const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
@@ -69,6 +75,7 @@ export const LoginPage: React.FC = () => {
             await supabase.auth.signOut();
             setMfaState('login');
         }
+        ========== FIN CÓDIGO 2FA ORIGINAL ========== */
     };
 
     // Redirect after MFA is complete
