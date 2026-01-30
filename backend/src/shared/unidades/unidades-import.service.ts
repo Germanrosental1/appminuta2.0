@@ -22,6 +22,8 @@ export class UnidadesImportService {
             processed: 0,
             success: 0,
             errors: 0,
+            created: 0,
+            updated: 0,
             details: []
         };
 
@@ -42,8 +44,10 @@ export class UnidadesImportService {
                         const globalIdx = startIdx + localIdx;
                         results.processed++;
                         try {
-                            await this.processRow(tx, row, cache);
+                            const resultType = await this.processRow(tx, row, cache);
                             results.success++;
+                            if (resultType === 'created') results.created++;
+                            else if (resultType === 'updated') results.updated++;
                         } catch (rowError) {
                             results.errors++;
                             console.error(`Error processing row ${globalIdx + 2}:`, rowError);
@@ -86,7 +90,7 @@ export class UnidadesImportService {
             });
         }
 
-        console.log(`✅ Importación finalizada. Total: ${results.processed}, Éxito: ${results.success}, Errores: ${results.errors}`);
+        console.log(`✅ Importación finalizada. Total: ${results.processed}, Éxito: ${results.success} (Nuevas: ${results.created}, Actualizadas: ${results.updated}), Errores: ${results.errors}`);
         if (results.errors > 0) {
             console.warn('⚠️ Detalles de errores:', JSON.stringify(results.details.slice(0, 10))); // Mostrar primeros 10 errores
         }
@@ -164,7 +168,7 @@ export class UnidadesImportService {
         // Nota: Para máxima seguridad, considerar resolver el DNS y validar la IP
     }
 
-    private async processRow(tx: any, row: any, cache: Map<string, string>) {
+    private async processRow(tx: any, row: any, cache: Map<string, string>): Promise<'created' | 'updated'> {
         // Normalize field names (handle case variations)
         const normalizedRow = this.normalizeRowFields(row);
 
@@ -204,6 +208,7 @@ export class UnidadesImportService {
         const sectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
 
         let unidadId: string;
+        let isNew = false;
         const existingUnidad = await tx.unidades.findUnique({ where: { SectorId: sectorId } });
 
         if (existingUnidad) {
@@ -240,6 +245,7 @@ export class UnidadesImportService {
                 }
             });
             unidadId = newUnidad.id;
+            isNew = true;
         }
 
         // 5. Resolve Cliente Interesado (single cliente)
@@ -268,9 +274,13 @@ export class UnidadesImportService {
         // 8. Process Cliente Titular (comma-separated names -> Clientes + ClientesUnidadesTitulares)
         // console.log('👥 Procesando clientes titulares...');
         await this.processClientesTitulares(tx, unidadId, normalizedRow.clientetitular, cache);
+
+        // console.log('✅ Fila procesada exitosamente');
+        // console.log('=====================================\n');
+        return isNew ? 'created' : 'updated';
     }
 
-    // Normalize field names to lowercase for consistent access
+
     private normalizeRowFields(row: any): Record<string, any> {
         const normalized: Record<string, any> = {};
 
