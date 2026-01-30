@@ -11,8 +11,8 @@ enum Environment {
     Test = 'test',
 }
 
-// Regex para PostgreSQL URLs que acepta caracteres URL-encoded en password
-const POSTGRES_URL_REGEX = /^postgresql:\/\/[^:]+:[^@]+@[^:]+:\d+\/\w+(\?.*)?$/;
+// Regex simple para PostgreSQL URLs - acepta postgresql:// o postgres:// seguido de cualquier cosa
+const POSTGRES_URL_REGEX = /^postgres(ql)?:\/\/.+$/;
 
 class EnvironmentVariables {
     // Core
