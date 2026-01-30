@@ -7,7 +7,7 @@ class BackendAPI {
     private readonly baseURL: string;
 
     constructor() {
-        this.baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+        this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     }
 
     /**
