@@ -16,6 +16,7 @@ export class UnidadesImportService {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const data: any[] = XLSX.utils.sheet_to_json(sheet, { raw: false });
+        console.log(`📥 Importando ${data.length} filas desde Excel...`);
 
         const results = {
             processed: 0,
@@ -83,6 +84,11 @@ export class UnidadesImportService {
                 usuarioID: user?.sub || user?.id,
                 usuarioemail: user?.email
             });
+        }
+
+        console.log(`✅ Importación finalizada. Total: ${results.processed}, Éxito: ${results.success}, Errores: ${results.errors}`);
+        if (results.errors > 0) {
+            console.warn('⚠️ Detalles de errores:', JSON.stringify(results.details.slice(0, 10))); // Mostrar primeros 10 errores
         }
 
         return results;
@@ -163,14 +169,12 @@ export class UnidadesImportService {
         const normalizedRow = this.normalizeRowFields(row);
 
 
-        console.log('\n========== PROCESANDO FILA ==========');
+        // console.log('\n========== PROCESANDO FILA ==========');
         // 🔒 SEGURIDAD: No loguear datos completos de la fila para proteger información sensible
         // 1. Resolve Dependencies
         const proyectoId = await this.resolveProyecto(tx, normalizedRow, cache);
-        console.log('🏗️  Proyecto ID:', proyectoId);
 
         const edificioId = await this.resolveEdificio(tx, normalizedRow, proyectoId, cache);
-        console.log('🏢 Edificio ID:', edificioId);
 
         // 2. Resolve Simple Catalogs
         const [etapaId, tipoId, estadoId, comercialId, patioId, tipoCocheraId, motivoNodispId] = await Promise.all([
@@ -182,8 +186,6 @@ export class UnidadesImportService {
             this.resolveCatalogo(tx, 'tiposCochera', 'Nombre', normalizedRow.tipocochera, cache),
             this.resolveCatalogo(tx, 'motivosNoDisp', 'Nombre', normalizedRow.motivonodisponibilidad, cache)
         ]);
-        console.log('📁 Catálogos - Etapa:', etapaId, '| Tipo:', tipoId, '| Estado:', estadoId, '| Comercial:', comercialId);
-        console.log('📁 Catálogos - Patio:', patioId, '| TipoCochera:', tipoCocheraId, '| MotivoNoDisp:', motivoNodispId);
 
         // 3. Parse Dates
         const fechaReserva = this.parseDate(normalizedRow.fechareserva);
@@ -192,7 +194,6 @@ export class UnidadesImportService {
         const fechaPosesion = this.parseDate(normalizedRow.fechaposesion);
         const fechaPosesionPorBoleto = this.parseDate(normalizedRow.fechaposesionporboleto);
 
-        console.log('📅 Fechas - Reserva:', fechaReserva, '| FirmaBoleto:', fechaFirmaBoleto, '| Pisada:', fechaPisada, '| Posesion:', fechaPosesion);
 
         // Validation for PrecioM2
         if (normalizedRow.preciom2 === undefined || normalizedRow.preciom2 === null || String(normalizedRow.preciom2).trim() === '') {
@@ -201,14 +202,13 @@ export class UnidadesImportService {
 
         // 4. Create/Find Unit
         const sectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
-        console.log('🔑 SectorID:', sectorId);
 
         let unidadId: string;
         const existingUnidad = await tx.unidades.findUnique({ where: { SectorId: sectorId } });
 
         if (existingUnidad) {
             unidadId = existingUnidad.Id;
-            console.log('♻️  Unidad existente encontrada, actualizando:', unidadId);
+            // console.log('♻️  Unidad existente encontrada, actualizando:', unidadId);
             // Update existing unit
             await tx.unidades.update({
                 where: { Id: unidadId },
@@ -240,22 +240,17 @@ export class UnidadesImportService {
                 }
             });
             unidadId = newUnidad.id;
-            console.log('✨ Nueva unidad creada:', unidadId);
         }
 
         // 5. Resolve Cliente Interesado (single cliente)
         const clienteInteresadoId = await this.resolveCliente(tx, normalizedRow.clienteinteresado, cache);
-        console.log('👤 Cliente Interesado ID:', clienteInteresadoId);
 
         // 6. Resolve Unidad Comprador (lookup by sectorId pattern)
         const unidadCompradorId = await this.resolveUnidadComprador(tx, normalizedRow.deptartamentocomprador, cache);
-        console.log('🏠 Unidad Comprador ID:', unidadCompradorId);
 
         // 7. Upsert Related Data
-        console.log('📊 Guardando métricas...');
         await this.upsertMetrics(tx, unidadId, normalizedRow, patioId);
 
-        console.log('💰 Guardando detalles de venta...');
         await this.upsertSalesDetails(tx, unidadId, normalizedRow, {
             estadoId,
             comercialId,
@@ -271,11 +266,8 @@ export class UnidadesImportService {
         });
 
         // 8. Process Cliente Titular (comma-separated names -> Clientes + ClientesUnidadesTitulares)
-        console.log('👥 Procesando clientes titulares...');
+        // console.log('👥 Procesando clientes titulares...');
         await this.processClientesTitulares(tx, unidadId, normalizedRow.clientetitular, cache);
-
-        console.log('✅ Fila procesada exitosamente');
-        console.log('=====================================\n');
     }
 
     // Normalize field names to lowercase for consistent access
@@ -447,7 +439,6 @@ export class UnidadesImportService {
         const existing = await tx.proyectos.findUnique({ where: { Nombre: proyNombre } });
         if (existing) {
             if (naturalezaId && existing.Naturaleza !== naturalezaId) {
-                console.log(`Updating naturaleza for project ${proyNombre}`);
                 await tx.proyectos.update({
                     where: { Id: existing.Id },
                     data: { Naturaleza: naturalezaId }
