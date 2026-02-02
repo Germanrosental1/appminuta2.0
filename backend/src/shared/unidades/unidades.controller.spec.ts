@@ -6,6 +6,7 @@ import { UnidadesImportService } from './unidades-import.service';
 import { AuthorizationService } from '../../auth/authorization/authorization.service';
 import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { BruteForceGuard } from '../../auth/guards/brute-force.guard';
 
 describe('UnidadesController', () => {
   let controller: UnidadesController;
@@ -53,6 +54,8 @@ describe('UnidadesController', () => {
       .overrideGuard(SupabaseAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(BruteForceGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

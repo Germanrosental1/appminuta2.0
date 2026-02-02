@@ -3,7 +3,9 @@ import { UnidadesController } from './unidades.controller';
 import { UnidadesService } from './unidades.service';
 import { UnidadesQueryService } from './unidades-query.service';
 import { UnidadesImportService } from './unidades-import.service';
+import { BruteForceInterceptor } from '../../common/interceptors/brute-force.interceptor';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { BruteForceGuard } from '../../auth/guards/brute-force.guard';
 import { UsuariosRolesModule } from '../iam/usuarios-roles/usuarios-roles.module';
 import { LoggerModule } from '../../logger/logger.module';
 import { AuthorizationModule } from '../../auth/authorization/authorization.module';
@@ -11,7 +13,7 @@ import { AuthorizationModule } from '../../auth/authorization/authorization.modu
 @Module({
   imports: [PrismaModule, UsuariosRolesModule, LoggerModule, AuthorizationModule],
   controllers: [UnidadesController],
-  providers: [UnidadesService, UnidadesQueryService, UnidadesImportService],
+  providers: [UnidadesService, UnidadesQueryService, UnidadesImportService, BruteForceGuard, BruteForceInterceptor],
   exports: [UnidadesService, UnidadesQueryService]
 })
 export class UnidadesModule { }

@@ -12,6 +12,8 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { AuthorizationService } from '../../auth/authorization/authorization.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { AdjustPricesDto } from './dto/adjust-prices.dto';
+import { BruteForceGuard } from '../../auth/guards/brute-force.guard';
+import { BruteForceInterceptor } from '../../common/interceptors/brute-force.interceptor';
 
 import { UnidadesImportService } from './unidades-import.service';
 
@@ -45,7 +47,8 @@ export class UnidadesController {
      * 🔒 SEGURIDAD: Valida que el usuario tenga acceso a cada proyecto antes de ajustar
      */
     @Patch('adjust-prices')
-    @UseGuards(PermissionsGuard)
+    @UseGuards(PermissionsGuard, BruteForceGuard)
+    @UseInterceptors(BruteForceInterceptor)
     @Permissions('gestionarUnidades')
     async adjustPrices(
         @Body() adjustPricesDto: AdjustPricesDto,
@@ -78,9 +81,9 @@ export class UnidadesController {
      * Valida el tipo de archivo antes de procesar
      */
     @Post('import')
-    @UseGuards(PermissionsGuard)
+    @UseGuards(PermissionsGuard, BruteForceGuard)
     @Permissions('gestionarUnidades')
-    @UseInterceptors(FileInterceptor('file'))
+    @UseInterceptors(FileInterceptor('file'), BruteForceInterceptor)
     async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
 
         // 🔒 SEGURIDAD: No loguear detalles de archivos ni URLs
