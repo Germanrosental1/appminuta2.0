@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { EtapasService } from './etapas.service';
 import { CreateEtapaDto } from './dto/create-etapa.dto';
 import { UpdateEtapaDto } from './dto/update-etapa.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Controller('etapas')
 @UseGuards(SupabaseAuthGuard)

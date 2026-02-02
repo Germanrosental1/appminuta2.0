@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GastosgeneralesController } from './gastosgenerales.controller';
 import { GastosgeneralesService } from './gastosgenerales.service';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
-import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { GlobalPermissionsGuard } from '../../common/guards/global-permissions.guard';
 
 describe('GastosgeneralesController', () => {
   let controller: GastosgeneralesController;
@@ -27,7 +27,7 @@ describe('GastosgeneralesController', () => {
     })
       .overrideGuard(SupabaseAuthGuard)
       .useValue({ canActivate: () => true })
-      .overrideGuard(PermissionsGuard)
+      .overrideGuard(GlobalPermissionsGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

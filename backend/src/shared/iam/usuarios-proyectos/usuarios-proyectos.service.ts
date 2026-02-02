@@ -4,10 +4,14 @@ import {
     ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { PermissionsCacheService } from '../../../minutas/services/permissions-cache.service';
 
 @Injectable()
 export class UsuariosProyectosService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly permissionsCache: PermissionsCacheService
+    ) { }
 
     async assignUserToProject(
         userId: string,
@@ -17,7 +21,7 @@ export class UsuariosProyectosService {
         // ⚡ OPTIMIZACIÓN: Dejar que Prisma valide FKs automáticamente
         // Reducción: 4 queries → 1 query (75% mejora)
         try {
-            return await this.prisma.usuariosProyectos.create({
+            const result = await this.prisma.usuariosProyectos.create({
                 data: {
                     IdUsuario: userId,
                     IdProyecto: projectId,
@@ -32,6 +36,11 @@ export class UsuariosProyectosService {
                     Roles: true,
                 },
             });
+
+            // ⚡ Invalidar cache centralizado
+            await this.permissionsCache.invalidateUser(userId);
+
+            return result;
         } catch (error: unknown) {
             const prismaError = error as { code?: string };
             // P2002: Unique constraint violation (ya asignado)
@@ -70,7 +79,7 @@ export class UsuariosProyectosService {
             );
         }
 
-        return this.prisma.usuariosProyectos.delete({
+        const result = await this.prisma.usuariosProyectos.delete({
             where: {
                 IdUsuario_IdProyecto_IdRol: {
                     IdUsuario: userId,
@@ -79,6 +88,11 @@ export class UsuariosProyectosService {
                 },
             },
         });
+
+        // ⚡ Invalidar cache centralizado
+        await this.permissionsCache.invalidateUser(userId);
+
+        return result;
     }
 
     async getUserProjects(userId: string) {

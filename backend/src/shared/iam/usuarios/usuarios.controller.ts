@@ -16,8 +16,8 @@ import { UsuariosRolesService } from '../usuarios-roles/usuarios-roles.service';
 import { UsuariosProyectosService } from '../usuarios-proyectos/usuarios-proyectos.service';
 import { AssignRoleDto } from '../usuarios-roles/dto/assign-role.dto';
 import { AssignUserToProjectDto } from '../usuarios-proyectos/dto/assign-user-to-project.dto';
-import { SupabaseAuthGuard } from '../../../auth/supabase-auth.guard';
-import { PermissionsGuard } from '../../../auth/guards/permissions.guard';
+import { SupabaseAuthGuard } from '../../../common/guards/supabase-auth.guard';
+import { GlobalPermissionsGuard } from '../../../common/guards/global-permissions.guard';
 import { Permissions } from '../../../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 
@@ -55,7 +55,7 @@ export class UsuariosController {
     }
 
     @Post(':id/roles')
-    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarRoles') // Solo administradores
     @HttpCode(HttpStatus.CREATED)
     assignRole(
@@ -73,7 +73,7 @@ export class UsuariosController {
     }
 
     @Delete(':id/roles/:roleId')
-    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarRoles') // Solo administradores
     @HttpCode(HttpStatus.NO_CONTENT)
     removeRole(
@@ -109,7 +109,7 @@ export class UsuariosController {
      * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
      */
     @Get(':id/proyectos')
-    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarUsuarios')
     getUserProjects(@Param('id', ParseUUIDPipe) id: string) {
         return this.usuariosProyectosService.getUserProjects(id);
@@ -119,7 +119,7 @@ export class UsuariosController {
      * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
      */
     @Post(':id/proyectos')
-    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarUsuarios')
     @HttpCode(HttpStatus.CREATED)
     assignUserToProject(
@@ -137,7 +137,7 @@ export class UsuariosController {
      * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
      */
     @Delete(':id/proyectos/:projectId/roles/:roleId')
-    @UseGuards(SupabaseAuthGuard, PermissionsGuard)
+    @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarUsuarios')
     @HttpCode(HttpStatus.NO_CONTENT)
     removeUserFromProject(

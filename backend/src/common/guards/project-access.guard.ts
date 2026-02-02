@@ -4,7 +4,7 @@ import {
     ExecutionContext,
     ForbiddenException,
 } from '@nestjs/common';
-import { AuthorizationService } from './authorization.service';
+import { AuthorizationService } from '../../auth/authorization/authorization.service';
 
 /**
  * Guard para validar acceso a proyectos

@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { MotivosNodispService } from './motivosnodisp.service';
 import { CreateMotivoNodispDto } from './dto/create-motivonodisp.dto';
 import { UpdateMotivoNodispDto } from './dto/update-motivonodisp.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Controller('motivos-nodisp')
 @UseGuards(SupabaseAuthGuard)

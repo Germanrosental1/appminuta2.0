@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, RequestMethod, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -11,6 +11,7 @@ import { PrismaRetryInterceptor } from './common/interceptors/prisma-retry.inter
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
 import { ScheduleModule } from '@nestjs/schedule';
+import { MobileBlockerMiddleware } from './common/middleware/mobile-blocker.middleware';
 
 // ==========================================
 // MAPA VENTA MODULES (moved to ./mapaVenta/)
@@ -137,4 +138,10 @@ const getCacheConfig = (): any => {
         },
     ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+    configure(consumer: MiddlewareConsumer) {
+        consumer
+            .apply(MobileBlockerMiddleware)
+            .forRoutes({ path: '*', method: RequestMethod.ALL });
+    }
+}

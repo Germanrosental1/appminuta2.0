@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { SupabaseAuthGuard } from '../src/auth/supabase-auth.guard';
-import { PermissionsGuard } from '../src/auth/guards/permissions.guard';
+import { SupabaseAuthGuard } from '../src/common/guards/supabase-auth.guard';
+import { GlobalPermissionsGuard } from '../src/common/guards/global-permissions.guard';
 import { CacheModule } from '@nestjs/cache-manager';
 
 describe('BruteForceGuard (E2E)', () => {
@@ -22,7 +22,7 @@ describe('BruteForceGuard (E2E)', () => {
         })
             .overrideGuard(SupabaseAuthGuard)
             .useValue(mockAuthGuard)
-            .overrideGuard(PermissionsGuard)
+            .overrideGuard(GlobalPermissionsGuard)
             .useValue(mockPermissionsGuard)
             .compile();
 

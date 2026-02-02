@@ -6,13 +6,13 @@ import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
 import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
 import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
-import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { GlobalPermissionsGuard } from '../../common/guards/global-permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { AuthorizationService } from '../../auth/authorization/authorization.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { AdjustPricesDto } from './dto/adjust-prices.dto';
-import { BruteForceGuard } from '../../auth/guards/brute-force.guard';
+import { BruteForceGuard } from '../../common/guards/brute-force.guard';
 import { BruteForceInterceptor } from '../../common/interceptors/brute-force.interceptor';
 
 import { UnidadesImportService } from './unidades-import.service';
@@ -36,7 +36,7 @@ export class UnidadesController {
      * Crear unidad - requiere permiso 'gestionarUnidades'
      */
     @Post()
-    @UseGuards(PermissionsGuard)
+    @UseGuards(GlobalPermissionsGuard)
     @Permissions('gestionarUnidades')
     create(@Body() createUnidadDto: CreateUnidadDto) {
         return this.unidadesService.create(createUnidadDto);
@@ -47,7 +47,7 @@ export class UnidadesController {
      * 🔒 SEGURIDAD: Valida que el usuario tenga acceso a cada proyecto antes de ajustar
      */
     @Patch('adjust-prices')
-    @UseGuards(PermissionsGuard, BruteForceGuard)
+    @UseGuards(GlobalPermissionsGuard, BruteForceGuard)
     @UseInterceptors(BruteForceInterceptor)
     @Permissions('gestionarUnidades')
     async adjustPrices(
@@ -81,7 +81,7 @@ export class UnidadesController {
      * Valida el tipo de archivo antes de procesar
      */
     @Post('import')
-    @UseGuards(PermissionsGuard, BruteForceGuard)
+    @UseGuards(GlobalPermissionsGuard, BruteForceGuard)
     @Permissions('gestionarUnidades')
     @UseInterceptors(FileInterceptor('file'), BruteForceInterceptor)
     async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
@@ -224,7 +224,7 @@ export class UnidadesController {
      * Actualizar unidad completa - requiere permiso 'gestionarUnidades'
      */
     @Patch(':id/complete')
-    @UseGuards(PermissionsGuard)
+    @UseGuards(GlobalPermissionsGuard)
     @Permissions('gestionarUnidades')
     updateComplete(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadCompleteDto) {
         return this.unidadesService.updateComplete(id, updateUnidadDto);
@@ -234,7 +234,7 @@ export class UnidadesController {
      * Actualizar unidad - requiere permiso 'gestionarUnidades'
      */
     @Patch(':id')
-    @UseGuards(PermissionsGuard)
+    @UseGuards(GlobalPermissionsGuard)
     @Permissions('gestionarUnidades')
     update(@Param('id', ParseUUIDPipe) id: string, @Body() updateUnidadDto: UpdateUnidadDto) {
         return this.unidadesService.update(id, updateUnidadDto);
@@ -244,7 +244,7 @@ export class UnidadesController {
      * Eliminar unidad - requiere permiso 'gestionarUnidades'
      */
     @Delete(':id')
-    @UseGuards(PermissionsGuard)
+    @UseGuards(GlobalPermissionsGuard)
     @Permissions('gestionarUnidades')
     remove(@Param('id', ParseUUIDPipe) id: string) {
         return this.unidadesService.remove(id);

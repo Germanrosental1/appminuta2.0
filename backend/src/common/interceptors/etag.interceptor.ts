@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 
 /**
  * ⚡ NETWORK OPTIMIZATION: ETag interceptor for HTTP cache validation

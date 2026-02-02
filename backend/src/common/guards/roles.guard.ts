@@ -5,8 +5,8 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthorizationService } from './authorization.service';
-import { ROLES_KEY } from './roles.decorator';
+import { AuthorizationService } from '../../auth/authorization/authorization.service';
+import { ROLES_KEY } from '../../auth/authorization/roles.decorator';
 
 /**
  * Guard para validar roles en proyectos

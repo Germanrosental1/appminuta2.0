@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { TiposUnidadService } from './tiposunidad.service';
 import { CreateTipoUnidadDto, UpdateTipoUnidadDto } from './dto/create-tipounidad.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Controller('tipos-unidad')
 @UseGuards(SupabaseAuthGuard)

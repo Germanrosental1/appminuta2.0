@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } f
 import { EdificiosService } from './edificios.service';
 import { CreateEdificioDto } from './dto/create-edificio.dto';
 import { UpdateEdificioDto } from './dto/update-edificio.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Controller('edificios')
 @UseGuards(SupabaseAuthGuard)

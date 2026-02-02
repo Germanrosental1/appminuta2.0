@@ -3,20 +3,17 @@ import {
     NotFoundException,
     ConflictException,
     BadRequestException,
-    Inject,
-    forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { UsuariosRolesService } from '../usuarios-roles/usuarios-roles.service';
+import { PermissionsCacheService } from '../../../minutas/services/permissions-cache.service';
 
 @Injectable()
 export class RolesService {
     constructor(
         private readonly prisma: PrismaService,
-        @Inject(forwardRef(() => UsuariosRolesService))
-        private readonly usuariosRolesService: UsuariosRolesService,
+        private readonly permissionsCache: PermissionsCacheService,
     ) { }
 
     /**
@@ -30,7 +27,7 @@ export class RolesService {
         });
 
         for (const user of usersWithRole) {
-            this.usuariosRolesService.invalidateUserRolesCache(user.IdUsuario);
+            await this.permissionsCache.invalidateUser(user.IdUsuario);
         }
     }
 

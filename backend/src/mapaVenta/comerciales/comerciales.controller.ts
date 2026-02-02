@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { ComercialesService } from './comerciales.service';
 import { CreateComercialDto } from './dto/create-comercial.dto';
 import { UpdateComercialDto } from './dto/update-comercial.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Controller('comerciales')
 @UseGuards(SupabaseAuthGuard)

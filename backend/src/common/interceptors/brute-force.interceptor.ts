@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { BruteForceGuard } from '../../auth/guards/brute-force.guard';
+import { BruteForceGuard } from '../guards/brute-force.guard';
 
 /**
  * Interceptor para registrar intentos fallidos en BruteForceGuard

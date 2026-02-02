@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { TiposPatioTerrazaService } from './tipospatioterraza.service';
 import { CreateTipoPatioTerrazaDto, UpdateTipoPatioTerrazaDto } from './dto/create-tipopatioterraza.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Controller('tipos-patio-terraza')
 @UseGuards(SupabaseAuthGuard)

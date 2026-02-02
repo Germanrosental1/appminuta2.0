@@ -7,13 +7,13 @@ import { CreateMinutaProvisoriaDto } from './dto/create-minuta-provisoria.dto';
 import { UpdateMinutaDto } from './dto/update-minuta.dto';
 import { FindAllMinutasQueryDto } from './dto/find-all-minutas-query.dto';
 
-import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { GlobalPermissionsGuard } from '../common/guards/global-permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('minutas')
-@UseGuards(SupabaseAuthGuard, PermissionsGuard)
+@UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
 export class MinutasController {
   constructor(private readonly minutasService: MinutasService) { }
 

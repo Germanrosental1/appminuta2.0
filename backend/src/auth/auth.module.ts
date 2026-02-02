@@ -4,9 +4,9 @@ import { SupabaseStrategy } from './supabase.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthLoggerService } from './auth-logger.service';
 import { AuthLoggerController } from './auth-logger.controller';
-import { PermissionsGuard } from './guards/permissions.guard';
-import { ProjectAccessGuard } from './guards/project-access.guard';
-import { MFAGuard } from './guards/mfa.guard';
+import { GlobalPermissionsGuard } from '../common/guards/global-permissions.guard';
+import { ProjectAccessGuard } from '../common/guards/project-access.guard';
+import { MFAGuard } from '../common/guards/mfa.guard';
 import { UsuariosRolesModule } from '../shared/iam/usuarios-roles/usuarios-roles.module';
 import { UsuariosProyectosModule } from '../shared/iam/usuarios-proyectos/usuarios-proyectos.module';
 import { LoggerModule } from '../logger/logger.module';
@@ -26,7 +26,7 @@ import { UifSupabaseStrategy } from './uif-supabase.strategy';
         SupabaseStrategy,
         UifSupabaseStrategy,
         AuthLoggerService,
-        PermissionsGuard,
+        GlobalPermissionsGuard,
         ProjectAccessGuard,
         MFAGuard,
     ],
@@ -35,7 +35,7 @@ import { UifSupabaseStrategy } from './uif-supabase.strategy';
         SupabaseStrategy,
         UifSupabaseStrategy,
         AuthLoggerService,
-        PermissionsGuard,
+        GlobalPermissionsGuard,
         ProjectAccessGuard,
         MFAGuard,
     ],

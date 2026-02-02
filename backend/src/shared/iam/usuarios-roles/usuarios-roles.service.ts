@@ -4,18 +4,14 @@ import {
     ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-
-// ⚡ CACHE: Cache in-memory para roles de usuario (TTL: 5 minutos)
-interface UserRolesCache {
-    roles: any[];
-    cachedAt: number;
-}
-const ROLES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
-const userRolesCache = new Map<string, UserRolesCache>();
+import { PermissionsCacheService } from '../../../minutas/services/permissions-cache.service';
 
 @Injectable()
 export class UsuariosRolesService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly permissionsCache: PermissionsCacheService
+    ) { }
 
     async assignRole(userId: string, roleId: string) {
         // OPTIMIZACIÓN: Dejar que Prisma valide FKs automáticamente
@@ -34,8 +30,8 @@ export class UsuariosRolesService {
                 },
             });
 
-            // ⚡ Invalidar cache después de asignar rol
-            this.invalidateUserRolesCache(userId);
+            // ⚡ Invalidar cache centralizado después de asignar rol
+            await this.permissionsCache.invalidateUser(userId);
 
             return result;
         } catch (error: unknown) {
@@ -76,22 +72,18 @@ export class UsuariosRolesService {
             },
         });
 
-        // ⚡ Invalidar cache después de remover rol
-        this.invalidateUserRolesCache(userId);
+        // ⚡ Invalidar cache centralizado después de remover rol
+        await this.permissionsCache.invalidateUser(userId);
 
         return result;
     }
 
     async getUserRoles(userId: string) {
-        // ⚡ Verificar si hay cache válido
-        const cached = userRolesCache.get(userId);
-        const now = Date.now();
+        // ⚡ Usar cache centralizado para obtener roles
+        // NOTA: No usamos el cache centralizado aquí porque necesitamos el objeto Rol completo con IDs
+        // El cache central solo guarda nombres (strings).
+        // Se prioriza consistencia y simplicidad sobre micro-optimización de lectura de roles completos.
 
-        if (cached && (now - cached.cachedAt) < ROLES_CACHE_TTL_MS) {
-            return cached.roles;
-        }
-
-        // Si no hay cache o expiró, hacer la query
         const userRoles = await this.prisma.usuariosRoles.findMany({
             where: { IdUsuario: userId },
             include: {
@@ -100,32 +92,17 @@ export class UsuariosRolesService {
         });
 
         if (userRoles.length === 0) {
+            // Comportamiento original lanzaba 404
+            // throw new NotFoundException(`Usuario sin roles o no encontrado`);
+            // Pero devolver array vacio es mejor practica. Mantendremos original por compatibilidad.
             throw new NotFoundException(`Usuario sin roles o no encontrado`);
         }
 
-        // Filter out any entries where the relation might be broken (null roles)
-        const roles = userRoles
-            .filter(ur => ur && ur.Roles)
-            .map((ur) => ur.Roles);
-
-        // Guardar en cache
-        userRolesCache.set(userId, {
-            roles,
-            cachedAt: now,
-        });
-
-        return roles;
+        return userRoles.map((ur) => ur.Roles);
     }
 
-    // Método para invalidar cache de un usuario (llamar cuando cambien sus roles)
-    public invalidateUserRolesCache(userId: string): void {
-        userRolesCache.delete(userId);
-    }
+    // cache invalidation methods removed as they are delegated via injection usage
 
-    // Método para limpiar todo el cache de roles
-    public clearAllRolesCache(): void {
-        userRolesCache.clear();
-    }
 
     async getUsersByRole(roleId: string) {
         // Verificar que el rol existe

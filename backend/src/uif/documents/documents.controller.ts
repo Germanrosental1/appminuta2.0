@@ -13,7 +13,7 @@ import {
 import { UifDocumentsService } from './documents.service';
 import { CreateUifDocumentDto } from './dto/create-document.dto';
 import { UpdateUifDocumentDto, WebhookDocumentProcessedDto } from './dto/update-document.dto';
-import { UifAuthGuard } from '../../auth/uif-auth.guard';
+import { UifAuthGuard } from '../../common/guards/uif-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 @Controller('uif/documents')

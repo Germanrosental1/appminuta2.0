@@ -12,7 +12,7 @@ import {
 import { UifClientsService } from './clients.service';
 import { CreateUifClientDto } from './dto/create-client.dto';
 import { UpdateUifClientDto } from './dto/update-client.dto';
-import { UifAuthGuard } from '../../auth/uif-auth.guard';
+import { UifAuthGuard } from '../../common/guards/uif-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 @Controller('uif/clients')

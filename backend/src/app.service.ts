@@ -20,9 +20,12 @@ export interface HealthCheckResult {
     // ⚡ M-005: Estadísticas de caches en memoria
     caches: {
         permissionsCache: {
-            size: number;
-            maxSize: number;
-            utilizationPercent: number;
+            backend: string;
+            ttlSeconds: number;
+            // Optional fields for backward compatibility or future extension
+            size?: number;
+            maxSize?: number;
+            utilizationPercent?: number;
         };
     };
 }
@@ -57,8 +60,8 @@ export class AppService {
         const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
         const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
 
-        // ⚡ M-005: Obtener estadísticas de caches
-        const permissionsCacheStats = this.minutasService.getPermissionsCacheStats();
+        // ⚡ M-005: Obtener estadísticas de caches (Ahora es Async)
+        const permissionsCacheStats = await this.minutasService.getPermissionsCacheStats();
 
         return {
             status: dbConnected ? 'healthy' : 'unhealthy',

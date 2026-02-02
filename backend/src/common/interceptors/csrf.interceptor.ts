@@ -57,7 +57,7 @@ export class CsrfInterceptor implements NestInterceptor {
 
             // 🔓 EXCEPTION: Permitir bypass si hay Header de Autorización (Bearer Token)
             const authHeader = request.headers['authorization'];
-            const hasBearerToken = authHeader && authHeader.startsWith('Bearer ');
+            const hasBearerToken = authHeader?.startsWith('Bearer ');
 
             // 🔓 EXCEPTION: Excluir explícitamente endpoints de importación/webhooks (n8n)
             const isExcludedPath = request.url.includes('/unidades/import');

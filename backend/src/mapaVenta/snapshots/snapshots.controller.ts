@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Query, UseGuards, BadRequestException, Request } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { SnapshotsService } from './snapshots.service';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { RolesGuard, Roles, AuthorizationService } from '../../auth/authorization';
 import { GenerateSnapshotDto, GetSnapshotByDateDto, GetSnapshotRangeDto, GetComparativoDto } from './dto/snapshots.dto';
 

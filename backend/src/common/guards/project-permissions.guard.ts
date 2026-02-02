@@ -6,16 +6,16 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthorizationService } from './authorization.service';
-import { PERMISSIONS_KEY } from './permissions.decorator';
-import { ROLE_PERMISSIONS } from './roles.constants';
+import { AuthorizationService } from '../../auth/authorization/authorization.service';
+import { PERMISSIONS_KEY } from '../../auth/authorization/permissions.decorator';
+import { ROLE_PERMISSIONS } from '../../auth/authorization/roles.constants';
 
 /**
  * Guard para validar permisos granulares
  * Verifica que el rol del usuario tenga los permisos requeridos
  */
 @Injectable()
-export class PermissionsGuard implements CanActivate {
+export class ProjectPermissionsGuard implements CanActivate {
     constructor(
         private readonly reflector: Reflector,
         private readonly authService: AuthorizationService,

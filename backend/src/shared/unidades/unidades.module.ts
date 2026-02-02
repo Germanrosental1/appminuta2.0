@@ -5,7 +5,7 @@ import { UnidadesQueryService } from './unidades-query.service';
 import { UnidadesImportService } from './unidades-import.service';
 import { BruteForceInterceptor } from '../../common/interceptors/brute-force.interceptor';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { BruteForceGuard } from '../../auth/guards/brute-force.guard';
+import { BruteForceGuard } from '../../common/guards/brute-force.guard';
 import { UsuariosRolesModule } from '../iam/usuarios-roles/usuarios-roles.module';
 import { LoggerModule } from '../../logger/logger.module';
 import { AuthorizationModule } from '../../auth/authorization/authorization.module';

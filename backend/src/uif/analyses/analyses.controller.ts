@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { UifAnalysesService } from './analyses.service';
 import { CreateUifAnalysisDto, UpdateUifAnalysisDto } from './dto/analysis.dto';
-import { UifAuthGuard } from '../../auth/uif-auth.guard';
+import { UifAuthGuard } from '../../common/guards/uif-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 @Controller('uif/analyses')

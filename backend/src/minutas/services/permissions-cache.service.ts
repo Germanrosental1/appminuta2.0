@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 export interface UserPermissionsCache {
     permissions: string[];
@@ -16,22 +18,22 @@ export interface UserPermissions {
 @Injectable()
 export class PermissionsCacheService {
     // TTL reducido a 10 segundos para minimizar ventana de escalación de privilegios
-    private readonly CACHE_TTL_MS = 10 * 1000;
+    // Usamos TTL en segundos para compatibilidad con Redis Store v4+
+    private readonly CACHE_TTL_SECONDS = 10;
+    private readonly CACHE_PREFIX = 'user_perms:';
 
-    // Límite máximo de entradas para prevenir crecimiento de memoria ilimitado
-    private readonly MAX_CACHE_SIZE = 1000;
-
-    private readonly cache = new Map<string, UserPermissionsCache>();
+    constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) { }
 
     /**
      * Obtiene permisos del cache o ejecuta la función fetcher para obtenerlos
      */
     async getOrFetch(userId: string, fetcher: () => Promise<UserPermissions>): Promise<UserPermissions> {
-        const cached = this.cache.get(userId);
+        const key = this._getKey(userId);
+        const cached = await this.cacheManager.get<UserPermissionsCache>(key);
         const now = Date.now();
 
-        // Si hay cache válido y no ha expirado, usarlo
-        if (cached && (now - cached.cachedAt) < this.CACHE_TTL_MS) {
+        // Si hay cache válido, usarlo
+        if (cached) {
             return {
                 permissions: cached.permissions,
                 projectIds: cached.projectIds,
@@ -39,17 +41,18 @@ export class PermissionsCacheService {
             };
         }
 
-        // Cache miss o expirado: ejecutar fetcher
+        // Cache miss: ejecutar fetcher
         const data = await fetcher();
 
-        // Gestionar tamaño del cache antes de insertar
-        this.evictIfFull();
-
-        // Guardar en cache
-        this.cache.set(userId, {
+        // Guardar en cache distribuido
+        const cacheEntry: UserPermissionsCache = {
             ...data,
             cachedAt: now,
-        });
+        };
+
+        // Cache-manager v4/v5 set expects ttl in milliseconds for memory, seconds/ms vary by store.
+        // NestJS cache manager unified setup usually handles it, but explicit numbers safer.
+        await this.cacheManager.set(key, cacheEntry, this.CACHE_TTL_SECONDS * 1000);
 
         return data;
     }
@@ -57,39 +60,41 @@ export class PermissionsCacheService {
     /**
      * Invalida el cache para un usuario específico (ej. al cambiar roles)
      */
-    invalidateUser(userId: string): void {
-        this.cache.delete(userId);
+    async invalidateUser(userId: string): Promise<void> {
+        await this.cacheManager.del(this._getKey(userId));
     }
 
     /**
-     * Limpia tod el cache (útil para tests)
+     * Limpia tod el cache
      */
-    clearAll(): void {
-        this.cache.clear();
+    async clearAll(): Promise<void> {
+        // 'reset' no existe en la interfaz Cache estandar de nestjs/cache-manager versiones recientes
+        // intentamos acceder al store subyacente si es posible o usar reset si existe runtime
+        const store = (this.cacheManager as any).store;
+        if (typeof store.reset === 'function') {
+            await store.reset();
+        } else if (typeof (this.cacheManager as any).reset === 'function') {
+            await (this.cacheManager as any).reset();
+        }
     }
 
     /**
-     * Obtiene estadísticas del cache para monitoreo
+     * Obtiene estadísticas del cache (Estimadas, ya que Redis no expone size fácilmente via wrapper)
      */
-    getStats() {
+    async getStats() {
+        // Nota: Con Redis store, 'store.keys' puede no estar disponible o ser lento.
+        // Retornamos info básica de configuración
+        const store = (this.cacheManager as any).store;
+        const isRedis = !!store.getClient; // Check simple para ver si es redis-store
+
         return {
-            size: this.cache.size,
-            maxSize: this.MAX_CACHE_SIZE,
-            utilizationPercent: Math.round((this.cache.size / this.MAX_CACHE_SIZE) * 100),
-            ttlMs: this.CACHE_TTL_MS
+            backend: isRedis ? 'redis' : 'memory',
+            ttlSeconds: this.CACHE_TTL_SECONDS,
+            prefix: this.CACHE_PREFIX
         };
     }
 
-    /**
-     * Evicción LRU simple cuando el cache está lleno
-     */
-    private evictIfFull(): void {
-        if (this.cache.size >= this.MAX_CACHE_SIZE) {
-            // Map itera en orden de inserción, el primero es el más antiguo
-            const oldestKey = this.cache.keys().next().value;
-            if (oldestKey) {
-                this.cache.delete(oldestKey);
-            }
-        }
+    private _getKey(userId: string): string {
+        return `${this.CACHE_PREFIX}${userId}`;
     }
 }

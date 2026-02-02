@@ -9,7 +9,7 @@ import { UsuariosProyectosService } from '../../shared/iam/usuarios-proyectos/us
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
-export class ProjectAccessGuard implements CanActivate {
+export class MinutaProjectAccessGuard implements CanActivate {
     constructor(
         private readonly usuariosProyectosService: UsuariosProyectosService,
         private readonly prisma: PrismaService,

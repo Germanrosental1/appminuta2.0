@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PermissionsGuard } from './permissions.guard';
+import { GlobalPermissionsGuard } from './global-permissions.guard';
 import { UsuariosRolesService } from '../../shared/iam/usuarios-roles/usuarios-roles.service';
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { PERMISSIONS_KEY } from '../../auth/authorization/permissions.decorator';
 
-describe('PermissionsGuard', () => {
-    let guard: PermissionsGuard;
+describe('GlobalPermissionsGuard', () => {
+    let guard: GlobalPermissionsGuard;
     let reflector: Reflector;
     let usuariosRolesService: UsuariosRolesService;
 
@@ -31,7 +31,7 @@ describe('PermissionsGuard', () => {
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
-                PermissionsGuard,
+                GlobalPermissionsGuard,
                 {
                     provide: Reflector,
                     useValue: mockReflector,
@@ -43,7 +43,7 @@ describe('PermissionsGuard', () => {
             ],
         }).compile();
 
-        guard = module.get<PermissionsGuard>(PermissionsGuard);
+        guard = module.get<GlobalPermissionsGuard>(GlobalPermissionsGuard);
         reflector = module.get<Reflector>(Reflector);
         usuariosRolesService = module.get<UsuariosRolesService>(UsuariosRolesService);
     });

@@ -14,8 +14,8 @@ import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignPermissionDto } from './dto/assign-permission.dto';
-import { SupabaseAuthGuard } from '../../../auth/supabase-auth.guard';
-import { PermissionsGuard } from '../../../auth/guards/permissions.guard';
+import { SupabaseAuthGuard } from '../../../common/guards/supabase-auth.guard';
+import { GlobalPermissionsGuard } from '../../../common/guards/global-permissions.guard';
 import { Permissions } from '../../../auth/decorators/permissions.decorator';
 
 /**
@@ -23,7 +23,7 @@ import { Permissions } from '../../../auth/decorators/permissions.decorator';
  * Requiere el permiso 'gestionarRoles' para todas las operaciones
  */
 @Controller('roles')
-@UseGuards(SupabaseAuthGuard, PermissionsGuard)
+@UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
 @Permissions('gestionarRoles')
 export class RolesController {
     constructor(private readonly rolesService: RolesService) { }

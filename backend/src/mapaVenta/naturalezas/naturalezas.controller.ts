@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { NaturalezasService } from './naturalezas.service';
 import { CreateNaturalezaDto } from './dto/create-naturaleza.dto';
 import { UpdateNaturalezaDto } from './dto/update-naturaleza.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 
 @Controller('naturalezas')
 @UseGuards(SupabaseAuthGuard)

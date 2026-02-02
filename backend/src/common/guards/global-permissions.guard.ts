@@ -5,11 +5,11 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { PERMISSIONS_KEY } from '../../auth/decorators/permissions.decorator';
 import { UsuariosRolesService } from '../../shared/iam/usuarios-roles/usuarios-roles.service';
 
 @Injectable()
-export class PermissionsGuard implements CanActivate {
+export class GlobalPermissionsGuard implements CanActivate {
     constructor(
         private readonly reflector: Reflector,
         private readonly usuariosRolesService: UsuariosRolesService,

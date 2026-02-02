@@ -2,8 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, 
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
-import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
-import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { GlobalPermissionsGuard } from '../../common/guards/global-permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
@@ -21,7 +21,7 @@ export class ProyectosController {
      * 🔒 Crear proyecto - requiere permiso 'gestionarProyectos'
      */
     @Post()
-    @UseGuards(PermissionsGuard)
+    @UseGuards(GlobalPermissionsGuard)
     @Permissions('gestionarProyectos')
     create(@Body() createProyectoDto: CreateProyectoDto) {
         return this.proyectosService.create(createProyectoDto);
@@ -77,7 +77,7 @@ export class ProyectosController {
      * 🔒 Actualizar proyecto - requiere permiso 'gestionarProyectos'
      */
     @Patch(':id')
-    @UseGuards(PermissionsGuard)
+    @UseGuards(GlobalPermissionsGuard)
     @Permissions('gestionarProyectos')
     update(@Param('id', ParseUUIDPipe) id: string, @Body() updateProyectoDto: UpdateProyectoDto) {
         return this.proyectosService.update(id, updateProyectoDto);
@@ -87,7 +87,7 @@ export class ProyectosController {
      * 🔒 Eliminar proyecto - requiere permiso 'gestionarProyectos'
      */
     @Delete(':id')
-    @UseGuards(PermissionsGuard)
+    @UseGuards(GlobalPermissionsGuard)
     @Permissions('gestionarProyectos')
     remove(@Param('id', ParseUUIDPipe) id: string) {
         return this.proyectosService.remove(id);

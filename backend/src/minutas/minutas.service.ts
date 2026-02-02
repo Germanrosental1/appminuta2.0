@@ -44,7 +44,7 @@ export class MinutasService {
   ) { }
 
   // Exponer estadísticas delegando al servicio
-  public getPermissionsCacheStats() {
+  public async getPermissionsCacheStats() {
     return this.permissionsCache.getStats();
   }
 
@@ -97,13 +97,14 @@ export class MinutasService {
   }
 
   // Método para invalidar cache de un usuario (llamar cuando cambien sus permisos/proyectos)
-  public invalidateUserCache(userId: string): void {
-    this.permissionsCache.invalidateUser(userId);
+  // Método para invalidar cache de un usuario (llamar cuando cambien sus permisos/proyectos)
+  public async invalidateUserCache(userId: string): Promise<void> {
+    await this.permissionsCache.invalidateUser(userId);
   }
 
   // Método para limpiar todo el cache (útil para testing o cambios masivos)
-  public clearAllCache(): void {
-    this.permissionsCache.clearAll();
+  public async clearAllCache(): Promise<void> {
+    await this.permissionsCache.clearAll();
   }
 
   async create(createMinutaDto: CreateMinutaDto, userId: string) {

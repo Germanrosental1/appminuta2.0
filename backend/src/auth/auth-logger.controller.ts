@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthLoggerService } from './auth-logger.service';
 import { LogAuthEventDto } from './dto/log-auth-event.dto';
-import { SupabaseAuthGuard } from './supabase-auth.guard';
+import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
 
 @Controller('auth')
 export class AuthLoggerController {

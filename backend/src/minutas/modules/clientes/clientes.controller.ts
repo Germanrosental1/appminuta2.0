@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Param, Query, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { ClientesService } from './clientes.service';
 import { VerificarCrearClienteDto } from './dto/verificar-crear-cliente.dto';
-import { SupabaseAuthGuard } from '../../../auth/supabase-auth.guard';
+import { SupabaseAuthGuard } from '../../../common/guards/supabase-auth.guard';
 
 /**
  * 🔒 SEGURIDAD: Controller protegido con autenticación
