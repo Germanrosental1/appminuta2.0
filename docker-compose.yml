@@ -44,7 +44,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          # ⚡ M-003: Aumentado de 512M a 768M para manejar carga de producción
+          # con connection pools, caches en memoria y conexiones WebSocket
+          memory: 768M
 
 networks:
   appminuta-network:

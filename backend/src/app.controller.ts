@@ -1,5 +1,5 @@
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
-import { AppService } from './app.service';
+import { AppService, HealthCheckResult } from './app.service';
 
 @Controller()
 export class AppController {
@@ -10,12 +10,15 @@ export class AppController {
         return this.appService.getHello();
     }
 
+    /**
+     * ⚡ MONITORING: Enhanced health check with DB ping and memory metrics
+     */
     @Get('health')
-    getHealth(): string {
-        return 'Backend is running!';
+    async getHealth(): Promise<HealthCheckResult> {
+        return this.appService.getHealthCheck();
     }
 
-    // Silenciar petición automática del navegador
+    // Silenciar peticion automatica del navegador
     @Get('favicon.ico')
     @HttpCode(HttpStatus.NO_CONTENT)
     getFavicon() {

@@ -24,19 +24,27 @@ export function useWebSocket() {
     const socketRef = useRef<Socket | null>(null);
 
     // Obtener token de sesión
+    // ⚡ MEMORY: Added isMounted flag to prevent state updates after unmount
     useEffect(() => {
+        let isMounted = true;
+
         const getToken = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            setAccessToken(session?.access_token || null);
+            if (isMounted) {
+                setAccessToken(session?.access_token || null);
+            }
         };
         getToken();
 
         // Escuchar cambios de auth para actualizar token
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-            setAccessToken(session?.access_token || null);
+            if (isMounted) {
+                setAccessToken(session?.access_token || null);
+            }
         });
 
         return () => {
+            isMounted = false;
             authListener.subscription.unsubscribe();
         };
     }, []);
@@ -94,6 +102,9 @@ export function useWebSocket() {
 
     const disconnect = useCallback(() => {
         if (socketRef.current) {
+            // ⚡ M-006: Limpiar todos los listeners antes de desconectar
+            // Previene referencias colgantes y posibles memory leaks
+            socketRef.current.removeAllListeners();
             socketRef.current.disconnect();
             socketRef.current = null;
         }

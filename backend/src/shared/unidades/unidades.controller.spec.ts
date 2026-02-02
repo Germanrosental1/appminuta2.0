@@ -1,13 +1,60 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnidadesController } from './unidades.controller';
+import { UnidadesService } from './unidades.service';
+import { UnidadesQueryService } from './unidades-query.service';
+import { UnidadesImportService } from './unidades-import.service';
+import { AuthorizationService } from '../../auth/authorization/authorization.service';
+import { SupabaseAuthGuard } from '../../auth/supabase-auth.guard';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 
 describe('UnidadesController', () => {
   let controller: UnidadesController;
 
+  const mockUnidadesService = {
+    create: jest.fn(),
+    update: jest.fn(),
+    updateComplete: jest.fn(),
+    remove: jest.fn(),
+    adjustPricesByProjects: jest.fn(),
+  };
+
+  const mockUnidadesQueryService = {
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    findByIds: jest.fn(),
+    getNaturalezas: jest.fn(),
+    getTiposDisponibles: jest.fn(),
+    getProyectosPorTipo: jest.fn(),
+    getEtapas: jest.fn(),
+    getTipos: jest.fn(),
+    getSectores: jest.fn(),
+  };
+
+  const mockImportService = {
+    importFromExcel: jest.fn(),
+    importFromUrl: jest.fn(),
+  };
+
+  const mockAuthorizationService = {
+    getUserProjects: jest.fn(),
+    getUserProjectsDetailed: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UnidadesController],
-    }).compile();
+      providers: [
+        { provide: UnidadesService, useValue: mockUnidadesService },
+        { provide: UnidadesQueryService, useValue: mockUnidadesQueryService },
+        { provide: UnidadesImportService, useValue: mockImportService },
+        { provide: AuthorizationService, useValue: mockAuthorizationService },
+      ],
+    })
+      .overrideGuard(SupabaseAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<UnidadesController>(UnidadesController);
   });

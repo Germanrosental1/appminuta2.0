@@ -12,7 +12,8 @@ describe('sanitize.helper', () => {
                 const input = '<script>alert("XSS")</script>Hello';
                 const result = sanitizeString(input);
                 expect(result).not.toContain('<script>');
-                expect(result).not.toContain('alert');
+                // Implementation uses 'escape' mode, so content remains but tags are neutralized.
+                expect(result).toContain('&lt;script&gt;');
             });
 
             it('should remove javascript: protocol', () => {
@@ -64,7 +65,9 @@ describe('sanitize.helper', () => {
                     '__proto__': { isAdmin: true },
                 };
                 const result = sanitizeObject(input);
-                expect(result).not.toHaveProperty('__proto__');
+                // __proto__ is always present in objects, check keys instead or verify it's not polluted
+                expect(Object.keys(result)).not.toContain('__proto__');
+                expect((result as any).isAdmin).toBeUndefined();
                 expect(result.name).toBeDefined();
             });
 

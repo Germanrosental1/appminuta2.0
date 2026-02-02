@@ -4,6 +4,8 @@ import { UpdateUnidadDto } from './dto/update-unidad.dto';
 import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
 import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+import { parseDate } from '../utils/date.utils';
 
 
 @Injectable()
@@ -50,7 +52,7 @@ export class UnidadesService {
         });
     }
 
-    private async _resolveCatalogIds(tx: any, dto: CreateUnidadDto) {
+    private async _resolveCatalogIds(tx: Prisma.TransactionClient, dto: CreateUnidadDto) {
         let estadoId: string | null = null;
         if (dto.estadocomercial) {
             const estado = await tx.estadoComercial.findFirst({ where: { NombreEstado: { equals: dto.estadocomercial, mode: 'insensitive' } } });
@@ -65,7 +67,7 @@ export class UnidadesService {
         return { estadoId, comercialId };
     }
 
-    private async _resolveEntityIds(tx: any, dto: CreateUnidadDto) {
+    private async _resolveEntityIds(tx: Prisma.TransactionClient, dto: CreateUnidadDto) {
         const tipoId = await this._resolveTipoUnidad(tx, dto.tipounidad_id);
         const edificioId = await this._resolveEdificio(tx, dto.edificio_id, dto.proyecto_id);
         const etapaId = await this._resolveEtapa(tx, dto.etapa_id);
@@ -73,7 +75,7 @@ export class UnidadesService {
         return { tipoId, edificioId, etapaId };
     }
 
-    private async _resolveTipoUnidad(tx: any, tipoId?: string) {
+    private async _resolveTipoUnidad(tx: Prisma.TransactionClient, tipoId?: string) {
         if (!tipoId || tipoId.includes('-')) return tipoId;
 
         const tipo = await tx.tiposUnidad.findFirst({ where: { Nombre: { equals: tipoId, mode: 'insensitive' } } });
@@ -83,7 +85,7 @@ export class UnidadesService {
         return newTipo.Id;
     }
 
-    private async _resolveEdificio(tx: any, edificioId?: string, proyectoId?: string) {
+    private async _resolveEdificio(tx: Prisma.TransactionClient, edificioId?: string, proyectoId?: string) {
         if (!edificioId || edificioId.includes('-')) return edificioId;
 
         const whereClause: any = { NombreEdificio: { equals: edificioId, mode: 'insensitive' } };
@@ -102,7 +104,7 @@ export class UnidadesService {
         return edificioId;
     }
 
-    private async _resolveEtapa(tx: any, etapaId?: string) {
+    private async _resolveEtapa(tx: Prisma.TransactionClient, etapaId?: string) {
         if (!etapaId || etapaId.includes('-')) return etapaId;
 
         const etapa = await tx.etapas.findFirst({ where: { Nombre: { equals: etapaId, mode: 'insensitive' } } });
@@ -112,19 +114,19 @@ export class UnidadesService {
         return newEtapa.Id;
     }
 
-    private async _createUnidadRecord(tx: any, dto: CreateUnidadDto, tipoId: string, edificioId: string, etapaId: string) {
+    private async _createUnidadRecord(tx: Prisma.TransactionClient, dto: CreateUnidadDto, tipoId: string, edificioId: string, etapaId: string) {
         const data = this._mapDtoToUnidadData(dto, tipoId, edificioId, etapaId);
         return tx.unidades.create({ data });
     }
 
-    private async _createMetricas(tx: any, unitId: string, dto: CreateUnidadDto) {
+    private async _createMetricas(tx: Prisma.TransactionClient, unitId: string, dto: CreateUnidadDto) {
         const data = this._mapDtoToMetricsData(dto);
         await tx.unidadesMetricas.create({
             data: { ...data, UnidadId: unitId }
         });
     }
 
-    private async _createDetallesVenta(tx: any, unitId: string, dto: CreateUnidadDto, estadoId: string | null, comercialId: string | null) {
+    private async _createDetallesVenta(tx: Prisma.TransactionClient, unitId: string, dto: CreateUnidadDto, estadoId: string | null, comercialId: string | null) {
         const data = this._mapDtoToSalesData(dto, estadoId, comercialId);
         await tx.detallesVenta.create({
             data: { ...data, UnidadId: unitId }
@@ -195,9 +197,9 @@ export class UnidadesService {
         if (dto.obs !== undefined) data.Obs = dto.obs;
 
         // Dates
-        if (dto.fechareserva !== undefined) data.FechaReserva = this._parseDate(dto.fechareserva);
-        if (dto.fechafirmaboleto !== undefined) data.FechaFirmaBoleto = this._parseDate(dto.fechafirmaboleto);
-        if (dto.fechaposesion !== undefined) data.FechaPosesion = this._parseDate(dto.fechaposesion);
+        if (dto.fechareserva !== undefined) data.FechaReserva = parseDate(dto.fechareserva);
+        if (dto.fechafirmaboleto !== undefined) data.FechaFirmaBoleto = parseDate(dto.fechafirmaboleto);
+        if (dto.fechaposesion !== undefined) data.FechaPosesion = parseDate(dto.fechaposesion);
 
         if (dto.tipocochera_id !== undefined) data.TipoCocheraId = dto.tipocochera_id;
         if (dto.unidadcomprador_id !== undefined) data.UnidadCompradorId = dto.unidadcomprador_id;
@@ -205,11 +207,7 @@ export class UnidadesService {
         return data;
     }
 
-    private _parseDate(dateStr?: string): Date | null {
-        if (!dateStr) return null;
-        const date = new Date(dateStr);
-        return Number.isNaN(date.getTime()) ? null : date;
-    }
+
 
     async updateComplete(id: string, updateDto: UpdateUnidadCompleteDto) {
         const existing = await this.prisma.unidades.findUnique({ where: { Id: id } });
@@ -257,12 +255,12 @@ export class UnidadesService {
                 timeout: 10000
             });
         } catch (error: unknown) {
-            this.logger.error('Error in updateComplete transaction', error instanceof Error ? error.stack : String(error));
+            this.logger.error('Error in updateComplete transaction', error instanceof Error ? error.stack : JSON.stringify(error));
             throw error;
         }
     }
 
-    private async _updateSalesDetails(tx: any, id: string, updateDto: UpdateUnidadCompleteDto) {
+    private async _updateSalesDetails(tx: Prisma.TransactionClient, id: string, updateDto: UpdateUnidadCompleteDto) {
         let salesData: any = {};
 
         let resolvedEstadoId: string | null = null;
@@ -349,9 +347,9 @@ export class UnidadesService {
             where.NroUnidad = query.nrounidad;
         }
 
-        // ⚡ PERFORMANCE: Paginación
-        const page = query.page || 1;
-        const limit = query.limit || 100;
+        // ⚡ PERFORMANCE: Paginación - Cap explicit limit to 500
+        const page = Math.max(query.page || 1, 1);
+        const limit = Math.min(Math.max(query.limit || 100, 1), 500);
         const skip = (page - 1) * limit;
 
         // Ejecutar count y findMany en paralelo para mejor performance
@@ -418,14 +416,9 @@ export class UnidadesService {
             }),
         ]);
 
-        // Eliminar duplicados por sectorid (clave única)
-        const uniqueUnidades = unidades.filter(
-            (unidad, index, self) =>
-                index === self.findIndex((u) => u.SectorId === unidad.SectorId)
-        );
-
+        // ⚡ PERFORMANCE: SectorId is unique in DB, no client-side filtering needed
         return {
-            data: uniqueUnidades,
+            data: unidades,
             pagination: {
                 page,
                 limit,
@@ -646,7 +639,7 @@ export class UnidadesService {
                 .map((r) => r.SectorId)
                 .filter((s) => s != null && s !== '');
         } catch (error: unknown) {
-            this.logger.error('getSectores failed', error instanceof Error ? error.stack : String(error));
+            this.logger.error('getSectores failed', error instanceof Error ? error.stack : JSON.stringify(error));
             return []; // Return empty instead of crashing
         }
     }
@@ -735,6 +728,7 @@ export class UnidadesService {
     /**
      * Adjust prices for all units in specified projects
      * Supports percentage-based and fixed value adjustments
+     * ⚡ OPTIMIZED: Uses raw SQL batch UPDATE instead of N individual updates
      */
     async adjustPricesByProjects(
         projectIds: string[],
@@ -742,51 +736,104 @@ export class UnidadesService {
         percentage?: number,
         fixedValue?: number
     ) {
-        const unidades = await this.prisma.unidades.findMany({
-            where: {
-                Edificios: {
-                    ProyectoId: { in: projectIds }
-                }
-            },
-            include: {
-                DetallesVenta_DetallesVenta_UnidadIdToUnidades: true,
-                UnidadesMetricas: true
-            }
-        });
-
-        const updates = [];
-
-        for (const unidad of unidades) {
-            const detalles = unidad.DetallesVenta_DetallesVenta_UnidadIdToUnidades;
-            const metricas = unidad.UnidadesMetricas;
-
-            if (!detalles) continue;
-
-            const { newPrecioUsd, newUsdM2 } = this._calculatePriceAdjustments(
-                detalles.PrecioUsd ? Number(detalles.PrecioUsd) : 0,
-                detalles.UsdM2 ? Number(detalles.UsdM2) : 0,
-                metricas?.M2Total ? Number(metricas.M2Total) : 0,
-                mode,
-                percentage,
-                fixedValue
-            );
-
-            updates.push(
-                this.prisma.detallesVenta.update({
-                    where: { UnidadId: unidad.Id },
-                    data: {
-                        PrecioUsd: newPrecioUsd,
-                        UsdM2: newUsdM2
-                    }
-                })
-            );
+        // Validate inputs
+        if (!projectIds.length) {
+            return { updated: 0, message: 'No projects specified' };
         }
 
-        await this.prisma.$transaction(updates);
+        // ⚡ PERFORMANCE: Use raw SQL for batch updates based on mode
+        let result: { count: number };
+
+        switch (mode) {
+            case 'PERCENTAGE_TOTAL': {
+                if (percentage === undefined) {
+                    return { updated: 0, message: 'Percentage required for PERCENTAGE_TOTAL mode' };
+                }
+                const factor = 1 + percentage / 100;
+                result = await this.prisma.$executeRaw`
+                    UPDATE "DetallesVenta" dv
+                    SET "PrecioUsd" = COALESCE(dv."PrecioUsd", 0) * ${factor},
+                        "UsdM2" = COALESCE(dv."UsdM2", 0) * ${factor}
+                    FROM "Unidades" u
+                    JOIN "Edificios" e ON u."EdificioId" = e."Id"
+                    WHERE dv."UnidadId" = u."Id"
+                    AND e."ProyectoId" = ANY(${projectIds}::uuid[])
+                `.then(() => this.prisma.detallesVenta.count({
+                    where: { Unidades_DetallesVenta_UnidadIdToUnidades: { Edificios: { ProyectoId: { in: projectIds } } } }
+                })).then(count => ({ count }));
+                break;
+            }
+            case 'PERCENTAGE_M2': {
+                if (percentage === undefined) {
+                    return { updated: 0, message: 'Percentage required for PERCENTAGE_M2 mode' };
+                }
+                const factor = 1 + percentage / 100;
+                result = await this.prisma.$executeRaw`
+                    UPDATE "DetallesVenta" dv
+                    SET "UsdM2" = COALESCE(dv."UsdM2", 0) * ${factor},
+                        "PrecioUsd" = CASE
+                            WHEN um."M2Total" > 0 THEN COALESCE(dv."UsdM2", 0) * ${factor} * um."M2Total"
+                            ELSE 0
+                        END
+                    FROM "Unidades" u
+                    JOIN "Edificios" e ON u."EdificioId" = e."Id"
+                    LEFT JOIN "UnidadesMetricas" um ON um."UnidadId" = u."Id"
+                    WHERE dv."UnidadId" = u."Id"
+                    AND e."ProyectoId" = ANY(${projectIds}::uuid[])
+                `.then(() => this.prisma.detallesVenta.count({
+                    where: { Unidades_DetallesVenta_UnidadIdToUnidades: { Edificios: { ProyectoId: { in: projectIds } } } }
+                })).then(count => ({ count }));
+                break;
+            }
+            case 'FIXED_TOTAL': {
+                if (fixedValue === undefined) {
+                    return { updated: 0, message: 'Fixed value required for FIXED_TOTAL mode' };
+                }
+                result = await this.prisma.$executeRaw`
+                    UPDATE "DetallesVenta" dv
+                    SET "PrecioUsd" = ${fixedValue},
+                        "UsdM2" = CASE
+                            WHEN um."M2Total" > 0 THEN ${fixedValue} / um."M2Total"
+                            ELSE 0
+                        END
+                    FROM "Unidades" u
+                    JOIN "Edificios" e ON u."EdificioId" = e."Id"
+                    LEFT JOIN "UnidadesMetricas" um ON um."UnidadId" = u."Id"
+                    WHERE dv."UnidadId" = u."Id"
+                    AND e."ProyectoId" = ANY(${projectIds}::uuid[])
+                `.then(() => this.prisma.detallesVenta.count({
+                    where: { Unidades_DetallesVenta_UnidadIdToUnidades: { Edificios: { ProyectoId: { in: projectIds } } } }
+                })).then(count => ({ count }));
+                break;
+            }
+            case 'FIXED_M2': {
+                if (fixedValue === undefined) {
+                    return { updated: 0, message: 'Fixed value required for FIXED_M2 mode' };
+                }
+                result = await this.prisma.$executeRaw`
+                    UPDATE "DetallesVenta" dv
+                    SET "UsdM2" = ${fixedValue},
+                        "PrecioUsd" = CASE
+                            WHEN um."M2Total" > 0 THEN ${fixedValue} * um."M2Total"
+                            ELSE 0
+                        END
+                    FROM "Unidades" u
+                    JOIN "Edificios" e ON u."EdificioId" = e."Id"
+                    LEFT JOIN "UnidadesMetricas" um ON um."UnidadId" = u."Id"
+                    WHERE dv."UnidadId" = u."Id"
+                    AND e."ProyectoId" = ANY(${projectIds}::uuid[])
+                `.then(() => this.prisma.detallesVenta.count({
+                    where: { Unidades_DetallesVenta_UnidadIdToUnidades: { Edificios: { ProyectoId: { in: projectIds } } } }
+                })).then(count => ({ count }));
+                break;
+            }
+            default:
+                return { updated: 0, message: 'Invalid mode' };
+        }
 
         return {
-            updated: updates.length,
-            message: `Successfully updated ${updates.length} units`
+            updated: result.count,
+            message: `Successfully updated ${result.count} units`
         };
     }
 

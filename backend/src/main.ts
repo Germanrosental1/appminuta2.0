@@ -8,6 +8,7 @@ import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { CsrfInterceptor } from './common/interceptors/csrf.interceptor';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
+import { EtagInterceptor } from './common/interceptors/etag.interceptor';
 import { validateEnv } from './config/env.validation';
 
 // Polyfill for BigInt serialization
@@ -72,11 +73,11 @@ async function bootstrap() {
     app.use(cookieParser());
 
     // 🔒 V-006 FIX: Limitar tamaño de payload para prevenir DoS
-    // Express JSON parser ya usa un límite por defecto, pero lo hacemos explícito
+    // ⚡ PERFORMANCE: Reduced from 5MB to 1MB for faster parsing
     const expressApp = app.getHttpAdapter().getInstance();
     const bodyParser = require('express');
-    app.use(bodyParser.json({ limit: '5mb' }));
-    app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
+    app.use(bodyParser.json({ limit: '1mb' }));
+    app.use(bodyParser.urlencoded({ limit: '1mb', extended: true }));
 
     // Trust Vercel Proxy
     expressApp.set('trust proxy', 1);
@@ -106,8 +107,11 @@ async function bootstrap() {
     // CSRF Protection
     app.useGlobalInterceptors(new CsrfInterceptor());
 
-    // ⚡ PERFORMANCE: Log request duration
+    // ⚡ PERFORMANCE: Log request duration and track metrics
     app.useGlobalInterceptors(new PerformanceInterceptor());
+
+    // ⚡ NETWORK: ETag support for cache validation
+    app.useGlobalInterceptors(new EtagInterceptor());
 
 
     // Configuración de CORS restrictiva

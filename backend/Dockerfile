@@ -62,4 +62,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Use tini as entrypoint for proper signal handling
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "dist/src/main.js"]
+
+# ⚡ M-004: Node.js memory optimization flags
+# --max-old-space-size=600: Limita el heap a 600MB (dejando ~168MB para stack/buffers)
+# Previene OOM kills cuando V8 intenta usar más memoria que el límite del container
+CMD ["node", "--max-old-space-size=600", "dist/src/main.js"]

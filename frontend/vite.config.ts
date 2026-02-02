@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "node:path";
 import { componentTagger } from "lovable-tagger";
 import { mobileBlockerMiddleware } from "./src/middleware/mobileBlockerServer";
+import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -25,6 +26,13 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    // ⚡ PERFORMANCE: Bundle analyzer for build optimization
+    mode === "production" && visualizer({
+      filename: "dist/stats.html",
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
     {
       name: 'mobile-blocker',
       configureServer(server: ViteDevServer) {

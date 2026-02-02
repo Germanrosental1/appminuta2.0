@@ -30,17 +30,7 @@ function normalizeEstado(estado: string): string {
   return estado?.toLowerCase().trim() || '';
 }
 
-// ⚡ CACHE: Cache in-memory para permisos de usuario (TTL: 5 minutos)
-interface UserPermissionsCache {
-  permissions: string[];
-  projectIds: string[];
-  roles: string[];
-  cachedAt: number;
-}
-// 🔒 V-002 FIX: TTL reducido a 10 segundos para minimizar ventana de escalación de privilegios
-// tras revocación de permisos. Balance entre seguridad y performance.
-const PERMISSIONS_CACHE_TTL_MS = 10 * 1000; // 10 segundos
-const userPermissionsCache = new Map<string, UserPermissionsCache>();
+import { PermissionsCacheService } from './services/permissions-cache.service';
 
 @Injectable()
 export class MinutasService {
@@ -48,80 +38,72 @@ export class MinutasService {
     private readonly prisma: PrismaService,
     private readonly unitStateService: UnitStateService,
     private readonly logger: LoggerService,
-    private readonly authService: AuthorizationService, // 🔒 Injected AuthorizationService
+    private readonly authService: AuthorizationService,
+    private readonly permissionsCache: PermissionsCacheService,
     @Optional() @Inject(forwardRef(() => MinutasGateway)) private readonly gateway?: MinutasGateway,
   ) { }
 
-  // ⚡ Método para obtener permisos con cache
+  // Exponer estadísticas delegando al servicio
+  public getPermissionsCacheStats() {
+    return this.permissionsCache.getStats();
+  }
+
+  // ⚡ Método para obtener permisos con cache usando el nuevo servicio
   private async getCachedUserPermissions(userId: string): Promise<{ permissions: string[]; projectIds: string[]; roles: string[] }> {
-    const cached = userPermissionsCache.get(userId);
-    const now = Date.now();
-
-    // Si hay cache válido, usarlo
-    if (cached && (now - cached.cachedAt) < PERMISSIONS_CACHE_TTL_MS) {
-      return { permissions: cached.permissions, projectIds: cached.projectIds, roles: cached.roles };
-    }
-
-    // Si no hay cache o expiró, hacer la query
-    // ⚡ OPTIMIZED QUERY: Fetch Permissions, Roles, and Projects using Prisma Client to avoid SQL Injection Hotspots
-    const [userRoles, userProjects] = await Promise.all([
-      this.prisma.usuariosRoles.findMany({
-        where: { IdUsuario: userId },
-        include: {
-          Roles: {
-            select: {
-              Nombre: true,
-              RolesPermisos: {
-                include: {
-                  Permisos: {
-                    select: { Nombre: true }
+    return this.permissionsCache.getOrFetch(userId, async () => {
+      // Si no hay cache o expiró, hacer la query
+      // ⚡ OPTIMIZED QUERY: Fetch Permissions, Roles, and Projects using Prisma Client
+      const [userRoles, userProjects] = await Promise.all([
+        this.prisma.usuariosRoles.findMany({
+          where: { IdUsuario: userId },
+          include: {
+            Roles: {
+              select: {
+                Nombre: true,
+                RolesPermisos: {
+                  include: {
+                    Permisos: {
+                      select: { Nombre: true }
+                    }
                   }
                 }
               }
             }
           }
-        }
-      }),
-      this.prisma.usuariosProyectos.findMany({
-        where: { IdUsuario: userId },
-        select: { IdProyecto: true }
-      })
-    ]);
+        }),
+        this.prisma.usuariosProyectos.findMany({
+          where: { IdUsuario: userId },
+          select: { IdProyecto: true }
+        })
+      ]);
 
-    // Flatten and extract distinct values
-    const permissions = [...new Set(
-      userRoles.flatMap(ur =>
-        ur.Roles.RolesPermisos.map(rp => rp.Permisos?.Nombre).filter(Boolean)
-      )
-    )] as string[];
+      // Flatten and extract distinct values
+      const permissions = [...new Set(
+        userRoles.flatMap(ur =>
+          ur.Roles.RolesPermisos.map(rp => rp.Permisos?.Nombre).filter(Boolean)
+        )
+      )] as string[];
 
-    const roles = [...new Set(
-      userRoles.map(ur => ur.Roles.Nombre).filter(Boolean)
-    )] as string[];
+      const roles = [...new Set(
+        userRoles.map(ur => ur.Roles.Nombre).filter(Boolean)
+      )] as string[];
 
-    const projectIds = [...new Set(
-      userProjects.map(up => up.IdProyecto).filter(Boolean)
-    )] as string[];
+      const projectIds = [...new Set(
+        userProjects.map(up => up.IdProyecto).filter(Boolean)
+      )] as string[];
 
-    // Guardar en cache
-    userPermissionsCache.set(userId, {
-      permissions,
-      projectIds,
-      roles,
-      cachedAt: now,
+      return { permissions, projectIds, roles };
     });
-
-    return { permissions, projectIds, roles };
   }
 
   // Método para invalidar cache de un usuario (llamar cuando cambien sus permisos/proyectos)
   public invalidateUserCache(userId: string): void {
-    userPermissionsCache.delete(userId);
+    this.permissionsCache.invalidateUser(userId);
   }
 
   // Método para limpiar todo el cache (útil para testing o cambios masivos)
   public clearAllCache(): void {
-    userPermissionsCache.clear();
+    this.permissionsCache.clearAll();
   }
 
   async create(createMinutaDto: CreateMinutaDto, userId: string) {

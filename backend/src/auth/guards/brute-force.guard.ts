@@ -6,9 +6,11 @@ import {
     HttpStatus,
     Inject,
     Logger,
+    OnModuleDestroy,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface AttemptData {
     count: number;
@@ -19,9 +21,10 @@ interface AttemptData {
  * Guard para protección contra Brute Force
  * 🔒 SEC-006 FIX: Usa Redis (via CacheManager) para estado distribuido
  * Esto permite protección consistente en deployments multi-instancia
+ * ⚡ M-002 FIX: Limpieza periódica del fallback en memoria para prevenir memory leaks
  */
 @Injectable()
-export class BruteForceGuard implements CanActivate {
+export class BruteForceGuard implements CanActivate, OnModuleDestroy {
     private readonly logger = new Logger(BruteForceGuard.name);
 
     // 🔒 Fallback en memoria si Redis no está disponible
@@ -34,9 +37,59 @@ export class BruteForceGuard implements CanActivate {
     private readonly CACHE_PREFIX = 'brute_force:';
     private readonly CACHE_TTL_SECONDS = 20 * 60; // 20 minutos (mayor que BLOCK_DURATION)
 
+    // ⚡ M-002: Límite máximo de entradas en memoria para prevenir crecimiento ilimitado
+    private readonly MAX_MEMORY_ENTRIES = 10000;
+
     constructor(
         @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     ) {}
+
+    /**
+     * ⚡ M-002 FIX: Limpieza al destruir el módulo
+     */
+    onModuleDestroy() {
+        this.memoryFallback.clear();
+    }
+
+    /**
+     * ⚡ M-002 FIX: Limpieza periódica de entradas expiradas en memoria (cada 5 minutos)
+     * Previene memory leaks cuando Redis no está disponible
+     */
+    @Cron(CronExpression.EVERY_5_MINUTES)
+    cleanupExpiredMemoryEntries() {
+        if (!this.useMemoryFallback || this.memoryFallback.size === 0) {
+            return;
+        }
+
+        const now = Date.now();
+        let cleanedCount = 0;
+
+        for (const [key, data] of this.memoryFallback) {
+            // Eliminar si el bloqueo expiró o si la entrada es muy antigua (>20 min)
+            const isExpired = data.blockedUntil && data.blockedUntil < now;
+            const isTooOld = (now - (data.blockedUntil || now)) > this.CACHE_TTL_SECONDS * 1000;
+
+            if (isExpired || isTooOld) {
+                this.memoryFallback.delete(key);
+                cleanedCount++;
+            }
+        }
+
+        if (cleanedCount > 0) {
+            this.logger.log(`⚡ Memory cleanup: removed ${cleanedCount} expired brute force entries`);
+        }
+    }
+
+    /**
+     * ⚡ M-002: Obtener estadísticas del fallback en memoria (para monitoring)
+     */
+    getMemoryFallbackStats() {
+        return {
+            size: this.memoryFallback.size,
+            maxSize: this.MAX_MEMORY_ENTRIES,
+            usingFallback: this.useMemoryFallback,
+        };
+    }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
@@ -135,11 +188,20 @@ export class BruteForceGuard implements CanActivate {
 
     /**
      * 🔒 SEC-006: Guarda datos en Redis con fallback a memoria
+     * ⚡ M-002 FIX: Incluye límite de tamaño para el fallback en memoria
      */
     private async setAttemptData(identifier: string, data: AttemptData): Promise<void> {
         const key = `${this.CACHE_PREFIX}${identifier}`;
 
         if (this.useMemoryFallback) {
+            // ⚡ M-002: Evicción cuando se alcanza el límite máximo
+            if (this.memoryFallback.size >= this.MAX_MEMORY_ENTRIES) {
+                // Eliminar la entrada más antigua
+                const oldestKey = this.memoryFallback.keys().next().value;
+                if (oldestKey) {
+                    this.memoryFallback.delete(oldestKey);
+                }
+            }
             this.memoryFallback.set(key, data);
             return;
         }
@@ -149,6 +211,13 @@ export class BruteForceGuard implements CanActivate {
         } catch (error) {
             this.logger.warn('Redis unavailable, storing in memory fallback');
             this.useMemoryFallback = true;
+            // ⚡ M-002: Aplicar límite también al cambiar a fallback
+            if (this.memoryFallback.size >= this.MAX_MEMORY_ENTRIES) {
+                const oldestKey = this.memoryFallback.keys().next().value;
+                if (oldestKey) {
+                    this.memoryFallback.delete(oldestKey);
+                }
+            }
             this.memoryFallback.set(key, data);
         }
     }

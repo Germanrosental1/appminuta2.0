@@ -22,7 +22,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                 },
             },
             log: process.env.NODE_ENV === 'development'
-                ? ['warn', 'error']
+                ? ['query', 'warn', 'error']
                 : ['error'],
         });
 

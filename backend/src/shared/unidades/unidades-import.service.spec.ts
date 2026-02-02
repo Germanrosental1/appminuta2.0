@@ -10,8 +10,6 @@ jest.mock('axios');
 
 describe('UnidadesImportService', () => {
     let service: UnidadesImportService;
-    let prismaService: PrismaService;
-    let loggerService: LoggerService;
 
     const mockPrismaService = {
         $transaction: jest.fn(),
@@ -101,8 +99,6 @@ describe('UnidadesImportService', () => {
         }).compile();
 
         service = module.get<UnidadesImportService>(UnidadesImportService);
-        prismaService = module.get<PrismaService>(PrismaService);
-        loggerService = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {
@@ -146,8 +142,23 @@ describe('UnidadesImportService', () => {
             mockPrismaService.$transaction.mockImplementation(async (callback) => {
                 return callback(mockPrismaService);
             });
+            // Mock successful dependency resolution to allow flow to reach validation
             mockPrismaService.proyectos.findUnique.mockResolvedValue({ Id: 'proj-1' });
+            mockPrismaService.proyectos.create.mockResolvedValue({ Id: 'proj-1' });
+
+            mockPrismaService.naturalezas.findFirst.mockResolvedValue({ Id: 'nat-1' });
+            mockPrismaService.naturalezas.create.mockResolvedValue({ Id: 'nat-1' });
+
             mockPrismaService.edificios.findFirst.mockResolvedValue({ Id: 'edif-1' });
+            mockPrismaService.edificios.create.mockResolvedValue({ Id: 'edif-1' });
+
+            mockPrismaService.etapas.findFirst.mockResolvedValue({ Id: 'etapa-1' });
+            mockPrismaService.tiposUnidad.findFirst.mockResolvedValue({ Id: 'tipo-1' });
+            mockPrismaService.estadoComercial.findFirst.mockResolvedValue({ Id: 'estado-1' });
+            mockPrismaService.comerciales.findFirst.mockResolvedValue({ Id: 'comercial-1' });
+            mockPrismaService.tiposPatioTerraza.findFirst.mockResolvedValue({ Id: 'patio-1' });
+            mockPrismaService.tiposCochera.findFirst.mockResolvedValue({ Id: 'cochera-1' });
+            mockPrismaService.motivosNoDisp.findFirst.mockResolvedValue({ Id: 'motivo-1' });
 
             const result = await service.importFromExcel(mockBuffer, mockUser);
 

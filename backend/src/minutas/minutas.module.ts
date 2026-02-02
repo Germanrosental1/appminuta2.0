@@ -10,6 +10,7 @@ import { PrismaMinutasRepository } from './repositories/prisma-minutas.repositor
 import { DocumentGenerationService } from './services/document-generation/document-generation.service';
 import { N8nDocumentGenerator } from './services/document-generation/n8n-generator.service';
 import { UnitStateService } from './services/unit-state.service';
+import { PermissionsCacheService } from './services/permissions-cache.service';
 import { LoggerModule } from '../logger/logger.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { LoggerModule } from '../logger/logger.module';
     DocumentGenerationService,
     N8nDocumentGenerator,
     UnitStateService,
+    PermissionsCacheService,
   ],
   exports: [MinutasService, MinutasGateway, UnitStateService],
 })
