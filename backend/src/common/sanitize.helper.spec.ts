@@ -67,7 +67,7 @@ describe('sanitize.helper', () => {
                 const result = sanitizeObject(input);
                 // __proto__ is always present in objects, check keys instead or verify it's not polluted
                 expect(Object.keys(result)).not.toContain('__proto__');
-                expect((result as any).isAdmin).toBeUndefined();
+                expect((result).isAdmin).toBeUndefined();
                 expect(result.name).toBeDefined();
             });
 

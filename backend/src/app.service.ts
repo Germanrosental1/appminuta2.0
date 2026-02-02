@@ -39,7 +39,6 @@ export class AppService {
     }
 
     async getHealthCheck(): Promise<HealthCheckResult> {
-        const startTime = Date.now();
         let dbConnected = false;
         let dbLatency: number | undefined;
 

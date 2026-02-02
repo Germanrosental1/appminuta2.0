@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BruteForceGuard } from './brute-force.guard';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import { ExecutionContext, HttpException } from '@nestjs/common';
 
 describe('BruteForceGuard', () => {
     let guard: BruteForceGuard;
