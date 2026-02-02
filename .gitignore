@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Claude AI 
+.claude
+
 # Environment variables
 .env
 .env.local

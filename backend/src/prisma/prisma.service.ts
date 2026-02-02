@@ -61,20 +61,53 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         }
     }
 
+    // 🔒 SEC-003: Whitelist of allowed tables for raw SQL updates
+    private readonly ALLOWED_TABLES = new Set([
+        'unidades',
+        'minutas_definitivas',
+        'detalles_venta',
+        'clientes',
+        'proyectos',
+    ]);
+
+    // 🔒 SEC-003: Regex to validate column names (alphanumeric + underscore, must start with letter/underscore)
+    private readonly VALID_COLUMN_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+    // 🔒 SEC-003: UUID v4 regex for id validation
+    private readonly UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
     // ⚡ OPTIMIZATION: Método para ejecutar updates rápidos con raw SQL
+    // 🔒 SEC-003: Hardened against SQL injection with input validation
     async executeRawUpdate(
         table: string,
         id: string,
         data: Record<string, any>,
         version: number
     ): Promise<number> {
+        // 🔒 Validate table name against whitelist
+        if (!this.ALLOWED_TABLES.has(table.toLowerCase())) {
+            this.logger.error(`SQL Injection attempt blocked: invalid table "${table}"`);
+            throw new Error(`Invalid table name: ${table}`);
+        }
+
+        // 🔒 Validate UUID format
+        if (!this.UUID_REGEX.test(id)) {
+            this.logger.error(`SQL Injection attempt blocked: invalid UUID "${id}"`);
+            throw new Error('Invalid UUID format for id parameter');
+        }
+
         const setClauses: string[] = [];
         const values: any[] = [];
         let paramIndex = 1;
 
         for (const [key, value] of Object.entries(data)) {
             if (value !== undefined) {
-                setClauses.push(`${key} = $${paramIndex}`);
+                // 🔒 Validate column names
+                if (!this.VALID_COLUMN_REGEX.test(key)) {
+                    this.logger.error(`SQL Injection attempt blocked: invalid column "${key}"`);
+                    throw new Error(`Invalid column name: ${key}`);
+                }
+                setClauses.push(`"${key}" = $${paramIndex}`);
                 values.push(value);
                 paramIndex++;
             }
@@ -88,7 +121,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         setClauses.push(`version = version + 1`, `updated_at = NOW()`);
 
         const query = `
-            UPDATE ${table}
+            UPDATE "${table}"
             SET ${setClauses.join(', ')}
             WHERE id = $${paramIndex}::uuid AND version = $${paramIndex + 1}
         `;

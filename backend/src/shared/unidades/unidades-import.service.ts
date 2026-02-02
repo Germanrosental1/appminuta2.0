@@ -1,22 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoggerService } from '../../logger/logger.service';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
+import {
+    PrismaTransaction,
+    NormalizedExcelRow,
+    ResolvedSaleIds,
+    UserInfo
+} from '../../common/types';
 
 @Injectable()
 export class UnidadesImportService {
+    private readonly log = new Logger(UnidadesImportService.name);
+
     constructor(
         private readonly prisma: PrismaService,
-        private readonly logger: LoggerService
+        private readonly auditLogger: LoggerService
     ) { }
 
-    async importFromExcel(buffer: Buffer, user?: any) {
+    async importFromExcel(buffer: Buffer, user?: UserInfo) {
         const workbook = XLSX.read(buffer, { type: 'buffer', raw: false });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const data: any[] = XLSX.utils.sheet_to_json(sheet, { raw: false });
-        console.log(`📥 Importando ${data.length} filas desde Excel...`);
+        const data: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { raw: false });
+        this.log.log(`Importing ${data.length} rows from Excel`);
 
         const results = {
             processed: 0,
@@ -38,40 +46,11 @@ export class UnidadesImportService {
             const startIdx = batchIndex * BATCH_SIZE;
             const batch = data.slice(startIdx, startIdx + BATCH_SIZE);
 
-            try {
-                await this.prisma.$transaction(async (tx) => {
-                    for (const [localIdx, row] of batch.entries()) {
-                        const globalIdx = startIdx + localIdx;
-                        results.processed++;
-                        try {
-                            const resultType = await this.processRow(tx, row, cache);
-                            results.success++;
-                            if (resultType === 'created') results.created++;
-                            else if (resultType === 'updated') results.updated++;
-                        } catch (rowError) {
-                            results.errors++;
-                            console.error(`Error processing row ${globalIdx + 2}:`, rowError);
-                            results.details.push({ row: globalIdx + 2, error: rowError.message || 'Unknown error' });
-                            // Continuar con la siguiente fila del batch
-                        }
-                    }
-                }, { timeout: 60000 }); // Timeout extendido para batch más grande
-            } catch (batchError) {
-                // Si falla el batch, marcar todas las filas restantes como error
-                console.error(`Error in batch ${batchIndex + 1}/${totalBatches}:`, batchError);
-                for (let i = 0; i < batch.length; i++) {
-                    const globalIdx = startIdx + i;
-                    if (!results.details.some(d => d.row === globalIdx + 2)) {
-                        results.processed++;
-                        results.errors++;
-                        results.details.push({ row: globalIdx + 2, error: `Batch failed: ${batchError.message}` });
-                    }
-                }
-            }
+            await this.processBatchTransaction(batch, startIdx, results, cache, batchIndex, totalBatches);
         }
 
         if (results.errors === 0) {
-            await this.logger.agregarLog({
+            await this.auditLogger.agregarLog({
                 motivo: 'Importación Masiva',
                 descripcion: `Se importaron ${results.success} unidades exitosamente.`,
                 impacto: 'Alto',
@@ -80,7 +59,7 @@ export class UnidadesImportService {
                 usuarioemail: user?.email
             });
         } else {
-            await this.logger.agregarLog({
+            await this.auditLogger.agregarLog({
                 motivo: 'Importación Masiva con Errores',
                 descripcion: `Se importaron ${results.success} unidades. Fallaron ${results.errors}.`,
                 impacto: 'Medio',
@@ -90,35 +69,77 @@ export class UnidadesImportService {
             });
         }
 
-        console.log(`✅ Importación finalizada. Total: ${results.processed}, Éxito: ${results.success} (Nuevas: ${results.created}, Actualizadas: ${results.updated}), Errores: ${results.errors}`);
+        this.log.log(`Import completed. Total: ${results.processed}, Success: ${results.success} (Created: ${results.created}, Updated: ${results.updated}), Errors: ${results.errors}`);
         if (results.errors > 0) {
-            console.warn('⚠️ Detalles de errores:', JSON.stringify(results.details.slice(0, 10))); // Mostrar primeros 10 errores
+            this.log.warn(`Error details (first 10): ${JSON.stringify(results.details.slice(0, 10))}`);
         }
 
         return results;
     }
 
-    async importFromUrl(url: string, user?: any) {
-        console.log('📥 importFromUrl - URL recibida:', url);
+    private async processBatchTransaction(
+        batch: Record<string, unknown>[],
+        startIdx: number,
+        results: any,
+        cache: Map<string, string>,
+        batchIndex: number,
+        totalBatches: number
+    ) {
+        try {
+            await this.prisma.$transaction(async (tx) => {
+                for (const [localIdx, row] of batch.entries()) {
+                    const globalIdx = startIdx + localIdx;
+                    results.processed++;
+                    try {
+                        const resultType = await this.processRow(tx, row, cache);
+                        results.success++;
+                        if (resultType === 'created') results.created++;
+                        else if (resultType === 'updated') results.updated++;
+                    } catch (rowError) {
+                        results.errors++;
+                        this.log.error(`Error processing row ${globalIdx + 2}: ${rowError instanceof Error ? rowError.message : 'Unknown error'}`);
+                        results.details.push({ row: globalIdx + 2, error: rowError.message || 'Unknown error' });
+                        // Continuar con la siguiente fila del batch
+                    }
+                }
+            }, { timeout: 60000 }); // Timeout extendido para batch más grande
+        } catch (batchError) {
+            // Si falla el batch, marcar todas las filas restantes como error
+            this.log.error(`Error in batch ${batchIndex + 1}/${totalBatches}: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
+            for (let i = 0; i < batch.length; i++) {
+                const globalIdx = startIdx + i;
+                // Avoid duplicating errors if they were already logged inside the transaction loop (though transaction failure usually rolls back)
+                // In case of a full transaction failure (e.g. timeout), individual row errors might not have been pushed if inside the transaction scope.
+                if (!results.details.some((d: any) => d.row === globalIdx + 2)) {
+                    results.processed++;
+                    results.errors++;
+                    results.details.push({ row: globalIdx + 2, error: `Batch failed: ${batchError.message}` });
+                }
+            }
+        }
+    }
 
-        // 🔒 SEGURIDAD: Validar URL para prevenir SSRF
+    async importFromUrl(url: string, user?: UserInfo) {
+        this.log.log(`importFromUrl - URL received: ${url}`);
+
+        // SECURITY: Validate URL to prevent SSRF
         try {
             this.validateExternalUrl(url);
-            console.log('✅ URL validada correctamente');
+            this.log.log('URL validated successfully');
         } catch (validationError) {
-            console.error('❌ Error de validación SSRF:', validationError.message);
+            this.log.error(`SSRF validation error: ${validationError instanceof Error ? validationError.message : 'Unknown error'}`);
             throw validationError;
         }
 
         try {
-            console.log('📡 Descargando archivo...');
+            this.log.log('Downloading file...');
             const response = await axios.get(url, { responseType: 'arraybuffer' });
-            console.log('✅ Archivo descargado, tamaño:', response.data.length, 'bytes');
+            this.log.log(`File downloaded, size: ${response.data.length} bytes`);
             return this.importFromExcel(response.data, user);
         } catch (error) {
-            console.error('❌ Error downloading file from URL:', error.message);
-            console.error('Stack:', error.stack);
-            throw new Error(`Error al descargar el archivo: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.log.error(`Error downloading file from URL: ${errorMessage}`);
+            throw new Error(`Error al descargar el archivo: ${errorMessage}`);
         }
     }
 
@@ -168,7 +189,7 @@ export class UnidadesImportService {
         // Nota: Para máxima seguridad, considerar resolver el DNS y validar la IP
     }
 
-    private async processRow(tx: any, row: any, cache: Map<string, string>): Promise<'created' | 'updated'> {
+    private async processRow(tx: PrismaTransaction, row: Record<string, unknown>, cache: Map<string, string>): Promise<'created' | 'updated'> {
         // Normalize field names (handle case variations)
         const normalizedRow = this.normalizeRowFields(row);
 
@@ -244,7 +265,7 @@ export class UnidadesImportService {
                     Destino: normalizedRow.destino
                 }
             });
-            unidadId = newUnidad.id;
+            unidadId = newUnidad.Id;
             isNew = true;
         }
 
@@ -272,17 +293,14 @@ export class UnidadesImportService {
         });
 
         // 8. Process Cliente Titular (comma-separated names -> Clientes + ClientesUnidadesTitulares)
-        // console.log('👥 Procesando clientes titulares...');
         await this.processClientesTitulares(tx, unidadId, normalizedRow.clientetitular, cache);
 
-        // console.log('✅ Fila procesada exitosamente');
-        // console.log('=====================================\n');
         return isNew ? 'created' : 'updated';
     }
 
 
-    private normalizeRowFields(row: any): Record<string, any> {
-        const normalized: Record<string, any> = {};
+    private normalizeRowFields(row: Record<string, unknown>): NormalizedExcelRow {
+        const normalized: Record<string, unknown> = {};
 
         // Field aliases mapping (Excel column -> internal field)
         const fieldAliases: Record<string, string> = {
@@ -340,11 +358,11 @@ export class UnidadesImportService {
             const finalKey = fieldAliases[normalizedKey] || normalizedKey;
             normalized[finalKey] = row[key];
         }
-        return normalized;
+        return normalized as NormalizedExcelRow;
     }
 
     // Resolve or create a Cliente by nombreApellido
-    private async resolveCliente(tx: any, nombreApellido: string | undefined, cache: Map<string, string>): Promise<string | null> {
+    private async resolveCliente(tx: PrismaTransaction, nombreApellido: string | undefined, cache: Map<string, string>): Promise<string | null> {
         if (!nombreApellido || String(nombreApellido).trim() === '') return null;
 
         const cleanName = String(nombreApellido).trim();
@@ -371,7 +389,7 @@ export class UnidadesImportService {
     }
 
     // Process comma-separated ClienteTitular field
-    private async processClientesTitulares(tx: any, unidadId: string, clienteTitularStr: string | undefined, cache: Map<string, string>): Promise<void> {
+    private async processClientesTitulares(tx: PrismaTransaction, unidadId: string, clienteTitularStr: string | undefined, cache: Map<string, string>): Promise<void> {
         if (!clienteTitularStr || String(clienteTitularStr).trim() === '') return;
 
         // Split by comma, trim each name
@@ -406,7 +424,7 @@ export class UnidadesImportService {
     }
 
     // Resolve unidad comprador by looking up sectorid
-    private async resolveUnidadComprador(tx: any, sectorId: string | undefined, cache: Map<string, string>): Promise<string | null> {
+    private async resolveUnidadComprador(tx: PrismaTransaction, sectorId: string | undefined, cache: Map<string, string>): Promise<string | null> {
         if (!sectorId || String(sectorId).trim() === '') return null;
 
         const cleanSectorId = String(sectorId).trim();
@@ -426,7 +444,7 @@ export class UnidadesImportService {
         return null; // Unit doesn't exist yet
     }
 
-    private async resolveProyecto(tx: any, row: any, cache: Map<string, string>): Promise<string> {
+    private async resolveProyecto(tx: PrismaTransaction, row: NormalizedExcelRow, cache: Map<string, string>): Promise<string> {
         const proyNombre = row.proyecto;
         if (!proyNombre) throw new Error('Nombre de proyecto es requerido');
 
@@ -468,7 +486,7 @@ export class UnidadesImportService {
         const created = await tx.proyectos.create({
             data: {
                 Nombre: proyNombre,
-                TablaNombre: proyNombre.toLowerCase().replaceAll(' ', '_'),
+                TablaNombre: proyNombre.toLowerCase().replace(/ /g, '_'),
                 Naturaleza: finalNaturalezaId,
                 IdOrg: null
             }
@@ -477,7 +495,7 @@ export class UnidadesImportService {
         return created.Id;
     }
 
-    private async resolveNaturaleza(tx: any, naturalezaName: any, cache: Map<string, string>): Promise<string | undefined> {
+    private async resolveNaturaleza(tx: PrismaTransaction, naturalezaName: string | undefined, cache: Map<string, string>): Promise<string | undefined> {
         if (!naturalezaName) return undefined;
 
         const natName = String(naturalezaName).trim();
@@ -497,7 +515,7 @@ export class UnidadesImportService {
         return naturalezaId;
     }
 
-    private async resolveEdificio(tx: any, row: any, proyectoId: string, cache: Map<string, string>): Promise<string> {
+    private async resolveEdificio(tx: PrismaTransaction, row: NormalizedExcelRow, proyectoId: string, cache: Map<string, string>): Promise<string> {
         const nombre = row.edificiotorre || 'Torre Unica';
         const cacheKey = `edificios:${proyectoId}:${nombre}`;
         const cached = cache.get(cacheKey);
@@ -518,7 +536,7 @@ export class UnidadesImportService {
         return created.Id;
     }
 
-    private async resolveCatalogo(tx: any, table: string, field: string, value: string | number, cache: Map<string, string>): Promise<string | null> {
+    private async resolveCatalogo(tx: PrismaTransaction, table: string, field: string, value: string | number | undefined, cache: Map<string, string>): Promise<string | null> {
         if (value === null || value === undefined || String(value).trim() === '') return null;
         const stringValue = String(value).trim();
         const cacheKey = `catalogo:${table}:${field}:${stringValue}`;
@@ -553,7 +571,7 @@ export class UnidadesImportService {
         return null;
     }
 
-    private async upsertMetrics(tx: any, unidadId: string, row: any, patioId: string | null) {
+    private async upsertMetrics(tx: PrismaTransaction, unidadId: string, row: NormalizedExcelRow, patioId: string | null) {
         const data = {
             M2Cubierto: this.parseNumber(row.m2cubierto),
             M2Semicubierto: this.parseNumber(row.m2semicubierto),
@@ -575,22 +593,10 @@ export class UnidadesImportService {
     }
 
     private async upsertSalesDetails(
-        tx: any,
+        tx: PrismaTransaction,
         unidadId: string,
-        row: any,
-        ids: {
-            estadoId: string | null;
-            comercialId: string | null;
-            tipoCocheraId: string | null;
-            motivoNodispId: string | null;
-            clienteInteresadoId: string | null;
-            unidadCompradorId: string | null;
-            fechaReserva: Date | null;
-            fechaFirmaBoleto: Date | null;
-            fechaPisada: Date | null;
-            fechaPosesion: Date | null;
-            fechaPosesionPorBoleto: Date | null;
-        }
+        row: NormalizedExcelRow,
+        ids: ResolvedSaleIds
     ) {
         const data = {
             PrecioUsd: this.parseNumber(row.preciousd),
@@ -619,7 +625,7 @@ export class UnidadesImportService {
         }
     }
 
-    private parseNumber(value: any): number | null {
+    private parseNumber(value: string | number | null | undefined): number | null {
         if (value === null || value === undefined || String(value).trim() === '') return null;
 
         let strValue = String(value).trim();

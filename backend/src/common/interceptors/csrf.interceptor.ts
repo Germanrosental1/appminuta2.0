@@ -4,6 +4,7 @@ import {
     ExecutionContext,
     CallHandler,
     UnauthorizedException,
+    Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import * as crypto from 'node:crypto';
@@ -11,12 +12,29 @@ import * as crypto from 'node:crypto';
 /**
  * Interceptor para protección CSRF
  * 🔒 SEGURIDAD: Implementa Double Submit Cookie pattern
+ * 🔒 SEC-005 FIX: Validates Origin/Referer even with Bearer tokens
  */
 @Injectable()
 export class CsrfInterceptor implements NestInterceptor {
+    private readonly logger = new Logger(CsrfInterceptor.name);
     private readonly CSRF_COOKIE_NAME = 'XSRF-TOKEN';
     private readonly CSRF_HEADER_NAME = 'x-csrf-token';
     private readonly COOKIE_MAX_AGE = 3600000; // 1 hora
+
+    // 🔒 SEC-005: Allowed origins for Origin/Referer validation
+    private readonly allowedOrigins: Set<string>;
+
+    constructor() {
+        const origins = process.env.NODE_ENV === 'production'
+            ? (process.env.ALLOWED_ORIGINS?.split(',') || [])
+            : [
+                'http://localhost:8080',
+                'http://localhost:8081',
+                'http://localhost:5173',
+                'http://localhost:3000',
+            ];
+        this.allowedOrigins = new Set(origins.map(o => o.trim().toLowerCase()));
+    }
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const request = context.switchToHttp().getRequest();
@@ -31,7 +49,7 @@ export class CsrfInterceptor implements NestInterceptor {
             // Para deshabilitar explícitamente, usar CSRF_ENABLED=false
             // 🛠️ En desarrollo: CSRF es opcional para facilitar el desarrollo
             const isProduction = process.env.NODE_ENV === 'production';
-            const csrfEnabled = process.env.CSRF_ENABLED !== 'false'; // CAMBIO: Habilitado por defecto
+            const csrfEnabled = process.env.CSRF_ENABLED !== 'false';
 
             // Obtener token de cookie y header
             const cookieToken = request.cookies?.[this.CSRF_COOKIE_NAME];
@@ -41,8 +59,25 @@ export class CsrfInterceptor implements NestInterceptor {
             const authHeader = request.headers['authorization'];
             const hasBearerToken = authHeader && authHeader.startsWith('Bearer ');
 
-            // 🔓 EXCEPTION: Excluir explícitamente endpoints de importación/webhooks
+            // 🔓 EXCEPTION: Excluir explícitamente endpoints de importación/webhooks (n8n)
             const isExcludedPath = request.url.includes('/unidades/import');
+
+            // 🔒 SEC-005 FIX: Even with Bearer token, validate Origin/Referer in production
+            // This provides defense-in-depth against stolen JWTs being used from malicious sites
+            if (isProduction && hasBearerToken && !isExcludedPath) {
+                const originValid = this.validateOriginOrReferer(request);
+                if (!originValid) {
+                    this.logger.warn(
+                        `SEC-005: Request with Bearer token from untrusted origin blocked. ` +
+                        `Origin: ${request.headers['origin'] || 'none'}, ` +
+                        `Referer: ${request.headers['referer'] || 'none'}, ` +
+                        `IP: ${request.ip}`
+                    );
+                    throw new UnauthorizedException(
+                        'Request origin not allowed. Possible CSRF attack detected.'
+                    );
+                }
+            }
 
             // Validar CSRF en producción (habilitado por defecto)
             // Solo si NO hay token Bearer Y NO es un path excluido
@@ -75,6 +110,48 @@ export class CsrfInterceptor implements NestInterceptor {
         response.setHeader('X-CSRF-Token', newToken);
 
         return next.handle();
+    }
+
+    /**
+     * 🔒 SEC-005: Validates Origin or Referer header against allowed origins
+     * Returns true if:
+     * - No Origin/Referer (server-to-server like n8n)
+     * - Origin/Referer matches allowed origins
+     */
+    private validateOriginOrReferer(request: any): boolean {
+        const origin = request.headers['origin'];
+        const referer = request.headers['referer'];
+
+        // No Origin or Referer = server-to-server request (n8n, mobile apps, Postman)
+        // These are allowed because they're protected by JWT authentication
+        if (!origin && !referer) {
+            return true;
+        }
+
+        // Check Origin header first (more reliable)
+        if (origin) {
+            return this.isAllowedOrigin(origin);
+        }
+
+        // Fallback to Referer header
+        if (referer) {
+            try {
+                const refererUrl = new URL(referer);
+                const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
+                return this.isAllowedOrigin(refererOrigin);
+            } catch {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if origin is in allowed list
+     */
+    private isAllowedOrigin(origin: string): boolean {
+        return this.allowedOrigins.has(origin.toLowerCase());
     }
 
     /**

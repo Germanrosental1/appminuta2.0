@@ -24,7 +24,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         if (!isProduction && !(exception instanceof HttpException)) {
             // Log detallado para errores no-HTTP en desarrollo
-            console.error('🔥 Unhandled error:', exception);
+            this.logger.error('Unhandled error:', exception instanceof Error ? exception.stack : String(exception));
         }
 
         this.logger.error({

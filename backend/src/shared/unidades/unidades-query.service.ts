@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
 
 @Injectable()
 export class UnidadesQueryService {
+    private readonly logger = new Logger(UnidadesQueryService.name);
+
     constructor(private readonly prisma: PrismaService) { }
 
     async findAll(query: FindAllUnidadesQueryDto) {
@@ -368,7 +370,7 @@ export class UnidadesQueryService {
                 .map((r) => r.SectorId)
                 .filter((s) => s != null && s !== '');
         } catch (error: unknown) {
-            console.error('[ERROR] getSectores failed:', error);
+            this.logger.error('getSectores failed', error instanceof Error ? error.stack : JSON.stringify(error));
             return []; // Return empty instead of crashing
         }
     }

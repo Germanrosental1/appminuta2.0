@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ILogger, LogParams } from '../common/interfaces/logger.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { maskEmail } from '../common/sanitize.helper';
 
 @Injectable()
 export class LoggerService implements ILogger {
+    private readonly logger = new Logger(LoggerService.name);
+
     constructor(private readonly prisma: PrismaService) { }
 
     async agregarLog(params: LogParams): Promise<void> {
@@ -20,7 +22,7 @@ export class LoggerService implements ILogger {
                 },
             });
         } catch (error: unknown) {
-            console.error('Error al guardar log en database:', error);
+            this.logger.error('Error saving log to database', error instanceof Error ? error.stack : String(error));
             // No re-throw para no interrumpir el flujo principal si el log falla
         }
     }

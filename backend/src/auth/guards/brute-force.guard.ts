@@ -4,29 +4,45 @@ import {
     ExecutionContext,
     HttpException,
     HttpStatus,
+    Inject,
+    Logger,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+interface AttemptData {
+    count: number;
+    blockedUntil?: number;
+}
 
 /**
  * Guard para protección contra Brute Force
- * 🔒 SEGURIDAD: Limita intentos de login y bloquea temporalmente después de fallos
+ * 🔒 SEC-006 FIX: Usa Redis (via CacheManager) para estado distribuido
+ * Esto permite protección consistente en deployments multi-instancia
  */
 @Injectable()
 export class BruteForceGuard implements CanActivate {
-    private readonly attempts: Map<string, { count: number; blockedUntil?: number }> = new Map();
+    private readonly logger = new Logger(BruteForceGuard.name);
+
+    // 🔒 Fallback en memoria si Redis no está disponible
+    private readonly memoryFallback: Map<string, AttemptData> = new Map();
+    private useMemoryFallback = false;
 
     // Configuración
     private readonly MAX_ATTEMPTS = 5;
     private readonly BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos
-    private readonly ATTEMPT_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
+    private readonly CACHE_PREFIX = 'brute_force:';
+    private readonly CACHE_TTL_SECONDS = 20 * 60; // 20 minutos (mayor que BLOCK_DURATION)
 
-    canActivate(context: ExecutionContext): boolean {
+    constructor(
+        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    ) {}
+
+    async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
         const identifier = this.getIdentifier(request);
 
-        // Limpiar intentos antiguos periódicamente
-        this.cleanupOldAttempts();
-
-        const attemptData = this.attempts.get(identifier);
+        const attemptData = await this.getAttemptData(identifier);
 
         // Verificar si está bloqueado
         if (attemptData?.blockedUntil) {
@@ -44,7 +60,7 @@ export class BruteForceGuard implements CanActivate {
                 );
             } else {
                 // El bloqueo expiró, resetear
-                this.attempts.delete(identifier);
+                await this.deleteAttemptData(identifier);
             }
         }
 
@@ -55,61 +71,111 @@ export class BruteForceGuard implements CanActivate {
     /**
      * Registra un intento fallido
      */
-    recordFailedAttempt(request: any): void {
+    async recordFailedAttempt(request: any): Promise<void> {
         const identifier = this.getIdentifier(request);
-        const attemptData = this.attempts.get(identifier) || { count: 0 };
+        const attemptData = (await this.getAttemptData(identifier)) || { count: 0 };
 
         attemptData.count += 1;
 
         if (attemptData.count >= this.MAX_ATTEMPTS) {
             attemptData.blockedUntil = Date.now() + this.BLOCK_DURATION_MS;
-            console.warn(
-                `🔒 Brute force protection: ${identifier} blocked for ${this.BLOCK_DURATION_MS / 60000} minutes`
+            this.logger.warn(
+                `🔒 Brute force protection: ${this.maskIdentifier(identifier)} blocked for ${this.BLOCK_DURATION_MS / 60000} minutes`
             );
         }
 
-        this.attempts.set(identifier, attemptData);
+        await this.setAttemptData(identifier, attemptData);
     }
 
     /**
      * Resetea los intentos después de un login exitoso
      */
-    resetAttempts(request: any): void {
+    async resetAttempts(request: any): Promise<void> {
         const identifier = this.getIdentifier(request);
-        this.attempts.delete(identifier);
+        await this.deleteAttemptData(identifier);
     }
 
     /**
      * Obtiene un identificador único (IP + email si está disponible)
      */
     private getIdentifier(request: any): string {
-        const ip = request.ip || request.connection.remoteAddress || 'unknown';
+        const ip = request.ip || request.connection?.remoteAddress || 'unknown';
         const email = request.body?.email || request.body?.username || '';
         return `${ip}:${email}`;
     }
 
     /**
-     * Limpia intentos antiguos para evitar memory leaks
+     * 🔒 Mascara el identificador para logs seguros
      */
-    private cleanupOldAttempts(): void {
-        const now = Date.now();
-        const expiredKeys: string[] = [];
+    private maskIdentifier(identifier: string): string {
+        const [ip, email] = identifier.split(':');
+        const maskedEmail = email ? `${email.substring(0, 3)}***` : '';
+        return `${ip}:${maskedEmail}`;
+    }
 
-        for (const [key, data] of this.attempts.entries()) {
-            // Si está bloqueado y el bloqueo expiró, o si no hay bloqueo reciente
-            if (data.blockedUntil && data.blockedUntil < now) {
-                expiredKeys.push(key);
-            }
+    /**
+     * 🔒 SEC-006: Obtiene datos de Redis con fallback a memoria
+     */
+    private async getAttemptData(identifier: string): Promise<AttemptData | null> {
+        const key = `${this.CACHE_PREFIX}${identifier}`;
+
+        if (this.useMemoryFallback) {
+            return this.memoryFallback.get(key) || null;
         }
 
-        expiredKeys.forEach(key => this.attempts.delete(key));
+        try {
+            const data = await this.cacheManager.get<AttemptData>(key);
+            return data || null;
+        } catch (error) {
+            this.logger.warn('Redis unavailable for brute force guard, using memory fallback');
+            this.useMemoryFallback = true;
+            return this.memoryFallback.get(key) || null;
+        }
+    }
+
+    /**
+     * 🔒 SEC-006: Guarda datos en Redis con fallback a memoria
+     */
+    private async setAttemptData(identifier: string, data: AttemptData): Promise<void> {
+        const key = `${this.CACHE_PREFIX}${identifier}`;
+
+        if (this.useMemoryFallback) {
+            this.memoryFallback.set(key, data);
+            return;
+        }
+
+        try {
+            await this.cacheManager.set(key, data, this.CACHE_TTL_SECONDS * 1000);
+        } catch (error) {
+            this.logger.warn('Redis unavailable, storing in memory fallback');
+            this.useMemoryFallback = true;
+            this.memoryFallback.set(key, data);
+        }
+    }
+
+    /**
+     * 🔒 SEC-006: Elimina datos de Redis con fallback a memoria
+     */
+    private async deleteAttemptData(identifier: string): Promise<void> {
+        const key = `${this.CACHE_PREFIX}${identifier}`;
+
+        if (this.useMemoryFallback) {
+            this.memoryFallback.delete(key);
+            return;
+        }
+
+        try {
+            await this.cacheManager.del(key);
+        } catch (error) {
+            this.memoryFallback.delete(key);
+        }
     }
 
     /**
      * Obtiene información de intentos (para debugging/monitoring)
      */
-    getAttemptInfo(request: any): { count: number; blockedUntil?: number } | null {
+    async getAttemptInfo(request: any): Promise<AttemptData | null> {
         const identifier = this.getIdentifier(request);
-        return this.attempts.get(identifier) || null;
+        return this.getAttemptData(identifier);
     }
 }

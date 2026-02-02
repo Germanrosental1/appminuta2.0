@@ -1,8 +1,10 @@
+import { Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
 
 export class UnidadesHelper {
+    private static readonly logger = new Logger(UnidadesHelper.name);
 
     // --- Create Helpers ---
 
@@ -171,7 +173,7 @@ export class UnidadesHelper {
             if (estadoId) {
                 salesData.EstadoId = estadoId;
             } else {
-                console.warn(`Estado comercial '${updateDto.estadocomercial}' no encontrado`);
+                this.logger.warn(`Estado comercial '${updateDto.estadocomercial}' not found`);
             }
         }
 
@@ -209,7 +211,7 @@ export class UnidadesHelper {
             try {
                 salesData.clienteInteresado = clienteInteresado;
             } catch (e) {
-                console.warn(`Invalid BigInt for clienteinteresado: ${clienteInteresado}`, e);
+                this.logger.warn(`Invalid BigInt for clienteinteresado: ${clienteInteresado}`);
                 salesData.clienteInteresado = null;
             }
         } else {

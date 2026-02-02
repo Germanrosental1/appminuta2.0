@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
 import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
@@ -8,6 +8,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class UnidadesService {
+    private readonly logger = new Logger(UnidadesService.name);
+
     constructor(private readonly prisma: PrismaService) { }
 
     async create(createUnidadDto: CreateUnidadDto) {
@@ -255,7 +257,7 @@ export class UnidadesService {
                 timeout: 10000
             });
         } catch (error: unknown) {
-            console.error('Error in updateComplete transaction:', error);
+            this.logger.error('Error in updateComplete transaction', error instanceof Error ? error.stack : String(error));
             throw error;
         }
     }
@@ -269,7 +271,7 @@ export class UnidadesService {
                 where: { NombreEstado: updateDto.estadocomercial }
             });
             if (estado) resolvedEstadoId = estado.Id;
-            else console.warn(`Estado comercial '${updateDto.estadocomercial}' no encontrado`);
+            else this.logger.warn(`Estado comercial '${updateDto.estadocomercial}' not found`);
         }
 
         salesData = this._mapDtoToSalesData(updateDto, resolvedEstadoId);
@@ -644,7 +646,7 @@ export class UnidadesService {
                 .map((r) => r.SectorId)
                 .filter((s) => s != null && s !== '');
         } catch (error: unknown) {
-            console.error('[ERROR] getSectores failed:', error);
+            this.logger.error('getSectores failed', error instanceof Error ? error.stack : String(error));
             return []; // Return empty instead of crashing
         }
     }

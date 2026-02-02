@@ -55,8 +55,18 @@ export class MinutasGateway
             }
 
             // 🔒 V-001 FIX: Verificar JWT con validación explícita de expiración
+            // 🔒 SEC-008 FIX: Use SUPABASE_JWT_SECRET as the single source of truth
+            // This is the secret used by Supabase for signing JWTs
+            const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+            if (!jwtSecret) {
+                this.logger.error('SUPABASE_JWT_SECRET not configured');
+                client.emit('error', { message: 'Server configuration error' });
+                client.disconnect();
+                return;
+            }
+
             const payload = this.jwtService.verify(token, {
-                secret: process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET,
+                secret: jwtSecret,
                 ignoreExpiration: false, // ✅ Forzar validación de expiración
             });
 
