@@ -1,4 +1,4 @@
-import { apiFetch } from '../lib/api-client';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../lib/api-wrapper-client';
 import { WizardData } from '@/types/wizard';
 import { validateRequest, safeValidate, ValidationError } from '@/utils/validateRequest';
 import {
@@ -22,25 +22,23 @@ export interface MinutaProvisoria {
 
 export interface MinutaDefinitiva {
   Id: string;
-  UsuarioId: string;
-  FechaCreacion: string;
-  Dato: any; // Incluye la información de la unidad
-  DatoAdicional?: any; // Campo existente en la tabla
-  DatoMapaVenta?: any;
+  Numero: string;
   Estado: string;
-  Comentario?: string;
-  UrlDocumento?: string;
+  Tipo: string;
+  ProyectoId: string;
+  ProyectoNombre: string;
+  UnidadId?: string | null;
+  UnidadIdentificador?: string | null;
+  ClienteRut: string;
+  ClienteNombre: string;
+  PrecioTotal: number;
+  CreadoPor: string;
   CreatedAt: string;
   UpdatedAt: string;
-  Proyecto?: string;
-  ClienteInteresadoDni?: number; // DNI del cliente interesado
-  // Relaciones agregadas por el backend
-  users?: {
-    email: string;
-  };
-  Proyectos?: {
-    Nombre: string;
-  };
+  Comentario?: string | null;
+  ClienteInteresadoDni?: number; // Para entrada o compatibilidad
+  // Campos extra opcionales para compatibilidad temporal si son necesarios en UI
+  Dato?: any;
 }
 
 export { ValidationError } from '@/utils/validateRequest';
@@ -51,8 +49,8 @@ export async function guardarMinutaProvisoria(minuta: Omit<MinutaProvisoria, 'id
     // 1. VALIDAR los datos de la minuta
     const validatedData = validateRequest(createMinutaSchema, minuta.Dato);
 
-    // 2. Extraer el proyecto del objeto datos validado
-    const proyecto = validatedData.proyecto || 'Sin proyecto';
+    // 2. Extraer el proyecto del objeto datos validado (se usa validatedData para asegurar integridad)
+    // const proyecto = validatedData.proyecto || 'Sin proyecto';
 
     // 3. Guardar en Backend
     const minutaParaGuardar = {
@@ -65,10 +63,7 @@ export async function guardarMinutaProvisoria(minuta: Omit<MinutaProvisoria, 'id
       fecha_creacion: new Date().toISOString(),
     };
 
-    return apiFetch<MinutaProvisoria>('/minutas/provisoria', {
-      method: 'POST',
-      body: JSON.stringify(minutaParaGuardar)
-    });
+    return apiPost<MinutaProvisoria>('/minutas/provisoria', minutaParaGuardar);
 
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -80,7 +75,7 @@ export async function guardarMinutaProvisoria(minuta: Omit<MinutaProvisoria, 'id
 
 // Obtener una minuta provisoria por ID
 export async function getMinutaProvisoriaById(id: string) {
-  return apiFetch<MinutaProvisoria>(`/minutas/provisoria/${id}`);
+  return apiGet<MinutaProvisoria>(`/minutas/provisoria/${id}`);
 }
 
 // Actualizar el estado de una minuta provisoria
@@ -89,12 +84,9 @@ export async function actualizarEstadoMinutaProvisoria(
   estado: 'revisada' | 'aprobada' | 'rechazada',
   comentarios?: string
 ) {
-  return apiFetch<MinutaProvisoria>(`/minutas/provisoria/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      estado,
-      comentarios: comentarios || undefined
-    })
+  return apiPatch<MinutaProvisoria>(`/minutas/provisoria/${id}`, {
+    estado,
+    comentarios: comentarios || undefined
   });
 }
 
@@ -133,7 +125,7 @@ export async function getMinutasDefinitivasByUsuario(usuarioId: string, filters?
   try {
     validateUsuarioId(usuarioId);
     const params = buildMinutasQueryParams(usuarioId, filters);
-    const response = await apiFetch<{ data: MinutaDefinitiva[] }>(`/minutas?${params.toString()}`);
+    const response = await apiGet<{ data: MinutaDefinitiva[] }>(`/minutas?${params.toString()}`);
     return response.data;
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -145,19 +137,19 @@ export async function getMinutasDefinitivasByUsuario(usuarioId: string, filters?
 
 // Obtener todas las minutas definitivas (para administración)
 export async function getAllMinutasDefinitivasForAdmin() {
-  const response = await apiFetch<{ data: MinutaDefinitiva[] }>('/minutas');
+  const response = await apiGet<{ data: MinutaDefinitiva[] }>('/minutas');
   return response.data;
 }
 
 // Obtener todas las minutas provisorias (para administración)
 export async function getAllMinutasProvisoriasForAdmin() {
-  const response = await apiFetch<{ data: MinutaProvisoria[] }>('/minutas/provisoria');
+  const response = await apiGet<{ data: MinutaProvisoria[] }>('/minutas/provisoria');
   return response.data;
 }
 
 // Obtener una minuta definitiva por ID
 export async function getMinutaDefinitivaById(id: string) {
-  return apiFetch<MinutaDefinitiva>(`/minutas/${id}`);
+  return apiGet<MinutaDefinitiva>(`/minutas/${id}`);
 }
 
 // Actualizar el estado de una minuta definitiva (CON VALIDACIÓN)
@@ -166,81 +158,61 @@ export async function actualizarEstadoMinutaDefinitiva(
   estado: EstadoMinuta,
   comentarios?: string
 ) {
-  try {
-    // 1. VALIDAR el ID (UUID)
-    if (!id || typeof id !== 'string') {
-      throw new ValidationError('ID inválido', [
-        { field: 'id', message: 'El ID es requerido y debe ser una cadena válida' }
-      ]);
-    }
-
-    // 2. VALIDAR el estado
-    const validatedUpdate = validateRequest(
-      updateMinutaSchema.pick({ estado: true }),
-      { id, estado }
-    );
-
-    // 3. Actualizar en Backend
-    return apiFetch<MinutaDefinitiva>(`/minutas/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        estado: validatedUpdate.estado,
-        comentarios: comentarios || null
-      })
-    });
-
-  } catch (error) {
-    throw error;
+  // 1. VALIDAR el ID (UUID)
+  if (!id || typeof id !== 'string') {
+    throw new ValidationError('ID inválido', [
+      { field: 'id', message: 'El ID es requerido y debe ser una cadena válida' }
+    ]);
   }
+
+  // 2. VALIDAR el estado
+  const validatedUpdate = validateRequest(
+    updateMinutaSchema.pick({ estado: true }),
+    { id, estado }
+  );
+
+  // 3. Actualizar en Backend
+  return apiPatch<MinutaDefinitiva>(`/minutas/${id}`, {
+    estado: validatedUpdate.estado,
+    comentarios: comentarios || null
+  });
 }
 
 // Actualizar los datos de una minuta definitiva (CON VALIDACIÓN)
 export async function actualizarDatosMinutaDefinitiva(id: string, datosActualizados: any) {
-
-  try {
-    // 1. VALIDAR el ID
-    if (!id || typeof id !== 'string') {
-      throw new ValidationError('ID inválido', [
-        { field: 'id', message: 'El ID es requerido y debe ser una cadena válida' }
-      ]);
-    }
-
-    // 2. Enviar directamente los datos actualizados al backend
-    // El objeto datosActualizados ya contiene { datos: ... }
-    return apiFetch<MinutaDefinitiva>(`/minutas/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(datosActualizados)
-    });
-
-  } catch (error) {
-    throw error;
+  // 1. VALIDAR el ID
+  if (!id || typeof id !== 'string') {
+    throw new ValidationError('ID inválido', [
+      { field: 'id', message: 'El ID es requerido y debe ser una cadena válida' }
+    ]);
   }
+
+  // 2. Enviar directamente los datos actualizados al backend
+  // El objeto datosActualizados ya contiene { datos: ... }
+  return apiPatch<MinutaDefinitiva>(`/minutas/${id}`, datosActualizados);
 }
 
 // Obtener datos del mapa de ventas para una unidad específica
 export async function getDatosMapaVentasByUnidadId(unidadId: string) {
+  // 1. Siempre intentar buscar por ID directo primero (UUID o numérico)
+  // Esto asume que el backend tiene un endpoint GET /unidades/:id que maneja esto
   try {
-    // 1. Siempre intentar buscar por ID directo primero (UUID o numérico)
-    // Esto asume que el backend tiene un endpoint GET /unidades/:id que maneja esto
-    try {
-      const dataById = await apiFetch<any>(`/unidades/${unidadId}`);
-      if (dataById) return dataById;
-    } catch {
-      // Expected: 404/500 - continue with other search strategies
-    }
-
-    // 2. Intenta buscar por nrounidad
-    const dataByNro = await apiFetch<any[]>(`/unidades?nrounidad=${encodeURIComponent(unidadId)}`);
-    if (dataByNro && dataByNro.length > 0) return dataByNro[0];
-
-    // 3. Intenta buscar por sectorid
-    const dataBySector = await apiFetch<any[]>(`/unidades?sectorid=${encodeURIComponent(unidadId)}`);
-    if (dataBySector && dataBySector.length > 0) return dataBySector[0];
-
-    return null;
-  } catch {
-    return null;
+    const dataById = await apiGet<any>(`/unidades/${unidadId}`);
+    if (dataById) return dataById;
+  } catch (e) {
+    // Ignorar error 404/500 y continuar con siguiente estrategia
+    console.warn('Error buscando unidad por ID directo:', e);
   }
+
+  // 2. Intenta buscar por nrounidad
+  const dataByNro = await apiGet<any[]>(`/unidades?nrounidad=${encodeURIComponent(unidadId)}`);
+  if (dataByNro && dataByNro.length > 0) return dataByNro[0];
+
+  // 3. Intenta buscar por sectorid
+  const dataBySector = await apiGet<any[]>(`/unidades?sectorid=${encodeURIComponent(unidadId)}`);
+  if (dataBySector && dataBySector.length > 0) return dataBySector[0];
+
+  return null;
 }
 
 // ⚡ OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades en 1 request
@@ -252,9 +224,10 @@ export async function getDatosMapaVentasBatch(unidadIds: string[]) {
     const validIds = unidadIds.filter(id => id && isValidUUID(id));
     if (!validIds.length) return [];
 
-    const data = await apiFetch<any[]>(`/unidades/batch?ids=${validIds.join(',')}`);
+    const data = await apiGet<any[]>(`/unidades/batch?ids=${validIds.join(',')}`);
     return data || [];
   } catch (error) {
+    console.error('Error fetching batch unidades:', error);
     return [];
   }
 }
@@ -305,6 +278,7 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id
         }
       }
     } catch (e) {
+      console.warn('Error fetching minutas (mapa de ventas):', e);
       // Silent fail - datos del mapa de ventas no disponibles
     }
 
@@ -319,10 +293,7 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id
     };
 
     // Guardar en Backend
-    const response = await apiFetch<MinutaDefinitiva>('/minutas', {
-      method: 'POST',
-      body: JSON.stringify(minutaParaGuardar)
-    });
+    const response = await apiPost<MinutaDefinitiva>('/minutas', minutaParaGuardar);
 
     return response;
 
@@ -339,48 +310,42 @@ function isValidUUID(str: string): boolean {
 
 // Conformar una minuta provisoria con el mapa de ventas
 export async function conformarMinutaConMapaVentas(minutaId: string, datosConformacion: any) {
-  return apiFetch<MinutaProvisoria>(`/minutas/provisoria/${minutaId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      datos_conformacion: datosConformacion,
-      estado: 'revisada',
-    })
+  return apiPatch<MinutaProvisoria>(`/minutas/provisoria/${minutaId}`, {
+    datos_conformacion: datosConformacion,
+    estado: 'revisada',
   });
 }
 
 // Obtener minutas con filtros avanzados y paginación
 export async function getMinutasWithFilters(filters: Partial<MinutaFilters>) {
-  try {
-    const params = new URLSearchParams();
-    if (filters.proyecto) params.append('proyecto', filters.proyecto);
-    if (filters.estado) params.append('estado', filters.estado);
-    if (filters.UsuarioId) params.append('usuario_id', filters.UsuarioId);
+  const params = new URLSearchParams();
+  if (filters.proyecto) params.append('proyecto', filters.proyecto);
+  if (filters.estado) params.append('estado', filters.estado);
+  if (filters.UsuarioId) params.append('usuario_id', filters.UsuarioId);
 
-    // Pagination
-    params.append('page', (filters.page || 1).toString());
-    params.append('limit', (filters.limit || 20).toString());
-    if (filters.sortBy) params.append('sortBy', filters.sortBy);
-    if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+  // Pagination
+  params.append('page', (filters.page || 1).toString());
+  params.append('limit', (filters.limit || 20).toString());
+  if (filters.sortBy) params.append('sortBy', filters.sortBy);
+  if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
 
-    const response = await apiFetch<{
-      data: MinutaDefinitiva[];
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    }>(`/minutas?${params.toString()}`);
+  const response = await apiGet<{
+    data: MinutaDefinitiva[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>(`/minutas?${params.toString()}`);
 
-    return {
-      data: response.data,
-      total: response.total,
-      page: response.page,
-      limit: response.limit,
-      totalPages: response.totalPages,
-    };
-  } catch (error) {
-    throw error;
-  }
+  return {
+    data: response.data,
+    total: response.total,
+    page: response.page,
+    limit: response.limit,
+    totalPages: response.totalPages,
+  };
 }
+
 
 // Validar datos de minuta sin guardar
 export function validateMinutaData(data: unknown, partial: boolean = false) {
@@ -390,7 +355,7 @@ export function validateMinutaData(data: unknown, partial: boolean = false) {
 
 // Eliminar una minuta
 export async function deleteMinuta(id: string) {
-  await apiFetch(`/minutas/${id}`, { method: 'DELETE' });
+  await apiDelete(`/minutas/${id}`);
   return { success: true };
 }
 
@@ -423,6 +388,8 @@ export async function getMinutasStats(usuarioId?: string) {
 
 // Obtener minutas definitivas (Legacy alias)
 export async function getMinutasDefinitivas() {
-  const response = await apiFetch<{ data: MinutaDefinitiva[] }>('/minutas');
+  const response = await apiGet<{ data: MinutaDefinitiva[] }>('/minutas');
   return response.data;
 }
+
+

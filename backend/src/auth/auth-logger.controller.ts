@@ -9,20 +9,33 @@ import {
     ForbiddenException,
     Query,
 } from '@nestjs/common';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiBearerAuth,
+    ApiUnauthorizedResponse,
+    ApiForbiddenResponse,
+} from '@nestjs/swagger';
 import { AuthLoggerService } from './auth-logger.service';
 import { LogAuthEventDto } from './dto/log-auth-event.dto';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { ApiResponseWrapper } from '../common/decorators/api-response-wrapper.decorator';
+import { SuccessResponseDto } from '../common/dto/success-response.dto';
+import { CatalogResponseDto } from '../common/dto/catalog-response.dto';
 
+@ApiTags('Auth & Audit')
 @Controller('auth')
 export class AuthLoggerController {
     constructor(private readonly authLoggerService: AuthLoggerService) { }
 
-    /**
-     * POST /api/auth/log
-     * Registra un evento de autenticación
-     * Protegido con JWT - solo usuarios autenticados pueden registrar eventos
-     */
     @Post('log')
+    @ApiOperation({
+        summary: 'Registrar evento de auditoría (Privado)',
+        description: 'Registra un evento de seguridad o auditoría para el usuario autenticado.',
+    })
+    @ApiBearerAuth('bearer')
+    @ApiResponseWrapper(SuccessResponseDto)
+    @ApiUnauthorizedResponse({ description: 'No autorizado' })
     @UseGuards(SupabaseAuthGuard)
     async logAuthEvent(@Request() req, @Body() logDto: LogAuthEventDto) {
         const userId = req.user?.sub || req.user?.id;
@@ -38,14 +51,14 @@ export class AuthLoggerController {
         return { success: true };
     }
 
-    /**
-     * POST /api/auth/log-public
-     * Registra eventos de autenticación sin JWT (para login failed, etc.)
-     * Solo permite ciertos tipos de eventos
-     */
     @Post('log-public')
+    @ApiOperation({
+        summary: 'Registrar evento de auditoría (Público)',
+        description: 'Permite registrar eventos anónimos como fallos de login o errores de sistema.',
+    })
+    @ApiResponseWrapper(SuccessResponseDto)
+    @ApiForbiddenResponse({ description: 'Prohibido - Tipo de evento no permitido para registro público' })
     async logPublicAuthEvent(@Body() logDto: LogAuthEventDto) {
-        // Solo permitir eventos que no requieren autenticación
         const allowedEvents = ['login_failed', 'auth_error'];
         if (!allowedEvents.includes(logDto.eventType)) {
             throw new ForbiddenException('Event type not allowed for public logging');
@@ -62,12 +75,14 @@ export class AuthLoggerController {
         return { success: true };
     }
 
-    /**
-     * GET /api/auth/logs/:userId
-     * Obtiene los eventos recientes de un usuario
-     * Solo el propio usuario puede ver sus logs
-     */
     @Get('logs/:userId')
+    @ApiOperation({
+        summary: 'Obtener historial de eventos',
+        description: 'Retorna los eventos recientes de auditoría del usuario. Solo permitido para el propio usuario.',
+    })
+    @ApiBearerAuth('bearer')
+    @ApiResponseWrapper(CatalogResponseDto, true)
+    @ApiForbiddenResponse({ description: 'Prohibido - No puede acceder a logs de otros usuarios' })
     @UseGuards(SupabaseAuthGuard)
     async getRecentAuthEvents(
         @Request() req,
@@ -76,7 +91,6 @@ export class AuthLoggerController {
     ) {
         const requestUserId = req.user?.sub || req.user?.id;
 
-        // Verificar que el usuario solo pueda acceder a sus propios logs
         if (requestUserId !== userId) {
             throw new ForbiddenException('You can only access your own auth logs');
         }
@@ -89,12 +103,13 @@ export class AuthLoggerController {
         return { events };
     }
 
-    /**
-     * GET /api/auth/suspicious/:userId
-     * Detecta actividad sospechosa para un usuario
-     * Solo el propio usuario puede verificar su actividad
-     */
     @Get('suspicious/:userId')
+    @ApiOperation({
+        summary: 'Detectar actividad sospechosa',
+        description: 'Analiza si el usuario ha tenido actividad sospechosa (ej. muchos fallos de login) recientemente.',
+    })
+    @ApiBearerAuth('bearer')
+    @ApiResponseWrapper(SuccessResponseDto)
     @UseGuards(SupabaseAuthGuard)
     async detectSuspiciousActivity(
         @Request() req,
@@ -102,7 +117,6 @@ export class AuthLoggerController {
     ) {
         const requestUserId = req.user?.sub || req.user?.id;
 
-        // Verificar que el usuario solo pueda verificar su propia actividad
         if (requestUserId !== userId) {
             throw new ForbiddenException(
                 'You can only check your own suspicious activity',

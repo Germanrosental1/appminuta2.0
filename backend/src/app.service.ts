@@ -61,7 +61,13 @@ export class AppService {
         const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
 
         // ⚡ M-005: Obtener estadísticas de caches (Ahora es Async)
-        const permissionsCacheStats = await this.minutasService.getPermissionsCacheStats();
+        let permissionsCacheStats: any;
+        try {
+            permissionsCacheStats = await this.minutasService.getPermissionsCacheStats();
+        } catch (error) {
+            console.error('Error fetching permissions cache stats:', error);
+            permissionsCacheStats = { status: 'error', backend: 'unknown' };
+        }
 
         return {
             status: dbConnected ? 'healthy' : 'unhealthy',

@@ -1,102 +1,50 @@
-export interface SnapshotSummary {
-    Id: string;
-    FechaSnapshot: string;
-    TipoSnapshot: 'DIARIO' | 'MENSUAL';
-    ProyectoId: string | null;
-    TotalUnidades: number;
-    Disponibles: number;
-    Reservadas: number;
-    Vendidas: number;
-    NoDisponibles: number;
-    ValorStockUSD: number | null;
-    M2TotalesStock: number | null;
-    Proyecto?: {
-        Id: string;
-        Nombre: string;
-    };
+import { apiGet, apiPost } from '../lib/api-wrapper-client';
+
+export interface Snapshot {
+    id: string;
+    fecha: string;
+    tipo: 'DIARIO' | 'MENSUAL';
+    datos: any;
+    metadata: any;
 }
 
 export interface SnapshotComparativo {
-    proyecto: string;
-    actual: {
-        disponibles: number;
-        reservadas: number;
-        vendidas: number;
-        valorStock: number | null;
-    };
-    anterior: {
-        disponibles: number;
-        reservadas: number;
-        vendidas: number;
-        valorStock: number | null;
-    } | null;
-    diferencia: {
-        disponibles: number;
-        reservadas: number;
-        vendidas: number;
-    } | null;
+    actual: Snapshot;
+    anterior: Snapshot;
+    diferencias: any;
 }
 
 export const snapshotsAPI = {
     /**
-     * Get snapshot for a specific date
+     * Obtiene el snapshot para una fecha específica
      */
-    async getByDate(fecha: string): Promise<SnapshotSummary[]> {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/snapshots?fecha=${fecha}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-            },
-        });
-        if (!response.ok) throw new Error('Error fetching snapshot');
-        return response.json();
+    async getByDate(date: string, project_id?: string) {
+        let url = `/snapshots/date/${date}`;
+        if (project_id) url += `?project_id=${project_id}`;
+        return apiGet<Snapshot>(url);
     },
 
     /**
-     * Get snapshots in a date range
+     * Obtiene snapshots en un rango de fechas
      */
-    async getRange(desde: string, hasta: string): Promise<SnapshotSummary[]> {
-        const response = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/snapshots/range?desde=${desde}&hasta=${hasta}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-                },
-            }
-        );
-        if (!response.ok) throw new Error('Error fetching snapshots range');
-        return response.json();
+    async getRange(start: string, end: string, project_id?: string) {
+        let url = `/snapshots/range?start=${start}&end=${end}`;
+        if (project_id) url += `&project_id=${project_id}`;
+        return apiGet<Snapshot[]>(url);
     },
 
     /**
-     * Get comparison between two dates
+     * Genera un comparativo entre dos fechas
      */
-    async getComparativo(mesActual: string, mesAnterior: string): Promise<SnapshotComparativo[]> {
-        const response = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/snapshots/comparativo?mesActual=${mesActual}&mesAnterior=${mesAnterior}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-                },
-            }
-        );
-        if (!response.ok) throw new Error('Error fetching comparativo');
-        return response.json();
+    async getComparativo(baseDate: string, comparisonDate: string, project_id: string) {
+        const url = `/snapshots/comparativo?base=${baseDate}&comparison=${comparisonDate}&project_id=${project_id}`;
+        return apiGet<SnapshotComparativo>(url);
     },
 
     /**
-     * Generate a manual snapshot
+     * Fuerza la generación de un snapshot para el día actual
      */
-    async generate(tipo: 'DIARIO' | 'MENSUAL' = 'DIARIO'): Promise<any> {
-        const response = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/snapshots/generate?tipo=${tipo}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-                },
-            }
-        );
-        if (!response.ok) throw new Error('Error generating snapshot');
-        return response.json();
-    },
+    async generate(project_id: string) {
+        return apiPost<Snapshot>(`/snapshots/generate`, { project_id });
+    }
 };

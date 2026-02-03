@@ -1,14 +1,19 @@
 import { Controller, Post, Get, Query, UseGuards, BadRequestException, Request } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SnapshotsService } from './snapshots.service';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { RolesGuard, Roles, AuthorizationService } from '../../auth/authorization';
 import { GenerateSnapshotDto, GetSnapshotByDateDto, GetSnapshotRangeDto, GetComparativoDto } from './dto/snapshots.dto';
+import { ApiResponseWrapper, ApiCreatedResponseWrapper } from '../../common/decorators/api-response-wrapper.decorator';
+import { SnapshotResponseDto, SnapshotComparativoResponseDto } from './dto/snapshot-response.dto';
+import { SuccessResponseDto } from '../../common/dto/success-response.dto';
 
-// Roles que pueden ver datos financieros sensibles
 // Roles que pueden ver datos financieros sensibles
 const FINANCIAL_DATA_ROLES = new Set(['superadminmv', 'adminmv']);
 
+@ApiTags('Snapshots & Estadísticas')
+@ApiBearerAuth('bearer')
 @Controller('snapshots')
 @UseGuards(SupabaseAuthGuard)
 export class SnapshotsController {
@@ -63,6 +68,8 @@ export class SnapshotsController {
     @UseGuards(RolesGuard)
     @Roles('superadminmv', 'adminmv')
     @Throttle({ default: { limit: 1, ttl: 60000 } }) // 1 request per minute
+    @ApiOperation({ summary: 'Generar snapshot manualmente' })
+    @ApiCreatedResponseWrapper(SuccessResponseDto)
     async generateSnapshot(@Query() query: GenerateSnapshotDto) {
         // Validate tipo
         const validTipos = ['DIARIO', 'MENSUAL'];
@@ -85,6 +92,8 @@ export class SnapshotsController {
      */
     @Get()
     @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute
+    @ApiOperation({ summary: 'Obtener snapshot por fecha' })
+    @ApiResponseWrapper(SnapshotResponseDto, true)
     async getSnapshot(@Query() query: GetSnapshotByDateDto, @Request() req: any) {
         if (!query.fecha) {
             throw new BadRequestException('El parámetro fecha es requerido');
@@ -117,6 +126,8 @@ export class SnapshotsController {
      */
     @Get('range')
     @Throttle({ default: { limit: 30, ttl: 60000 } })
+    @ApiOperation({ summary: 'Obtener rango de snapshots' })
+    @ApiResponseWrapper(SnapshotResponseDto, true) // Ideally should be paginated if it returns result object
     async getSnapshotsRange(
         @Query() query: GetSnapshotRangeDto,
         @Query('page') page?: string,
@@ -169,6 +180,8 @@ export class SnapshotsController {
      */
     @Get('comparativo')
     @Throttle({ default: { limit: 30, ttl: 60000 } })
+    @ApiOperation({ summary: 'Obtener comparativo entre fechas' })
+    @ApiResponseWrapper(SnapshotComparativoResponseDto, true)
     async getComparativo(@Query() query: GetComparativoDto, @Request() req: any) {
         if (!query.mesActual || !query.mesAnterior) {
             throw new BadRequestException('Los parámetros mesActual y mesAnterior son requeridos');

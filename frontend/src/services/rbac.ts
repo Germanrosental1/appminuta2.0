@@ -1,4 +1,4 @@
-import { apiFetch } from '../lib/api-client';
+import { apiGet, apiPost, apiDelete } from '../lib/api-wrapper-client';
 
 export interface Role {
     Id: string;
@@ -27,7 +27,7 @@ export const rbacApi = {
      */
     getMyRoles: async (): Promise<Role[]> => {
         try {
-            return await apiFetch<Role[]>('/usuarios/me/roles');
+            return await apiGet<Role[]>('/usuarios/me/roles');
         } catch (error) {
             return [];
         }
@@ -39,7 +39,7 @@ export const rbacApi = {
      */
     checkRole: async (role: string): Promise<boolean> => {
         try {
-            const result = await apiFetch<{ hasRole: boolean }>(`/usuarios/me/check-role?role=${encodeURIComponent(role)}`);
+            const result = await apiGet<{ hasRole: boolean }>(`/usuarios/me/check-role?role=${encodeURIComponent(role)}`);
             return result.hasRole;
         } catch (error) {
             return false;
@@ -52,7 +52,7 @@ export const rbacApi = {
      */
     getUserPermissions: async (userId: string): Promise<Permission[]> => {
         try {
-            return await apiFetch<Permission[]>(`/usuarios/${userId}/permisos`);
+            return await apiGet<Permission[]>(`/usuarios/${userId}/permisos`);
         } catch (error) {
             return [];
         }
@@ -64,7 +64,7 @@ export const rbacApi = {
      */
     getAllRoles: async (): Promise<Role[]> => {
         try {
-            return await apiFetch<Role[]>('/roles');
+            return await apiGet<Role[]>('/roles');
         } catch (error) {
             return [];
         }
@@ -76,7 +76,7 @@ export const rbacApi = {
      */
     getAllPermissions: async (): Promise<Permission[]> => {
         try {
-            return await apiFetch<Permission[]>('/permisos');
+            return await apiGet<Permission[]>('/permisos');
         } catch (error) {
             return [];
         }
@@ -87,10 +87,7 @@ export const rbacApi = {
      * Backend endpoint: POST /usuarios/:id/roles
      */
     assignRole: async (userId: string, roleId: string): Promise<void> => {
-        await apiFetch(`/usuarios/${userId}/roles`, {
-            method: 'POST',
-            body: JSON.stringify({ idrol: roleId }),
-        });
+        await apiPost(`/usuarios/${userId}/roles`, { idrol: roleId });
     },
 
     /**
@@ -98,8 +95,6 @@ export const rbacApi = {
      * Backend endpoint: DELETE /usuarios/:id/roles/:roleId
      */
     removeRole: async (userId: string, roleId: string): Promise<void> => {
-        await apiFetch(`/usuarios/${userId}/roles/${roleId}`, {
-            method: 'DELETE',
-        });
+        await apiDelete(`/usuarios/${userId}/roles/${roleId}`);
     },
 };

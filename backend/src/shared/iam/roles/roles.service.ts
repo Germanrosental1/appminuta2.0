@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { PermissionsCacheService } from '../../../minutas/services/permissions-cache.service';
+import { PermissionsCacheService } from '../services/permissions-cache.service';
 
 @Injectable()
 export class RolesService {

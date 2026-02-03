@@ -1,6 +1,21 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { ApiErrorResponse } from './dto/api-response.dto';
 
+/**
+ * Filtro global de excepciones
+ * Captura TODOS los errores de la aplicación y los formatea con ApiErrorResponse
+ *
+ * INTEGRACIÓN CON ApiResponse<T>:
+ * - Errores siguen el mismo formato que respuestas exitosas
+ * - Campo 'success: false' permite distinguir fácilmente
+ * - Metadatos consistentes (timestamp, path, method)
+ *
+ * SEGURIDAD:
+ * - En producción NO expone stack traces ni detalles internos
+ * - Logs completos en servidor para debugging
+ * - Sanitiza mensajes de error 5xx en producción
+ */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
     private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -23,7 +38,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const isProduction = process.env.NODE_ENV === 'production';
 
         if (!isProduction && !(exception instanceof HttpException)) {
-            // Log detallado para errores no-HTTP en desarrollo
+            // Log detallado para errores no-HTTPS en desarrollo
             this.logger.error('Unhandled error:', exception instanceof Error ? exception.stack : String(exception));
         }
 
@@ -37,15 +52,31 @@ export class AllExceptionsFilter implements ExceptionFilter {
             stack: exception instanceof Error ? exception.stack : undefined,
         });
 
-        // Respuesta al cliente (sin detalles internos en producción)
-        const errorResponse = {
-            statusCode: status,
-            timestamp: new Date().toISOString(),
-            path: request.url,
-            message: process.env.NODE_ENV === 'production' && status >= 500
-                ? 'Error interno del servidor'
-                : message,
-        };
+        // Extraer errorCode si existe (custom exceptions pueden incluirlo)
+        const errorCode = (exception as any).errorCode;
+
+        // Extraer detalles adicionales (solo en desarrollo)
+        const details = !isProduction && exception instanceof HttpException
+            ? exception.getResponse()
+            : undefined;
+
+        // Sanitizar mensaje en producción para errores 5xx
+        const clientMessage = isProduction && status >= 500
+            ? 'Error interno del servidor'
+            : message;
+
+        // Respuesta al cliente usando ApiErrorResponse
+        const errorResponse = new ApiErrorResponse(
+            clientMessage,
+            status,
+            errorCode,
+            details,
+            {
+                path: request.path,
+                method: request.method,
+                requestId: (request as any).id,
+            }
+        );
 
         response.status(status).json(errorResponse);
     }

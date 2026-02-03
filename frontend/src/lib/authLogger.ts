@@ -65,10 +65,8 @@ export async function logAuthEvent(
             }),
         });
 
-        if (!response.ok) {
-        }
-    } catch (error) {
-    }
+        if (!response.ok) { /* empty */ }
+    } catch (error) { /* empty */ }
 }
 
 /**
@@ -95,9 +93,7 @@ export async function getRecentAuthEvents(
             }
         );
 
-        if (!response.ok) {
-            return [];
-        }
+        if (!response.ok) { return []; }
 
         const data = await response.json();
         return data.events as AuthLogEntry[];
@@ -128,13 +124,9 @@ export async function detectSuspiciousActivity(userId: string): Promise<boolean>
             }
         );
 
-        if (!response.ok) {
-            return false;
-        }
+        if (!response.ok) { return false; }
 
         const data = await response.json();
         return data.isSuspicious;
-    } catch (error) {
-        return false;
-    }
+    } catch (error) { return false; }
 }

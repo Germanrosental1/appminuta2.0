@@ -16,7 +16,12 @@
     "seed": "ts-node prisma/seed.ts",
     "prisma:generate": "prisma generate",
     "prisma:generate:uif": "prisma generate --schema=prisma-uif/schema.prisma",
-    "prisma:generate:all": "npm run prisma:generate && npm run prisma:generate:uif"
+    "prisma:generate:all": "npm run prisma:generate && npm run prisma:generate:uif",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -31,6 +36,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/platform-socket.io": "^10.4.20",
     "@nestjs/schedule": "^6.1.0",
+    "@nestjs/swagger": "^7.4.2",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^10.4.20",
     "@prisma/client": "^5.10.2",
@@ -51,6 +57,7 @@
     "rxjs": "^7.8.1",
     "sanitize-html": "^2.17.0",
     "socket.io": "^4.8.1",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5"
   },

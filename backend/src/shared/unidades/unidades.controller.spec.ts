@@ -7,6 +7,7 @@ import { AuthorizationService } from '../../auth/authorization/authorization.ser
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { GlobalPermissionsGuard } from '../../common/guards/global-permissions.guard';
 import { BruteForceGuard } from '../../common/guards/brute-force.guard';
+import { BruteForceInterceptor } from '../../common/interceptors/brute-force.interceptor';
 
 describe('UnidadesController', () => {
   let controller: UnidadesController;
@@ -57,6 +58,8 @@ describe('UnidadesController', () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(BruteForceGuard)
       .useValue({ canActivate: () => true })
+      .overrideInterceptor(BruteForceInterceptor)
+      .useValue({ intercept: (context, next) => next.handle() })
       .compile();
 
     controller = module.get<UnidadesController>(UnidadesController);
@@ -64,5 +67,23 @@ describe('UnidadesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+  describe('getTipos', () => {
+    it('should return types without validating project access', async () => {
+      const mockUser = { id: 'user-id' };
+      const project = 'Test Project';
+      const etapa = 'Stage 1';
+      const expectedTypes = ['Type A', 'Type B'];
+
+      mockUnidadesQueryService.getTipos.mockResolvedValue(expectedTypes);
+      // Ensure getUserProjectsDetailed is NOT called to verify we skipped validation
+      mockAuthorizationService.getUserProjectsDetailed.mockClear();
+
+      const result = await controller.getTipos(project, mockUser, etapa);
+
+      expect(result).toBe(expectedTypes);
+      expect(mockUnidadesQueryService.getTipos).toHaveBeenCalledWith(project, etapa);
+      expect(mockAuthorizationService.getUserProjectsDetailed).not.toHaveBeenCalled();
+    });
   });
 });

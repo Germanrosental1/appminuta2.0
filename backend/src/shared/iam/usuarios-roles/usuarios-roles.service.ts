@@ -4,7 +4,7 @@ import {
     ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PermissionsCacheService } from '../../../minutas/services/permissions-cache.service';
+import { PermissionsCacheService } from '../services/permissions-cache.service';
 
 @Injectable()
 export class UsuariosRolesService {

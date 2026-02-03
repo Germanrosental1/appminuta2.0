@@ -10,6 +10,7 @@ import { CsrfInterceptor } from './common/interceptors/csrf.interceptor';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
 import { EtagInterceptor } from './common/interceptors/etag.interceptor';
 import { validateEnv } from './config/env.validation';
+import { setupSwagger } from './config/swagger.config';
 
 // Polyfill for BigInt serialization
 (BigInt.prototype as any).toJSON = function () {
@@ -104,6 +105,10 @@ async function bootstrap() {
         },
     }));
 
+    // API Response Wrapper - DEBE IR PRIMERO para wrappear correctamente
+    const { ApiResponseInterceptor } = require('./common/interceptors/api-response.interceptor');
+    app.useGlobalInterceptors(new ApiResponseInterceptor());
+
     // CSRF Protection
     app.useGlobalInterceptors(new CsrfInterceptor());
 
@@ -113,6 +118,11 @@ async function bootstrap() {
     // ⚡ NETWORK: ETag support for cache validation
     app.useGlobalInterceptors(new EtagInterceptor());
 
+    // Swagger/OpenAPI Documentation
+    // Solo en desarrollo o si está explícitamente habilitado
+    if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+        setupSwagger(app);
+    }
 
     // Configuración de CORS restrictiva
     const isProduction = process.env.NODE_ENV === 'production';

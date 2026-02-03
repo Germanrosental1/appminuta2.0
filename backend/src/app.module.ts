@@ -107,6 +107,7 @@ const getCacheConfig = (): any => {
         UsuariosRolesModule,
         UsuariosProyectosModule,
         SnapshotsModule,
+
         // Catalog modules
         ComercialesModule,
         EtapasModule,
@@ -116,6 +117,7 @@ const getCacheConfig = (): any => {
         TiposCocheraModule,
         TiposPatioTerrazaModule,
         TiposUnidadModule,
+
         // Business modules
         EdificiosModule,
         ClientesModule,

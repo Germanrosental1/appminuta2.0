@@ -82,15 +82,16 @@ export class PermissionsCacheService {
      * Obtiene estadísticas del cache (Estimadas, ya que Redis no expone size fácilmente via wrapper)
      */
     async getStats() {
-        // Nota: Con Redis store, 'store.keys' puede no estar disponible o ser lento.
-        // Retornamos info básica de configuración
-        const store = (this.cacheManager as any).store;
-        const isRedis = !!store.getClient; // Check simple para ver si es redis-store
+        // 🛡️ SEGURIDAD: Acceso defensivo al store para evitar 500 en health check
+        const store = (this.cacheManager as any)?.store;
+        const isRedis = store && (typeof store.getClient === 'function' || !!store.getClient);
 
         return {
             backend: isRedis ? 'redis' : 'memory',
             ttlSeconds: this.CACHE_TTL_SECONDS,
-            prefix: this.CACHE_PREFIX
+            prefix: this.CACHE_PREFIX,
+            // ⚡ Información adicional de diagnóstico
+            storeType: store ? store.constructor.name : 'unknown'
         };
     }
 

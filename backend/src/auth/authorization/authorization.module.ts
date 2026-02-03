@@ -6,8 +6,10 @@ import { GlobalPermissionsGuard } from '../../common/guards/global-permissions.g
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../logger/logger.module';
 
+import { UsuariosRolesModule } from '../../shared/iam/usuarios-roles/usuarios-roles.module';
+
 @Module({
-  imports: [PrismaModule, LoggerModule],
+  imports: [PrismaModule, LoggerModule, UsuariosRolesModule],
   providers: [AuthorizationService, ProjectAccessGuard, RolesGuard, GlobalPermissionsGuard],
   exports: [AuthorizationService, ProjectAccessGuard, RolesGuard, GlobalPermissionsGuard],
 })

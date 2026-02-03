@@ -43,6 +43,23 @@ export class TiposUnidadService {
         return data;
     }
 
+    async findByProyect(projectId: string) {
+        // 🔓 RELAXED: Obtiene tipos de unidad que tienen al menos una unidad en este proyecto
+        const data = await this.prisma.tiposUnidad.findMany({
+            where: {
+                Unidades: {
+                    some: {
+                        Edificios: {
+                            ProyectoId: projectId
+                        }
+                    }
+                }
+            },
+            orderBy: { Nombre: 'asc' }
+        });
+        return data;
+    }
+
     async findOne(id: string) {
         const tipo = await this.prisma.tiposUnidad.findUnique({
             where: { Id: id },

@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api-client';
+import { apiGet, apiPost } from '@/lib/api-wrapper-client';
 
 export interface VerificarCrearClienteDto {
     dni: number;
@@ -15,16 +15,13 @@ export interface ClienteResponse {
 }
 
 export async function verificarOCrearCliente(dto: VerificarCrearClienteDto): Promise<ClienteResponse> {
-    return apiFetch<ClienteResponse>('/clientes/verificar-o-crear', {
-        method: 'POST',
-        body: JSON.stringify(dto),
-    });
+    return apiPost<ClienteResponse>('/clientes/verificar-o-crear', dto);
 }
 
 export async function buscarClientePorDni(dni: number): Promise<ClienteResponse> {
-    return apiFetch<ClienteResponse>(`/clientes/${dni}`);
+    return apiGet<ClienteResponse>(`/clientes/${dni}`);
 }
 
 export async function buscarClientes(query: string): Promise<ClienteResponse[]> {
-    return apiFetch<ClienteResponse[]>(`/clientes/buscar?q=${encodeURIComponent(query)}`);
+    return apiGet<ClienteResponse[]>(`/clientes/buscar?q=${encodeURIComponent(query)}`);
 }

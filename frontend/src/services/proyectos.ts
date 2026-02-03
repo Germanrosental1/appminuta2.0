@@ -1,4 +1,4 @@
-import { apiFetch } from '../lib/api-client';
+import { apiGet } from '../lib/api-wrapper-client';
 
 export interface Proyecto {
   Id: string;
@@ -32,7 +32,7 @@ export interface GastosGenerales {
  * Obtiene todos los proyectos activos
  */
 export async function getProyectosActivos(): Promise<Proyecto[]> {
-  return await apiFetch<Proyecto[]>('/proyectos');
+  return await apiGet<Proyecto[]>('/proyectos');
 }
 
 /**
@@ -41,9 +41,9 @@ export async function getProyectosActivos(): Promise<Proyecto[]> {
 export async function getGastosGeneralesByProyecto(nombreProyecto: string): Promise<GastosGenerales | null> {
   try {
     // Obtener el proyecto con sus gastos generales incluidos
-    const proyecto = await apiFetch<Proyecto>(`/proyectos/by-name/${encodeURIComponent(nombreProyecto)}`);
+    const proyecto = await apiGet<Proyecto>(`/proyectos/by-name/${encodeURIComponent(nombreProyecto)}`);
 
-    if (!proyecto || !proyecto.GastosGenerales || proyecto.GastosGenerales.length === 0) {
+    if (!proyecto?.GastosGenerales || proyecto.GastosGenerales.length === 0) {
       return null;
     }
 

@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
+import { getCSRFToken } from '../utils/csrf';
+import {
+    ApiErrorResponse,
+    ApiResult,
+    unwrapResponse
+} from '../types/api-response.types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://appminuta-production.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export class ApiError extends Error {
     constructor(public status: number, message: string) {
@@ -9,55 +15,97 @@ export class ApiError extends Error {
     }
 }
 
-async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
-    try {
-        const response = await fetch(url, options);
-        // Retry on 5xx errors or network failures
-        if (response.status >= 500 && retries > 0) {
-            await new Promise(r => setTimeout(r, 1000));
-            return fetchWithRetry(url, options, retries - 1);
-        }
-        return response;
-    } catch (error) {
-        if (retries > 0) {
-            await new Promise(r => setTimeout(r, 1000));
-            return fetchWithRetry(url, options, retries - 1);
-        }
-        throw error;
+// ⚡ OPTIMIZACIÓN: Cache de sesión
+import type { Session } from '@supabase/supabase-js';
+let cachedSession: Session | null = null;
+let sessionCachedAt = 0;
+const SESSION_CACHE_TTL_MS = 60000;
+
+async function getCachedSession(): Promise<Session | null> {
+    const now = Date.now();
+    if (cachedSession && (now - sessionCachedAt) < SESSION_CACHE_TTL_MS) {
+        return cachedSession;
     }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        cachedSession = session;
+        sessionCachedAt = now;
+    }
+    return session;
 }
 
-export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...((options.headers as Record<string, string>) || {}),
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetchWithRetry(`${API_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
-
+/**
+ * Procesa la respuesta de la API y maneja el unwrapping opcionalmente
+ */
+async function processResponse<T>(response: Response, options: { raw?: boolean; noThrow?: boolean }): Promise<T | ApiResult<T>> {
     if (!response.ok) {
-        const errorBody = await response.text();
-        let errorMessage = `API Error: ${response.statusText}`;
-        try {
-            const json = JSON.parse(errorBody);
-            errorMessage = json.message || errorMessage;
-        } catch {
-            // ignore
+        const errorBody = await response.json().catch(() => ({}));
+        if (options.noThrow) {
+            return {
+                success: false,
+                message: errorBody.message || response.statusText,
+                statusCode: response.status,
+                metadata: { timestamp: new Date().toISOString() }
+            } as ApiErrorResponse;
         }
-        throw new ApiError(response.status, errorMessage);
+        throw new ApiError(response.status, errorBody.message || response.statusText);
     }
 
-    return response.json();
+    const data: ApiResult<T> = await response.json();
+
+    if (options.raw) return data;
+
+    // Si tiene el wrapper, lo unwrappea
+    if (data && typeof data === 'object' && 'success' in data) {
+        return unwrapResponse(data);
+    }
+
+    return data as T;
+}
+
+/**
+ * Captura errores de red o excepciones y los formatea si noThrow está activo
+ */
+function handleAppError(error: any, noThrow?: boolean): ApiErrorResponse {
+    if (noThrow) {
+        return {
+            success: false,
+            message: error.message,
+            statusCode: 0,
+            metadata: { timestamp: new Date().toISOString() }
+        } as ApiErrorResponse;
+    }
+    throw error;
+}
+
+export async function apiClient<T>(endpoint: string, options: RequestInit & { raw?: boolean, noThrow?: boolean } = {}): Promise<T | ApiResult<T>> {
+    try {
+        const session = await getCachedSession();
+        const token = session?.access_token;
+
+        const method = (options.method || 'GET').toUpperCase();
+        const csrfToken = getCSRFToken();
+        const needsCSRF = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
+        const isFormData = (options as any).body instanceof FormData;
+
+        const headers: Record<string, string> = {
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            ...(needsCSRF && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+            ...(options.headers as Record<string, string>),
+        };
+
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            body: isFormData ? (options as any).body : (options.body ? JSON.stringify(options.body) : undefined),
+            headers,
+        });
+
+        return await processResponse<T>(response, options);
+    } catch (error: any) {
+        return handleAppError(error, options.noThrow);
+    }
 }
 
 export const uifApi = {

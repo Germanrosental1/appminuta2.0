@@ -12,6 +12,7 @@ import { UsuariosProyectosModule } from '../shared/iam/usuarios-proyectos/usuari
 import { LoggerModule } from '../logger/logger.module';
 
 import { UifSupabaseStrategy } from './uif-supabase.strategy';
+import { AuthorizationModule } from './authorization/authorization.module';
 
 @Module({
     imports: [
@@ -20,6 +21,7 @@ import { UifSupabaseStrategy } from './uif-supabase.strategy';
         UsuariosRolesModule,
         UsuariosProyectosModule,
         LoggerModule,
+        AuthorizationModule,
     ],
     controllers: [AuthLoggerController],
     providers: [

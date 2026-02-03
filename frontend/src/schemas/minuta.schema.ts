@@ -42,7 +42,7 @@ export const MonedaEnum = z.enum(['USD', 'ARS', 'MIX', 'CLP', 'UF'], {
   errorMap: () => ({ message: 'Moneda inválida' })
 });
 
-export const EstadoMinutaEnum = z.enum(['borrador', 'pendiente', 'en_edicion', 'aprobada', 'rechazada', 'firmada', 'cancelada'], {
+export const EstadoMinutaEnum = z.enum(['borrador', 'pendiente', 'en_edicion', 'aprobada', 'rechazada', 'firmada', 'cancelada', 'Provisoria', 'Definitiva', 'Rechazada', 'Anulada', 'Pendiente', 'Aprobada', 'Firmada', 'Cancelada'], {
   errorMap: () => ({ message: 'Estado inválido' })
 });
 

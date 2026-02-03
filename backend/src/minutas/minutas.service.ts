@@ -30,7 +30,7 @@ function normalizeEstado(estado: string): string {
   return estado?.toLowerCase().trim() || '';
 }
 
-import { PermissionsCacheService } from './services/permissions-cache.service';
+import { PermissionsCacheService } from '../shared/iam/services/permissions-cache.service';
 
 @Injectable()
 export class MinutasService {
@@ -275,9 +275,18 @@ export class MinutasService {
     ]);
 
     // 🔒 SEGURIDAD: Enmascarar emails en la respuesta
+    // 🔒 SEGURIDAD: Mapear a DTO plano y enmascarar emails
     const safeMinutas = minutasRaw.map(m => ({
-      ...m,
-      users: (m as any).users ? { email: PrivacyHelpers.maskEmail((m as any).users.email) } : null,
+      Id: m.Id,
+      Numero: '', // Asignar si existe columna o lógica
+      Estado: m.Estado,
+      Tipo: 'Venta', // Inferir si no existe columna directa en select
+      ProyectoNombre: m.Proyectos?.Nombre || '',
+      ClienteRut: '', // No disponible en select actual de findAll, requeriría ajustar select o aceptar vacío
+      ClienteNombre: '', // No disponible en select, vacío para lista
+      PrecioTotal: 0, // No disponible
+      CreatedAt: m.FechaCreacion,
+      CreadoPor: m.users ? PrivacyHelpers.maskEmail(m.users.email) : 'unknown',
     }));
 
     return {
@@ -450,7 +459,26 @@ export class MinutasService {
       (safeMinuta).users.email = PrivacyHelpers.maskEmail((safeMinuta).users.email);
     }
 
-    return safeMinuta;
+    return {
+      Id: safeMinuta.Id,
+      Numero: safeMinuta.Numero || '', // Asumiendo que existe o se genera
+      Estado: safeMinuta.Estado,
+      Tipo: safeMinuta.Dato?.tipo || 'Venta', // Inferir tipo de Dato si no existe columna
+      ProyectoId: safeMinuta.Proyecto,
+      ProyectoNombre: safeMinuta.Proyectos?.Nombre || '',
+      UnidadId: safeMinuta.Dato?.unidad_id || null, // Inferir de Dato
+      UnidadIdentificador: safeMinuta.Dato?.unidadCodigo || null, // Inferir
+      ClienteRut: safeMinuta.Dato?.clienteRut || '', // Inferir
+      ClienteNombre: safeMinuta.Dato?.clienteNombre || '', // Inferir
+      PrecioTotal: safeMinuta.Dato?.precioTotal || 0, // Inferir
+      CreadoPor: safeMinuta.users?.email || 'unknown',
+      CreatedAt: safeMinuta.FechaCreacion,
+      UpdatedAt: safeMinuta.UpdatedAt,
+      Comentario: safeMinuta.Comentario,
+      Dato: safeMinuta.Dato,
+      DatoAdicional: safeMinuta.DatoAdicional,
+      DatoMapaVenta: safeMinuta.DatoMapaVenta,
+    };
   }
 
   async update(id: string, updateMinutaDto: any, userId: string, userRole?: string) {

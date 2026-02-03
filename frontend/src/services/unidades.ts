@@ -1,4 +1,4 @@
-import { apiFetch } from '../lib/api-client';
+import { apiGet } from '../lib/api-wrapper-client';
 import { getProyectosActivos } from './proyectos';
 
 // Interfaz para la nueva estructura de unidades normalizadas
@@ -86,7 +86,7 @@ export async function getProyectosDisponibles(): Promise<string[]> {
  */
 export async function getUnidadesPorEstado(estado: string = 'disponible'): Promise<UnidadResumen[]> {
   try {
-    const data = await apiFetch<UnidadTabla[]>(`/unidades?estado=${encodeURIComponent(estado)}`);
+    const data = await apiGet<UnidadTabla[]>(`/unidades?estado=${encodeURIComponent(estado)}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
     return [];
@@ -98,7 +98,7 @@ export async function getUnidadesPorEstado(estado: string = 'disponible'): Promi
  */
 export async function getUnidadesPorProyecto(proyecto: string): Promise<UnidadResumen[]> {
   try {
-    const data = await apiFetch<UnidadTabla[]>(`/unidades?proyecto=${encodeURIComponent(proyecto)}`);
+    const data = await apiGet<UnidadTabla[]>(`/unidades?proyecto=${encodeURIComponent(proyecto)}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
     return [];
@@ -109,7 +109,7 @@ export async function getUnidadesPorProyecto(proyecto: string): Promise<UnidadRe
  * Obtener una unidad específica por ID
  */
 export async function getUnidadById(id: number): Promise<UnidadMapaVentas | null> {
-  return await apiFetch<UnidadMapaVentas>(`/unidades/${id}`);
+  return await apiGet<UnidadMapaVentas>(`/unidades/${id}`);
 }
 
 /**
@@ -165,38 +165,23 @@ function formatearUnidadResumen(unidad: UnidadTabla): UnidadResumen {
  * Obtener todas las naturalezas de proyecto disponibles
  */
 export async function getNaturalezasProyecto(): Promise<string[]> {
-  try {
-    const result = await apiFetch<string[]>('/unidades/metadata/naturalezas');
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  return await apiGet<string[]>('/unidades/metadata/naturalezas');
 }
 
 /**
  * Obtener todos los tipos de unidad disponibles (Departamento, Cochera, etc.)
  */
 export async function getTiposDisponibles(): Promise<string[]> {
-  try {
-    const result = await apiFetch<string[]>('/unidades/metadata/tipos-disponibles');
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  return await apiGet<string[]>('/unidades/metadata/tipos-disponibles');
 }
 
 /**
  * Obtener proyectos que tienen un tipo específico de unidad
  */
 export async function getProyectosPorTipo(tipo: string): Promise<string[]> {
-  try {
-    const result = await apiFetch<string[]>(
-      `/unidades/metadata/proyectos?tipo=${encodeURIComponent(tipo)}`
-    );
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  return await apiGet<string[]>(
+    `/unidades/metadata/proyectos?tipo=${encodeURIComponent(tipo)}`
+  );
 }
 
 /**
@@ -204,7 +189,7 @@ export async function getProyectosPorTipo(tipo: string): Promise<string[]> {
  */
 export async function getEtapasPorProyecto(nombreProyecto: string): Promise<string[]> {
   try {
-    const data = await apiFetch<string[]>(`/unidades/metadata/etapas?proyecto=${encodeURIComponent(nombreProyecto)}`);
+    const data = await apiGet<string[]>(`/unidades/metadata/etapas?proyecto=${encodeURIComponent(nombreProyecto)}`);
     return data.length > 0 ? data : ['Ninguna'];
   } catch (error) {
     return ['Ninguna'];
@@ -232,7 +217,7 @@ export async function getTiposPorProyecto(nombreProyecto: string, etapa?: string
     if (etapa && etapa !== 'Ninguna') {
       url += `&etapa=${encodeURIComponent(etapa)}`;
     }
-    const data = await apiFetch<string[]>(url);
+    const data = await apiGet<string[]>(url);
     return data.length > 0 ? data : [];
   } catch (error) {
     return [];
@@ -255,7 +240,7 @@ export async function getSectoresPorProyectoEtapaYTipo(nombreProyecto: string, e
     const params = new URLSearchParams({ proyecto: nombreProyecto });
     if (etapa && etapa !== 'Ninguna') params.append('etapa', etapa);
     if (tipo) params.append('tipo', tipo);
-    return apiFetch<string[]>(`/unidades/metadata/sectores?${params.toString()}`);
+    return apiGet<string[]>(`/unidades/metadata/sectores?${params.toString()}`);
   } catch (error) {
     return [];
   }
@@ -280,7 +265,7 @@ export async function getSectoresProyecto(nombreProyecto: string, etapa?: string
     if (tipo) {
       url += `&tipo=${encodeURIComponent(tipo)}`;
     }
-    const data = await apiFetch<string[]>(url);
+    const data = await apiGet<string[]>(url);
     return data.length > 0 ? data : [];
   } catch (error) {
     return [];
@@ -306,7 +291,7 @@ export async function getUnidadesPorEtapaTipoYSector(nombreProyecto: string, eta
     if (etapa && etapa !== 'Ninguna') params.append('etapa', etapa);
     if (sector) params.append('sectorid', sector);
 
-    const data = await apiFetch<UnidadTabla[]>(`/unidades?${params.toString()}`);
+    const data = await apiGet<UnidadTabla[]>(`/unidades?${params.toString()}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
     console.error('Error fetching unidades:', error);
@@ -324,7 +309,7 @@ export async function getUnidadesPorTipoYSector(nombreProyecto: string, tipo: st
       tipo: tipo,
       sectorid: sector
     });
-    const data = await apiFetch<UnidadTabla[]>(`/unidades?${params.toString()}`);
+    const data = await apiGet<UnidadTabla[]>(`/unidades?${params.toString()}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
     return [];
@@ -340,7 +325,7 @@ export async function getUnidadesPorSector(nombreProyecto: string, sector: strin
       proyecto: nombreProyecto,
       sectorid: sector
     });
-    const data = await apiFetch<UnidadTabla[]>(`/unidades?${params.toString()}`);
+    const data = await apiGet<UnidadTabla[]>(`/unidades?${params.toString()}`);
     return data.map(unidad => formatearUnidadResumen(unidad));
   } catch (error) {
     return [];

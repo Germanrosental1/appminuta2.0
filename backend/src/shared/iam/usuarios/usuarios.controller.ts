@@ -20,8 +20,14 @@ import { SupabaseAuthGuard } from '../../../common/guards/supabase-auth.guard';
 import { GlobalPermissionsGuard } from '../../../common/guards/global-permissions.guard';
 import { Permissions } from '../../../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiResponseWrapper, ApiCreatedResponseWrapper } from '../../../common/decorators/api-response-wrapper.decorator';
+import { CatalogResponseDto } from '../../../common/dto/catalog-response.dto';
+import { UserProjectResponseDto, CheckRoleResponseDto } from './dto/usuario-response.dto';
 
 
+@ApiTags('IAM / Usuarios')
+@ApiBearerAuth('bearer')
 @Controller('usuarios')
 export class UsuariosController {
     constructor(
@@ -30,6 +36,8 @@ export class UsuariosController {
     ) { }
 
     @Get('me/roles')
+    @ApiOperation({ summary: 'Obtener mis roles' })
+    @ApiResponseWrapper(CatalogResponseDto, true)
     @UseGuards(SupabaseAuthGuard)
     getMyRoles(@CurrentUser() user: any) {
         // Supabase JWT 'sub' claim is the user ID
@@ -41,6 +49,8 @@ export class UsuariosController {
     }
 
     @Get('me/check-role')
+    @ApiOperation({ summary: 'Verificar si el usuario tiene un rol' })
+    @ApiResponseWrapper(CheckRoleResponseDto)
     @UseGuards(SupabaseAuthGuard)
     async checkRole(@CurrentUser() user: any, @Query('role') role: string) {
         // Supabase JWT 'sub' claim is the user ID
@@ -55,6 +65,8 @@ export class UsuariosController {
     }
 
     @Post(':id/roles')
+    @ApiOperation({ summary: 'Asignar rol a usuario' })
+    @ApiCreatedResponseWrapper(CatalogResponseDto)
     @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarRoles') // Solo administradores
     @HttpCode(HttpStatus.CREATED)
@@ -91,6 +103,8 @@ export class UsuariosController {
     }
 
     @Get(':id/permisos')
+    @ApiOperation({ summary: 'Obtener permisos de un usuario' })
+    @ApiResponseWrapper(CatalogResponseDto, true)
     @UseGuards(SupabaseAuthGuard)
     getUserPermissions(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
         // 🔒 SEGURIDAD: Solo puede ver sus propios permisos (a menos que sea admin)
@@ -109,6 +123,8 @@ export class UsuariosController {
      * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
      */
     @Get(':id/proyectos')
+    @ApiOperation({ summary: 'Obtener proyectos de un usuario' })
+    @ApiResponseWrapper(UserProjectResponseDto, true)
     @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarUsuarios')
     getUserProjects(@Param('id', ParseUUIDPipe) id: string) {
@@ -119,6 +135,8 @@ export class UsuariosController {
      * 🔒 SEGURIDAD: Endpoint protegido - requiere autenticación y permiso 'gestionarUsuarios'
      */
     @Post(':id/proyectos')
+    @ApiOperation({ summary: 'Asignar usuario a proyecto' })
+    @ApiCreatedResponseWrapper(UserProjectResponseDto)
     @UseGuards(SupabaseAuthGuard, GlobalPermissionsGuard)
     @Permissions('gestionarUsuarios')
     @HttpCode(HttpStatus.CREATED)
