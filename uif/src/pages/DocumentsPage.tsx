@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, Download, Eye, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Skeleton para la tabla de documentos
 const DocumentsTableSkeleton = () => (
@@ -62,6 +62,7 @@ const DocumentsTableSkeleton = () => (
 export default function DocumentsPage() {
     const [documents, setDocuments] = useState<(Document & { clients: { name: string } | null })[]>([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
     const { toast } = useToast();
 
     useEffect(() => {
@@ -168,7 +169,11 @@ export default function DocumentsPage() {
                         </TableHeader>
                         <TableBody>
                             {documents.map((doc) => (
-                                <TableRow key={doc.id}>
+                                <TableRow
+                                    key={doc.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => navigate(`/clientes/${doc.client_id}?tab=documentos`)}
+                                >
                                     <TableCell className="text-muted-foreground">
                                         {format(new Date(doc.created_at), "d MMM, HH:mm", { locale: es })}
                                     </TableCell>
@@ -193,7 +198,7 @@ export default function DocumentsPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
+                                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
