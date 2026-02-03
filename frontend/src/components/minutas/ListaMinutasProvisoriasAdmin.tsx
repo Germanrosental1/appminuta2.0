@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { getAllMinutasProvisoriasForAdmin, actualizarEstadoMinutaProvisoria, MinutaProvisoria } from '@/services/minutas';
+import React, { useState } from 'react';
+import { useMinutasProvisoriasAdmin, useActualizarEstadoMinutaProvisoria } from '@/hooks/useMinutasAdmin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,78 +21,40 @@ import {
   Clock,
   Eye
 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
 
 export const ListaMinutasProvisoriasAdmin: React.FC = () => {
-  const [minutas, setMinutas] = useState<MinutaProvisoria[]>([]);
-  const [filteredMinutas, setFilteredMinutas] = useState<MinutaProvisoria[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // React Query Hooks
+  const { data: minutas = [], isLoading, error } = useMinutasProvisoriasAdmin();
+  const updateEstadoMutation = useActualizarEstadoMinutaProvisoria();
+
+  // Local UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('todas');
-  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchMinutas = async () => {
-      try {
-        setLoading(true);
-        const data = await getAllMinutasProvisoriasForAdmin();
-        setMinutas(data);
-        setFilteredMinutas(data);
-      } catch (err) {
-        console.error('Error fetching minutas:', err);
-        setError('Error al cargar las minutas provisorias');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMinutas();
-  }, []);
-
-  useEffect(() => {
-    // Filtrar minutas según búsqueda y tab activo
+  // Derived state for filtered minutas
+  const filteredMinutas = React.useMemo(() => {
     let filtered = minutas;
 
-    // Filtrar por estado
+    // Filter by status
     if (activeTab !== 'todas') {
-      filtered = filtered.filter(m => m.estado === activeTab);
+      filtered = filtered.filter(m => m.Estado === activeTab);
     }
 
-    // Filtrar por término de búsqueda
+    // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(m =>
-        m.proyecto.toLowerCase().includes(term) ||
-        m.datos?.unidadDescripcion?.toLowerCase().includes(term) ||
+        m.Proyecto.toLowerCase().includes(term) ||
+        m.Dato?.unidadDescripcion?.toLowerCase().includes(term) ||
         m.UsuarioId.toLowerCase().includes(term)
       );
     }
 
-    setFilteredMinutas(filtered);
-  }, [searchTerm, activeTab, minutas]);
+    return filtered;
+  }, [minutas, searchTerm, activeTab]);
 
-  const handleChangeEstado = async (id: string, nuevoEstado: 'revisada' | 'aprobada' | 'rechazada') => {
-    try {
-      await actualizarEstadoMinutaProvisoria(id, nuevoEstado);
-
-      // Actualizar la lista local
-      setMinutas(prev => prev.map(m =>
-        m.id === id ? { ...m, estado: nuevoEstado } : m
-      ));
-
-      toast({
-        title: "Estado actualizado",
-        description: `La minuta ha sido marcada como ${nuevoEstado} `,
-      });
-    } catch (error) {
-      console.error('Error updating minuta state:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado de la minuta",
-        variant: "destructive",
-      });
-    }
+  const handleChangeEstado = (id: string, nuevoEstado: 'revisada' | 'aprobada' | 'rechazada') => {
+    updateEstadoMutation.mutate({ id, estado: nuevoEstado });
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -110,12 +72,12 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div className="flex justify-center p-8">Cargando minutas provisorias...</div>;
   }
 
   if (error) {
-    return <div className="text-red-500 p-4">{error}</div>;
+    return <div className="text-red-500 p-4">Error al cargar las minutas provisorias</div>;
   }
 
   return (
@@ -185,7 +147,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="sm" asChild>
-                                  <a href={`/ admin / minutas / ${minuta.Id} `}>
+                                  <a href={`/admin/minutas/${minuta.Id}`}>
                                     <Eye className="h-4 w-4 mr-1" />
                                     Ver
                                   </a>
@@ -251,25 +213,25 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                                     size="sm"
                                     asChild
                                   >
-                                    <a href={`/ admin / minutas / ${minuta.Id}/definitiva`}>
+                                    <a href={`/admin/minutas/${minuta.Id}/definitiva`}>
                                       <FileText className="h-4 w-4 mr-1" />
                                       Crear Definitiva
-                                    </a >
-                                  </Button >
+                                    </a>
+                                  </Button>
                                 )}
-                              </div >
-                            </TableCell >
-                          </TableRow >
+                              </div>
+                            </TableCell>
+                          </TableRow>
                         ))
                       )}
-                    </TableBody >
-                  </Table >
-                </div >
-              </TabsContent >
-            </Tabs >
-          </div >
-        </CardContent >
-      </Card >
-    </div >
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

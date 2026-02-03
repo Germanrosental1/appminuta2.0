@@ -20,6 +20,14 @@ export interface MinutaProvisoria {
   Comentario?: string;
 }
 
+// Extended type for backwards compatibility with snake_case fields
+export type LegacyWizardData = WizardData & {
+  unidad_id?: string;
+  proyecto_id?: string;
+  unidadCodigo?: string;
+  [key: string]: unknown; // Allow other legacy fields safely
+};
+
 export interface MinutaDefinitiva {
   Id: string;
   Numero: string;
@@ -38,7 +46,7 @@ export interface MinutaDefinitiva {
   Comentario?: string | null;
   ClienteInteresadoDni?: number; // Para entrada o compatibilidad
   // Campos extra opcionales para compatibilidad temporal si son necesarios en UI
-  Dato?: any;
+  Dato?: LegacyWizardData | null;
 }
 
 export { ValidationError } from '@/utils/validateRequest';
@@ -81,7 +89,7 @@ export async function getMinutaProvisoriaById(id: string) {
 // Actualizar el estado de una minuta provisoria
 export async function actualizarEstadoMinutaProvisoria(
   id: string,
-  estado: 'revisada' | 'aprobada' | 'rechazada',
+  estado: 'pendiente' | 'revisada' | 'aprobada' | 'rechazada',
   comentarios?: string
 ) {
   return apiPatch<MinutaProvisoria>(`/minutas/provisoria/${id}`, {
@@ -179,7 +187,7 @@ export async function actualizarEstadoMinutaDefinitiva(
 }
 
 // Actualizar los datos de una minuta definitiva (CON VALIDACIÓN)
-export async function actualizarDatosMinutaDefinitiva(id: string, datosActualizados: any) {
+export async function actualizarDatosMinutaDefinitiva(id: string, datosActualizados: Partial<MinutaDefinitiva>) {
   // 1. VALIDAR el ID
   if (!id || typeof id !== 'string') {
     throw new ValidationError('ID inválido', [
@@ -245,20 +253,20 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id
     }
 
     // ⚡ OPTIMIZACIÓN: Obtener datos del mapa de ventas con batch (1 request vs N requests)
-    let datosMapaVentas: any[] = [];
+    let datosMapaVentas: Record<string, unknown>[] = [];
 
     try {
       const unidades = minuta.Dato?.unidades || [];
 
       if (unidades.length > 0) {
         // ⚡ BATCH: Extraer todos los IDs y hacer UNA sola request
-        const unidadIds = unidades.map((u: any) => u.id).filter(Boolean);
+        const unidadIds = unidades.map((u: { id: string }) => u.id).filter(Boolean);
 
         const batchData = await getDatosMapaVentasBatch(unidadIds);
 
         // Mapear resultados con metadatos adicionales
-        datosMapaVentas = batchData.map((data: any) => {
-          const unidadOriginal = unidades.find((u: any) => u.id === data.id);
+        datosMapaVentas = batchData.map((data: Record<string, unknown>) => {
+          const unidadOriginal = unidades.find((u: { id: string, descripcion?: string }) => u.id === data.id);
           return {
             ...data,
             _unidad_id: data.id,
@@ -268,7 +276,7 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id
 
       } else {
         // Caso: Sin array de unidades (legacy o single unit directa)
-        const unidadCodigo = unidadId || minuta.Dato?.unidadCodigo || minuta.Dato?.unidad?.codigo || '';
+        const unidadCodigo = unidadId || minuta.Dato?.unidadCodigo || (minuta.Dato?.unidad as any)?.codigo || '';
 
         if (unidadCodigo) {
           const data = await getDatosMapaVentasByUnidadId(unidadCodigo);
@@ -309,7 +317,7 @@ function isValidUUID(str: string): boolean {
 }
 
 // Conformar una minuta provisoria con el mapa de ventas
-export async function conformarMinutaConMapaVentas(minutaId: string, datosConformacion: any) {
+export async function conformarMinutaConMapaVentas(minutaId: string, datosConformacion: LegacyWizardData) {
   return apiPatch<MinutaProvisoria>(`/minutas/provisoria/${minutaId}`, {
     datos_conformacion: datosConformacion,
     estado: 'revisada',

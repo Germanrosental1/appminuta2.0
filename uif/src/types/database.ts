@@ -75,7 +75,7 @@ export const MONOTRIBUTO_CATEGORIES: Record<string, number> = {
   C: 16050901.57,
   D: 19264300.14,
   E: 23439190.34,
-  F: 29374695.90,
+  F: 29374695.9,
   G: 35128502.31,
   H: 53298417.99,
   I: 59657887.55,
@@ -137,6 +137,14 @@ export type DocType =
   | 'Otros'
   | 'DNI'
   | 'EECC';
+
+export interface ReviewedData {
+  anio_fiscal?: string | number;
+  categoria?: string;
+  sueldo_neto?: number | string;
+  certificacion_firmada?: number | string;
+  [key: string]: unknown;
+}
 
 export interface Document {
   id: string;

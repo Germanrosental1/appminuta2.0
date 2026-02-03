@@ -3,12 +3,22 @@ import { Building2, DollarSign, BarChart3, Layers } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { containerVariants, itemVariants, cardHoverEffects, STATUS_COLORS } from "./constants";
+import { containerVariants, itemVariants, cardHoverEffects } from "./constants";
 import { DashboardMetrics, formatNumber, formatCurrency } from "./metrics";
 
 // Custom Tooltip Component
-const CustomTooltip = ({ active, payload, totalUnits }: any) => {
-    if (active && payload && payload.length) {
+interface TooltipPayloadItem {
+    payload: { name: string; value: number; color: string };
+}
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadItem[];
+    totalUnits: number;
+}
+
+const CustomTooltip = ({ active, payload, totalUnits }: CustomTooltipProps) => {
+    if (active && payload?.length) {
         const data = payload[0].payload;
         return (
             <div className="bg-background border rounded p-2 shadow-md text-xs">
@@ -61,7 +71,7 @@ export function MetricasTab({
     setShowTotalValue,
     animationKey,
     hasDepartamentos
-}: MetricasTabProps) {
+}: Readonly<MetricasTabProps>) {
     return (
         <>
             <motion.div

@@ -28,7 +28,7 @@ export interface ApiErrorResponse {
     message: string;
     statusCode: number;
     errorCode?: string;
-    details?: any;
+    details?: Record<string, unknown>;
     metadata: ApiResponseMetadata;
 }
 
@@ -69,10 +69,16 @@ export function isSuccessResponse<T>(
 /**
  * Type guard para verificar si una respuesta es un error
  */
-export function isErrorResponse(
-    response: ApiResult<any>
+export function isErrorResponse<T>(
+    response: ApiResult<T>
 ): response is ApiErrorResponse {
     return response.success === false;
+}
+
+interface ApiError extends Error {
+    statusCode?: number;
+    errorCode?: string;
+    details?: Record<string, unknown>;
 }
 
 /**
@@ -83,9 +89,27 @@ export function unwrapResponse<T>(response: ApiResult<T>): T {
         return response.data;
     }
 
-    const error = new Error(response.message);
-    (error as any).statusCode = response.statusCode;
-    (error as any).errorCode = response.errorCode;
-    (error as any).details = response.details;
+    const error: ApiError = new Error(response.message);
+    error.statusCode = response.statusCode;
+    error.errorCode = response.errorCode;
+    error.details = response.details;
     throw error;
 }
+
+/**
+ * Interface for Gastos Generales (Expenses)
+ */
+export interface GastosGenerales {
+    proyecto: string;
+    sellado?: number;
+    certificaciondefirmas?: number;
+    alajamiento?: number;
+    planosm2propiedad?: number;
+    planosm2cochera?: number;
+    comisioninmobiliaria?: number;
+    otrosgastos?: number;
+    fecha_posesion?: string;
+    etapatorre?: string;
+    [key: string]: unknown;
+}
+

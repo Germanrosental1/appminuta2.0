@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Client, Document, DocType, FinancialData } from '@/types/database';
+import { Client, Document, FinancialData } from '@/types/database';
 import {
   Dialog,
   DialogContent,
@@ -186,15 +186,15 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
 
   // Format number with commas as thousand separators
   const formatWithCommas = (num: number | string): string => {
-    const n = typeof num === 'string' ? parseFloat(String(num).replace(/,/g, '')) : num;
-    if (isNaN(n) || n === 0) return '0';
+    const n = typeof num === 'string' ? Number.parseFloat(String(num).replace(/,/g, '')) : num;
+    if (Number.isNaN(n) || n === 0) return '0';
     return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
   };
 
   // Parse string with commas back to number
   const parseFromCommas = (str: string): number => {
     const clean = str.replace(/,/g, '').replace(/[^0-9.-]/g, '');
-    return parseFloat(clean) || 0;
+    return Number.parseFloat(clean) || 0;
   };
 
   const handleFieldChange = (key: string, value: string) => {
@@ -202,8 +202,8 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
     if (key === 'debitos_fiscales') {
       const numbers = value.split(',').map(s => {
         const trimmed = s.trim();
-        return trimmed === '' ? NaN : parseFloat(trimmed);
-      }).filter(n => !isNaN(n));
+        return trimmed === '' ? Number.NaN : Number.parseFloat(trimmed);
+      }).filter(n => !Number.isNaN(n));
       setEditedData(prev => ({
         ...prev,
         [key]: numbers,
@@ -217,7 +217,7 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
     } else {
       setEditedData(prev => ({
         ...prev,
-        [key]: isNaN(Number(value)) || value === '' ? value : Number(value),
+        [key]: Number.isNaN(Number(value)) || value === '' ? value : Number(value),
       }));
     }
   };
@@ -271,12 +271,12 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
             const val = editedData[key];
 
             // Only sum simple numbers (exclude arrays like IVA for now, and non-numbers)
-            if (typeof val === 'number' && !isNaN(val)) {
+            if (typeof val === 'number' && !Number.isNaN(val)) {
               let total = val;
 
               siblingDocs.forEach(doc => {
                 const siblingVal = Number(doc.reviewed_data?.[key]);
-                if (!isNaN(siblingVal)) {
+                if (!Number.isNaN(siblingVal)) {
                   total += siblingVal;
                 }
               });
@@ -327,10 +327,10 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
 
       onUpdate();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'No se pudieron guardar los cambios',
+        description: error instanceof Error ? error.message : 'No se pudieron guardar los cambios',
         variant: 'destructive',
       });
     } finally {
@@ -377,9 +377,9 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
     'otros_patrimonio_neto',
   ]);
 
-  const formatCurrency = (value: any): string | null => {
+  const formatCurrency = (value: number | string | unknown): string | null => {
     const num = Number(value);
-    if (isNaN(num) || num === 0) return null;
+    if (Number.isNaN(num) || num === 0) return null;
     return `$ ${num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
@@ -419,7 +419,7 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
                     value={value}
                     onChange={(e) => {
                       const newArray = [...arrayValues];
-                      newArray[index] = parseFloat(e.target.value) || 0;
+                      newArray[index] = Number.parseFloat(e.target.value) || 0;
                       setEditedData(prev => ({
                         ...prev,
                         [key]: newArray

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { backendAPI } from "@/services/backendAPI";
 import {
     Building2,
     Percent,
@@ -19,6 +18,8 @@ import {
     DollarSign
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { backendAPI } from '@/services/backendAPI';
+import { usePriceProjects } from "@/hooks/usePriceAdjustment";
 
 interface Project {
     id: string;
@@ -48,34 +49,36 @@ const MODE_LABELS: Record<AdjustmentMode, { title: string; description: string }
 
 export default function PriceAdjustmentPage() {
     const { toast } = useToast();
-    const [projects, setProjects] = useState<Project[]>([]);
+
+    // ===== REACT QUERY HOOKS =====
+    const {
+        data: projectsData = [],
+        isLoading: loading,
+        error: projectsError
+    } = usePriceProjects();
+
+    // Convert projects data to match expected interface
+    const projects: Project[] = projectsData.map((p: { Id?: string; id?: string; Nombre?: string; nombre?: string }) => ({
+        id: p.Id || p.id || '',
+        nombre: p.Nombre || p.nombre || ''
+    }));
+
+    // ===== LOCAL UI STATE =====
     const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
     const [mode, setMode] = useState<AdjustmentMode>('PERCENTAGE_TOTAL');
     const [percentage, setPercentage] = useState<string>("");
     const [fixedValue, setFixedValue] = useState<string>("");
-    const [loading, setLoading] = useState(true);
     const [applying, setApplying] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
 
-    useEffect(() => {
-        const loadProjects = async () => {
-            try {
-                setLoading(true);
-                const data = await backendAPI.getMyProjects();
-                setProjects(data);
-            } catch (error) {
-                console.error("Error loading projects:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: "No se pudieron cargar los proyectos",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadProjects();
-    }, []);
+    // Show error toast when projects fail to load
+    if (projectsError) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudieron cargar los proyectos",
+        });
+    }
 
     const handleProjectToggle = (projectId: string) => {
         setSelectedProjects(prev =>

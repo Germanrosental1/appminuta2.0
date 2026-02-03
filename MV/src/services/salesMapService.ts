@@ -53,8 +53,8 @@ const mapDBToSalesMapItem = (db: TablaItem): SalesMapItem => {
 };
 
 // Mapper: Frontend Partial (camelCase) -> DB Update (PascalCase to match TablaItem/Supabase expectation for the view)
-const mapPartialToDB = (item: Partial<SalesMapItem>): any => {
-  const db: any = {};
+const mapPartialToDB = (item: Partial<SalesMapItem>): Partial<TablaItem> => {
+  const db: Partial<TablaItem> = {};
 
   if (item.id !== undefined) db.Id = item.id;
   if (item.natdelproyecto !== undefined) db.natdelproyecto = item.natdelproyecto;

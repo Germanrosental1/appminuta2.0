@@ -21,9 +21,9 @@ interface AuthUser extends User {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<{ error: any }>;
+  updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
 
   // New: Permission-based checks (backend as source of truth)
   permissions: Permission[];
@@ -129,9 +129,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Permission check helpers (backend is source of truth)
   const hasPermission = useCallback((permission: string): boolean => {
-    return permissions.some((p: any) => {
+    return permissions.some((p: Permission | string) => {
       if (typeof p === 'string') return p === permission;
-      const permName = p.Nombre || p.nombre || '';
+      const permName = p.Nombre || (p as { nombre?: string }).nombre || '';
       return permName === permission;
     });
   }, [permissions]);
@@ -145,9 +145,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [hasPermission]);
 
   const hasRole = useCallback((role: string): boolean => {
-    return roles.some((r: any) => {
+    return roles.some((r: Role | string) => {
       if (typeof r === 'string') return r.toLowerCase() === role.toLowerCase();
-      const roleName = r.Nombre || r.nombre || '';
+      const roleName = r.Nombre || (r as { nombre?: string }).nombre || '';
       return roleName.toLowerCase() === role.toLowerCase();
     });
   }, [roles]);

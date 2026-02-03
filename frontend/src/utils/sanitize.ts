@@ -221,7 +221,7 @@ export const sanitizeFilePath = (path: string): string => {
   return path
     .replaceAll('..', '') // Remover ..
     .replaceAll(/\/+/g, '/') // Normalizar múltiples slashes
-    .replaceAll(/^\/+/, '')  // Remover slashes iniciales
+    .replace(/^\/+/, '')  // Remover slashes iniciales (use replace, not replaceAll)
     .trim();
 };
 

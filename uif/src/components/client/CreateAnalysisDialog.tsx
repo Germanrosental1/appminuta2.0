@@ -102,7 +102,7 @@ export function CreateAnalysisDialog({ clientId, clientName, existingDocuments, 
             setSelectedDocs([]);
             onAnalysisCreated();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             toast({
                 title: "Error",

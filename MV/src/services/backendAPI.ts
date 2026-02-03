@@ -1,21 +1,27 @@
 import { apiGet, apiPatch, apiPost } from '../lib/api-wrapper-client';
+import { GastosGenerales } from '../types/api-response.types';
 
 /**
  * Service for making authenticated requests to the NestJS backend
  */
 class BackendAPI {
+    // ... imports above
+
+    // ... (skipping unchanged parts)
+
+
     /**
      * Update a complete unit (all fields across normalized tables)
      */
-    async updateUnitComplete(id: string, unitData: any) {
-        return apiPatch<any>(`/unidades/${id}/complete`, unitData);
+    async updateUnitComplete(id: string, unitData: Record<string, unknown>) {
+        return apiPatch<unknown>(`/unidades/${id}/complete`, unitData);
     }
 
     /**
      * Get units by sector ID
      */
     async getUnitBySectorId(sectorId: string) {
-        return apiGet<any>(`/unidades/by-sectorid/${sectorId}`);
+        return apiGet<unknown>(`/unidades/by-sectorid/${sectorId}`);
     }
 
     /**
@@ -25,7 +31,7 @@ class BackendAPI {
         const projects = await apiGet<any[]>(`/proyectos/my-projects`);
 
         // Transform PascalCase keys from backend to camelCase for frontend
-        return projects.map((p: any) => ({
+        return projects.map((p: { Id: string; Nombre: string; Descripcion?: string; Naturaleza?: string; Direccion?: string; Localidad?: string; Provincia?: string; Activo?: boolean; Iva?: number; IdOrg?: string; CreatedAt?: string; organizacion?: unknown }) => ({
             id: p.Id,
             nombre: p.Nombre,
             descripcion: p.Descripcion,
@@ -47,47 +53,50 @@ class BackendAPI {
     async importUnits(file: File) {
         const formData = new FormData();
         formData.append('file', file);
-        return apiPost<any>(`/unidades/import`, formData);
+        return apiPost<unknown>(`/unidades/import`, formData);
     }
 
     /**
      * Create a complete unit (all fields across normalized tables)
      */
-    async createUnitComplete(unitData: any) {
-        return apiPost<any>(`/unidades`, unitData);
+    async createUnitComplete(unitData: Record<string, unknown>) {
+        return apiPost<unknown>(`/unidades`, unitData);
     }
 
     async getUnitTypes(projectId?: string) {
         if (projectId) {
-            return apiGet<any[]>(`/tipos-unidad/proyecto/${projectId}`);
+            return apiGet<unknown[]>(`/tipos-unidad/proyecto/${projectId}`);
         }
-        return apiGet<any[]>(`/tipos-unidad`);
+        return apiGet<unknown[]>(`/tipos-unidad`);
     }
 
     async getBuildings(projectId: string) {
-        return apiGet<any[]>(`/edificios/proyecto/${projectId}`);
+        return apiGet<unknown[]>(`/edificios/proyecto/${projectId}`);
     }
 
     async getStages() {
-        return apiGet<any[]>(`/etapas`);
+        return apiGet<unknown[]>(`/etapas`);
     }
 
     async getCommercialStates() {
-        return apiGet<any[]>(`/estado-comercial`);
+        return apiGet<unknown[]>(`/estado-comercial`);
     }
 
     async getCommercials() {
-        return apiGet<any[]>(`/comerciales`);
+        return apiGet<unknown[]>(`/comerciales`);
     }
 
     /**
      * Get gastos generales for a project
      */
+    /**
+     * Get gastos generales for a project
+     */
     async getGastosGenerales(projectId: string) {
         try {
-            return await apiGet<any>(`/gastosgenerales/proyecto/${projectId}`);
-        } catch (error: any) {
-            if (error.message.includes('404')) return null;
+            return await apiGet<GastosGenerales>(`/gastosgenerales/proyecto/${projectId}`);
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message.includes('404')) return null;
             throw error;
         }
     }
@@ -95,8 +104,8 @@ class BackendAPI {
     /**
      * Update gastos generales for a project
      */
-    async updateGastosGenerales(projectId: string, gastosData: any) {
-        return apiPatch<any>(`/gastosgenerales/proyecto/${projectId}`, gastosData);
+    async updateGastosGenerales(projectId: string, gastosData: GastosGenerales) {
+        return apiPatch<GastosGenerales>(`/gastosgenerales/proyecto/${projectId}`, gastosData);
     }
 
     /**

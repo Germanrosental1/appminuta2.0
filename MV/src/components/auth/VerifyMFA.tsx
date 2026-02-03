@@ -74,7 +74,7 @@ export function VerifyMFA({ onVerified, onCancel }: VerifyMFAProps) {
 
             // Éxito - el JWT ahora tiene aal2
             onVerified();
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err.message || 'Error al verificar código');
             setLoading(false);
         }

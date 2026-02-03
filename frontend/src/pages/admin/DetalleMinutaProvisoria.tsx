@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getMinutaProvisoriaById, actualizarEstadoMinutaProvisoria } from '@/services/minutas';
+import { useMinutaProvisoria, useDatosMapaVentas, useActualizarEstadoMinutaProvisoria } from '@/hooks/useMinutasAdmin';
 import { ResumenCompleto } from '@/components/wizard/ResumenCompleto';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -31,68 +31,24 @@ export const DetalleMinutaProvisoria: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [minuta, setMinuta] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // React Query Hooks
+  const { data: minuta, isLoading, error } = useMinutaProvisoria(id || '');
+  const { data: datosMapaVentas, isLoading: loadingMapaVentas } = useDatosMapaVentas(minuta?.UnidadId);
+  const updateEstadoMutation = useActualizarEstadoMinutaProvisoria();
+
+  // Local UI State
   const [comentarios, setComentarios] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [accionPendiente, setAccionPendiente] = useState<'aprobada' | 'rechazada' | null>(null);
-  const [procesando, setProcesando] = useState(false);
 
-  // Datos del mapa de ventas
-  const [datosMapaVentas, setDatosMapaVentas] = useState<any>(null);
-  const [loadingMapaVentas, setLoadingMapaVentas] = useState(false);
-
+  // Set comments when minuta loads
   useEffect(() => {
-    const fetchMinuta = async () => {
-      if (!id) return;
-
-      try {
-        setLoading(true);
-        const data = await getMinutaProvisoriaById(id);
-        setMinuta(data);
-        setComentarios(data.Comentario || '');
-
-        // Cargar datos del mapa de ventas relacionados con esta unidad
-        fetchDatosMapaVentas(data.UnidadId);
-      } catch (err) {
-        setError('No se pudo cargar la información de la minuta');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMinuta();
-  }, [id]);
-
-  const fetchDatosMapaVentas = async (unidadId: string) => {
-    try {
-      setLoadingMapaVentas(true);
-
-      // Aquí deberías implementar la función para obtener los datos del mapa de ventas
-      // por ejemplo: const data = await getDatosMapaVentasByUnidadId(unidadId);
-
-      // Por ahora, simulamos datos de ejemplo
-      setTimeout(() => {
-        setDatosMapaVentas({
-          id: unidadId,
-          proyecto: minuta?.proyecto || 'Proyecto',
-          sector: 'Sector ejemplo',
-          unidad: `Unidad ${unidadId}`,
-          estado: 'Disponible',
-          precio_lista: minuta?.datos?.precioLista || 0,
-          m2_totales: 85.5,
-          dormitorios: 2,
-          edificio: 'E1',
-          piso: 3
-        });
-        setLoadingMapaVentas(false);
-      }, 1000);
-
-    } catch (err) {
-      setLoadingMapaVentas(false);
+    if (minuta?.Comentario) {
+      setComentarios(minuta.Comentario);
     }
-  };
+  }, [minuta]);
+
+  const procesando = updateEstadoMutation.isPending;
 
   const handleChangeEstado = async (nuevoEstado: 'revisada' | 'aprobada' | 'rechazada') => {
     if (nuevoEstado === 'aprobada' || nuevoEstado === 'rechazada') {
@@ -116,53 +72,39 @@ export const DetalleMinutaProvisoria: React.FC = () => {
     if (!id) return;
 
     try {
-      setProcesando(true);
-      await actualizarEstadoMinutaProvisoria(id, nuevoEstado, comentarios);
-
-      toast({
-        title: "Estado actualizado",
-        description: `La minuta ha sido marcada como ${nuevoEstado}`,
+      await updateEstadoMutation.mutateAsync({
+        id,
+        estado: nuevoEstado,
+        comentarios: comentarios
       });
-
-      // Actualizar el estado local
-      setMinuta(prev => ({ ...prev, estado: nuevoEstado }));
 
       // Si fue aprobada o rechazada, redirigir al listado
       if (nuevoEstado === 'aprobada' || nuevoEstado === 'rechazada') {
         setTimeout(() => {
-          navigate('/admin/dashboard');
+          navigate('/admin/dashboard'); // Or navigate back to list
         }, 1500);
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado de la minuta",
-        variant: "destructive",
-      });
-    } finally {
-      setProcesando(false);
+      // Toast/Error handled by mutation hook
     }
   };
 
   const guardarComentarios = async () => {
-    if (!id) return;
+    if (!id || !minuta) return;
 
     try {
-      setProcesando(true);
-      await actualizarEstadoMinutaProvisoria(id, minuta.Estado, comentarios);
+      await updateEstadoMutation.mutateAsync({
+        id,
+        estado: minuta.Estado,
+        comentarios
+      });
 
       toast({
         title: "Comentarios guardados",
         description: "Los comentarios han sido guardados correctamente",
       });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron guardar los comentarios",
-        variant: "destructive",
-      });
-    } finally {
-      setProcesando(false);
+      // Toast handled by mutation hook
     }
   };
 
@@ -196,7 +138,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Precio Lista:</p>
-                <p className="font-medium">${datosMapaVentas.precio_lista.toLocaleString()}</p>
+                <p className="font-medium">${datosMapaVentas.precio_lista?.toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">M² Totales:</p>
@@ -239,7 +181,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -253,7 +195,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <XCircle className="h-12 w-12 text-red-500 mb-4" />
         <h2 className="text-xl font-semibold mb-2">Error al cargar la minuta</h2>
-        <p className="text-muted-foreground mb-4">{error || 'No se encontró la minuta solicitada'}</p>
+        <p className="text-muted-foreground mb-4">No se encontró la minuta solicitada</p>
         <Button onClick={() => navigate('/admin/dashboard')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver al Dashboard
@@ -272,7 +214,7 @@ export const DetalleMinutaProvisoria: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold">Minuta Provisoria #{id?.substring(0, 8)}</h1>
           <p className="text-muted-foreground">
-            Proyecto: {minuta.Proyecto} | Unidad: {minuta.unidad?.unidad || minuta.UnidadId} |
+            Proyecto: {minuta.Proyecto} | Unidad: {minuta.Dato?.unidad || minuta.UnidadId} |
             Estado: {minuta.Estado.charAt(0).toUpperCase() + minuta.Estado.slice(1)}
           </p>
         </div>

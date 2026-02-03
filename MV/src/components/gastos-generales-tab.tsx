@@ -6,25 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { backendAPI } from "@/services/backendAPI";
-
-interface GastosGenerales {
-    proyecto: string;
-    sellado?: number;
-    certificaciondefirmas?: number;
-    alajamiento?: number;
-    planosm2propiedad?: number;
-    planosm2cochera?: number;
-    comisioninmobiliaria?: number;
-    otrosgastos?: number;
-    fecha_posesion?: string;
-    etapatorre?: string;
-}
+import { GastosGenerales } from "@/types/api-response.types";
 
 interface GastosGeneralesTabProps {
     projectId: string;
 }
 
-export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
+export function GastosGeneralesTab({ projectId }: Readonly<GastosGeneralesTabProps>) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [gastos, setGastos] = useState<GastosGenerales>({
@@ -67,7 +55,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
         }
     };
 
-    const updateField = (field: keyof GastosGenerales, value: any) => {
+    const updateField = (field: keyof GastosGenerales, value: string | number) => {
         setGastos(prev => ({ ...prev, [field]: value }));
     };
 
@@ -102,7 +90,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                     min="0"
                                     max="100"
                                     value={gastos.sellado || ''}
-                                    onChange={(e) => updateField('sellado', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateField('sellado', Number.parseFloat(e.target.value) || 0)}
                                     placeholder="Ej: 0.05 para 5%"
                                     className={gastos.sellado ? "text-foreground" : ""}
                                 />
@@ -116,7 +104,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                     min="0"
                                     max="100"
                                     value={gastos.alajamiento || ''}
-                                    onChange={(e) => updateField('alajamiento', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateField('alajamiento', Number.parseFloat(e.target.value) || 0)}
                                     placeholder="Ej: 0.02 para 2%"
                                     className={gastos.alajamiento ? "text-foreground" : ""}
                                 />
@@ -130,7 +118,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                     min="0"
                                     max="100"
                                     value={gastos.comisioninmobiliaria || ''}
-                                    onChange={(e) => updateField('comisioninmobiliaria', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateField('comisioninmobiliaria', Number.parseFloat(e.target.value) || 0)}
                                     placeholder="Ej: 0.02 para 2%"
                                     className={gastos.comisioninmobiliaria ? "text-foreground" : ""}
                                 />
@@ -149,7 +137,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                     type="number"
                                     step="0.01"
                                     value={gastos.planosm2propiedad || ''}
-                                    onChange={(e) => updateField('planosm2propiedad', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateField('planosm2propiedad', Number.parseFloat(e.target.value) || 0)}
                                     placeholder="Ej: 8.00"
                                     className={gastos.planosm2propiedad ? "text-foreground" : ""}
                                 />
@@ -161,7 +149,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                     type="number"
                                     step="0.01"
                                     value={gastos.planosm2cochera || ''}
-                                    onChange={(e) => updateField('planosm2cochera', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateField('planosm2cochera', Number.parseFloat(e.target.value) || 0)}
                                     placeholder="Ej: 100.00"
                                     className={gastos.planosm2cochera ? "text-foreground" : ""}
                                 />
@@ -180,7 +168,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                     type="number"
                                     step="0.01"
                                     value={gastos.certificaciondefirmas || ''}
-                                    onChange={(e) => updateField('certificaciondefirmas', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateField('certificaciondefirmas', Number.parseFloat(e.target.value) || 0)}
                                     placeholder="Monto"
                                     className={gastos.certificaciondefirmas ? "text-foreground" : ""}
                                 />
@@ -192,7 +180,7 @@ export function GastosGeneralesTab({ projectId }: GastosGeneralesTabProps) {
                                     type="number"
                                     step="0.01"
                                     value={gastos.otrosgastos || ''}
-                                    onChange={(e) => updateField('otrosgastos', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateField('otrosgastos', Number.parseFloat(e.target.value) || 0)}
                                     placeholder="Monto"
                                     className={gastos.otrosgastos ? "text-foreground" : ""}
                                 />

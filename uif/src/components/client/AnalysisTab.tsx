@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Client, FinancialData, AnalysisSettings, MONOTRIBUTO_CATEGORIES, Analysis, Document } from '@/types/database';
+import { Client, FinancialData, AnalysisSettings, MONOTRIBUTO_CATEGORIES, Analysis, Document, ReviewedData } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,11 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 // ⚡ PERFORMANCE: jsPDF, JSZip, file-saver son lazy imports en las funciones de descarga
 import ExpandableCard from './ExpandableCard';
+import { jsPDF } from 'jspdf';
+
+interface AutoTableDoc extends jsPDF {
+  lastAutoTable: { finalY: number };
+}
 
 interface AnalysisTabProps {
   client: Client;
@@ -299,7 +304,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     setFinancialData(prev => ({
       ...prev,
       [section]: {
-        ...(typeof prev[section] === 'object' && prev[section] !== null ? (prev[section] as any) : {}),
+        ...(typeof prev[section] === 'object' && prev[section] !== null ? (prev[section] as Record<string, unknown>) : {}),
         [field]: value,
       },
     }));
@@ -382,7 +387,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     );
 
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 10,
+      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
       head: [['Origen de Fondos', 'Ponderación', 'Subtotal Computable']],
       body: subtotalData,
       theme: 'striped',
@@ -399,7 +404,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     ];
 
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 10,
+      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
       head: [['Simulación de Operación', 'Valores (USD)']],
       body: simData,
       theme: 'grid',
@@ -433,7 +438,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
         styles: { fontSize: 9 },
         margin: { left: 14, right: 14 },
       });
-      currentY = (doc as any).lastAutoTable.finalY + 10;
+      currentY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10;
     };
 
     // GANANCIAS
@@ -470,7 +475,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       const recibosDocs = documents.filter(d => d.doc_type === 'ReciboHaberes' && d.status === 'Validado');
       if (recibosDocs.length > 1) {
         recibosDocs.forEach((d, i) => {
-          const rd = d.reviewed_data as any;
+          const rd = d.reviewed_data as unknown as ReviewedData;
           const filename = d.original_filename || `Recibo ${i + 1}`;
           habData.splice(i, 0, [`  • ${filename}`, formatCurrency(Number(rd?.sueldo_neto) || 0)]);
         });
@@ -801,7 +806,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
               className="col-span-2"
               sourceDocuments={documents
                 .filter(d => d.doc_type === 'Ganancias' && d.status === 'Validado')
-                .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: d.reviewed_data ? `Año: ${(d.reviewed_data as any)?.anio_fiscal || 'N/A'}` : undefined }))}
+                .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: d.reviewed_data ? `Año: ${(d.reviewed_data as unknown as ReviewedData)?.anio_fiscal || 'N/A'}` : undefined }))}
             >
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <CompactField label="Año Fiscal" value={financialData.ganancias.anio_fiscal} onChange={(v) => updateFinancialField('ganancias', 'anio_fiscal', v)} isText />
@@ -842,7 +847,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
               subtotal={calculations.subtotals.monotributo}
               sourceDocuments={documents
                 .filter(d => d.doc_type === 'Monotributo' && d.status === 'Validado')
-                .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: `Cat. ${(d.reviewed_data as any)?.categoria || 'N/A'}` }))}
+                .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: `Cat. ${(d.reviewed_data as unknown as ReviewedData)?.categoria || 'N/A'}` }))}
             >
               <div className="space-y-4 p-2 bg-secondary/10 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -879,7 +884,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
           subtotal={calculations.subtotals.iva}
           sourceDocuments={documents
             .filter(d => d.doc_type === 'IVA' && d.status === 'Validado')
-            .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: `Año: ${(d.reviewed_data as any)?.anio_fiscal || 'N/A'}` }))}
+            .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: `Año: ${(d.reviewed_data as unknown as ReviewedData)?.anio_fiscal || 'N/A'}` }))}
         >
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -930,7 +935,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
             subtotal={calculations.subtotals.haberes}
             sourceDocuments={documents
               .filter(d => d.doc_type === 'ReciboHaberes' && d.status === 'Validado')
-              .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: formatCurrency(Number((d.reviewed_data as any)?.sueldo_neto) || 0) }))}
+              .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: formatCurrency(Number((d.reviewed_data as unknown as ReviewedData)?.sueldo_neto) || 0) }))}
           >
             <div className="p-4 bg-secondary/10 rounded-lg space-y-4">
               <CompactField label="Total Sueldo Neto (Mensual)" value={financialData.recibo_haberes.sueldo_neto} onChange={(v) => updateFinancialField('recibo_haberes', 'sueldo_neto', v)} />
@@ -953,7 +958,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
               subtotal={calculations.subtotals.certificacion}
               sourceDocuments={documents
                 .filter(d => d.doc_type === 'CertificacionContable' && d.status === 'Validado')
-                .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: formatCurrency(Number((d.reviewed_data as any)?.certificacion_firmada) || 0) }))}
+                .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: formatCurrency(Number((d.reviewed_data as unknown as ReviewedData)?.certificacion_firmada) || 0) }))}
             >
               <div className="p-4 bg-secondary/10 rounded-lg">
                 <CompactField label="Monto Certificación Firmada" value={financialData.certificacion_contable.certificacion_firmada} onChange={(v) => updateFinancialField('certificacion_contable', 'certificacion_firmada', v)} />
@@ -968,7 +973,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
               sourceDocuments={documents
                 .filter(d => d.doc_type === 'BienesPersonales' && d.status === 'Validado')
                 .map(d => {
-                  const rd = d.reviewed_data as any;
+                  const rd = d.reviewed_data as unknown as ReviewedData;
                   const total = (Number(rd?.efectivo_pais) || 0) + (Number(rd?.efectivo_exterior) || 0) + (Number(rd?.exento_no_alcanzado) || 0);
                   return { id: d.id, filename: d.original_filename, formattedValue: formatCurrency(total) };
                 })}
@@ -1177,7 +1182,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
 interface CompactFieldProps {
   label: string;
   value: number | string;
-  onChange: (value: any) => void;
+  onChange: (value: string | number) => void;
   isText?: boolean;
 }
 

@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     BarChart, Bar,
 } from 'recharts';
+import { useSnapshotsRange, useGenerateSnapshot } from '@/hooks/useSnapshots';
 import { snapshotsAPI, SnapshotSummary, SnapshotComparativo } from '@/services/snapshotsAPI';
+import { useQuery } from '@tanstack/react-query';
 
 // Colores para los gráficos
 const COLORS = {
@@ -19,107 +20,117 @@ const COLORS = {
 };
 
 export default function StockHistoryPage() {
-    const [loading, setLoading] = useState(true);
-    const [generating, setGenerating] = useState(false);
-    const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
-    const [comparativo, setComparativo] = useState<SnapshotComparativo[]>([]);
+    // ===== UI STATE (only local UI concerns) =====
     const [selectedPeriod, setSelectedPeriod] = useState('6');
 
-    // Cargar datos
-    useEffect(() => {
-        loadData();
+    // ===== DERIVED DATE CALCULATIONS =====
+    const { endDate, startDate, mesActual, mesAnterior } = useMemo(() => {
+        const end = new Date();
+        const start = new Date();
+        start.setMonth(start.getMonth() - Number.parseInt(selectedPeriod));
+
+        const mesAct = new Date();
+        mesAct.setDate(1);
+        mesAct.setMonth(mesAct.getMonth() - 1);
+        const mesAnt = new Date(mesAct);
+        mesAnt.setMonth(mesAnt.getMonth() - 1);
+
+        return {
+            endDate: end.toISOString().split('T')[0],
+            startDate: start.toISOString().split('T')[0],
+            mesActual: mesAct.toISOString().split('T')[0],
+            mesAnterior: mesAnt.toISOString().split('T')[0],
+        };
     }, [selectedPeriod]);
 
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            // Calcular rango de fechas
-            const hasta = new Date();
-            const desde = new Date();
-            desde.setMonth(desde.getMonth() - Number.parseInt(selectedPeriod));
+    // ===== REACT QUERY HOOKS (replaces useState/useEffect) =====
+    const {
+        data: snapshots = [],
+        isLoading: isSnapshotsLoading,
+    } = useSnapshotsRange(startDate, endDate);
 
-            const hastaStr = hasta.toISOString().split('T')[0];
-            const desdeStr = desde.toISOString().split('T')[0];
+    // Comparativo query
+    const {
+        data: comparativo = [],
+        isLoading: isComparativoLoading,
+    } = useQuery({
+        queryKey: ['snapshots', 'comparativo-all', mesActual, mesAnterior],
+        queryFn: () => snapshotsAPI.getComparativo(mesActual, mesAnterior),
+        enabled: !!mesActual && !!mesAnterior,
+        staleTime: 10 * 60 * 1000,
+    });
 
-            // Cargar snapshots del rango
-            const snapshotsData = await snapshotsAPI.getRange(desdeStr, hastaStr);
-            setSnapshots(snapshotsData);
+    // ===== MUTATION (replaces manual setGenerating) =====
+    const generateMutation = useGenerateSnapshot();
 
-            // Cargar comparativo (mes actual vs anterior)
-            const mesActual = new Date();
-            mesActual.setDate(1);
-            mesActual.setMonth(mesActual.getMonth() - 1);
-            const mesAnterior = new Date(mesActual);
-            mesAnterior.setMonth(mesAnterior.getMonth() - 1);
-
-            const comparativoData = await snapshotsAPI.getComparativo(
-                mesActual.toISOString().split('T')[0],
-                mesAnterior.toISOString().split('T')[0]
-            );
-            setComparativo(comparativoData);
-        } catch (error) {
-            console.error('Error loading stock history:', error);
-            toast.error('Error al cargar historial de stock');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleGenerateSnapshot = async () => {
-        setGenerating(true);
-        try {
-            await snapshotsAPI.generate('DIARIO');
-            toast.success('Snapshot generado exitosamente');
-            loadData();
-        } catch (error) {
-            toast.error('Error al generar snapshot');
-        } finally {
-            setGenerating(false);
-        }
-    };
+    // ===== DERIVED STATE (computed from query data) =====
+    const loading = isSnapshotsLoading || isComparativoLoading;
 
     // Preparar datos para gráfico de evolución (Chart 1)
-    const evolutionData = snapshots.reduce((acc: any[], snap) => {
-        const fecha = new Date(snap.FechaSnapshot).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
-        const existing = acc.find(d => d.fecha === fecha);
-        if (existing) {
-            existing.disponibles += snap.Disponibles;
-            existing.reservadas += snap.Reservadas;
-            existing.vendidas += snap.Vendidas;
-        } else {
-            acc.push({
-                fecha,
-                disponibles: snap.Disponibles,
-                reservadas: snap.Reservadas,
-                vendidas: snap.Vendidas,
-            });
-        }
-        return acc;
-    }, []);
+    const evolutionData = useMemo(() => {
+        return snapshots.reduce((acc: { fecha: string; disponibles: number; reservadas: number; vendidas: number }[], snap: SnapshotSummary) => {
+            const fecha = new Date(snap.FechaSnapshot).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+            const existing = acc.find(d => d.fecha === fecha);
+            if (existing) {
+                existing.disponibles += snap.Disponibles;
+                existing.reservadas += snap.Reservadas;
+                existing.vendidas += snap.Vendidas;
+            } else {
+                acc.push({
+                    fecha,
+                    disponibles: snap.Disponibles,
+                    reservadas: snap.Reservadas,
+                    vendidas: snap.Vendidas,
+                });
+            }
+            return acc;
+        }, []);
+    }, [snapshots]);
 
     // Preparar datos para comparativa mes a mes (Chart 2)
-    const monthlyComparisonData = comparativo.map(c => ({
-        proyecto: c.proyecto,
-        actual: c.actual.disponibles + c.actual.reservadas,
-        anterior: c.anterior ? c.anterior.disponibles + c.anterior.reservadas : 0,
-        diferencia: c.diferencia ? c.diferencia.disponibles + c.diferencia.reservadas : 0,
-    }));
+    const monthlyComparisonData = useMemo(() => {
+        return comparativo.map((c: SnapshotComparativo) => ({
+            proyecto: c.proyecto,
+            actual: c.actual.disponibles + c.actual.reservadas,
+            anterior: c.anterior ? c.anterior.disponibles + c.anterior.reservadas : 0,
+            diferencia: c.diferencia ? c.diferencia.disponibles + c.diferencia.reservadas : 0,
+        }));
+    }, [comparativo]);
 
     // Preparar datos para comparativa por proyecto (Chart 5)
-    const projectData = comparativo.map(c => ({
-        proyecto: c.proyecto.length > 15 ? c.proyecto.substring(0, 15) + '...' : c.proyecto,
-        disponibles: c.actual.disponibles,
-        reservadas: c.actual.reservadas,
-        vendidas: c.actual.vendidas,
-    }));
+    const projectData = useMemo(() => {
+        return comparativo.map((c: SnapshotComparativo) => ({
+            proyecto: c.proyecto.length > 15 ? c.proyecto.substring(0, 15) + '...' : c.proyecto,
+            disponibles: c.actual.disponibles,
+            reservadas: c.actual.reservadas,
+            vendidas: c.actual.vendidas,
+        }));
+    }, [comparativo]);
 
-    // Calcular KPIs de velocidad de ventas (Chart 6)
-    const totalVentasActual = comparativo.reduce((sum, c) => sum + c.actual.vendidas, 0);
-    const totalVentasAnterior = comparativo.reduce((sum, c) => sum + (c.anterior?.vendidas || 0), 0);
-    const stockActual = comparativo.reduce((sum, c) => sum + c.actual.disponibles + c.actual.reservadas, 0);
-    const stockAnterior = comparativo.reduce((sum, c) => sum + (c.anterior?.disponibles || 0) + (c.anterior?.reservadas || 0), 0);
-    const ventasDiff = totalVentasActual - totalVentasAnterior;
-    const stockDiff = stockActual - stockAnterior;
+    // Calcular KPIs (Chart 6)
+    const kpis = useMemo(() => {
+        const totalVentasActual = comparativo.reduce((sum: number, c: SnapshotComparativo) => sum + c.actual.vendidas, 0);
+        const totalVentasAnterior = comparativo.reduce((sum: number, c: SnapshotComparativo) => sum + (c.anterior?.vendidas || 0), 0);
+        const stockActual = comparativo.reduce((sum: number, c: SnapshotComparativo) => sum + c.actual.disponibles + c.actual.reservadas, 0);
+        const stockAnterior = comparativo.reduce((sum: number, c: SnapshotComparativo) => sum + (c.anterior?.disponibles || 0) + (c.anterior?.reservadas || 0), 0);
+        const disponiblesTotal = comparativo.reduce((sum: number, c: SnapshotComparativo) => sum + c.actual.disponibles, 0);
+        const reservadasTotal = comparativo.reduce((sum: number, c: SnapshotComparativo) => sum + c.actual.reservadas, 0);
+
+        return {
+            totalVentasActual,
+            totalVentasAnterior,
+            stockActual,
+            stockAnterior,
+            ventasDiff: totalVentasActual - totalVentasAnterior,
+            stockDiff: stockActual - stockAnterior,
+            disponibles: disponiblesTotal,
+            reservadas: reservadasTotal,
+        };
+    }, [comparativo]);
+
+    const handleGenerateSnapshot = () => {
+        generateMutation.mutate('DIARIO');
+    };
 
     if (loading) {
         return (
@@ -149,8 +160,8 @@ export default function StockHistoryPage() {
                             <SelectItem value="12">Último año</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleGenerateSnapshot} disabled={generating}>
-                        {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    <Button onClick={handleGenerateSnapshot} disabled={generateMutation.isPending}>
+                        {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                         Generar Snapshot
                     </Button>
                 </div>
@@ -163,10 +174,10 @@ export default function StockHistoryPage() {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Stock Actual</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stockActual}</div>
-                        <div className={`flex items-center text-sm ${stockDiff >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                            {stockDiff > 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : stockDiff < 0 ? <TrendingDown className="h-4 w-4 mr-1" /> : <Minus className="h-4 w-4 mr-1" />}
-                            {stockDiff > 0 ? '+' : ''}{stockDiff} vs mes anterior
+                        <div className="text-2xl font-bold">{kpis.stockActual}</div>
+                        <div className={`flex items-center text-sm ${kpis.stockDiff >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                            {kpis.stockDiff > 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : kpis.stockDiff < 0 ? <TrendingDown className="h-4 w-4 mr-1" /> : <Minus className="h-4 w-4 mr-1" />}
+                            {kpis.stockDiff > 0 ? '+' : ''}{kpis.stockDiff} vs mes anterior
                         </div>
                     </CardContent>
                 </Card>
@@ -176,10 +187,10 @@ export default function StockHistoryPage() {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Ventas del Mes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalVentasActual}</div>
-                        <div className={`flex items-center text-sm ${ventasDiff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {ventasDiff > 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : ventasDiff < 0 ? <TrendingDown className="h-4 w-4 mr-1" /> : <Minus className="h-4 w-4 mr-1" />}
-                            {ventasDiff > 0 ? '+' : ''}{ventasDiff} vs mes anterior
+                        <div className="text-2xl font-bold">{kpis.totalVentasActual}</div>
+                        <div className={`flex items-center text-sm ${kpis.ventasDiff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {kpis.ventasDiff > 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : kpis.ventasDiff < 0 ? <TrendingDown className="h-4 w-4 mr-1" /> : <Minus className="h-4 w-4 mr-1" />}
+                            {kpis.ventasDiff > 0 ? '+' : ''}{kpis.ventasDiff} vs mes anterior
                         </div>
                     </CardContent>
                 </Card>
@@ -189,9 +200,7 @@ export default function StockHistoryPage() {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Disponibles</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">
-                            {comparativo.reduce((sum, c) => sum + c.actual.disponibles, 0)}
-                        </div>
+                        <div className="text-2xl font-bold text-green-600">{kpis.disponibles}</div>
                         <p className="text-sm text-muted-foreground">unidades listas para venta</p>
                     </CardContent>
                 </Card>
@@ -201,9 +210,7 @@ export default function StockHistoryPage() {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Reservadas</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-yellow-600">
-                            {comparativo.reduce((sum, c) => sum + c.actual.reservadas, 0)}
-                        </div>
+                        <div className="text-2xl font-bold text-yellow-600">{kpis.reservadas}</div>
                         <p className="text-sm text-muted-foreground">unidades en proceso</p>
                     </CardContent>
                 </Card>

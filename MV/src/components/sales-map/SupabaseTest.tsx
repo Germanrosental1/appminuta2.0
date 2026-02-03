@@ -51,7 +51,7 @@ export function SupabaseTest() {
           setTables(prev => [...prev, ...proyectosUnicos.map(p => `Proyecto: ${p}`)]);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error testing Supabase connection:', err);
       setIsConnected(false);
       setError(err.message || 'Error al conectar con Supabase');
@@ -79,71 +79,69 @@ export function SupabaseTest() {
             <span>Verificando conexión...</span>
           </div>
         ) : (
-          <>
-            <div className="grid gap-4">
-              <div className="flex items-center justify-between border p-4 rounded-md">
-                <span className="font-medium">Estado de conexión:</span>
-                {isConnected === null ? (
-                  <span>Verificando...</span>
-                ) : isConnected ? (
-                  <div className="flex items-center text-green-600">
-                    <CheckCircle2 className="h-5 w-5 mr-1" />
-                    <span>Conectado</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center text-red-600">
-                    <XCircle className="h-5 w-5 mr-1" />
-                    <span>Error de conexión</span>
-                  </div>
-                )}
-              </div>
-
-              {isConnected && (
-                <>
-                  <div className="border p-4 rounded-md">
-                    <h3 className="font-medium mb-2">Vistas/Tablas disponibles:</h3>
-                    {tables.length > 0 ? (
-                      <ul className="list-disc pl-5 space-y-1">
-                        {tables.map(table => (
-                          <li key={table} className={table === 'vista_buscador_propiedades' ? 'font-semibold' : ''}>
-                            {table} {table === 'vista_buscador_propiedades' && '✓'}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted-foreground">No se encontraron tablas</p>
-                    )}
-                  </div>
-
-                  <div className="border p-4 rounded-md">
-                    <h3 className="font-medium mb-2">Vista 'vista_buscador_propiedades' (Mapas de Ventas):</h3>
-                    {tables.includes('vista_buscador_propiedades') ? (
-                      <p>
-                        {tablasCount !== null ? (
-                          <>
-                            <span className="font-semibold">{tablasCount}</span> registros encontrados
-                          </>
-                        ) : (
-                          'Verificando registros...'
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-red-600">
-                        ⚠️ La vista 'vista_buscador_propiedades' no existe en la base de datos
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+          <div className="grid gap-4">
+            <div className="flex items-center justify-between border p-4 rounded-md">
+              <span className="font-medium">Estado de conexión:</span>
+              {isConnected === null ? (
+                <span>Verificando...</span>
+              ) : isConnected ? (
+                <div className="flex items-center text-green-600">
+                  <CheckCircle2 className="h-5 w-5 mr-1" />
+                  <span>Conectado</span>
+                </div>
+              ) : (
+                <div className="flex items-center text-red-600">
+                  <XCircle className="h-5 w-5 mr-1" />
+                  <span>Error de conexión</span>
+                </div>
               )}
             </div>
-          </>
+
+            {isConnected && (
+              <>
+                <div className="border p-4 rounded-md">
+                  <h3 className="font-medium mb-2">Vistas/Tablas disponibles:</h3>
+                  {tables.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1">
+                      {tables.map(table => (
+                        <li key={table} className={table === 'vista_buscador_propiedades' ? 'font-semibold' : ''}>
+                          {table} {table === 'vista_buscador_propiedades' && '✓'}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted-foreground">No se encontraron tablas</p>
+                  )}
+                </div>
+
+                <div className="border p-4 rounded-md">
+                  <h3 className="font-medium mb-2">Vista 'vista_buscador_propiedades' (Mapas de Ventas):</h3>
+                  {tables.includes('vista_buscador_propiedades') ? (
+                    <p>
+                      {tablasCount === null ? (
+                        'Verificando registros...'
+                      ) : (
+                        <>
+                          <span className="font-semibold">{tablasCount}</span> registros encontrados
+                        </>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-red-600">
+                      ⚠️ La vista 'vista_buscador_propiedades' no existe en la base de datos
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
         )}
       </CardContent>
       <CardFooter>

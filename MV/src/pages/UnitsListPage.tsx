@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabaseService } from '@/services/supabaseService';
 import { Unit, EstadoUnidad } from '@/types/supabase-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useUnits, useProjects, useDeleteUnit } from '@/hooks/useUnits';
 import {
   Table,
   TableCell,
@@ -62,14 +62,28 @@ const listItemVariants: Variants = {
 import { usePersistentProject } from "@/hooks/usePersistentProject";
 
 export default function UnitsListPage() {
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState<string[]>([]);
+  // ===== REACT QUERY HOOKS =====
   const [selectedProject, setSelectedProject] = usePersistentProject('');
-  const [projectNaturaleza, setProjectNaturaleza] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Nuevos estados para los filtros
+  // Projects query
+  const {
+    data: projects = [],
+    isLoading: isProjectsLoading
+  } = useProjects();
+
+  // Units query (depende de selectedProject)
+  const {
+    data: units = [],
+    isLoading: isUnitsLoading,
+    error: unitsError
+  } = useUnits(selectedProject);
+
+  // Delete mutation
+  const deleteUnitMutation = useDeleteUnit();
+
+  // ===== LOCAL UI STATE =====
+  const [searchTerm, setSearchTerm] = useState('');
+  const [projectNaturaleza, setProjectNaturaleza] = useState<string>('');
   const [tiposDisponibles, setTiposDisponibles] = useState<string[]>([]);
   const [filtroTipo, setFiltroTipo] = useState<string>('all');
   const [filtroDormitorios, setFiltroDormitorios] = useState<string>('all');
@@ -87,27 +101,18 @@ export default function UnitsListPage() {
     'Vendido',
     'No disponible'
   ];
-  const [isProjectsLoading, setIsProjectsLoading] = useState(true);
+
   const navigate = useNavigate();
 
+  // Computed values
+  const loading = isProjectsLoading || isUnitsLoading;
+
+  // Auto-select first project when projects load
   useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        const projectsList = await supabaseService.getProjects();
-        setProjects(projectsList);
-
-        if (projectsList.length > 0 && !selectedProject) {
-          setSelectedProject(projectsList[0]);
-        }
-      } catch (error) {
-        toast.error('Error al cargar los proyectos');
-      } finally {
-        setIsProjectsLoading(false);
-      }
-    };
-
-    loadProjects();
-  }, []);
+    if (projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0]);
+    }
+  }, [projects, selectedProject, setSelectedProject]);
 
   // Handle URL Params
   useEffect(() => {
@@ -120,61 +125,31 @@ export default function UnitsListPage() {
     if (dormsParam) setFiltroDormitorios(dormsParam);
   }, [searchParams]);
 
-  // Verificar conexión con Supabase durante el desarrollo - silenciado en producción
+  // Extract project metadata when units change
   useEffect(() => {
-    // Removed debug logging
-  }, []);
+    if (units.length > 0) {
+      const firstUnit = units[0];
+      setProjectNaturaleza(firstUnit.natdelproyecto || 'Sin clasificar');
 
+      // Extract unique types from units
+      const tipos = Array.from(new Set(units.map(u => u.tipo).filter(Boolean)));
+      setTiposDisponibles(tipos);
+    } else {
+      setProjectNaturaleza('');
+      setTiposDisponibles([]);
+    }
+  }, [units]);
+
+  // Reset filters when project changes (but respect URL params on initial mount)
   useEffect(() => {
-    // Evitar carga inicial de "todas las unidades" si todavía estamos determinando
-    // si hay proyectos para seleccionar por defecto.
-    if (isProjectsLoading) return;
-
-    const loadUnits = async () => {
-      try {
-        setLoading(true);
-        let data: Unit[];
-
-        if (selectedProject && selectedProject !== 'all') {
-          data = await supabaseService.getUnitsByProject(selectedProject);
-
-          // Cargar los tipos disponibles para este proyecto
-          const tipos = await supabaseService.getUniqueValuesByProject('Tipo', selectedProject);
-          setTiposDisponibles(tipos);
-
-          // Obtener la naturaleza del proyecto
-          if (data.length > 0) {
-            const firstUnit = data[0];
-            setProjectNaturaleza(firstUnit.natdelproyecto || 'Sin clasificar');
-          }
-
-          // Resetear los filtros cuando cambia el proyecto
-          // PERO respetar si vienen de URL params en el montaje inicial
-          if (!searchParams.toString()) {
-            setFiltroTipo('all');
-            setFiltroDormitorios('all');
-            setFiltroPrecioMin('');
-            setFiltroPrecioMax('');
-            setFiltroEstado('all');
-          }
-        } else {
-          // selectedProject es '' o 'all' - cargar todas las unidades
-          data = await supabaseService.getAllUnits();
-          const tipos = await supabaseService.getUniqueValues('Tipo');
-          setTiposDisponibles(tipos);
-          setProjectNaturaleza('');
-        }
-
-        setUnits(data);
-      } catch (error) {
-        toast.error('Error al cargar las unidades');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUnits();
-  }, [selectedProject, isProjectsLoading]); // searchParams not needed here as it simply sets the initial state
+    if (selectedProject && !searchParams.toString()) {
+      setFiltroTipo('all');
+      setFiltroDormitorios('all');
+      setFiltroPrecioMin('');
+      setFiltroPrecioMax('');
+      setFiltroEstado('all');
+    }
+  }, [selectedProject, searchParams]);
 
   const handleEdit = (unitId: string) => {
     navigate(`/unit/edit/${unitId}`);
@@ -186,13 +161,12 @@ export default function UnitsListPage() {
 
   const handleDelete = async (unitId: string) => {
     if (globalThis.confirm('¿Estás seguro de que deseas eliminar esta unidad?')) {
-      try {
-        await supabaseService.deleteUnit(unitId);
-        setUnits(units.filter(unit => unit.id !== unitId));
-        toast.success('Unidad eliminada correctamente');
-      } catch (error) {
-        toast.error('Error al eliminar la unidad');
-      }
+      // React Query mutation handles everything:
+      // - API call
+      // - Optimistic update
+      // - Cache invalidation
+      // - Toast notifications (configured in hook)
+      await deleteUnitMutation.mutateAsync(unitId);
     }
   };
 
@@ -318,7 +292,7 @@ export default function UnitsListPage() {
                   // ideally refactor loadUnits to be outside useEffect or use react-query.
                   // For now, refreshing page is safest or we can force a reload.
                   globalThis.location.reload();
-                } catch (error: any) {
+                } catch (error: unknown) {
                   toast.error(error.message || 'Error al importar el archivo');
                 } finally {
                   toast.dismiss(toastId);
@@ -460,7 +434,14 @@ export default function UnitsListPage() {
           </div>
         </div>
 
-        {loading ? (
+        {unitsError ? (
+          <div className="flex justify-center items-center p-12">
+            <div className="text-center">
+              <p className="text-red-500 font-medium">Error al cargar las unidades</p>
+              <p className="text-sm text-muted-foreground mt-2">{unitsError.message}</p>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex justify-center items-center p-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <span className="ml-2">Cargando unidades...</span>
