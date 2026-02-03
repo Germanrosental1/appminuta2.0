@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Paso 3: Composición F/SB - Gestión Inmobiliaria</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2463eb",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                        "card-dark": "#1a2233", // Slightly lighter than background
+                        "sidebar-dark": "#0d111a", // Deep dark sidebar
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-200">
+<div class="relative flex min-h-screen w-full flex-row overflow-x-hidden">
+<aside class="hidden lg:flex w-72 flex-col bg-sidebar-dark border-r border-slate-200 dark:border-[#242f47] min-h-screen sticky top-0 h-screen overflow-y-auto">
+<div class="p-6">
+<h2 class="text-white text-xl font-bold leading-tight">Gestión Inmobiliaria</h2>
+<p class="text-slate-400 text-sm mt-1">Asistente de Minutas</p>
+</div>
+<nav class="flex-1 px-4 pb-6 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-[#1a2233] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">domain</span>
+<span class="font-medium">Proyecto y Unidad</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-[#1a2233] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">group</span>
+<span class="font-medium">Propietarios</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1a2233] border border-[#242f47] text-white shadow-lg shadow-black/20" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary">payments</span>
+<span class="font-medium text-primary">Precio y Forma de Pago</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-[#1a2233] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">gavel</span>
+<span class="font-medium">Condiciones</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-[#1a2233] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">description</span>
+<span class="font-medium">Observaciones</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-[#1a2233] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">fact_check</span>
+<span class="font-medium">Revisión</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-[#1a2233] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">ink_pen</span>
+<span class="font-medium">Firmas</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-[#1a2233] hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">print</span>
+<span class="font-medium">Generar</span>
+</a>
+</nav>
+</aside>
+<div class="flex-1 flex flex-col h-screen overflow-y-auto">
+<header class="flex items-center justify-between border-b border-solid border-slate-200 dark:border-[#242f47] bg-white dark:bg-[#111622] px-6 lg:px-10 py-4 sticky top-0 z-40">
+<div class="flex items-center gap-4 lg:hidden">
+<div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">domain</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight">Gestión Inmobiliaria</h2>
+</div>
+<div class="hidden lg:block">
+<span class="text-sm text-slate-500 dark:text-[#92a4c8]">Paso 3 de 8: Configuración de Valores</span>
+</div>
+<div class="flex items-center gap-4 ml-auto">
+<button class="flex items-center justify-center rounded-full size-10 hover:bg-slate-100 dark:hover:bg-[#242f47] transition-colors text-slate-500 dark:text-[#92a4c8]">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-slate-200 dark:border-[#242f47]" data-alt="User profile avatar showing a smiling professional" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZyKFMVV61CfuwS9tXHdkkcz3VxkwqKgL5Wvv9sHddwuaV9sRE9uQEO3HlEQAnB-n76VIc3T5yZNZUAZRoTGiToEPD6zvNLBn9YKTcLO8FKmw8mAky4Us0Shl80Ax6yLnIYq-iz8r6pkUXhNDeoRRCIDpzmrsuaYRCgxLozjgoS4VhNl9RBMI8Cf_3sIOCqVgR7Nz2gGd6EXDfhfF3-rwgWeWuEs0w1GB36_NMFkV2Dlqq6HW5CXGk1YSncRkZfTBCVpt_Ps3irmg");'>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
+<div class="w-full max-w-5xl flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<span class="text-slate-600 dark:text-[#92a4c8] text-sm font-medium">Paso 3 de 5</span>
+<span class="text-primary font-bold text-sm">60%</span>
+</div>
+<div class="h-2 w-full bg-slate-200 dark:bg-[#334366] rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 60%"></div>
+</div>
+</div>
+<div class="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-end">
+<div class="flex flex-col gap-2 max-w-xl">
+<h1 class="text-2xl md:text-3xl font-bold tracking-tight">Composición F/SB</h1>
+<p class="text-slate-500 dark:text-[#92a4c8] text-base">Defina la distribución del monto total de la operación entre la Parte F y la Parte SB.</p>
+</div>
+<div class="bg-white dark:bg-card-dark border border-slate-200 dark:border-[#242f47] rounded-xl p-5 flex flex-col gap-1 min-w-[240px] shadow-sm max-w-lg">
+<span class="text-slate-500 dark:text-[#92a4c8] text-xs font-bold uppercase tracking-wider">Precio total (unidad + adicionales)</span>
+<span class="text-3xl font-bold text-slate-900 dark:text-white my-1">USD 108.415,90</span>
+<div class="text-xs text-slate-500 dark:text-[#92a4c8] font-medium border-t border-slate-100 dark:border-[#242f47] pt-3 mt-1 leading-relaxed">
+                            Departamento: E1-201 - E1 - Piso 2 - Unidad 01 - $108.415,90
+                        </div>
+</div>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-[#242f47] shadow-sm overflow-hidden">
+<div class="p-4 sm:p-6 border-b border-slate-200 dark:border-[#242f47] flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50 dark:bg-[#1a2233]/50">
+<label class="text-sm font-medium text-slate-700 dark:text-slate-200">Modo de cálculo:</label>
+<div class="flex p-1 bg-slate-200 dark:bg-[#242f47] rounded-lg">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="mode" type="radio"/>
+<span class="block px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-500 dark:text-[#92a4c8] peer-checked:bg-white dark:peer-checked:bg-[#111622] peer-checked:text-primary peer-checked:shadow-sm">
+                                    Porcentaje (%)
+                                </span>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="mode" type="radio"/>
+<span class="block px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-500 dark:text-[#92a4c8] peer-checked:bg-white dark:peer-checked:bg-[#111622] peer-checked:text-primary peer-checked:shadow-sm">
+                                    Importe ($)
+                                </span>
+</label>
+</div>
+</div>
+<div class="p-4 sm:p-6 flex flex-col gap-6">
+<div class="hidden sm:grid grid-cols-12 gap-4 px-4 py-2 text-xs font-semibold text-slate-500 dark:text-[#92a4c8] uppercase tracking-wider">
+<div class="col-span-4">Concepto</div>
+<div class="col-span-3">Porcentaje / Valor</div>
+<div class="col-span-2">Moneda</div>
+<div class="col-span-3 text-right">Monto Resultante</div>
+</div>
+<div class="flex flex-col sm:grid sm:grid-cols-12 gap-4 items-center p-4 rounded-lg bg-slate-50 dark:bg-[#111622] border border-slate-200 dark:border-[#242f47]">
+<div class="col-span-4 w-full flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+<span class="font-bold text-sm">F</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-slate-900 dark:text-white">Parte F</span>
+<span class="text-xs text-slate-500 dark:text-[#92a4c8]">Fondo de comercio</span>
+</div>
+</div>
+<div class="col-span-3 w-full">
+<div class="relative">
+<input class="block w-full rounded-lg border-slate-300 dark:border-[#334366] bg-white dark:bg-[#1a2233] text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm pl-3 pr-8 py-2.5 shadow-sm" placeholder="0" type="number" value="70"/>
+<div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+<span class="text-slate-400 sm:text-sm">%</span>
+</div>
+</div>
+</div>
+<div class="col-span-2 w-full">
+<select class="block w-full rounded-lg border-slate-300 dark:border-[#334366] bg-white dark:bg-[#1a2233] text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm py-2.5 shadow-sm">
+<option>USD</option>
+<option>ARS</option>
+</select>
+</div>
+<div class="col-span-3 w-full flex sm:justify-end items-center">
+<div class="flex flex-col sm:items-end">
+<span class="text-sm text-slate-500 dark:text-[#92a4c8] sm:hidden">Monto calculado:</span>
+<span class="font-bold text-lg text-slate-900 dark:text-white">$105,000.00</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:grid sm:grid-cols-12 gap-4 items-center p-4 rounded-lg bg-slate-50 dark:bg-[#111622] border border-slate-200 dark:border-[#242f47]">
+<div class="col-span-4 w-full flex items-center gap-3">
+<div class="size-10 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0">
+<span class="font-bold text-sm">SB</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-slate-900 dark:text-white">Parte SB</span>
+<span class="text-xs text-slate-500 dark:text-[#92a4c8]">Servicios y Bienes</span>
+</div>
+</div>
+<div class="col-span-3 w-full">
+<div class="relative">
+<input class="block w-full rounded-lg border-slate-300 dark:border-[#334366] bg-white dark:bg-[#1a2233] text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm pl-3 pr-8 py-2.5 shadow-sm" placeholder="0" type="number" value="30"/>
+<div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+<span class="text-slate-400 sm:text-sm">%</span>
+</div>
+</div>
+</div>
+<div class="col-span-2 w-full">
+<select class="block w-full rounded-lg border-slate-300 dark:border-[#334366] bg-white dark:bg-[#1a2233] text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm py-2.5 shadow-sm">
+<option>USD</option>
+<option>ARS</option>
+</select>
+</div>
+<div class="col-span-3 w-full flex sm:justify-end items-center">
+<div class="flex flex-col sm:items-end">
+<span class="text-sm text-slate-500 dark:text-[#92a4c8] sm:hidden">Monto calculado:</span>
+<span class="font-bold text-lg text-slate-900 dark:text-white">$45,000.00</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-slate-50 dark:bg-[#1a2233]/50 px-6 py-4 border-t border-slate-200 dark:border-[#242f47]">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300">Distribución Visual</span>
+<span class="text-xs font-semibold text-green-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+                                Total 100%
+                            </span>
+</div>
+<div class="flex h-6 w-full rounded-full overflow-hidden bg-slate-200 dark:bg-[#334366]">
+<div class="bg-primary flex items-center justify-center text-[10px] text-white font-bold transition-all duration-500" style="width: 70%">70%</div>
+<div class="bg-indigo-500 flex items-center justify-center text-[10px] text-white font-bold transition-all duration-500" style="width: 30%">30%</div>
+</div>
+<div class="flex gap-4 mt-3 justify-center sm:justify-start">
+<div class="flex items-center gap-2">
+<div class="size-3 rounded-full bg-primary"></div>
+<span class="text-xs text-slate-500 dark:text-[#92a4c8]">Parte F</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-3 rounded-full bg-indigo-500"></div>
+<span class="text-xs text-slate-500 dark:text-[#92a4c8]">Parte SB</span>
+</div>
+</div>
+</div>
+</div>
+<div class="w-full max-w-5xl mt-8 flex justify-between items-center pb-8">
+<button class="px-6 py-2.5 rounded-lg border border-slate-300 dark:border-[#334366] text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-[#242f47] transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+                        Atrás
+                    </button>
+<button class="px-6 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all flex items-center gap-2">
+                        Siguiente
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

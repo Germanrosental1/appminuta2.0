@@ -313,24 +313,24 @@ export const Step5Cargos: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden">
-        <div className="bg-primary/10 p-4">
-          <h3 className="text-lg font-semibold">06. Cargos</h3>
+      <Card className="overflow-hidden bg-[#1a2233] border-[#334366]">
+        <div className="bg-[#0f131a] p-4 border-b border-[#334366]">
+          <h3 className="text-lg font-semibold text-white">06. Cargos</h3>
         </div>
         <CardContent className="p-0">
           <table className="w-full">
             <thead>
-              <tr className="bg-muted/50 border-b border-border">
-                <th className="p-3 text-left font-medium text-sm">Concepto</th>
-                <th className="p-3 text-left font-medium text-sm">Valor/%</th>
-                <th className="p-3 text-right font-medium text-sm">Monto</th>
-                <th className="p-3 text-right font-medium text-sm">Forma de Pago</th>
+              <tr className="bg-[#0f131a] border-b border-[#334366]">
+                <th className="p-3 text-left font-medium text-sm text-white">Concepto</th>
+                <th className="p-3 text-left font-medium text-sm text-white">Valor/%</th>
+                <th className="p-3 text-right font-medium text-sm text-white">Monto</th>
+                <th className="p-3 text-right font-medium text-sm text-white">Forma de Pago</th>
               </tr>
             </thead>
             <tbody>
               {/* Certificación Firmas */}
-              <tr className="border-b border-border">
-                <td className="p-4 font-medium">Certificación Firmas:</td>
+              <tr className="border-b border-[#334366]">
+                <td className="p-4 font-medium text-white">Certificación Firmas:</td>
                 <td className="p-4">
                   <CurrencyInput
                     value={data.certificacionFirmas}
@@ -338,9 +338,10 @@ export const Step5Cargos: React.FC = () => {
                     onBlur={handleBlur}
                     prefix="$"
                     min={0}
+                    className="bg-[#0f131a] border-[#334366] text-white h-9"
                   />
                 </td>
-                <td className="p-4 text-right font-medium">
+                <td className="p-4 text-right font-medium text-white">
                   {formatCurrency(data.certificacionFirmas)} ARS
                 </td>
                 <td className="p-4 text-right">
@@ -348,10 +349,10 @@ export const Step5Cargos: React.FC = () => {
                     value={data.certificacionFirmasPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("certificacionFirmasPago", value, "certificacionFirmas", "ARS")}
                   >
-                    <SelectTrigger className="w-[180px] text-blue-500">
+                    <SelectTrigger className="w-[180px] bg-[#0f131a] border-[#334366] text-white">
                       <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
                       <SelectItem value="Firma de Boleto">Pago: Firma de Boleto</SelectItem>
                       <SelectItem value="Fecha Posesión A">Pago: Fecha Posesión A</SelectItem>
                       <SelectItem value="Fecha Posesión B">Pago: Fecha Posesión B</SelectItem>
@@ -365,8 +366,8 @@ export const Step5Cargos: React.FC = () => {
               </tr>
 
               {/* Sellado */}
-              <tr className="border-b border-border">
-                <td className="p-4 font-medium">Sellado:</td>
+              <tr className="border-b border-[#334366]">
+                <td className="p-4 font-medium text-white">Sellado:</td>
                 <td className="p-4">
                   <Input
                     type="number"
@@ -375,10 +376,11 @@ export const Step5Cargos: React.FC = () => {
                     value={data.selladoPorcentaje || ""}
                     onChange={(e) => handleChange("selladoPorcentaje", e.target.value)}
                     onBlur={handleBlur}
+                    className="bg-[#0f131a] border-[#334366] text-white h-9"
                   />
-                  <div className="text-xs text-muted-foreground mt-1">% sobre Parte A (ARS)</div>
+                  <div className="text-xs text-slate-400 mt-1">% sobre Parte A (ARS)</div>
                 </td>
-                <td className="p-4 text-right font-medium">
+                <td className="p-4 text-right font-medium text-white">
                   {formatCurrency(data.selladoMonto)} ARS
                 </td>
                 <td className="p-4 text-right">
@@ -386,10 +388,10 @@ export const Step5Cargos: React.FC = () => {
                     value={data.selladoPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("selladoPago", value, "selladoPorcentaje", "ARS")}
                   >
-                    <SelectTrigger className="w-[180px] text-blue-500">
+                    <SelectTrigger className="w-[180px] bg-[#0f131a] border-[#334366] text-white">
                       <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
                       <SelectItem value="Firma de Boleto">Pago: Firma de Boleto</SelectItem>
                       <SelectItem value="Fecha Posesión A">Pago: Fecha Posesión A</SelectItem>
                       <SelectItem value="Fecha Posesión B">Pago: Fecha Posesión B</SelectItem>
@@ -403,8 +405,8 @@ export const Step5Cargos: React.FC = () => {
               </tr>
 
               {/* Alhajamiento */}
-              <tr className="border-b border-border">
-                <td className="p-4 font-medium">Alhajamiento:</td>
+              <tr className="border-b border-[#334366]">
+                <td className="p-4 font-medium text-white">Alhajamiento:</td>
                 <td className="p-4">
                   <Input
                     type="number"
@@ -413,10 +415,11 @@ export const Step5Cargos: React.FC = () => {
                     value={data.alhajamiemtoPorcentaje || ""}
                     onChange={(e) => handleChange("alhajamiemtoPorcentaje", e.target.value)}
                     onBlur={handleBlur}
+                    className="bg-[#0f131a] border-[#334366] text-white h-9"
                   />
-                  <div className="text-xs text-muted-foreground mt-1">% sobre Precio Total</div>
+                  <div className="text-xs text-slate-400 mt-1">% sobre Precio Total</div>
                 </td>
-                <td className="p-4 text-right font-medium">
+                <td className="p-4 text-right font-medium text-white">
                   {formatCurrency(data.alhajamiemtoMonto)} USD
                 </td>
                 <td className="p-4 text-right">
@@ -424,10 +427,10 @@ export const Step5Cargos: React.FC = () => {
                     value={data.alhajamiemtoPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("alhajamiemtoPago", value, "alhajamiemtoPorcentaje", "USD")}
                   >
-                    <SelectTrigger className="w-[180px] text-blue-500">
+                    <SelectTrigger className="w-[180px] bg-[#0f131a] border-[#334366] text-white">
                       <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
                       <SelectItem value="Firma de Boleto">Pago: Firma de Boleto</SelectItem>
                       <SelectItem value="Fecha Posesión A">Pago: Fecha Posesión A</SelectItem>
                       <SelectItem value="Fecha Posesión B">Pago: Fecha Posesión B</SelectItem>
@@ -441,20 +444,21 @@ export const Step5Cargos: React.FC = () => {
               </tr>
 
               {/* Planos Unidad */}
-              <tr className="border-b border-border">
-                <td className="p-4 font-medium">Planos Unidad:</td>
+              <tr className="border-b border-[#334366]">
+                <td className="p-4 font-medium text-white">Planos Unidad:</td>
                 <td className="p-4">
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center text-white">
                     <CurrencyInput
                       value={data.planosUnidadValorM2}
                       onChange={(value) => handleChange("planosUnidadValorM2", value.toString())}
                       onBlur={handleBlur}
                       prefix="$"
                       min={0}
+                      className="bg-[#0f131a] border-[#334366] text-white h-9"
                     />
                     <span>USD</span>
                   </div>
-                  <div className="mt-2 flex gap-2 items-center">
+                  <div className="mt-2 flex gap-2 items-center text-white">
                     <Input
                       type="number"
                       min="0"
@@ -462,12 +466,12 @@ export const Step5Cargos: React.FC = () => {
                       value={data.planosUnidadM2 || ""}
                       onChange={(e) => handleChange("planosUnidadM2", e.target.value)}
                       onBlur={handleBlur}
-                      className="border-pink-100 bg-pink-50"
+                      className="border-[#334366] bg-[#0f131a] text-white h-9"
                     />
                     <span>m²</span>
                   </div>
                 </td>
-                <td className="p-4 text-right font-medium">
+                <td className="p-4 text-right font-medium text-white">
                   {formatCurrency(data.planosUnidadMonto)} USD
                 </td>
                 <td className="p-4 text-right">
@@ -475,10 +479,10 @@ export const Step5Cargos: React.FC = () => {
                     value={data.planosUnidadPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("planosUnidadPago", value, "planosUnidadM2", "USD")}
                   >
-                    <SelectTrigger className="w-[180px] text-blue-500">
+                    <SelectTrigger className="w-[180px] bg-[#0f131a] border-[#334366] text-white">
                       <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
                       <SelectItem value="Firma de Boleto">Pago: Firma de Boleto</SelectItem>
                       <SelectItem value="Fecha Posesión A">Pago: Fecha Posesión A</SelectItem>
                       <SelectItem value="Fecha Posesión B">Pago: Fecha Posesión B</SelectItem>
@@ -492,20 +496,21 @@ export const Step5Cargos: React.FC = () => {
               </tr>
 
               {/* Planos Cochera */}
-              <tr className="border-b border-border">
-                <td className="p-4 font-medium">Planos Cochera:</td>
+              <tr className="border-b border-[#334366]">
+                <td className="p-4 font-medium text-white">Planos Cochera:</td>
                 <td className="p-4">
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center text-white">
                     <CurrencyInput
                       value={data.planosCocheraValor}
                       onChange={(value) => handleChange("planosCocheraValor", value.toString())}
                       onBlur={handleBlur}
                       prefix="$"
                       min={0}
+                      className="bg-[#0f131a] border-[#334366] text-white h-9"
                     />
                     <span>USD</span>
                   </div>
-                  <div className="mt-2 flex gap-2 items-center">
+                  <div className="mt-2 flex gap-2 items-center text-white">
                     <Input
                       type="number"
                       min="0"
@@ -513,12 +518,12 @@ export const Step5Cargos: React.FC = () => {
                       value={data.cantidadCocheras || 0}
                       onChange={(e) => handleChange("cantidadCocheras", e.target.value)}
                       onBlur={handleBlur}
-                      className="border-pink-100 bg-pink-50 w-20"
+                      className="border-[#334366] bg-[#0f131a] w-20 text-white h-9"
                     />
                     <span className="text-sm">Cocheras</span>
                   </div>
                 </td>
-                <td className="p-4 text-right font-medium">
+                <td className="p-4 text-right font-medium text-white">
                   {formatCurrency(data.planosCocheraMonto)} USD
                 </td>
                 <td className="p-4 text-right">
@@ -526,10 +531,10 @@ export const Step5Cargos: React.FC = () => {
                     value={data.planosCocheraPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("planosCocheraPago", value, "planosCocheraValor", "USD")}
                   >
-                    <SelectTrigger className="w-[180px] text-blue-500">
+                    <SelectTrigger className="w-[180px] bg-[#0f131a] border-[#334366] text-white">
                       <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
                       <SelectItem value="Firma de Boleto">Pago: Firma de Boleto</SelectItem>
                       <SelectItem value="Fecha Posesión A">Pago: Fecha Posesión A</SelectItem>
                       <SelectItem value="Fecha Posesión B">Pago: Fecha Posesión B</SelectItem>
@@ -543,8 +548,8 @@ export const Step5Cargos: React.FC = () => {
               </tr>
 
               {/* Otros gastos */}
-              <tr className="border-b border-border">
-                <td className="p-4 font-medium">Otros gastos</td>
+              <tr className="border-b border-[#334366]">
+                <td className="p-4 font-medium text-white">Otros gastos</td>
                 <td className="p-4">
                   <CurrencyInput
                     value={data.otrosGastos}
@@ -552,9 +557,10 @@ export const Step5Cargos: React.FC = () => {
                     onBlur={handleBlur}
                     prefix="$"
                     min={0}
+                    className="bg-[#0f131a] border-[#334366] text-white h-9"
                   />
                 </td>
-                <td className="p-4 text-right font-medium">
+                <td className="p-4 text-right font-medium text-white">
                   {formatCurrency(data.otrosGastos)} USD
                 </td>
                 <td className="p-4 text-right">
@@ -562,10 +568,10 @@ export const Step5Cargos: React.FC = () => {
                     value={data.otrosGastosPago}
                     onValueChange={(value: FormaPagoInternal) => handleFormaPagoChange("otrosGastosPago", value, "otrosGastos", "USD")}
                   >
-                    <SelectTrigger className="w-[180px] text-blue-500">
+                    <SelectTrigger className="w-[180px] bg-[#0f131a] border-[#334366] text-white">
                       <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
                       <SelectItem value="Firma de Boleto">Pago: Firma de Boleto</SelectItem>
                       <SelectItem value="Fecha Posesión A">Pago: Fecha Posesión A</SelectItem>
                       <SelectItem value="Fecha Posesión B">Pago: Fecha Posesión B</SelectItem>
@@ -579,21 +585,21 @@ export const Step5Cargos: React.FC = () => {
               </tr>
 
               {/* Total cargos ARS */}
-              <tr className="border-b border-border bg-blue-50">
-                <td colSpan={2} className="p-4 font-bold text-blue-600">
+              <tr className="border-b border-[#334366] bg-blue-900/20">
+                <td colSpan={2} className="p-4 font-bold text-blue-400">
                   Total cargos ARS
                 </td>
-                <td colSpan={2} className="p-4 text-right font-bold text-blue-600">
+                <td colSpan={2} className="p-4 text-right font-bold text-blue-400">
                   {formatCurrency(data.totalCargosArs)} ARS
                 </td>
               </tr>
 
               {/* Total cargos USD */}
-              <tr className="bg-blue-50">
-                <td colSpan={2} className="p-4 font-bold text-blue-600">
+              <tr className="bg-blue-900/20">
+                <td colSpan={2} className="p-4 font-bold text-blue-400">
                   Total cargos USD
                 </td>
-                <td colSpan={2} className="p-4 text-right font-bold text-blue-600">
+                <td colSpan={2} className="p-4 text-right font-bold text-blue-400">
                   {formatCurrency(data.totalCargosUsd)} USD
                 </td>
               </tr>
@@ -602,13 +608,18 @@ export const Step5Cargos: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-        <p className="font-medium mb-1">💡 Tip:</p>
-        <p>
-          Complete los campos resaltados en amarillo. Los montos se calcularán automáticamente.
-          El sellado se calcula como porcentaje de la parte A en ARS, el alhajamiento como porcentaje del precio total,
-          los planos de unidad según los metros cuadrados, y los planos de cocheras según la cantidad de cocheras.
-        </p>
+      <div className="rounded-lg bg-blue-900/10 border border-blue-900/30 p-4 text-sm text-slate-300">
+        <div className="flex gap-2 items-start">
+          <span className="text-blue-400 mt-0.5">💡</span>
+          <div>
+            <p className="font-medium mb-1 text-white">Tip:</p>
+            <p>
+              Complete los campos. Los montos se calcularán automáticamente.
+              El sellado se calcula como porcentaje de la parte A en ARS, el alhajamiento como porcentaje del precio total,
+              los planos de unidad según los metros cuadrados, y los planos de cocheras según la cantidad de cocheras.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -84,11 +84,33 @@ export const LoginPage: React.FC = () => {
   // If user exists, we're redirecting (or about to), don't show login form
   if (user) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  return <LoginForm />;
+  return (
+    <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased">
+      {/* Background Decor: Subtle Gradient */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-slate-200 dark:from-[#0f141e] dark:to-[#1a2233] opacity-80"></div>
+        {/* Glow effect */}
+        <div className="absolute top-[-20%] left-[-10%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[100px]"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]"></div>
+      </div>
+
+      {/* Main Content */}
+      <div className="layout-container flex h-full grow flex-col z-10 justify-center items-center p-4">
+        <LoginForm />
+
+        {/* Footer Info */}
+        <div className="mt-8 text-center">
+          <p className="text-slate-400 dark:text-slate-600 text-xs">
+            © 2025 AppMinuta. Todos los derechos reservados.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 };

@@ -54,15 +54,15 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
     } = props;
 
     return (
-        <Card className="border-primary/50">
+        <Card className="border-[#334366] bg-[#1a2233] text-white">
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-lg text-white">
                         {modoEdicion ? 'Editar' : 'Agregar'} {tipoUnidad}
                     </CardTitle>
-                    <Badge variant="outline">{tipoUnidad}</Badge>
+                    <Badge variant="outline" className="border-blue-500/50 text-blue-400">{tipoUnidad}</Badge>
                 </div>
-                <CardDescription>
+                <CardDescription className="text-[#92a4c8]">
                     Complete los datos para {modoEdicion ? 'actualizar' : 'agregar'} esta unidad
                 </CardDescription>
             </CardHeader>
@@ -71,8 +71,8 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                 {/* PROYECTO - Show as text if locked, otherwise dropdown */}
                 {proyectoBloqueado ? (
                     <div className="space-y-2">
-                        <span className="text-sm font-medium">Proyecto</span>
-                        <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
+                        <span className="text-sm font-medium text-white">Proyecto</span>
+                        <div className="flex items-center h-10 px-3 rounded-md border border-[#334366] bg-[#0f131a] text-white">
                             <span>{proyectoSeleccionado}</span>
                         </div>
                     </div>
@@ -85,6 +85,8 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                         onChange={onProyectoChange}
                         loading={loadingProyectos}
                         error={errors.proyecto}
+                        triggerClassName="bg-[#0f131a] border-[#334366] text-white"
+                        contentClassName="bg-[#1a2233] border-[#334366] text-white"
                     />
                 )}
 
@@ -98,6 +100,8 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                         onChange={onEtapaChange}
                         loading={loadingEtapas}
                         error={errors.etapa}
+                        triggerClassName="bg-[#0f131a] border-[#334366] text-white"
+                        contentClassName="bg-[#1a2233] border-[#334366] text-white"
                     />
                 )}
 
@@ -113,15 +117,17 @@ export const UnidadFormulario: React.FC<UnidadFormularioProps> = (props) => {
                         error={errors.unidad}
                         isUnidadSelect
                         searchable={true}
+                        triggerClassName="bg-[#0f131a] border-[#334366] text-white"
+                        contentClassName="bg-[#1a2233] border-[#334366] text-white"
                     />
                 )}
             </CardContent>
 
             <CardFooter className="flex justify-end gap-2">
-                <Button variant="outline" onClick={onCancelar}>
+                <Button variant="outline" onClick={onCancelar} className="border-[#334366] text-[#92a4c8] hover:bg-[#334366] hover:text-white">
                     Cancelar
                 </Button>
-                <Button onClick={onAgregar} disabled={!unidadSeleccionada}>
+                <Button onClick={onAgregar} disabled={!unidadSeleccionada} className="bg-primary hover:bg-blue-600">
                     {modoEdicion ? 'Actualizar' : 'Agregar'} Unidad
                 </Button>
             </CardFooter>

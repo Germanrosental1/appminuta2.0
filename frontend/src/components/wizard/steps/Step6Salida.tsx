@@ -74,7 +74,7 @@ export const Step6Salida: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold">Resumen de la Operación</h2>
+        <h2 className="text-2xl font-bold text-white">Resumen de la Operación</h2>
       </div>
 
       <div ref={resumenRef}>

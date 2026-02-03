@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, RefreshCw, Home } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface WizardLayoutProps {
   children: React.ReactNode;
@@ -91,59 +92,135 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="container max-w-4xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-foreground">Minuta Comercial</h1>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/">
-                  <Home className="w-4 h-4 mr-2" />
-                  Volver al Dashboard
-                </Link>
-              </Button>
-              <Button variant="destructive" size="sm" onClick={handleReset}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reiniciar
-              </Button>
-            </div>
-          </div>
-          <div className="space-y-2 mt-4">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Paso {currentStep + 1} de {titles.length}</span>
-              <span>{Math.round(progress)}% completado</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-            <p className="text-lg font-medium text-foreground">{titles[currentStep]}</p>
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Sidebar Steps (Desktop) */}
+      <aside className="hidden w-80 flex-col border-r border-border bg-[#111622] p-6 lg:flex">
+        <div className="mb-8 flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
+              <span className="material-symbols-outlined text-lg">apartment</span>
+            </span>
+            <span>AppMinuta</span>
+          </Link>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pr-2">
+          <div className="space-y-1">
+            {titles.map((title, index) => {
+              const isActive = currentStep === index;
+              const isCompleted = index < currentStep;
+
+              return (
+                <div
+                  key={index}
+                  onClick={() => {
+                    if (isEditMode && index === 0) {
+                      toast.error("En modo edición no puedes cambiar el proyecto/unidad");
+                      return;
+                    }
+                    setCurrentStep(index);
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 cursor-pointer",
+                    isActive
+                      ? "bg-primary text-white shadow-lg shadow-blue-900/20"
+                      : isCompleted
+                        ? "text-[#92a4c8] hover:bg-white/5 hover:text-white"
+                        : "text-slate-600 dark:text-slate-500 hover:text-slate-400"
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all",
+                    isActive
+                      ? "border-white bg-white text-primary"
+                      : isCompleted
+                        ? "border-green-500 bg-green-500 text-white"
+                        : "border-slate-600 bg-transparent text-slate-600"
+                  )}>
+                    {isCompleted ? (
+                      <span className="material-symbols-outlined text-sm font-bold">check</span>
+                    ) : (
+                      <span className="text-xs font-bold">{index + 1}</span>
+                    )}
+                  </div>
+                  <span className="font-semibold">{title}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Content */}
-        <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6" data-step={currentStep + 1}>
-          {children}
+        {/* Bottom Actions */}
+        <div className="mt-4 pt-4 border-t border-slate-800">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-white/5"
+            onClick={handleReset}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reiniciar Minuta
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col overflow-hidden relative">
+        {/* Background Gradients */}
+        <div className="absolute inset-0 z-0 pointer-events-none bg-[#0f131a]">
+          <div className="absolute top-0 right-0 h-[500px] w-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
         </div>
 
-        {/* Navigation */}
+        {/* Mobile Header (visible only on small screens) */}
+        <header className="flex h-16 items-center justify-between border-b border-border bg-[#111622] px-4 lg:hidden z-20">
+          <span className="font-bold text-white">Paso {currentStep + 1}: {titles[currentStep]}</span>
+          <span className="text-xs text-slate-400">{Math.round(progress)}%</span>
+        </header>
+
+        {/* Scrollable Content */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 z-10">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-6 lg:hidden">
+              <Progress value={progress} className="h-2 w-full" />
+            </div>
+
+            <div className="mb-8 hidden lg:block">
+              <h2 className="text-3xl font-display font-bold text-white mb-2">{titles[currentStep]}</h2>
+              <p className="text-[#92a4c8]">Complete la información solicitada para avanzar.</p>
+            </div>
+
+            <div className="bg-[#1a2233]/80 backdrop-blur-xl rounded-2xl border border-[#334366] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+              {/* Glow inside card */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-primary opacity-50"></div>
+              {children}
+            </div>
+          </div>
+        </main>
+
+        {/* Footer Navigation (Sticky) */}
         {!hideNavigation && (
-          <div className="flex items-center justify-between">
+          <footer className="h-20 border-t border-[#334366] bg-[#111622] px-8 flex items-center justify-between z-20">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={handleBack}
               disabled={currentStep === 0 || (isEditMode && currentStep === 1)}
+              className="text-[#92a4c8] hover:text-white hover:bg-white/5"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Volver
             </Button>
 
-            {!finalStep && (
-              <Button onClick={handleNext}>
-                Siguiente
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-          </div>
+            <div className="flex gap-4">
+              {!finalStep && (
+                <Button
+                  onClick={handleNext}
+                  className="h-12 bg-primary px-8 text-base font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-600 rounded-xl"
+                >
+                  Siguiente Paso
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </footer>
         )}
       </div>
     </div>

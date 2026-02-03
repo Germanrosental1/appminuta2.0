@@ -223,10 +223,10 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
           Guardar Minuta
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh] bg-[#1a2233] border-[#334366]">
         <DialogHeader>
-          <DialogTitle>Confirmar Guardar Minuta</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white">Confirmar Guardar Minuta</DialogTitle>
+          <DialogDescription className="text-slate-400">
             Revisa los datos antes de guardar la minuta definitiva
           </DialogDescription>
         </DialogHeader>
@@ -240,8 +240,8 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
             <TabsTrigger value="json">Datos JSON</TabsTrigger>
           </TabsList>
           <TabsContent value="resumen" className="mt-4">
-            <ScrollArea className="h-[50vh]">
-              <Card>
+            <ScrollArea className="h-[50vh] bg-[#0f131a] rounded-md border border-[#334366]">
+              <Card className="bg-transparent border-none">
                 <CardContent className="pt-6">
                   <MapaVentasContent
                     loading={loadingMapaVentas}
@@ -252,10 +252,10 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
             </ScrollArea>
           </TabsContent>
           <TabsContent value="json" className="mt-4">
-            <ScrollArea className="h-[50vh]">
-              <Card>
+            <ScrollArea className="h-[50vh] bg-[#0f131a] rounded-md border border-[#334366]">
+              <Card className="bg-transparent border-none">
                 <CardContent className="pt-6">
-                  <pre className="text-xs overflow-auto">
+                  <pre className="text-xs overflow-auto text-slate-300">
                     {JSON.stringify(datosParaGuardar, null, 2)}
                   </pre>
                 </CardContent>
@@ -428,9 +428,9 @@ const MapaVentasContent: React.FC<{ loading: boolean; datos: any[] }> = ({ loadi
           : `Unidad ${index + 1}`;
 
         return (
-          <div key={wizardData?.id || index} className="border rounded-lg p-4 bg-muted/30">
-            <h4 className="font-semibold text-primary mb-3 flex items-center gap-2">
-              <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm">
+          <div key={wizardData?.id || index} className="border border-[#334366] rounded-lg p-4 bg-[#0f131a]">
+            <h4 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
+              <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">
                 {index + 1}
               </span>
               {titulo}
@@ -439,14 +439,14 @@ const MapaVentasContent: React.FC<{ loading: boolean; datos: any[] }> = ({ loadi
             {datosFormateados.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {datosFormateados.map(({ label, value }) => (
-                  <div key={label} className="border-b pb-2">
-                    <span className="font-medium text-muted-foreground text-sm">{label}: </span>
-                    <span className="font-semibold">{value}</span>
+                  <div key={label} className="border-b border-[#334366] pb-2">
+                    <span className="font-medium text-slate-400 text-sm">{label}: </span>
+                    <span className="font-semibold text-white">{value}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-2 text-muted-foreground text-sm">
+              <div className="text-center py-2 text-slate-500 text-sm">
                 No hay datos adicionales disponibles
               </div>
             )}

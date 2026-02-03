@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Real Estate Minutas - Dashboard</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- FontAwesome for Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- BEGIN: Tailwind Config -->
+<script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#1a1d2d',
+                        main: '#0f111a',
+                        accent: '#2563eb', // Bright Blue
+                        accentHover: '#1d4ed8',
+                        danger: '#dc2626', // Red
+                        dangerHover: '#b91c1c',
+                        inputBg: '#1f2937', // Slightly lighter than main for inputs
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+<!-- END: Tailwind Config -->
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="custom-utilities">
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetic in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f111a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563; 
+        }
+        .glass-input {
+            background-color: #111827;
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            transition: all 0.2s ease;
+        }
+        .glass-input:focus {
+            background-color: #1f2937;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+    </style>
+<!-- END: Custom Styles -->
+</head>
+<body class="bg-main text-white h-screen flex overflow-hidden selection:bg-accent selection:text-white">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-sidebar flex-shrink-0 flex flex-col justify-between border-r border-gray-800" data-purpose="sidebar">
+<div>
+<!-- Sidebar Header/Logo -->
+<div class="h-20 flex items-center px-6 border-b border-gray-800">
+<i class="fas fa-building text-accent text-xl mr-3"></i>
+<h1 class="font-bold text-lg tracking-wide">Real Estate <span class="text-gray-400 font-normal">Minutas</span></h1>
+</div>
+<!-- Navigation Links -->
+<nav class="p-4 space-y-2 mt-2">
+<!-- Dashboard Link -->
+<a class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors group" href="#">
+<i class="fa-solid fa-chart-line w-6 text-center mr-3 group-hover:text-accent transition-colors"></i>
+<span class="font-medium">Dashboard</span>
+</a>
+<!-- Wizard de Minutas (Active) -->
+<a class="flex items-center px-4 py-3 bg-accent text-white rounded-lg shadow-lg shadow-blue-900/20" href="#">
+<i class="fa-solid fa-wand-magic-sparkles w-6 text-center mr-3"></i>
+<span class="font-medium">Wizard de Minutas</span>
+</a>
+<!-- Configuración -->
+<a class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors group" href="#">
+<i class="fa-solid fa-gear w-6 text-center mr-3 group-hover:text-accent transition-colors"></i>
+<span class="font-medium">Configuración</span>
+</a>
+</nav>
+</div>
+<!-- Sidebar Footer / System Status -->
+<div class="p-4 mb-2">
+<div class="bg-[#131520] rounded-xl p-4 border border-gray-800">
+<p class="text-xs text-gray-500 font-bold tracking-wider mb-2">ESTADO DEL SISTEMA</p>
+<div class="flex items-center">
+<div class="w-2.5 h-2.5 rounded-full bg-green-500 mr-2 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+<span class="text-sm text-green-400 font-medium">En línea</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content Area -->
+<main class="flex-1 flex flex-col h-screen overflow-y-auto relative bg-main" data-purpose="main-layout">
+<!-- Header -->
+<header class="h-20 flex items-center justify-between px-8 border-b border-gray-800 bg-main sticky top-0 z-10">
+<h2 class="text-2xl font-semibold text-white">Minuta Comercial</h2>
+<div class="flex gap-4">
+<button class="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-800 hover:text-white transition-colors">
+                    Volver al Dashboard
+                </button>
+<button class="px-4 py-2 text-sm font-medium text-white bg-danger rounded-lg hover:bg-dangerHover transition-colors shadow-lg shadow-red-900/20">
+                    Reiniciar
+                </button>
+</div>
+</header>
+<!-- Content Container -->
+<div class="flex-1 px-8 py-8 max-w-5xl mx-auto w-full flex flex-col">
+<!-- Progress Section -->
+<section class="mb-10" data-purpose="progress-tracker">
+<div class="flex justify-between items-end mb-2 text-sm font-medium text-gray-400">
+<span>Paso 7 de 8</span>
+<span>86% completado</span>
+</div>
+<!-- Progress Bar Container -->
+<div class="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+<!-- Filled Bar -->
+<div class="bg-accent h-2.5 rounded-full" style="width: 86%"></div>
+</div>
+</section>
+<!-- Main Form Card -->
+<section class="flex-1 flex flex-col" data-purpose="form-section">
+<!-- Card Container -->
+<div class="border-2 border-accent rounded-2xl p-8 relative flex-grow flex flex-col backdrop-blur-sm bg-opacity-5">
+<!-- Form Header -->
+<div class="flex items-center gap-3 mb-8">
+<div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+<i class="fa-solid fa-user-pen"></i>
+</div>
+<h3 class="text-xl font-semibold text-white">Datos del Cliente Interesado</h3>
+</div>
+<!-- Input Fields Wrapper -->
+<div class="space-y-6 max-w-3xl">
+<!-- Field 1: Name -->
+<div class="group">
+<label class="block text-sm font-medium text-gray-300 mb-2">Nombre y Apellido</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<i class="fa-regular fa-user text-gray-500 group-focus-within:text-accent transition-colors"></i>
+</div>
+<input class="bg-gray-900 text-white border border-gray-700 block w-full pl-10 pr-3 py-3 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent sm:text-sm" placeholder="Ej: Juan Pérez" type="text"/>
+</div>
+</div>
+<!-- Field 2: Phone -->
+<div class="group">
+<label class="block text-sm font-medium text-gray-300 mb-2">Teléfono</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<i class="fa-solid fa-phone text-gray-500 group-focus-within:text-accent transition-colors"></i>
+</div>
+<input class="bg-gray-900 text-white border border-gray-700 block w-full pl-10 pr-3 py-3 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent sm:text-sm" placeholder="Ej: 3416412391" type="text"/>
+</div>
+<p class="mt-2 text-xs text-gray-500">Número de contacto del cliente (sin espacios ni guiones)</p>
+</div>
+<!-- Info/Tip Box -->
+<div class="mt-8 p-4 border border-accent/20 rounded-lg flex gap-3 items-start bg-[rgba(37,99,235,0.2)]">
+<i class="fa-regular fa-lightbulb text-accent mt-0.5 text-lg flex-shrink-0"></i>
+<div>
+<h4 class="text-accent font-semibold text-sm mb-1">Tip</h4>
+<p class="text-sm leading-relaxed text-blue-200">
+                                    Estos datos se utilizarán para identificar al cliente interesado en la operación. Si el cliente ya existe en el sistema, se vinculará automáticamente. Si es nuevo, se creará un registro.
+                                </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Buttons -->
+<div class="flex justify-end gap-4 mt-8 pb-8">
+<button class="px-6 py-2.5 text-sm font-medium text-white border rounded-lg hover:bg-gray-800 transition-colors border-white">
+                        Volver
+                    </button>
+<button class="px-6 py-2.5 text-sm font-medium text-white bg-accent rounded-lg hover:bg-accentHover transition-colors shadow-lg shadow-blue-900/30 flex items-center gap-2">
+                        Siguiente <i class="fa-solid fa-arrow-right text-xs"></i>
+</button>
+</div>
+</section>
+</div>
+</main>
+<!-- END: Main Content Area -->
+</body></html>

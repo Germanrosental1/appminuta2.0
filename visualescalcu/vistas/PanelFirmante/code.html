@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Panel de Firmante - Real Estate Minutas</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2463eb",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                        "surface-dark": "#1a2233",
+                        "border-dark": "#242f47",
+                        "text-secondary": "#92a4c8"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display antialiased overflow-hidden">
+<div class="flex h-screen w-full overflow-hidden text-slate-900 dark:text-white">
+<aside class="flex w-64 flex-col border-r border-gray-200 dark:border-border-dark bg-white dark:bg-surface-dark transition-all duration-300">
+<div class="flex items-center gap-3 px-6 h-16 border-b border-gray-100 dark:border-border-dark shrink-0">
+<div class="size-8 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined !text-[32px]">apartment</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-base font-bold leading-tight tracking-[-0.015em] line-clamp-1">Real Estate Minutas</h2>
+</div>
+<nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+<a class="group flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-400 font-bold transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-border-dark hover:text-slate-900 dark:hover:text-white font-medium transition-colors" href="#">
+<span class="material-symbols-outlined">magic_button</span>
+<span>Wizard de Minutas</span>
+</a>
+<a class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-border-dark hover:text-slate-900 dark:hover:text-white font-medium transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Configuración</span>
+</a>
+</nav>
+<div class="p-4 border-t border-gray-200 dark:border-border-dark">
+<div class="rounded-lg bg-gray-50 dark:bg-background-dark p-4">
+<p class="text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase mb-2">Estado del Sistema</p>
+<div class="flex items-center gap-2">
+<span class="flex size-2 rounded-full bg-green-500"></span>
+<span class="text-sm font-medium dark:text-white">En línea</span>
+</div>
+</div>
+</div>
+</aside>
+<div class="flex flex-1 flex-col h-full min-w-0 bg-background-light dark:bg-background-dark">
+<header class="flex h-16 items-center justify-between border-b border-solid border-gray-200 dark:border-border-dark bg-white/95 dark:bg-surface-dark/95 backdrop-blur px-6 lg:px-10 shrink-0">
+<div class="flex items-center gap-4"></div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="hidden sm:flex gap-2">
+<button class="group flex cursor-pointer items-center justify-center overflow-hidden rounded-lg size-10 hover:bg-gray-100 dark:hover:bg-border-dark text-slate-600 dark:text-text-secondary transition-colors" title="Notificaciones">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="group flex cursor-pointer items-center justify-center overflow-hidden rounded-lg size-10 hover:bg-gray-100 dark:hover:bg-border-dark text-slate-600 dark:text-text-secondary transition-colors" title="Ayuda">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<div class="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-border-dark">
+<div class="text-right hidden md:block">
+<p class="text-sm font-bold leading-none text-slate-900 dark:text-white">Roberto Alvarez</p>
+<p class="text-xs text-text-secondary mt-1">Agente Firmante</p>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-primary/20" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCjl3WMaG-IV5XlOELvngq1G11RQNFmwLVQ-BEj71f5ArtGSgJyTb9FStVjmQeNiFFmO2amVmhYWUehiQdlzwfv66VB-YqjoUEsJuJi5YN_PDF5G0M-oMxWC0kKlM2zTQ_G4mlKEgYQf6ZM_F_mEQZlMGIql7DHwFrq1cUBCBKeWAGLC5iWRDwb84OuhQAYvnqwjME_CjgqhRAePgztbcwvjkPmd3RhSuLPeONtgwd7Vj6_OamQcc5MYUTCVcw7eRiVTHxxTbODmuk");'></div>
+</div>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-10">
+<div class="mx-auto max-w-[1200px] flex flex-col gap-8">
+<div class="flex flex-wrap justify-between items-end gap-3">
+<div class="flex min-w-72 flex-col gap-2">
+<h1 class="text-slate-900 dark:text-white text-3xl lg:text-4xl font-black leading-tight tracking-[-0.033em]">Mis Firmas</h1>
+<p class="text-slate-500 dark:text-text-secondary text-base font-normal leading-normal">Gestiona tus documentos inmobiliarios pendientes y firmados</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 bg-surface-dark border border-border-dark hover:bg-border-dark text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">history</span>
+                            Historial
+                        </button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+<div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-[#334366] p-5 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold text-slate-500 dark:text-text-secondary uppercase tracking-widest leading-tight">Total<br/>Minutas</span>
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary">folder</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-2xl font-black text-slate-900 dark:text-white">1,240</span>
+<span class="flex items-center gap-1 text-[11px] font-bold text-green-500">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                                +12% esta semana
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-[#334366] p-5 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold text-slate-500 dark:text-text-secondary uppercase tracking-widest leading-tight">Borradores</span>
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary">format_list_bulleted</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-2xl font-black text-slate-900 dark:text-white">210</span>
+<span class="text-[11px] font-medium text-slate-400 dark:text-text-secondary">Actualizado hace 2m</span>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-[#334366] p-5 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest leading-tight">Pendientes</span>
+<span class="material-symbols-outlined text-amber-500">hourglass_top</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-2xl font-black text-slate-900 dark:text-white">45</span>
+<span class="flex items-center gap-1 text-[11px] font-bold text-amber-500">
+<span class="material-symbols-outlined text-sm leading-none">priority_high</span>
+                                5 urgentes
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-[#334366] p-5 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest leading-tight">Firmadas</span>
+<span class="material-symbols-outlined text-blue-500" style="font-variation-settings: 'FILL' 1">verified</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-2xl font-black text-slate-900 dark:text-white">850</span>
+<span class="flex items-center gap-1 text-[11px] font-bold text-blue-500">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                                +15% esta semana
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-[#334366] p-5 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold text-red-500 uppercase tracking-widest leading-tight">Canceladas</span>
+<span class="material-symbols-outlined text-red-500">block</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-2xl font-black text-slate-900 dark:text-white">15</span>
+<span class="flex items-center gap-1 text-[11px] font-bold text-red-500">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+                                -2% esta semana
+                            </span>
+</div>
+</div>
+</div>
+<div>
+<div class="flex border-b border-gray-200 dark:border-[#334366] gap-8">
+<a class="relative flex items-center justify-center pb-3 pt-2 gap-2 text-primary border-b-[3px] border-primary" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Pendiente de Firma</p>
+<span class="flex items-center justify-center bg-primary text-white text-[10px] font-bold h-5 min-w-[20px] px-1 rounded-full shadow-sm">4</span>
+</a>
+<a class="flex items-center justify-center pb-3 pt-2 text-slate-500 dark:text-text-secondary border-b-[3px] border-transparent hover:text-slate-700 dark:hover:text-white transition-colors" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Firmadas</p>
+</a>
+<a class="flex items-center justify-center pb-3 pt-2 text-slate-500 dark:text-text-secondary border-b-[3px] border-transparent hover:text-slate-700 dark:hover:text-white transition-colors" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Rechazadas</p>
+</a>
+</div>
+</div>
+<div class="py-2">
+<div class="flex flex-col sm:flex-row gap-4 w-full">
+<label class="flex flex-col h-12 flex-1">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-[#334366] focus-within:ring-2 focus-within:ring-primary/50 transition-all shadow-sm">
+<div class="text-slate-400 dark:text-text-secondary flex items-center justify-center pl-4">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg bg-transparent text-slate-900 dark:text-white focus:outline-0 border-none h-full placeholder:text-slate-400 dark:placeholder:text-text-secondary px-4 text-base font-normal leading-normal" placeholder="Buscar por proyecto, unidad o fecha..." value=""/>
+</div>
+</label>
+<button class="flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-[#334366] text-slate-700 dark:text-white font-bold text-sm hover:bg-gray-50 dark:hover:bg-[#242f47] transition-colors shadow-sm">
+<span class="material-symbols-outlined">filter_list</span>
+                            Filtros
+                        </button>
+</div>
+</div>
+<div class="@container">
+<div class="flex flex-col overflow-hidden rounded-xl border border-gray-200 dark:border-[#334366] bg-white dark:bg-surface-dark shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full min-w-[900px]">
+<thead>
+<tr class="bg-gray-50 dark:bg-[#151c2b] border-b border-gray-200 dark:border-[#334366]">
+<th class="px-6 py-4 text-left text-slate-500 dark:text-text-secondary text-xs font-bold uppercase tracking-wider w-[20%]">Proyecto</th>
+<th class="px-6 py-4 text-left text-slate-500 dark:text-text-secondary text-xs font-bold uppercase tracking-wider w-[10%]">Unidad</th>
+<th class="px-6 py-4 text-left text-slate-500 dark:text-text-secondary text-xs font-bold uppercase tracking-wider w-[15%]">Comercial</th>
+<th class="px-6 py-4 text-left text-slate-500 dark:text-text-secondary text-xs font-bold uppercase tracking-wider w-[15%]">Fecha Creación</th>
+<th class="px-6 py-4 text-left text-slate-500 dark:text-text-secondary text-xs font-bold uppercase tracking-wider w-[15%]">Estado</th>
+<th class="px-6 py-4 text-right text-slate-500 dark:text-text-secondary text-xs font-bold uppercase tracking-wider w-[25%] pr-8">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100 dark:divide-[#334366]">
+<tr class="group hover:bg-gray-50 dark:hover:bg-[#1e2736] transition-colors">
+<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
+                                            Torre Altos
+                                            <span class="block text-xs font-normal text-slate-500 dark:text-text-secondary mt-0.5">Ref: #TA-2023-001</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">Apt 402</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400">JP</div>
+                                                Juan Pérez
+                                            </div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-text-secondary">24 Oct 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                                Aprobada
+                                            </span>
+</td>
+<td class="px-6 py-3">
+<div class="flex items-center justify-end gap-2">
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Ver Detalles">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 dark:text-text-secondary dark:hover:text-red-400 transition-colors mr-2" title="Cancelar">
+<span class="material-symbols-outlined text-[20px]">cancel</span>
+</button>
+<button class="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all transform active:scale-95">
+<span class="material-symbols-outlined text-[18px]">ink_pen</span>
+                                                    Firmar
+                                                </button>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-gray-50 dark:hover:bg-[#1e2736] transition-colors">
+<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
+                                            Residencial Vista
+                                            <span class="block text-xs font-normal text-slate-500 dark:text-text-secondary mt-0.5">Ref: #RV-2023-089</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">Unidad 12B</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-[10px] font-bold text-purple-600 dark:text-purple-400">MG</div>
+                                                Maria G.
+                                            </div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-text-secondary">22 Oct 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+<span class="size-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                Pendiente
+                                            </span>
+</td>
+<td class="px-6 py-3">
+<div class="flex items-center justify-end gap-2">
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Ver Detalles">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<div class="w-px h-6 bg-gray-200 dark:bg-[#334366] mx-1"></div>
+<span class="text-xs text-slate-400 dark:text-text-secondary italic px-2">Esperando aprobación</span>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-gray-50 dark:hover:bg-[#1e2736] transition-colors">
+<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
+                                            Oficinas Centro
+                                            <span class="block text-xs font-normal text-slate-500 dark:text-text-secondary mt-0.5">Ref: #OC-2023-112</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">Oficina 505</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400">CR</div>
+                                                Carlos Ruiz
+                                            </div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-text-secondary">20 Oct 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                                Aprobada
+                                            </span>
+</td>
+<td class="px-6 py-3">
+<div class="flex items-center justify-end gap-2">
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Ver Detalles">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 dark:text-text-secondary dark:hover:text-red-400 transition-colors mr-2" title="Cancelar">
+<span class="material-symbols-outlined text-[20px]">cancel</span>
+</button>
+<button class="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all transform active:scale-95">
+<span class="material-symbols-outlined text-[18px]">ink_pen</span>
+                                                    Firmar
+                                                </button>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-gray-50 dark:hover:bg-[#1e2736] transition-colors">
+<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
+                                            Torre Altos
+                                            <span class="block text-xs font-normal text-slate-500 dark:text-text-secondary mt-0.5">Ref: #TA-2023-005</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">Apt 301</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-gray-300">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400">JP</div>
+                                                Juan Pérez
+                                            </div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-text-secondary">19 Oct 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                                Aprobada
+                                            </span>
+</td>
+<td class="px-6 py-3">
+<div class="flex items-center justify-end gap-2">
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Ver Detalles">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-[#2b3648] text-slate-400 hover:text-slate-600 dark:text-text-secondary dark:hover:text-white transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 dark:text-text-secondary dark:hover:text-red-400 transition-colors mr-2" title="Cancelar">
+<span class="material-symbols-outlined text-[20px]">cancel</span>
+</button>
+<button class="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all transform active:scale-95">
+<span class="material-symbols-outlined text-[18px]">ink_pen</span>
+                                                    Firmar
+                                                </button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-[#334366] bg-gray-50 dark:bg-[#1a2233]">
+<span class="text-sm text-slate-500 dark:text-text-secondary">Mostrando <span class="font-bold text-slate-900 dark:text-white">1-4</span> de <span class="font-bold text-slate-900 dark:text-white">12</span> elementos pendientes</span>
+<div class="flex gap-2">
+<button class="flex items-center justify-center size-8 rounded-lg border border-gray-300 dark:border-[#334366] text-slate-500 dark:text-text-secondary hover:bg-white dark:hover:bg-[#242f47] disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="flex items-center justify-center size-8 rounded-lg border border-gray-300 dark:border-[#334366] text-slate-500 dark:text-text-secondary hover:bg-white dark:hover:bg-[#242f47]">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+
+</body></html>

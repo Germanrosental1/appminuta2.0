@@ -22,8 +22,8 @@ interface ConfirmarGuardarMinutaProps {
   onSuccess?: () => void;
 }
 
-export const ConfirmarGuardarMinuta: React.FC<ConfirmarGuardarMinutaProps> = ({ 
-  unidadId, 
+export const ConfirmarGuardarMinuta: React.FC<ConfirmarGuardarMinutaProps> = ({
+  unidadId,
   wizardData,
   onSuccess
 }) => {
@@ -45,26 +45,31 @@ export const ConfirmarGuardarMinuta: React.FC<ConfirmarGuardarMinutaProps> = ({
 
     try {
       setSaving(true);
-      
-      await guardarMinutaProvisoria({
-        proyecto: wizardData.proyecto || 'Sin proyecto',
+
+      // Datos que se guardarán en la base de datos
+      const datosParaGuardar = {
+        Proyecto: wizardData.proyecto || 'Sin proyecto',
         UnidadId: unidadId,
-        UsuarioId: user.id,
-        datos: wizardData,
-        estado: 'pendiente'
-      });
-      
+        UsuarioId: user?.id || '',
+        Dato: wizardData,
+        Estado: 'pendiente' as const,
+        FechaCreacion: new Date().toISOString()
+      };
+      await guardarMinutaProvisoria(datosParaGuardar);
+
       toast({
         title: "Minuta guardada",
         description: "La minuta provisoria ha sido guardada exitosamente",
+        variant: "default", // Changed to default variant which usually means success/neutral in shadcn
+        className: "bg-green-600 text-white border-green-700"
       });
-      
+
       setOpen(false);
-      
+
       if (onSuccess) {
         onSuccess();
       }
-      
+
       // Redirigir al dashboard comercial después de un breve retraso
       setTimeout(() => {
         navigate('/comercial/dashboard');
@@ -86,199 +91,133 @@ export const ConfirmarGuardarMinuta: React.FC<ConfirmarGuardarMinutaProps> = ({
     return value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Datos que se guardarán en la base de datos
-  const datosParaGuardar = {
-    proyecto: wizardData.proyecto || 'Sin proyecto',
-    UnidadId: unidadId,
-    UsuarioId: user?.id || '',
-    datos: wizardData,
-    estado: 'pendiente' as const,
-    FechaCreacion: new Date().toISOString()
-  };
+  const SectionCard = ({ title, children, icon: Icon }: { title: string, children: React.ReactNode, icon?: React.ElementType }) => (
+    <div className="bg-[#1e293b] rounded-lg border border-slate-700 overflow-hidden shadow-lg mb-6">
+      <div className="bg-slate-800/50 border-b border-slate-700 p-4 flex items-center border-l-4 border-blue-500">
+        {Icon && <Icon className="w-5 h-5 text-blue-400 mr-2" />}
+        <h3 className="text-base font-semibold text-white">{title}</h3>
+      </div>
+      <div className="p-5">
+        {children}
+      </div>
+    </div>
+  );
+
+  const InfoRow = ({ label, value, isCurrency = false, highlight = false }: { label: string, value: string | number | undefined | null, isCurrency?: boolean, highlight?: boolean }) => (
+    <div className="mb-2">
+      <p className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className={`font-bold text-white ${highlight ? 'text-lg text-blue-400' : 'text-base'}`}>
+        {isCurrency ? `$${formatCurrency(value as number)}` : (value || "-")}
+      </p>
+    </div>
+  );
 
   return (
     <>
-      <Button 
-        onClick={() => setOpen(true)} 
-        className="bg-green-600 hover:bg-green-700"
+      <Button
+        onClick={() => setOpen(true)}
+        className="bg-green-600 hover:bg-green-700 font-semibold shadow-lg shadow-green-900/20"
       >
         <Save className="mr-2 h-4 w-4" />
         Guardar Minuta
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Confirmar Guardar Minuta</DialogTitle>
-            <DialogDescription>
-              Revisa la información que se guardará en la base de datos.
+        <DialogContent className="max-w-4xl bg-[#0f172a] border-slate-700 text-white">
+          <DialogHeader className="border-b border-slate-800 pb-4">
+            <DialogTitle className="text-2xl font-bold text-white">Confirmar Guardar Minuta</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Revisa la información antes de generar la minuta provisoria.
             </DialogDescription>
           </DialogHeader>
-          
-          <ScrollArea className="h-[500px] p-4 rounded-md border">
-            <div className="space-y-4">
-              <div className="bg-muted p-4 rounded-md">
-                <h3 className="font-medium mb-2">Datos de la Minuta</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">ID de Unidad:</p>
-                    <p className="font-medium">{unidadId}</p>
+
+          <ScrollArea className="h-[60vh] pr-4 mt-4">
+            <div className="space-y-6 pb-6">
+
+              {/* 1. Proyecto & Unidad */}
+              <SectionCard title="1. Proyecto & Unidad">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <InfoRow label="Proyecto" value={wizardData.proyecto} highlight />
+                  <InfoRow label="Unidad" value={wizardData.unidadDescripcion || wizardData.unidad} highlight />
+                  <InfoRow label="Fecha Posesión" value={wizardData.fechaPosesion} />
+                </div>
+              </SectionCard>
+
+              {/* 2. Datos Comerciales */}
+              <SectionCard title="2. Datos Comerciales">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <InfoRow label="Precio Lista" value={wizardData.precioLista} isCurrency />
+                  <InfoRow label="Precio Negociado" value={wizardData.precioNegociado} isCurrency highlight />
+                  <InfoRow label="Cocheras" value={wizardData.cocheras?.length || 0} />
+                  <InfoRow label="Baulera" value={wizardData.baulera ? "Sí" : "No"} />
+                </div>
+              </SectionCard>
+
+              {/* 3. Composición A/B */}
+              <SectionCard title="3. Composición A/B">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <InfoRow label="Modo A" value={wizardData.modoA === "porcentaje" ? "Porcentaje" : "Importe"} />
+                  <InfoRow label="Porcentaje A" value={wizardData.porcA ? `${wizardData.porcA}%` : "0%"} />
+                  <InfoRow label="Moneda A" value={wizardData.monedaA} />
+                  <InfoRow label="Moneda B" value={wizardData.monedaB} />
+                </div>
+              </SectionCard>
+
+              {/* 4. Pago */}
+              <SectionCard title="4. Pago">
+                <div className="grid grid-cols-2 gap-6">
+                  <InfoRow label="Tipo de Pago" value={wizardData.tipoPago} />
+                  <InfoRow label="Tipo de Cambio" value={wizardData.tcValor} isCurrency />
+                </div>
+              </SectionCard>
+
+              {/* 5. Cargos & Extras */}
+              <SectionCard title="5. Cargos & Extras">
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
+                  <InfoRow label="Total Cargos ARS" value={wizardData.totalCargosArs} isCurrency highlight />
+                  <InfoRow label="Total Cargos USD" value={wizardData.totalCargosUsd} isCurrency highlight />
+                </div>
+                {/* Detail of cargos could go here if needed */}
+              </SectionCard>
+
+              {/* 6. Reglas de Financiación */}
+              <SectionCard title="6. Reglas de Financiación">
+                <div className="grid grid-cols-2 gap-6 mb-4">
+                  <div className="bg-blue-900/20 p-4 rounded border border-blue-800/50">
+                    <p className="text-sm font-semibold text-blue-400 mb-2">Parte A (ARS)</p>
+                    <p className="text-2xl font-bold text-white">{wizardData.reglasFinanciacionA?.length || 0} <span className="text-sm font-normal text-slate-400">reglas</span></p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Usuario:</p>
-                    <p className="font-medium">{user?.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Estado:</p>
-                    <p className="font-medium">Pendiente</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Fecha de Creación:</p>
-                    <p className="font-medium">{new Date().toLocaleString()}</p>
+                  <div className="bg-emerald-900/20 p-4 rounded border border-emerald-800/50">
+                    <p className="text-sm font-semibold text-emerald-400 mb-2">Parte B (USD)</p>
+                    <p className="text-2xl font-bold text-white">{wizardData.reglasFinanciacionB?.length || 0} <span className="text-sm font-normal text-slate-400">reglas</span></p>
                   </div>
                 </div>
-              </div>
-              
-              <div className="bg-muted p-4 rounded-md">
-                <h3 className="font-medium mb-2">Datos del Wizard</h3>
-                
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium">1. Proyecto & Unidad</h4>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Proyecto:</p>
-                      <p className="font-medium">{wizardData.proyecto || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Unidad:</p>
-                      <p className="font-medium">{wizardData.unidadDescripcion || wizardData.unidad || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Fecha de Posesión:</p>
-                      <p className="font-medium">{wizardData.fechaPosesion || "-"}</p>
-                    </div>
-                  </div>
+              </SectionCard>
+
+              {/* 7. Datos Adicionales */}
+              <SectionCard title="7. Datos Adicionales">
+                <div className="grid grid-cols-2 gap-6">
+                  <InfoRow label="% Pagado a Posesión" value={wizardData.porcentajePagadoFechaPosesion ? `${wizardData.porcentajePagadoFechaPosesion}%` : "0%"} />
+                  <InfoRow label="Dólar Referencia" value={wizardData.dolarRef} isCurrency />
                 </div>
-                
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium">2. Datos Comerciales</h4>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Precio Lista:</p>
-                      <p className="font-medium">${formatCurrency(wizardData.precioLista)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Precio Negociado:</p>
-                      <p className="font-medium">${formatCurrency(wizardData.precioNegociado)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Cocheras:</p>
-                      <p className="font-medium">{wizardData.cocheras?.length || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Baulera:</p>
-                      <p className="font-medium">{wizardData.baulera ? "Sí" : "No"}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium">3. Composición A/B</h4>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Modo A:</p>
-                      <p className="font-medium">{wizardData.modoA === "porcentaje" ? "Porcentaje" : "Importe"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Porcentaje A:</p>
-                      <p className="font-medium">{wizardData.porcA || 0}%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Moneda A:</p>
-                      <p className="font-medium">{wizardData.monedaA || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Moneda B:</p>
-                      <p className="font-medium">{wizardData.monedaB || "-"}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium">4. Pago</h4>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tipo de Pago:</p>
-                      <p className="font-medium capitalize">{wizardData.tipoPago || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tipo de Cambio:</p>
-                      <p className="font-medium">${formatCurrency(wizardData.tcValor)}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium">5. Cargos & Extras</h4>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Cargos ARS:</p>
-                      <p className="font-medium">${formatCurrency(wizardData.totalCargosArs)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Cargos USD:</p>
-                      <p className="font-medium">${formatCurrency(wizardData.totalCargosUsd)}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium">6. Reglas de Financiación</h4>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Reglas Parte A:</p>
-                      <p className="font-medium">{wizardData.reglasFinanciacionA?.length || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Reglas Parte B:</p>
-                      <p className="font-medium">{wizardData.reglasFinanciacionB?.length || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium">7. Datos Adicionales</h4>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <p className="text-sm text-muted-foreground">% Pagado a Fecha Posesión:</p>
-                      <p className="font-medium">{wizardData.porcentajePagadoFechaPosesion || 0}%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Dólar Referencia:</p>
-                      <p className="font-medium">${formatCurrency(wizardData.dolarRef)}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-muted p-4 rounded-md">
-                <h3 className="font-medium mb-2">Estructura JSON para la Base de Datos</h3>
-                <pre className="text-xs bg-black text-white p-4 rounded-md overflow-auto">
-                  {JSON.stringify(datosParaGuardar, null, 2)}
-                </pre>
-              </div>
+              </SectionCard>
+
             </div>
           </ScrollArea>
-          
-          <DialogFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+
+          <DialogFooter className="flex justify-between border-t border-slate-800 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white"
+            >
               <X className="mr-2 h-4 w-4" />
               Cancelar
             </Button>
-            <Button 
-              onClick={handleGuardar} 
+            <Button
+              onClick={handleGuardar}
               disabled={saving}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6"
             >
               {saving ? (
                 <>

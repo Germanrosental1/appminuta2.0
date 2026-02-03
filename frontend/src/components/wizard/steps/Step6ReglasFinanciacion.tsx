@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, Check, X } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Check, X, Wallet, Coins, AlertTriangle, Landmark, ArrowRightLeft, Calendar as CalendarIconLucide } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from "uuid";
 import { ReglaFinanciacion, Moneda, PeriodicidadCuota } from "@/types/wizard";
@@ -340,6 +340,7 @@ const calculateBalanceB = (
 
 export const Step6ReglasFinanciacion: React.FC = () => {
   const { data, updateData } = useWizard();
+  const [activeTab, setActiveTab] = useState<"F" | "SB">("F");
   const fechaActual = new Date();
   const fechaHoy = format(fechaActual, "d/MM/yy");
 
@@ -749,548 +750,257 @@ export const Step6ReglasFinanciacion: React.FC = () => {
   const haySaldosPendientes = haySaldoRestanteA || haySaldoRestanteB;
 
   return (
-    <div className="space-y-8">
-      <div className="bg-muted p-4 rounded-lg">
-        <h2 className="text-xl font-bold text-blue-600">07. Reglas de Financiación F/SB</h2>
-      </div>
-
-      {haySaldosPendientes && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-          <div className="flex items-start">
-            <div className="text-red-600 text-2xl mr-3">⚠️</div>
-            <div>
-              <h3 className="font-bold text-red-700">Atención: Saldos pendientes de financiar</h3>
-              <p className="text-red-600 mt-1">
-                Para poder continuar al siguiente paso, debe cubrir el 100% del saldo a financiar con reglas de financiación.
-                {haySaldoRestanteA && (
-                  <span className="block mt-1">• Saldo pendiente en Parte F: ${formatCurrency(calcularSaldoRestanteA(), data.monedaA || "ARS")}</span>
-                )}
-                {data.ivaProyecto === "no incluido" && (data.montoIVA || 0) > 0 && (
-                  <span className="block mt-1 text-sm font-medium text-red-500/80">
-                    (Incluye IVA: +${formatCurrency(data.montoIVA || 0)})
-                  </span>
-                )}
-                {haySaldoRestanteB && (
-                  <span className="block mt-1">• Saldo pendiente en Parte SB: ${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</span>
-                )}
-              </p>
-            </div>
+    <div className="flex flex-col gap-8 pb-24">
+      {/* 3 Top Cards - Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1: Saldo Restante F */}
+        <div className="flex flex-col gap-1 rounded-xl p-5 bg-[#1a2233] border border-[#334366] shadow-sm">
+          <div className="flex items-center gap-2 text-white">
+            <Wallet className="w-5 h-5 text-blue-500" />
+            <p className="text-xs font-bold uppercase tracking-wider">Saldo Restante F ({data.monedaA || "ARS"})</p>
           </div>
+          <p className="text-2xl font-bold tracking-tight text-white mt-2">${formatCurrency(calcularSaldoRestanteA(), data.monedaA || "ARS")}</p>
         </div>
-      )}
 
-      <div className="grid grid-cols-4 gap-4 bg-blue-50 p-4 rounded-lg">
-        <div>
-          <h3 className="text-sm font-medium text-blue-700">Total a Financiar en F:</h3>
-          <p className="text-xl font-bold">${formatCurrency(totalFinanciarArs, data.monedaA || "ARS")}</p>
+        {/* Card 2: Saldo Restante SB */}
+        <div className="flex flex-col gap-1 rounded-xl p-5 bg-[#1a2233] border border-[#334366] shadow-sm">
+          <div className="flex items-center gap-2 text-white">
+            <Coins className="w-5 h-5 text-emerald-500" />
+            <p className="text-xs font-bold uppercase tracking-wider">Saldo Restante SB ({data.monedaB})</p>
+          </div>
+          <p className="text-2xl font-bold tracking-tight text-white mt-2">${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</p>
         </div>
-        <div>
-          <h3 className="text-sm font-medium text-blue-700">Total a Financiar en SB:</h3>
-          <p className="text-xl font-bold">${formatCurrency(totalFinanciarUsd, data.monedaB)}</p>
-        </div>
-        <div>
-          <h3 className="text-sm font-medium text-blue-700">Fecha de Posesión:</h3>
-          <p className="text-xl font-bold">{formatFechaPosesion(data.fechaPosesion) || "No definida"}</p>
-        </div>
-        <div>
-          <h3 className="text-sm font-medium text-blue-700">% pagado a fecha Posesión:</h3>
-          <p className={`text-xl font-bold ${porcentajePagado < 50 ? "text-red-600" : "text-green-600"}`}>{porcentajePagado}%</p>
+
+        {/* Card 3: Percentage Paid */}
+        <div className="flex flex-col justify-between gap-3 rounded-xl p-5 bg-[#1a2233] border border-rose-900/50 shadow-sm relative overflow-hidden">
+          <div className="flex justify-between items-start mb-2 relative z-10">
+            <p className="text-sm font-medium text-white">Pagado a posesión</p>
+            {porcentajePagado < 50 && <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-900/40 text-rose-300">Crítico</span>}
+          </div>
+          <div className="flex items-end gap-2 mb-2 relative z-10">
+            <p className="text-3xl font-bold text-white">{porcentajePagado}%</p>
+            <p className="text-sm text-rose-400 mb-1.5 font-medium">Requerido: 50%</p>
+          </div>
+          <div className="h-2.5 w-full rounded-full bg-[#334366] overflow-hidden relative z-10">
+            <div className={`h-full rounded-full ${porcentajePagado < 50 ? 'bg-rose-500' : 'bg-green-500'}`} style={{ width: `${Math.min(porcentajePagado, 100)}%` }}></div>
+          </div>
         </div>
       </div>
 
-      {/* Sección A - ARS */}
-      <Card className="border-2 border-blue-500">
-        <CardHeader className="bg-blue-500 text-white">
-          <CardTitle className="text-xl">Financiación Parte F ({data.monedaA || "ARS"})</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          {/* Reglas existentes */}
-          {(data.reglasFinanciacionA || []).length > 0 && (
-            <div className="space-y-4 mb-6">
-              {(data.reglasFinanciacionA || []).map((regla, index) => (
-                <Card key={regla.id} className="border border-gray-200">
-                  <CardHeader className="bg-blue-50 py-2 px-4 flex justify-between items-center">
-                    <CardTitle className="text-lg">Regla {index + 1}</CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => eliminarReglaA(regla.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-muted/50 border-b">
-                          <th className="p-3 text-left font-medium text-sm">Concepto</th>
-                          <th className="p-3 text-right font-medium text-sm" colSpan={2}>Valor</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">Saldo a Financiar (IVA incluido):</td>
-                          <td className="p-3 bg-yellow-50 text-right font-bold">
-                            {formatCurrency(regla.saldoFinanciar, regla.moneda)}
-                          </td>
-                          <td className="p-3 text-right font-bold text-blue-500">${regla.moneda}</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">Nº de cuotas:</td>
-                          <td className="p-3 bg-yellow-50 text-right font-bold" colSpan={2}>
-                            {regla.numCuotas}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">Periodicidad cuotas:</td>
-                          <td className="p-3 bg-yellow-50 text-right font-bold" colSpan={2}>
-                            {regla.periodicidad}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">Importe cuota:</td>
-                          <td className="p-3 text-right font-bold">
-                            {formatCurrency(regla.importeCuota, regla.moneda)}
-                          </td>
-                          <td className="p-3 text-right font-bold text-blue-500">${regla.moneda}</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">1º Vencimiento:</td>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.primerVencimiento}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3 font-medium">Último Vencimiento:</td>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.ultimoVencimiento}
-                          </td>
-                        </tr>
-
-                      </tbody>
-                    </table>
-                  </CardContent>
-                </Card>
-              ))}
+      {/* Main Split Content */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+        {/* Left Column: Unified Form */}
+        <div className="xl:col-span-1 flex flex-col gap-4">
+          <div className="bg-[#1a2233] rounded-xl border border-[#334366] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Nueva regla de financiación</h3>
             </div>
-          )}
 
-          {/* Saldo restante */}
-          <div className={`p-4 rounded-lg mb-4 ${calcularSaldoRestanteA() > 0 ? 'bg-red-50' : 'bg-blue-50'}`}>
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium">Saldo restante a financiar:</h3>
-              <div className="text-right">
-                <p className={`text-xl font-bold ${calcularSaldoRestanteA() > 0 ? 'text-red-600' : ''}`}>${formatCurrency(calcularSaldoRestanteA(), data.monedaA || "ARS")}</p>
-                <p className="text-sm text-muted-foreground">
-                  ({formatCurrency(
-                    (data.monedaA === 'USD')
-                      ? calcularSaldoRestanteA() * (data.tcValor || 1)
-                      : calcularSaldoRestanteA() / (data.tcValor || 1),
-                    (data.monedaA === 'USD') ? 'ARS' : 'USD'
-                  )})
-                </p>
-              </div>
+            {/* Tabs to switch Context */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => setActiveTab("F")}
+                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all ${activeTab === "F"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-[#334366] bg-[#0f131a] text-white hover:bg-[#1f2937]"
+                  }`}
+              >
+                <Landmark className="w-5 h-5" />
+                <span className="font-medium">Parte F ({data.monedaA || "ARS"})</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("SB")}
+                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all ${activeTab === "SB"
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-500"
+                  : "border-[#334366] bg-[#0f131a] text-white hover:bg-[#1f2937]"
+                  }`}
+              >
+                <ArrowRightLeft className="w-5 h-5" />
+                <span className="font-medium">Parte SB ({data.monedaB})</span>
+              </button>
             </div>
-            {calcularSaldoRestanteA() > 0 && (
-              <div className="mt-2 text-red-600 text-sm">
-                <p>⚠️ Debe cubrir el 100% del saldo a financiar con reglas de financiación para poder continuar.</p>
-              </div>
-            )}
-          </div>
 
-          {/* Formulario para agregar nueva regla */}
-          {mostrarFormA ? (
-            <Card className="border border-dashed border-gray-300 p-4">
-              <CardHeader className="px-0 pt-0">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">Nueva regla de financiación</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setMostrarFormA(false)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="px-0 pb-0 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="saldoFinanciarA">Saldo a Financiar</Label>
-                    <div className="flex gap-2">
+            {/* Unified Form Body */}
+            <div className="space-y-4">
+              {/* Row 1: Amount & Currency */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white">Saldo a Financiar</Label>
+                  {activeTab === "F" ? (
+                    <div className="flex gap-2 mt-1.5">
                       <CurrencyInput
-                        id="saldoFinanciarA"
                         value={nuevaReglaA.saldoFinanciar}
-                        onChange={(value) => setNuevaReglaA({ ...nuevaReglaA, saldoFinanciar: value })}
+                        onChange={(v) => setNuevaReglaA({ ...nuevaReglaA, saldoFinanciar: v })}
                         max={calcularMaximoPermitidoA()}
+                        className="bg-[#0f131a] border-[#334366] text-white flex-1 h-10"
                         prefix="$"
-                        className="flex-1"
                       />
-                      <Select
-                        value={nuevaReglaA.moneda as string || "ARS"}
-                        onValueChange={(value) => setNuevaReglaA({ ...nuevaReglaA, moneda: value as Moneda })}
-                      >
-                        <SelectTrigger className="w-[80px]">
-                          <SelectValue placeholder="ARS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ARS">ARS</SelectItem>
-                          <SelectItem value="USD">USD</SelectItem>
+                      <Select value={nuevaReglaA.moneda || "ARS"} onValueChange={(v) => setNuevaReglaA({ ...nuevaReglaA, moneda: v as Moneda })}>
+                        <SelectTrigger className="w-20 bg-[#0f131a] border-[#334366] text-white"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                          <SelectItem value="ARS">ARS</SelectItem><SelectItem value="USD">USD</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="numCuotasA">Número de cuotas</Label>
-                    <Input
-                      id="numCuotasA"
-                      type="number"
-                      placeholder=""
-                      value={nuevaReglaA.numCuotas || ""}
-                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, numCuotas: Number(e.target.value) })}
-                      min={1}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="periodicidadA">Periodicidad</Label>
-                    <Select
-                      value={nuevaReglaA.periodicidad as string || ""}
-                      onValueChange={(value) => setNuevaReglaA({ ...nuevaReglaA, periodicidad: value as PeriodicidadCuota })}
-                    >
-                      <SelectTrigger id="periodicidadA">
-                        <SelectValue placeholder="Seleccionar periodicidad" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Mensual">Mensual</SelectItem>
-                        <SelectItem value="Trimestral">Trimestral</SelectItem>
-                        <SelectItem value="Semestral">Semestral</SelectItem>
-                        <SelectItem value="Anual">Anual</SelectItem>
-                        <SelectItem value="Pago Único">Pago Único</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="primerVencimientoA">Primer vencimiento</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !nuevaReglaA.primerVencimiento && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {nuevaReglaA.primerVencimiento ? nuevaReglaA.primerVencimiento : <span>Seleccionar fecha</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={nuevaReglaA.primerVencimiento ? parseDate(nuevaReglaA.primerVencimiento) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              const formattedDate = format(date, "d/MM/yy");
-                              setNuevaReglaA({ ...nuevaReglaA, primerVencimiento: formattedDate });
-                            }
-                          }}
-                          initialFocus
-                          locale={es}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="valorBienA">Valor bien (opcional)</Label>
-                    <Input
-                      id="valorBienA"
-                      placeholder="Descripción del bien"
-                      value={nuevaReglaA.valorBien || ""}
-                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, valorBien: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cargoA">Cargo (opcional)</Label>
-                    <Input
-                      id="cargoA"
-                      placeholder="Descripción del cargo"
-                      value={nuevaReglaA.cargo || ""}
-                      onChange={(e) => setNuevaReglaA({ ...nuevaReglaA, cargo: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-
-                <div className="flex justify-end">
-                  <Button
-                    onClick={agregarReglaA}
-                    disabled={!nuevaReglaA.saldoFinanciar || !nuevaReglaA.numCuotas || !nuevaReglaA.periodicidad || !nuevaReglaA.moneda}
-                  >
-                    <Check className="w-4 h-4 mr-2" /> Guardar regla
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex justify-center">
-              <Button
-                onClick={() => setMostrarFormA(true)}
-                className="flex items-center gap-2"
-                disabled={calcularSaldoRestanteA() <= 0}
-              >
-                <PlusCircle className="w-4 h-4" /> Agregar regla de financiación
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card >
-
-      {/* Sección B - Moneda según paso 3 */}
-      < Card className="border-2 border-purple-500" >
-        <CardHeader className="bg-purple-500 text-white">
-          <CardTitle className="text-xl">Financiación Parte SB ({data.monedaB})</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          {/* Reglas existentes */}
-          {(data.reglasFinanciacionB || []).length > 0 && (
-            <div className="space-y-4 mb-6">
-              {(data.reglasFinanciacionB || []).map((regla, index) => (
-                <Card key={regla.id} className="border border-gray-200">
-                  <CardHeader className="bg-purple-50 py-2 px-4 flex justify-between items-center">
-                    <CardTitle className="text-lg">Regla {index + 1}</CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => eliminarReglaB(regla.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <table className="w-full">
-                      <tbody>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">Saldo a Financiar (IVA incluido):</th>
-                          <td className="p-3 bg-yellow-50 text-right font-bold">
-                            {formatCurrency(regla.saldoFinanciar, regla.moneda)}
-                          </td>
-                          <td className="p-3 text-right font-bold text-purple-500">${regla.moneda}</td>
-                        </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">Nº de cuotas:</th>
-                          <td className="p-3 bg-yellow-50 text-right font-bold" colSpan={2}>
-                            {regla.numCuotas}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">Periodicidad cuotas:</th>
-                          <td className="p-3 bg-yellow-50 text-right font-bold" colSpan={2}>
-                            {regla.periodicidad}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">Importe cuota:</th>
-                          <td className="p-3 text-right font-bold">
-                            {formatCurrency(regla.importeCuota, regla.moneda)}
-                          </td>
-                          <td className="p-3 text-right font-bold text-purple-500">${regla.moneda}</td>
-                        </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">1º Vencimiento:</th>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.primerVencimiento}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <th scope="row" className="p-3 font-medium text-left">Último Vencimiento:</th>
-                          <td className="p-3 text-right font-bold" colSpan={2}>
-                            {regla.ultimoVencimiento}
-                          </td>
-                        </tr>
-
-                      </tbody>
-                    </table>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {/* Saldo restante */}
-          <div className={`p-4 rounded-lg mb-4 ${calcularSaldoRestanteB() > 0 ? 'bg-red-50' : 'bg-purple-50'}`}>
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium">Saldo restante a financiar:</h3>
-              <div className="text-right">
-                <p className={`text-xl font-bold ${calcularSaldoRestanteB() > 0 ? 'text-red-600' : ''}`}>${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</p>
-                <p className="text-sm text-muted-foreground">
-                  ({formatCurrency(
-                    (data.monedaB === 'USD')
-                      ? calcularSaldoRestanteB() * (data.tcValor || 1)
-                      : calcularSaldoRestanteB() / (data.tcValor || 1),
-                    (data.monedaB === 'USD') ? 'ARS' : 'USD'
-                  )})
-                </p>
-              </div>
-            </div>
-            {calcularSaldoRestanteB() > 0 && (
-              <div className="mt-2 text-red-600 text-sm">
-                <p>⚠️ Debe cubrir el 100% del saldo a financiar con reglas de financiación para poder continuar.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Formulario para agregar nueva regla */}
-          {mostrarFormB ? (
-            <Card className="border border-dashed border-gray-300 p-4">
-              <CardHeader className="px-0 pt-0">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">Nueva regla de financiación</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setMostrarFormB(false)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="px-0 pb-0 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="saldoFinanciarB">Saldo a Financiar</Label>
-                    <div className="flex gap-2">
+                  ) : (
+                    <div className="flex gap-2 mt-1.5">
                       <CurrencyInput
-                        id="saldoFinanciarB"
                         value={nuevaReglaB.saldoFinanciar}
-                        onChange={(value) => setNuevaReglaB({ ...nuevaReglaB, saldoFinanciar: value })}
+                        onChange={(v) => setNuevaReglaB({ ...nuevaReglaB, saldoFinanciar: v })}
                         max={calcularMaximoPermitidoB()}
+                        className="bg-[#0f131a] border-[#334366] text-white flex-1 h-10"
                         prefix="$"
-                        className="flex-1"
                       />
-                      <Select
-                        value={nuevaReglaB.moneda as string || data.monedaB}
-                        onValueChange={(value) => setNuevaReglaB({ ...nuevaReglaB, moneda: value as Moneda })}
-                      >
-                        <SelectTrigger className="w-[80px]">
-                          <SelectValue placeholder={data.monedaB} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ARS">ARS</SelectItem>
-                          <SelectItem value="USD">USD</SelectItem>
+                      <Select value={nuevaReglaB.moneda || data.monedaB} onValueChange={(v) => setNuevaReglaB({ ...nuevaReglaB, moneda: v as Moneda })}>
+                        <SelectTrigger className="w-20 bg-[#0f131a] border-[#334366] text-white"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                          <SelectItem value="ARS">ARS</SelectItem><SelectItem value="USD">USD</SelectItem>
                           {data.monedaB === "MIX" && <SelectItem value="MIX">MIX</SelectItem>}
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="numCuotasB">Número de cuotas</Label>
-                    <Input
-                      id="numCuotasB"
-                      type="number"
-                      placeholder=""
-                      value={nuevaReglaB.numCuotas || ""}
-                      onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, numCuotas: Number(e.target.value) })}
-                      min={1}
-                    />
-                  </div>
+                  )}
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="periodicidadB">Periodicidad</Label>
-                    <Select
-                      value={nuevaReglaB.periodicidad as string || ""}
-                      onValueChange={(value) => setNuevaReglaB({ ...nuevaReglaB, periodicidad: value as PeriodicidadCuota })}
-                    >
-                      <SelectTrigger id="periodicidadB">
-                        <SelectValue placeholder="Seleccionar periodicidad" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Mensual">Mensual</SelectItem>
-                        <SelectItem value="Trimestral">Trimestral</SelectItem>
-                        <SelectItem value="Semestral">Semestral</SelectItem>
-                        <SelectItem value="Anual">Anual</SelectItem>
-                        <SelectItem value="Pago Único">Pago Único</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="primerVencimientoB">Primer vencimiento</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !nuevaReglaB.primerVencimiento && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {nuevaReglaB.primerVencimiento ? nuevaReglaB.primerVencimiento : <span>Seleccionar fecha</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={nuevaReglaB.primerVencimiento ? parseDate(nuevaReglaB.primerVencimiento) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              const formattedDate = format(date, "d/MM/yy");
-                              setNuevaReglaB({ ...nuevaReglaB, primerVencimiento: formattedDate });
-                            }
-                          }}
-                          initialFocus
-                          locale={es}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                <div>
+                  <Label className="text-white">Cuotas</Label>
+                  <Input
+                    type="number"
+                    value={activeTab === "F" ? nuevaReglaA.numCuotas || "" : nuevaReglaB.numCuotas || ""}
+                    onChange={(e) => activeTab === "F" ? setNuevaReglaA({ ...nuevaReglaA, numCuotas: Number(e.target.value) }) : setNuevaReglaB({ ...nuevaReglaB, numCuotas: Number(e.target.value) })}
+                    className="mt-1.5 bg-[#0f131a] border-[#334366] text-white h-10"
+                  />
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="valorBienB">Valor bien (opcional)</Label>
-                    <Input
-                      id="valorBienB"
-                      placeholder="Descripción del bien"
-                      value={nuevaReglaB.valorBien || ""}
-                      onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, valorBien: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cargoB">Cargo (opcional)</Label>
-                    <Input
-                      id="cargoB"
-                      placeholder="Descripción del cargo"
-                      value={nuevaReglaB.cargo || ""}
-                      onChange={(e) => setNuevaReglaB({ ...nuevaReglaB, cargo: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    onClick={agregarReglaB}
-                    disabled={!nuevaReglaB.saldoFinanciar || !nuevaReglaB.numCuotas || !nuevaReglaB.periodicidad || !nuevaReglaB.moneda}
+              {/* Row 2: Periodicity & First Date */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white">Periodicidad</Label>
+                  <Select
+                    value={activeTab === "F" ? (nuevaReglaA.periodicidad || "") : (nuevaReglaB.periodicidad || "")}
+                    onValueChange={(v) => activeTab === "F" ? setNuevaReglaA({ ...nuevaReglaA, periodicidad: v as PeriodicidadCuota }) : setNuevaReglaB({ ...nuevaReglaB, periodicidad: v as PeriodicidadCuota })}
                   >
-                    <Check className="w-4 h-4 mr-2" /> Guardar regla
-                  </Button>
+                    <SelectTrigger className="mt-1.5 w-full bg-[#0f131a] border-[#334366] text-white h-10"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                      <SelectItem value="Mensual">Mensual</SelectItem>
+                      <SelectItem value="Trimestral">Trimestral</SelectItem>
+                      <SelectItem value="Semestral">Semestral</SelectItem>
+                      <SelectItem value="Anual">Anual</SelectItem>
+                      <SelectItem value="Pago Único">Pago Único</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex justify-center">
-              <Button
-                onClick={() => setMostrarFormB(true)}
-                className="flex items-center gap-2"
-                disabled={calcularSaldoRestanteB() <= 0}
-              >
-                <PlusCircle className="w-4 h-4" /> Agregar regla de financiación
-              </Button>
+                <div>
+                  <Label className="text-white">Primer Vencimiento</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant={"outline"} className={cn("mt-1.5 w-full justify-start text-left font-normal bg-[#0f131a] border-[#334366] text-white h-10", !(activeTab === "F" ? nuevaReglaA.primerVencimiento : nuevaReglaB.primerVencimiento) && "text-muted-foreground")}>
+                        <CalendarIconLucide className="mr-2 h-4 w-4" />
+                        {(activeTab === "F" ? nuevaReglaA.primerVencimiento : nuevaReglaB.primerVencimiento) || "Seleccionar"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-[#1a2233] border-[#334366] text-white">
+                      <Calendar
+                        mode="single"
+                        selected={parseDate((activeTab === "F" ? nuevaReglaA.primerVencimiento : nuevaReglaB.primerVencimiento) || fechaHoy)}
+                        onSelect={(date) => {
+                          if (date) {
+                            const f = format(date, "d/MM/yy");
+                            activeTab === "F" ? setNuevaReglaA({ ...nuevaReglaA, primerVencimiento: f }) : setNuevaReglaB({ ...nuevaReglaB, primerVencimiento: f });
+                          }
+                        }}
+                        initialFocus
+                        className="bg-[#1a2233] text-white"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button
+                  onClick={activeTab === "F" ? agregarReglaA : agregarReglaB}
+                  className={`w-full ${activeTab === "F" ? "bg-primary hover:bg-blue-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white font-medium py-2.5 h-auto`}
+                >
+                  <PlusCircle className="mr-2 h-5 w-5" /> Guardar Regla
+                </Button>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card >
-    </div >
+          </div>
+        </div>
+
+        {/* Right Column: Tables */}
+        <div className="xl:col-span-1 flex flex-col gap-6">
+          {/* Table F */}
+          <div className="bg-[#1a2233] rounded-xl border border-[#334366] overflow-hidden shadow-sm flex flex-col">
+            <div className="p-4 border-b border-[#334366] bg-[#0f131a]/50 flex justify-between items-center">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-blue-500" /> Reglas Parte F (ARS)
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 uppercase tracking-tighter">ARS</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#0f131a] text-white text-[10px] uppercase tracking-wider font-semibold border-b border-[#334366]">
+                    <th className="p-3">Concepto</th><th className="p-3 text-right">Monto</th><th className="p-3 text-center">Cuotas</th><th className="p-3 text-center"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#334366] text-sm">
+                  {(data.reglasFinanciacionA || []).map((regla: ReglaFinanciacion) => (
+                    <tr key={regla.id} className="group hover:bg-[#0f131a]/40 transition-colors">
+                      <td className="p-3">
+                        <div className="font-medium text-white text-xs">{regla.periodicidad} - {regla.primerVencimiento}</div>
+                        <div className="text-[10px] text-white">{regla.moneda}</div>
+                      </td>
+                      <td className="p-3 text-right font-mono text-white text-xs">{formatCurrency(regla.saldoFinanciar, regla.moneda)}</td>
+                      <td className="p-3 text-center text-xs text-white">{regla.numCuotas}</td>
+                      <td className="p-3 text-center">
+                        <button onClick={() => eliminarReglaA(regla.id)} className="text-white hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Table SB */}
+          <div className="bg-[#1a2233] rounded-xl border border-[#334366] overflow-hidden shadow-sm flex flex-col">
+            <div className="p-4 border-b border-[#334366] bg-[#0f131a]/50 flex justify-between items-center">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Coins className="w-5 h-5 text-emerald-500" /> Reglas Parte SB ({data.monedaB})
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-400 uppercase tracking-tighter">USD</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#0f131a] text-white text-[10px] uppercase tracking-wider font-semibold border-b border-[#334366]">
+                    <th className="p-3">Concepto</th><th className="p-3 text-right">Monto</th><th className="p-3 text-center">Cuotas</th><th className="p-3 text-center"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#334366] text-sm">
+                  {(data.reglasFinanciacionB || []).map((regla: ReglaFinanciacion) => (
+                    <tr key={regla.id} className="group hover:bg-[#0f131a]/40 transition-colors">
+                      <td className="p-3">
+                        <div className="font-medium text-white text-xs">{regla.periodicidad} - {regla.primerVencimiento}</div>
+                        <div className="text-[10px] text-white">{regla.moneda}</div>
+                      </td>
+                      <td className="p-3 text-right font-mono text-white text-xs">{formatCurrency(regla.saldoFinanciar, regla.moneda)}</td>
+                      <td className="p-3 text-center text-xs text-white">{regla.numCuotas}</td>
+                      <td className="p-3 text-center">
+                        <button onClick={() => eliminarReglaB(regla.id)} className="text-white hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
   );
 };
