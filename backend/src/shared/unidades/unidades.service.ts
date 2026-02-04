@@ -53,13 +53,13 @@ export class UnidadesService {
     }
 
     private async _resolveCatalogIds(tx: Prisma.TransactionClient, dto: CreateUnidadDto) {
-        let estadoId: string | null = null;
+        let estadoId: string | undefined = undefined;
         if (dto.estadocomercial) {
             const estado = await tx.estadoComercial.findFirst({ where: { NombreEstado: { equals: dto.estadocomercial, mode: 'insensitive' } } });
             if (estado) estadoId = estado.Id;
         }
 
-        let comercialId: string | null = null;
+        let comercialId: string | undefined = undefined;
         if (dto.comercial) {
             const comercial = await tx.comerciales.findFirst({ where: { Nombre: { equals: dto.comercial, mode: 'insensitive' } } });
             if (comercial) comercialId = comercial.Id;
@@ -114,7 +114,7 @@ export class UnidadesService {
         return newEtapa.Id;
     }
 
-    private async _createUnidadRecord(tx: Prisma.TransactionClient, dto: CreateUnidadDto, tipoId: string, edificioId: string, etapaId: string) {
+    private async _createUnidadRecord(tx: Prisma.TransactionClient, dto: CreateUnidadDto, tipoId: string | undefined, edificioId: string | undefined, etapaId: string | undefined) {
         const data = this._mapDtoToUnidadData(dto, tipoId, edificioId, etapaId);
         return tx.unidades.create({ data });
     }
@@ -126,7 +126,7 @@ export class UnidadesService {
         });
     }
 
-    private async _createDetallesVenta(tx: Prisma.TransactionClient, unitId: string, dto: CreateUnidadDto, estadoId: string | null, comercialId: string | null) {
+    private async _createDetallesVenta(tx: Prisma.TransactionClient, unitId: string, dto: CreateUnidadDto, estadoId: string | undefined, comercialId: string | undefined) {
         const data = this._mapDtoToSalesData(dto, estadoId, comercialId);
         await tx.detallesVenta.create({
             data: { ...data, UnidadId: unitId }
@@ -177,7 +177,7 @@ export class UnidadesService {
     }
 
     // Shared Helper: Map DTO to Sales Data
-    private _mapDtoToSalesData(dto: any, resolvedEstadoId: string | null = null, resolvedComercialId: string | null = null) {
+    private _mapDtoToSalesData(dto: any, resolvedEstadoId: string | undefined = undefined, resolvedComercialId: string | undefined = undefined) {
         const data: any = {};
 
         // IDs
@@ -190,7 +190,7 @@ export class UnidadesService {
 
         // Cliente Interesado
         if (dto.clienteinteresado !== undefined) {
-            data.ClienteInteresado = (dto.clienteinteresado && String(dto.clienteinteresado).trim() !== '') ? dto.clienteinteresado : null;
+            data.ClienteInteresado = (dto.clienteinteresado && String(dto.clienteinteresado).trim() !== '') ? dto.clienteinteresado : undefined;
         }
 
         if (dto.clientetitularboleto !== undefined) data.Titular = dto.clientetitularboleto;
@@ -263,7 +263,7 @@ export class UnidadesService {
     private async _updateSalesDetails(tx: Prisma.TransactionClient, id: string, updateDto: UpdateUnidadCompleteDto) {
         let salesData: any = {};
 
-        let resolvedEstadoId: string | null = null;
+        let resolvedEstadoId: string | undefined = undefined;
         if (updateDto.estadocomercial) {
             const estado = await tx.estadoComercial.findUnique({
                 where: { NombreEstado: updateDto.estadocomercial }
@@ -482,7 +482,7 @@ export class UnidadesService {
             select: { Nombre: true },
             orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.Nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     /**
@@ -494,7 +494,7 @@ export class UnidadesService {
             select: { Nombre: true },
             orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.Nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     /**
@@ -551,7 +551,7 @@ export class UnidadesService {
             },
         });
 
-        return result.map((r) => r.Etapas?.Nombre).filter(Boolean);
+        return result.map((r) => r.Etapas?.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     async getTipos(nombreProyecto: string, etapa?: string): Promise<string[]> {
@@ -591,7 +591,7 @@ export class UnidadesService {
             },
         });
 
-        return result.map((r) => r.TiposUnidad.Nombre).filter(Boolean);
+        return result.map((r) => r.TiposUnidad.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     async getSectores(

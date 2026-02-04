@@ -197,7 +197,7 @@ export class UnidadesQueryService {
             select: { Nombre: true },
             orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.Nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     /**
@@ -209,7 +209,7 @@ export class UnidadesQueryService {
             select: { Nombre: true },
             orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.Nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     /**
@@ -318,7 +318,7 @@ export class UnidadesQueryService {
         });
 
 
-        return result.map((r) => r.TiposUnidad.Nombre).filter(Boolean);
+        return result.map((r) => r.TiposUnidad.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     async getSectores(

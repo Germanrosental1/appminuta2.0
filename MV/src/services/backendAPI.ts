@@ -48,6 +48,13 @@ class BackendAPI {
     }
 
     /**
+     * Get project by name
+     */
+    async getProjectByName(projectName: string) {
+        return apiGet<{ Id: string; id: string; Nombre?: string }>(`/proyectos/by-name/${projectName}`);
+    }
+
+    /**
      * Import units from Excel file
      */
     async importUnits(file: File) {

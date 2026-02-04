@@ -249,7 +249,7 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
 
         if (fetchError) throw fetchError;
 
-        let finalSectionData = {
+        const finalSectionData = {
           ...(typeof currentAnalysis.financial_data[section] === 'object' ? currentAnalysis.financial_data[section] : {}),
           ...editedData,
         };

@@ -28,7 +28,7 @@ export const Step35IVACalculo: React.FC = () => {
     // Parte A = Parte F (Financiada)
     // Si modo es porcentaje, es % del total. Si es importe, es el importe fijo.
     // MANTENER SIEMPRE EN USD
-    let montoA = data.modoA === "porcentaje"
+    const montoA = data.modoA === "porcentaje"
         ? (precioTotal * (data.porcA || 0)) / 100
         : (data.impA || 0);
 

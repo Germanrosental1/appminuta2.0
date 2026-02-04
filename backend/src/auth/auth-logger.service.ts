@@ -29,7 +29,7 @@ export class AuthLoggerService {
                     Email: maskEmail(email || 'unknown'),
                     EventType: eventType,
                     Timestamp: new Date(),
-                    Detail: details ? structuredClone(details) : null,
+                    Detail: details ? structuredClone(details) : undefined,
                     UserAgent: userAgent,
                 },
             });
@@ -41,7 +41,7 @@ export class AuthLoggerService {
                     descripcion: 'El usuario ha cambiado su contraseña.',
                     impacto: 'Alto',
                     tablaafectada: 'users',
-                    usuarioID: userId,
+                    usuarioID: userId ?? undefined,
                     usuarioemail: email || 'unknown',
                 });
             }

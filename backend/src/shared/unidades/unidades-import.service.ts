@@ -32,7 +32,7 @@ export class UnidadesImportService {
             errors: 0,
             created: 0,
             updated: 0,
-            details: []
+            details: [] as Array<{ row: number; error: string }>
         };
 
         const cache = new Map<string, string>();
@@ -97,15 +97,17 @@ export class UnidadesImportService {
                         else if (resultType === 'updated') results.updated++;
                     } catch (rowError) {
                         results.errors++;
-                        this.log.error(`Error processing row ${globalIdx + 2}: ${rowError instanceof Error ? rowError.message : 'Unknown error'}`);
-                        results.details.push({ row: globalIdx + 2, error: rowError.message || 'Unknown error' });
+                        const errorMessage = rowError instanceof Error ? rowError.message : 'Unknown error';
+                        this.log.error(`Error processing row ${globalIdx + 2}: ${errorMessage}`);
+                        results.details.push({ row: globalIdx + 2, error: errorMessage });
                         // Continuar con la siguiente fila del batch
                     }
                 }
             }, { timeout: 60000 }); // Timeout extendido para batch más grande
         } catch (batchError) {
             // Si falla el batch, marcar todas las filas restantes como error
-            this.log.error(`Error in batch ${batchIndex + 1}/${totalBatches}: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
+            const errorMessage = batchError instanceof Error ? batchError.message : 'Unknown error';
+            this.log.error(`Error in batch ${batchIndex + 1}/${totalBatches}: ${errorMessage}`);
             for (let i = 0; i < batch.length; i++) {
                 const globalIdx = startIdx + i;
                 // Avoid duplicating errors if they were already logged inside the transaction loop (though transaction failure usually rolls back)
@@ -113,7 +115,7 @@ export class UnidadesImportService {
                 if (!results.details.some((d: any) => d.row === globalIdx + 2)) {
                     results.processed++;
                     results.errors++;
-                    results.details.push({ row: globalIdx + 2, error: `Batch failed: ${batchError.message}` });
+                    results.details.push({ row: globalIdx + 2, error: `Batch failed: ${errorMessage}` });
                 }
             }
         }
@@ -194,7 +196,6 @@ export class UnidadesImportService {
         const normalizedRow = this.normalizeRowFields(row);
 
 
-        // console.log('\n========== PROCESANDO FILA ==========');
         // 🔒 SEGURIDAD: No loguear datos completos de la fila para proteger información sensible
         // 1. Resolve Dependencies
         const proyectoId = await this.resolveProyecto(tx, normalizedRow, cache);
@@ -234,7 +235,6 @@ export class UnidadesImportService {
 
         if (existingUnidad) {
             unidadId = existingUnidad.Id;
-            // console.log('♻️  Unidad existente encontrada, actualizando:', unidadId);
             // Update existing unit
             await tx.unidades.update({
                 where: { Id: unidadId },
@@ -251,20 +251,20 @@ export class UnidadesImportService {
                 }
             });
         } else {
-            const newUnidad = await tx.unidades.create({
-                data: {
-                    SectorId: sectorId,
-                    EdificioId: edificioId,
-                    EtapaId: etapaId,
-                    TipoUnidadId: tipoId,
-                    Piso: String(normalizedRow.piso || ''),
-                    NroUnidad: String(normalizedRow.numerounidad || ''),
-                    Dormitorio: Number(normalizedRow.dormitorios) || 0,
-                    Frente: normalizedRow.frente,
-                    Manzana: normalizedRow.manzana,
-                    Destino: normalizedRow.destino
-                }
-            });
+            const createData: any = {
+                SectorId: sectorId,
+                Piso: String(normalizedRow.piso || ''),
+                NroUnidad: String(normalizedRow.numerounidad || ''),
+                Dormitorio: Number(normalizedRow.dormitorios) || 0,
+            };
+            if (edificioId !== undefined) createData.EdificioId = edificioId;
+            if (etapaId !== undefined) createData.EtapaId = etapaId;
+            if (tipoId !== undefined) createData.TipoUnidadId = tipoId;
+            if (normalizedRow.frente !== undefined) createData.Frente = normalizedRow.frente;
+            if (normalizedRow.manzana !== undefined) createData.Manzana = normalizedRow.manzana;
+            if (normalizedRow.destino !== undefined) createData.Destino = normalizedRow.destino;
+
+            const newUnidad = await tx.unidades.create({ data: createData });
             unidadId = newUnidad.Id;
             isNew = true;
         }
@@ -362,8 +362,8 @@ export class UnidadesImportService {
     }
 
     // Resolve or create a Cliente by nombreApellido
-    private async resolveCliente(tx: PrismaTransaction, nombreApellido: string | undefined, cache: Map<string, string>): Promise<string | null> {
-        if (!nombreApellido || String(nombreApellido).trim() === '') return null;
+    private async resolveCliente(tx: PrismaTransaction, nombreApellido: string | undefined, cache: Map<string, string>): Promise<string | undefined> {
+        if (!nombreApellido || String(nombreApellido).trim() === '') return undefined;
 
         const cleanName = String(nombreApellido).trim();
         const cacheKey = `clientes:${cleanName}`;
@@ -424,8 +424,8 @@ export class UnidadesImportService {
     }
 
     // Resolve unidad comprador by looking up sectorid
-    private async resolveUnidadComprador(tx: PrismaTransaction, sectorId: string | undefined, cache: Map<string, string>): Promise<string | null> {
-        if (!sectorId || String(sectorId).trim() === '') return null;
+    private async resolveUnidadComprador(tx: PrismaTransaction, sectorId: string | undefined, cache: Map<string, string>): Promise<string | undefined> {
+        if (!sectorId || String(sectorId).trim() === '') return undefined;
 
         const cleanSectorId = String(sectorId).trim();
         const cacheKey = `unidad_comprador:${cleanSectorId}`;
@@ -441,7 +441,7 @@ export class UnidadesImportService {
             return existing.Id;
         }
 
-        return null; // Unit doesn't exist yet
+        return undefined; // Unit doesn't exist yet
     }
 
     private async resolveProyecto(tx: PrismaTransaction, row: NormalizedExcelRow, cache: Map<string, string>): Promise<string> {
@@ -488,7 +488,7 @@ export class UnidadesImportService {
                 Nombre: proyNombre,
                 TablaNombre: proyNombre.toLowerCase().replace(/ /g, '_'),
                 Naturaleza: finalNaturalezaId,
-                IdOrg: null
+                IdOrg: undefined
             }
         });
         cache.set(cacheKey, created.Id);
@@ -536,25 +536,25 @@ export class UnidadesImportService {
         return created.Id;
     }
 
-    private async resolveCatalogo(tx: PrismaTransaction, table: string, field: string, value: string | number | undefined, cache: Map<string, string>): Promise<string | null> {
-        if (value === null || value === undefined || String(value).trim() === '') return null;
+    private async resolveCatalogo(tx: PrismaTransaction, table: string, field: string, value: string | number | undefined, cache: Map<string, string>): Promise<string | undefined> {
+        if (value === null || value === undefined || String(value).trim() === '') return undefined;
         const stringValue = String(value).trim();
         const cacheKey = `catalogo:${table}:${field}:${stringValue}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached;
 
-        const existing = await tx[table].findFirst({ where: { [field]: stringValue } });
+        const existing = await (tx as any)[table].findFirst({ where: { [field]: stringValue } });
         if (existing) {
             cache.set(cacheKey, existing.Id);
             return existing.Id;
         }
-        const created = await tx[table].create({ data: { [field]: stringValue } });
+        const created = await (tx as any)[table].create({ data: { [field]: stringValue } });
         cache.set(cacheKey, created.Id);
         return created.id;
     }
 
-    private parseDate(dateStr: string | undefined): Date | null {
-        if (!dateStr || String(dateStr).trim() === '') return null;
+    private parseDate(dateStr: string | undefined): Date | undefined {
+        if (!dateStr || String(dateStr).trim() === '') return undefined;
         const str = String(dateStr).trim();
 
         // Try DD/MM/YYYY format
@@ -568,10 +568,10 @@ export class UnidadesImportService {
         const parsed = new Date(str);
         if (!Number.isNaN(parsed.getTime())) return parsed;
 
-        return null;
+        return undefined;
     }
 
-    private async upsertMetrics(tx: PrismaTransaction, unidadId: string, row: NormalizedExcelRow, patioId: string | null) {
+    private async upsertMetrics(tx: PrismaTransaction, unidadId: string, row: NormalizedExcelRow, patioId: string | undefined) {
         const data = {
             M2Cubierto: this.parseNumber(row.m2cubierto),
             M2Semicubierto: this.parseNumber(row.m2semicubierto),

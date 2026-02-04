@@ -114,7 +114,7 @@ export class UnidadesController {
     @UseGuards(GlobalPermissionsGuard, BruteForceGuard)
     @Permissions('gestionarUnidades')
     @UseInterceptors(FileInterceptor('file'), BruteForceInterceptor)
-    async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
+    async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req: any) {
         if (file) {
             const allowedMimes = [
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

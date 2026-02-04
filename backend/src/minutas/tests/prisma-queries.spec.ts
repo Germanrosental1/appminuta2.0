@@ -6,6 +6,10 @@ import { AuthorizationService } from '../../auth/authorization/authorization.ser
 import { LoggerService } from '../../logger/logger.service';
 import { MinutasGateway } from '../minutas.gateway';
 import { UnitStateService } from '../services/unit-state.service';
+import { MinutasStateService } from '../services/minutas-state.service';
+import { MinutasQueryService } from '../services/minutas-query.service';
+import { MinutasCommandService } from '../services/minutas-command.service';
+import { MinutasPermissionsService } from '../services/minutas-permissions.service';
 
 describe('MinutasService - Prisma Queries', () => {
     let service: MinutasService;
@@ -39,6 +43,28 @@ describe('MinutasService - Prisma Queries', () => {
         reservarUnidades: jest.fn(),
     };
 
+    const mockStateService = {
+        handleStateChange: jest.fn(),
+        validateStateTransition: jest.fn(),
+    };
+
+    const mockQueryService = {
+        getCachedUserPermissions: jest.fn(),
+        buildWhereClause: jest.fn(),
+    };
+
+    const mockCommandService = {
+        create: jest.fn(),
+        update: jest.fn(),
+        remove: jest.fn(),
+    };
+
+    const mockPermissionsService = {
+        getCachedPermissions: jest.fn(),
+        buildPermissionsFilter: jest.fn(),
+        buildDateFilter: jest.fn(),
+    };
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -49,10 +75,23 @@ describe('MinutasService - Prisma Queries', () => {
                 { provide: LoggerService, useValue: mockLoggerService },
                 { provide: MinutasGateway, useValue: mockGateway },
                 { provide: UnitStateService, useValue: mockUnitStateService },
+                { provide: MinutasStateService, useValue: mockStateService },
+                { provide: MinutasQueryService, useValue: mockQueryService },
+                { provide: MinutasCommandService, useValue: mockCommandService },
+                { provide: MinutasPermissionsService, useValue: mockPermissionsService },
             ],
         }).compile();
 
         service = module.get<MinutasService>(MinutasService);
+
+        // Default setup for permissions service to avoid failures in findAll
+        mockPermissionsService.getCachedPermissions.mockResolvedValue({
+            permissions: [],
+            projectIds: [],
+            roles: []
+        });
+        mockPermissionsService.buildPermissionsFilter.mockReturnValue({});
+        mockPermissionsService.buildDateFilter.mockReturnValue(undefined);
     });
 
     afterEach(() => {
@@ -124,6 +163,11 @@ describe('MinutasService - Prisma Queries', () => {
             mockPrismaService.minutasDefinitivas.count.mockResolvedValue(10);
             mockPrismaService.minutasDefinitivas.findMany.mockResolvedValue([]);
 
+            mockPermissionsService.buildDateFilter.mockReturnValue({
+                gte: expect.any(Date),
+                lte: expect.any(Date),
+            });
+
             await service.findAll(query, userId);
 
             expect(mockPrismaService.minutasDefinitivas.findMany).toHaveBeenCalledWith(
@@ -149,6 +193,13 @@ describe('MinutasService - Prisma Queries', () => {
             });
             mockPrismaService.minutasDefinitivas.count.mockResolvedValue(8);
             mockPrismaService.minutasDefinitivas.findMany.mockResolvedValue([]);
+
+            mockPermissionsService.buildPermissionsFilter.mockReturnValue({
+                OR: [
+                    { UsuarioId: userId },
+                    { Proyecto: 'proyecto-123' }
+                ]
+            });
 
             await service.findAll(query, userId);
 
@@ -242,6 +293,13 @@ describe('MinutasService - Prisma Queries', () => {
             });
             mockPrismaService.minutasDefinitivas.count.mockResolvedValue(5);
             mockPrismaService.minutasDefinitivas.findMany.mockResolvedValue([]);
+
+            mockPermissionsService.buildPermissionsFilter.mockReturnValue({
+                OR: [
+                    { UsuarioId: userId },
+                    { Proyecto: { in: ['proyecto-123', 'proyecto-456'] } }
+                ]
+            });
 
             await service.findAll(query, userId);
 

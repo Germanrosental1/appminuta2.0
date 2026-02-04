@@ -15,8 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Loader2, CheckCircle, XCircle, Download } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 // Helper function to format values for display
 const formatDisplayValue = (value: unknown): string => {
@@ -136,7 +134,12 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
       // Crear nombre del archivo
       const fileName = `Minuta_Consolidada_${minuta.Proyecto || 'Proyecto'}_${minuta.Dato?.unidadDescripcion || 'Unidad'}_${new Date().toISOString().split('T')[0]}.pdf`;
 
-      // Enfoque simple: usar jsPDF y html2canvas directamente
+      // Lazy load PDF libraries only when needed (bundle optimization)
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
+
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",

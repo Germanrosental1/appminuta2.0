@@ -37,7 +37,7 @@ export class AuthLoggerController {
     @ApiResponseWrapper(SuccessResponseDto)
     @ApiUnauthorizedResponse({ description: 'No autorizado' })
     @UseGuards(SupabaseAuthGuard)
-    async logAuthEvent(@Request() req, @Body() logDto: LogAuthEventDto) {
+    async logAuthEvent(@Request() req: any, @Body() logDto: LogAuthEventDto) {
         const userId = req.user?.sub || req.user?.id;
 
         await this.authLoggerService.logAuthEvent(
@@ -85,7 +85,7 @@ export class AuthLoggerController {
     @ApiForbiddenResponse({ description: 'Prohibido - No puede acceder a logs de otros usuarios' })
     @UseGuards(SupabaseAuthGuard)
     async getRecentAuthEvents(
-        @Request() req,
+        @Request() req: any,
         @Param('userId') userId: string,
         @Query('limit') limit?: string,
     ) {
@@ -112,7 +112,7 @@ export class AuthLoggerController {
     @ApiResponseWrapper(SuccessResponseDto)
     @UseGuards(SupabaseAuthGuard)
     async detectSuspiciousActivity(
-        @Request() req,
+        @Request() req: any,
         @Param('userId') userId: string,
     ) {
         const requestUserId = req.user?.sub || req.user?.id;

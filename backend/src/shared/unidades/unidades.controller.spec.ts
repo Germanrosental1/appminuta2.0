@@ -59,7 +59,7 @@ describe('UnidadesController', () => {
       .overrideGuard(BruteForceGuard)
       .useValue({ canActivate: () => true })
       .overrideInterceptor(BruteForceInterceptor)
-      .useValue({ intercept: (context, next) => next.handle() })
+      .useValue({ intercept: (context: any, next: any) => next.handle() })
       .compile();
 
     controller = module.get<UnidadesController>(UnidadesController);

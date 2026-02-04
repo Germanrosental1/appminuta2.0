@@ -9,9 +9,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Save, Calculator, DollarSign, Loader2, Download, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-// ⚡ PERFORMANCE: jsPDF, JSZip, file-saver son lazy imports en las funciones de descarga
+// ⚡ PERFORMANCE: jsPDF, JSZip, file-saver son lazy imports en las funciones de descarga (bundle optimization)
 import ExpandableCard from './ExpandableCard';
-import { jsPDF } from 'jspdf';
+import type { jsPDF } from 'jspdf';
 
 interface AutoTableDoc extends jsPDF {
   lastAutoTable: { finalY: number };

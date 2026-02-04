@@ -127,21 +127,21 @@ export const Step5Cargos: React.FC = () => {
     const tcValor = data.tcValor || 1;
 
     // Calcular montos financiados A (ARS/USD) y B (ARS/USD)
-    let cargosFinanciadosAArs =
+    const cargosFinanciadosAArs =
       calcularMontoFinanciado(data.certificacionFirmas, data.certificacionFirmasPago, "Financiado A") +
       calcularMontoFinanciado(data.selladoMonto, data.selladoPago, "Financiado A");
 
-    let cargosFinanciadosBArs =
+    const cargosFinanciadosBArs =
       calcularMontoFinanciado(data.certificacionFirmas, data.certificacionFirmasPago, "Financiado B") +
       calcularMontoFinanciado(data.selladoMonto, data.selladoPago, "Financiado B");
 
-    let cargosFinanciadosAUsd =
+    const cargosFinanciadosAUsd =
       calcularMontoFinanciado(data.alhajamiemtoMonto, data.alhajamiemtoPago, "Financiado A") +
       calcularMontoFinanciado(data.planosUnidadMonto, data.planosUnidadPago, "Financiado A") +
       calcularMontoFinanciado(data.planosCocheraMonto, data.planosCocheraPago, "Financiado A") +
       calcularMontoFinanciado(data.otrosGastos, data.otrosGastosPago, "Financiado A");
 
-    let cargosFinanciadosBUsd =
+    const cargosFinanciadosBUsd =
       calcularMontoFinanciado(data.alhajamiemtoMonto, data.alhajamiemtoPago, "Financiado B") +
       calcularMontoFinanciado(data.planosUnidadMonto, data.planosUnidadPago, "Financiado B") +
       calcularMontoFinanciado(data.planosCocheraMonto, data.planosCocheraPago, "Financiado B") +

@@ -19,7 +19,7 @@ describe('Minutas E2E Tests', () => {
 
     // Mock guards to bypass auth for testing
     const mockAuthGuard = {
-        canActivate: (context) => {
+        canActivate: (context: any) => {
             const req = context.switchToHttp().getRequest();
             req.user = {
                 id: REAL_USER_ID,

@@ -44,7 +44,7 @@ export function CreateAnalysisDialog({ clientId, clientName, existingDocuments, 
                 .single();
 
             // Prepare settings: Default code constant merged with DB defaults if available
-            let initialSettings = { ...DEFAULT_ANALYSIS_SETTINGS };
+            const initialSettings = { ...DEFAULT_ANALYSIS_SETTINGS };
 
             if (systemSettings?.analysis_weights) {
                 initialSettings.weights = {

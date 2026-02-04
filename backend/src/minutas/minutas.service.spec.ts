@@ -2,19 +2,24 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MinutasService } from './minutas.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MinutasGateway } from './minutas.gateway';
-import { UnitStateService } from './services/unit-state.service';
-import { LoggerService } from '../logger/logger.service';
-import { AuthorizationService } from '../auth/authorization/authorization.service';
-import { PermissionsCacheService } from '../shared/iam/services/permissions-cache.service';
-import { NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
+import { MinutasStateService } from './services/minutas-state.service';
+import { MinutasQueryService } from './services/minutas-query.service';
+import { MinutasCommandService } from './services/minutas-command.service';
+import { MinutasPermissionsService } from './services/minutas-permissions.service';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
+/**
+ * MinutasService tests - Thin Facade
+ * 
+ * These tests verify that MinutasService correctly delegates to specialized services:
+ * - MinutasCommandService: create, update, remove
+ * - MinutasQueryService: query building
+ * - MinutasStateService: state transitions
+ * - MinutasPermissionsService: permission handling
+ */
 describe('MinutasService', () => {
     let service: MinutasService;
     let prismaService: jest.Mocked<PrismaService>;
-    let unitStateService: jest.Mocked<UnitStateService>;
-    let authService: jest.Mocked<AuthorizationService>;
-    let permissionsCache: jest.Mocked<PermissionsCacheService>;
-    let gateway: jest.Mocked<MinutasGateway>;
 
     const mockPrismaService = {
         minutasDefinitivas: {
@@ -44,26 +49,47 @@ describe('MinutasService', () => {
         },
     };
 
-    const mockUnitStateService = {
-        reservarUnidades: jest.fn(),
-        liberarUnidades: jest.fn(),
-    };
-
-    const mockLoggerService = {
-        agregarLog: jest.fn(),
-    };
-
-    const mockAuthService = {
-        getUserRoleInProject: jest.fn(),
-    };
-
-    const mockPermissionsCache = {
-        getOrFetch: jest.fn(),
-    };
-
     const mockGateway = {
         emitMinutaCreated: jest.fn(),
         emitMinutaStateChanged: jest.fn(),
+    };
+
+    const mockStateService = {
+        handleStateChange: jest.fn(),
+        validateStateTransition: jest.fn(),
+        validateApprovalPermissions: jest.fn(),
+        handleUnitEffects: jest.fn(),
+        isFinalState: jest.fn(),
+        getValidTransitions: jest.fn(),
+    };
+
+    const mockQueryService = {
+        getCachedUserPermissions: jest.fn(),
+        buildWhereClause: jest.fn(),
+        buildPermissionsFilter: jest.fn(),
+        buildDateFilter: jest.fn(),
+    };
+
+    const mockCommandService = {
+        create: jest.fn(),
+        update: jest.fn(),
+        remove: jest.fn(),
+        validateUpdatePermissions: jest.fn(),
+    };
+
+    const mockPermissionsService = {
+        getCachedPermissions: jest.fn(),
+        invalidateUser: jest.fn(),
+        clearAll: jest.fn(),
+        getStats: jest.fn(),
+        hasPermission: jest.fn(),
+        canViewAllMinutas: jest.fn(),
+        canEditMinuta: jest.fn(),
+        canSignMinuta: jest.fn(),
+        isGlobalAdmin: jest.fn(),
+        hasProjectAccess: jest.fn(),
+        buildPermissionsFilter: jest.fn(),
+        buildDateFilter: jest.fn(),
     };
 
     beforeEach(async () => {
@@ -71,416 +97,321 @@ describe('MinutasService', () => {
             providers: [
                 MinutasService,
                 { provide: PrismaService, useValue: mockPrismaService },
-                { provide: UnitStateService, useValue: mockUnitStateService },
-                { provide: LoggerService, useValue: mockLoggerService },
-                { provide: AuthorizationService, useValue: mockAuthService },
-                { provide: PermissionsCacheService, useValue: mockPermissionsCache },
+                { provide: MinutasStateService, useValue: mockStateService },
+                { provide: MinutasQueryService, useValue: mockQueryService },
+                { provide: MinutasCommandService, useValue: mockCommandService },
+                { provide: MinutasPermissionsService, useValue: mockPermissionsService },
                 { provide: MinutasGateway, useValue: mockGateway },
             ],
         }).compile();
 
         service = module.get<MinutasService>(MinutasService);
-        // Other services available via module.get if needed
+
+        // Default mock behaviors
+        mockStateService.handleStateChange.mockResolvedValue(undefined);
     });
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    describe('CRUD Operations', () => {
+    describe('Delegation Tests', () => {
+
         describe('create', () => {
-            it('should create minuta with sanitization and unit reservation', async () => {
+            it('should delegate to commandService.create', async () => {
                 const userId = 'user-123';
                 const createDto = {
                     estado: 'pendiente',
-                    datos: {
-                        proyecto: 'Proyecto A',
-                        unidades: [{ id: 'unit-1' }, { id: 'unit-2' }],
-                    },
-                    comentarios: '<script>alert("xss")</script>Valid comment',
+                    datos: { proyecto: 'Proyecto A' },
                 };
+                const mockResult = { Id: 'minuta-123', Estado: 'pendiente' };
 
-                const mockProyecto = { Id: 'proyecto-123' };
-                const mockMinuta = {
-                    Id: 'minuta-123',
-                    Estado: 'pendiente',
-                    Proyecto: 'proyecto-123',
-                    UsuarioId: userId,
-                    FechaCreacion: new Date(),
-                };
-
-                mockPrismaService.proyectos.findFirst.mockResolvedValue(mockProyecto);
-                mockPrismaService.minutasDefinitivas.create.mockResolvedValue(mockMinuta);
-                mockUnitStateService.reservarUnidades.mockResolvedValue(undefined);
-                mockPrismaService.detallesVenta.upsert.mockResolvedValue({} as any);
-                mockPrismaService.users.findUnique.mockResolvedValue({ email: 'user@example.com' });
-                mockLoggerService.agregarLog.mockResolvedValue(undefined);
+                mockCommandService.create.mockResolvedValue(mockResult);
 
                 const result = await service.create(createDto as any, userId);
 
-                expect(result).toEqual(mockMinuta);
-                expect(mockUnitStateService.reservarUnidades).toHaveBeenCalledWith(['unit-1', 'unit-2']);
-                expect(mockGateway.emitMinutaCreated).toHaveBeenCalled();
-            });
-        });
-
-        describe('findAll', () => {
-            it('should return paginated minutas with permissions filter', async () => {
-                const userId = 'user-123';
-                const query = { page: 1, limit: 10 };
-
-                const mockUserPermissions = {
-                    permissions: ['verTodasMinutas'],
-                    projectIds: ['proyecto-123'],
-                    roles: ['adminmv'],
-                };
-
-                const mockMinutas = [
-                    {
-                        Id: 'minuta-1',
-                        Estado: 'pendiente',
-                        FechaCreacion: new Date(),
-                        users: { email: 'user@example.com' },
-                        Proyectos: { Nombre: 'Proyecto A' },
-                    },
-                ];
-
-                mockPermissionsCache.getOrFetch.mockResolvedValue(mockUserPermissions);
-                mockPrismaService.minutasDefinitivas.count.mockResolvedValue(1);
-                mockPrismaService.minutasDefinitivas.findMany.mockResolvedValue(mockMinutas);
-
-                const result = await service.findAll(query as any, userId);
-
-                expect(result.total).toBe(1);
-                expect(result.data).toHaveLength(1);
-            });
-        });
-
-        describe('findOne', () => {
-            it('should return minuta if user is owner', async () => {
-                const userId = 'user-123';
-                const minutaId = 'minuta-123';
-
-                const mockMinuta = {
-                    Id: minutaId,
-                    UsuarioId: userId,
-                    Estado: 'pendiente',
-                    users: { email: 'user@example.com' },
-                    Proyectos: { Nombre: 'Proyecto A' },
-                    Dato: {},
-                };
-
-                mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
-                mockPrismaService.usuariosRoles.findMany.mockResolvedValue([]);
-
-                const result = await service.findOne(minutaId, userId);
-
-                expect(result.Id).toBe(minutaId);
-            });
-
-            it('should throw NotFoundException if minuta does not exist', async () => {
-                mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(null);
-
-                await expect(service.findOne('nonexistent', 'user-123')).rejects.toThrow(NotFoundException);
-            });
-
-            it('should throw ForbiddenException if user has no access', async () => {
-                const mockMinuta = {
-                    Id: 'minuta-123',
-                    UsuarioId: 'other-user',
-                    Estado: 'pendiente',
-                };
-
-                mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
-                mockPrismaService.usuariosRoles.findMany.mockResolvedValue([]);
-                mockPrismaService.usuariosProyectos.findFirst.mockResolvedValue(null);
-
-                await expect(service.findOne('minuta-123', 'user-123')).rejects.toThrow(ForbiddenException);
+                expect(result).toEqual(mockResult);
+                expect(mockCommandService.create).toHaveBeenCalledWith(createDto, userId);
             });
         });
 
         describe('update', () => {
-            it('should update minuta with optimistic locking', async () => {
-                const mockMinuta = {
-                    Id: 'minuta-123',
-                    UsuarioId: 'user-123',
-                    Estado: 'pendiente',
-                    Version: 1,
-                    Proyecto: 'proyecto-123',
-                    Dato: { unidades: [] },
-                };
+            it('should delegate to commandService.update', async () => {
+                const userId = 'user-123';
+                const updateDto = { estado: 'aprobada', version: 1 };
+                const mockResult = { Id: 'minuta-123', Estado: 'aprobada' };
 
-                const mockUpdatedMinuta = {
-                    ...mockMinuta,
-                    Estado: 'aprobada',
-                    Version: 2,
-                    users: { email: 'user@example.com' },
-                    Proyectos: { Nombre: 'Proyecto A' },
-                };
+                mockCommandService.update.mockResolvedValue(mockResult);
 
-                mockPrismaService.minutasDefinitivas.findUnique
-                    .mockResolvedValueOnce(mockMinuta)
-                    .mockResolvedValueOnce(mockUpdatedMinuta);
-                mockPermissionsCache.getOrFetch.mockResolvedValue({
-                    permissions: ['editarMinuta'],
-                    projectIds: ['proyecto-123'],
-                    roles: ['jefe_ventas'],
-                });
-                mockAuthService.getUserRoleInProject.mockResolvedValue('jefe_ventas');
-                mockPrismaService.minutasDefinitivas.update.mockResolvedValue(mockUpdatedMinuta);
-                mockPrismaService.users.findUnique.mockResolvedValue({ email: 'user@example.com' });
-                mockLoggerService.agregarLog.mockResolvedValue(undefined);
+                const result = await service.update('minuta-123', updateDto, userId);
 
-                const result = await service.update('minuta-123', { estado: 'aprobada', version: 1 }, 'user-123');
-
-                expect(result.Estado).toBe('aprobada');
-            });
-
-            it('should throw ConflictException if version mismatch', async () => {
-                const mockMinuta = {
-                    Id: 'minuta-123',
-                    UsuarioId: 'user-123',
-                    Estado: 'pendiente',
-                    Version: 2,
-                    Proyecto: 'proyecto-123',
-                    Dato: {},
-                };
-
-                mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
-                mockPermissionsCache.getOrFetch.mockResolvedValue({
-                    permissions: ['editarMinuta'],
-                    projectIds: ['proyecto-123'],
-                    roles: ['jefe_ventas'],
-                });
-                mockAuthService.getUserRoleInProject.mockResolvedValue('jefe_ventas');
-
-                await expect(
-                    service.update('minuta-123', { estado: 'aprobada', version: 1 }, 'user-123')
-                ).rejects.toThrow(ConflictException);
+                expect(result).toEqual(mockResult);
+                expect(mockCommandService.update).toHaveBeenCalledWith(
+                    'minuta-123',
+                    updateDto,
+                    userId,
+                    expect.any(Function) // findOneFn callback
+                );
             });
         });
 
         describe('remove', () => {
-            it('should delete minuta and create audit log', async () => {
-                const mockMinuta = {
-                    Id: 'minuta-123',
-                    UsuarioId: 'user-123',
-                    Estado: 'pendiente',
-                    Dato: {},
-                };
+            it('should delegate to commandService.remove', async () => {
+                const userId = 'user-123';
+                const mockResult = { Id: 'minuta-123' };
 
-                mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
-                mockPrismaService.usuariosRoles.findMany.mockResolvedValue([]);
-                mockPrismaService.minutasDefinitivas.delete.mockResolvedValue(mockMinuta);
-                mockPrismaService.users.findUnique.mockResolvedValue({ email: 'user@example.com' });
-                mockLoggerService.agregarLog.mockResolvedValue(undefined);
+                mockCommandService.remove.mockResolvedValue(mockResult);
 
-                const result = await service.remove('minuta-123', 'user-123');
+                const result = await service.remove('minuta-123', userId);
 
-                expect(result).toEqual(mockMinuta);
-                expect(mockLoggerService.agregarLog).toHaveBeenCalled();
+                expect(result).toEqual(mockResult);
+                expect(mockCommandService.remove).toHaveBeenCalledWith(
+                    'minuta-123',
+                    userId,
+                    expect.any(Function) // findOneFn callback
+                );
             });
         });
     });
 
-    describe('State Transitions', () => {
-        it('should allow pendiente → aprobada transition', async () => {
-            const mockMinuta = {
-                Id: 'minuta-123',
-                UsuarioId: 'user-123',
-                Estado: 'pendiente',
-                Version: 1,
-                Proyecto: 'proyecto-123',
-                Dato: { unidades: [] },
-            };
+    describe('findAll', () => {
+        it('should use permissionsService for cached permissions', async () => {
+            const userId = 'user-123';
+            const query = { page: 1, limit: 10 };
 
-            const mockUpdatedMinuta = {
-                ...mockMinuta,
-                Estado: 'aprobada',
-                Version: 2,
-                users: { email: 'user@example.com' },
-                Proyectos: { Nombre: 'Proyecto A' },
-            };
-
-            mockPrismaService.minutasDefinitivas.findUnique
-                .mockResolvedValueOnce(mockMinuta)
-                .mockResolvedValueOnce(mockUpdatedMinuta);
-            mockPermissionsCache.getOrFetch.mockResolvedValue({
-                permissions: ['editarMinuta'],
-                projectIds: ['proyecto-123'],
-                roles: ['jefe_ventas'],
-            });
-            mockAuthService.getUserRoleInProject.mockResolvedValue('jefe_ventas');
-            mockPrismaService.minutasDefinitivas.update.mockResolvedValue(mockUpdatedMinuta);
-
-            const result = await service.update('minuta-123', { estado: 'aprobada', version: 1 }, 'user-123');
-
-            expect(result.Estado).toBe('aprobada');
-        });
-
-        it('should reject invalid state transitions', async () => {
-            const mockMinuta = {
-                Id: 'minuta-123',
-                UsuarioId: 'user-123',
-                Estado: 'firmada',
-                Version: 1,
-                Proyecto: 'proyecto-123',
-                Dato: { unidades: [] },
-            };
-
-            mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
-            mockPermissionsCache.getOrFetch.mockResolvedValue({
-                permissions: ['editarMinuta'],
-                projectIds: ['proyecto-123'],
-                roles: ['jefe_ventas'],
-            });
-            mockAuthService.getUserRoleInProject.mockResolvedValue('jefe_ventas');
-
-            await expect(
-                service.update('minuta-123', { estado: 'pendiente', version: 1 }, 'user-123')
-            ).rejects.toThrow(BadRequestException);
-        });
-
-        it('should require comments for cancelada state', async () => {
-            const mockMinuta = {
-                Id: 'minuta-123',
-                UsuarioId: 'user-123',
-                Estado: 'pendiente',
-                Version: 1,
-                Proyecto: 'proyecto-123',
-                Dato: { unidades: [] },
-            };
-
-            mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
-            mockPermissionsCache.getOrFetch.mockResolvedValue({
-                permissions: ['editarMinuta'],
-                projectIds: ['proyecto-123'],
-                roles: ['jefe_ventas'],
-            });
-            mockAuthService.getUserRoleInProject.mockResolvedValue('jefe_ventas');
-
-            await expect(
-                service.update('minuta-123', { estado: 'cancelada', version: 1 }, 'user-123')
-            ).rejects.toThrow(BadRequestException);
-        });
-
-        it('should release units when transitioning to cancelada', async () => {
-            const mockMinuta = {
-                Id: 'minuta-123',
-                UsuarioId: 'user-123',
-                Estado: 'pendiente',
-                Version: 1,
-                Proyecto: 'proyecto-123',
-                Dato: { unidades: [{ id: 'unit-1' }, { id: 'unit-2' }] },
-            };
-
-            const mockUpdatedMinuta = {
-                ...mockMinuta,
-                Estado: 'cancelada',
-                Version: 2,
-                users: { email: 'user@example.com' },
-                Proyectos: { Nombre: 'Proyecto A' },
-            };
-
-            mockPrismaService.minutasDefinitivas.findUnique
-                .mockResolvedValueOnce(mockMinuta)
-                .mockResolvedValueOnce(mockUpdatedMinuta);
-            mockPermissionsCache.getOrFetch.mockResolvedValue({
-                permissions: ['editarMinuta'],
-                projectIds: ['proyecto-123'],
-                roles: ['jefe_ventas'],
-            });
-            mockAuthService.getUserRoleInProject.mockResolvedValue('jefe_ventas');
-            mockPrismaService.minutasDefinitivas.update.mockResolvedValue(mockUpdatedMinuta);
-            mockUnitStateService.liberarUnidades.mockResolvedValue(undefined);
-            mockPrismaService.detallesVenta.updateMany.mockResolvedValue({ count: 2 });
-            mockPrismaService.users.findUnique.mockResolvedValue({ email: 'user@example.com' });
-            mockLoggerService.agregarLog.mockResolvedValue(undefined);
-
-            await service.update('minuta-123', {
-                estado: 'cancelada',
-                version: 1,
-                comentarios: 'Cliente desistió de la compra'
-            }, 'user-123');
-
-            expect(mockUnitStateService.liberarUnidades).toHaveBeenCalledWith(['unit-1', 'unit-2']);
-        });
-    });
-
-    describe('Permissions & Authorization', () => {
-        it('should allow user with verTodasMinutas to access all minutas', async () => {
-            const mockUserPermissions = {
+            mockPermissionsService.getCachedPermissions.mockResolvedValue({
                 permissions: ['verTodasMinutas'],
-                projectIds: [],
+                projectIds: ['proyecto-123'],
                 roles: ['adminmv'],
-            };
+            });
+            mockPermissionsService.buildPermissionsFilter.mockReturnValue(null);
+            mockPermissionsService.buildDateFilter.mockReturnValue(null);
 
             const mockMinutas = [
                 {
                     Id: 'minuta-1',
                     Estado: 'pendiente',
                     FechaCreacion: new Date(),
-                    users: { email: 'other@example.com' },
+                    users: { email: 'user@example.com' },
                     Proyectos: { Nombre: 'Proyecto A' },
                 },
             ];
 
-            mockPermissionsCache.getOrFetch.mockResolvedValue(mockUserPermissions);
             mockPrismaService.minutasDefinitivas.count.mockResolvedValue(1);
             mockPrismaService.minutasDefinitivas.findMany.mockResolvedValue(mockMinutas);
 
-            const result = await service.findAll({ page: 1, limit: 10 } as any, 'admin-user');
+            const result = await service.findAll(query as any, userId);
 
+            expect(mockPermissionsService.getCachedPermissions).toHaveBeenCalledWith(userId);
+            expect(result.total).toBe(1);
             expect(result.data).toHaveLength(1);
         });
 
-        it('should allow SuperAdminMV to bypass project restrictions', async () => {
-            const mockMinuta = {
-                Id: 'minuta-123',
-                UsuarioId: 'other-user',
-                Estado: 'en revisión',
-                Version: 1,
-                Proyecto: 'proyecto-123',
-                Dato: { unidades: [] },
-            };
-
-            const mockUpdatedMinuta = {
-                ...mockMinuta,
-                Estado: 'Definitiva',
-                Version: 2,
-                users: { email: 'admin@example.com' },
-                Proyectos: { Nombre: 'Proyecto A' },
-            };
-
-            mockPrismaService.minutasDefinitivas.findUnique
-                .mockResolvedValueOnce(mockMinuta)
-                .mockResolvedValueOnce(mockUpdatedMinuta);
-            mockPermissionsCache.getOrFetch.mockResolvedValue({
-                permissions: ['verTodasMinutas'],
+        it('should handle empty result set', async () => {
+            mockPermissionsService.getCachedPermissions.mockResolvedValue({
+                permissions: [],
                 projectIds: [],
-                roles: ['superadminmv'],
+                roles: [],
             });
-            mockAuthService.getUserRoleInProject.mockResolvedValue(null);
-            mockPrismaService.minutasDefinitivas.update.mockResolvedValue(mockUpdatedMinuta);
+            mockPermissionsService.buildPermissionsFilter.mockReturnValue(null);
+            mockPermissionsService.buildDateFilter.mockReturnValue(null);
+            mockPrismaService.minutasDefinitivas.count.mockResolvedValue(0);
+            mockPrismaService.minutasDefinitivas.findMany.mockResolvedValue([]);
 
-            const result = await service.update('minuta-123', { estado: 'Definitiva', version: 1 }, 'super-admin');
+            const result = await service.findAll({ page: 1, limit: 10 } as any, 'user-123');
 
-            expect(result.Estado).toBe('Definitiva');
+            expect(result.total).toBe(0);
+            expect(result.data).toHaveLength(0);
         });
 
-        it('should deny access if user not in proyecto and not owner', async () => {
+        it('should cap limit at maximum of 100', async () => {
+            mockPermissionsService.getCachedPermissions.mockResolvedValue({
+                permissions: [],
+                projectIds: [],
+                roles: [],
+            });
+            mockPermissionsService.buildPermissionsFilter.mockReturnValue(null);
+            mockPermissionsService.buildDateFilter.mockReturnValue(null);
+            mockPrismaService.minutasDefinitivas.count.mockResolvedValue(0);
+            mockPrismaService.minutasDefinitivas.findMany.mockResolvedValue([]);
+
+            await service.findAll({ page: 1, limit: 500 } as any, 'user-123');
+
+            expect(mockPrismaService.minutasDefinitivas.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({ take: 100 })
+            );
+        });
+    });
+
+    describe('findOne', () => {
+        it('should return minuta if user is owner', async () => {
+            const userId = 'user-123';
+            const mockMinuta = {
+                Id: 'minuta-123',
+                UsuarioId: userId,
+                Estado: 'pendiente',
+                users: { email: 'user@example.com' },
+                Proyectos: { Nombre: 'Proyecto A' },
+                Dato: {},
+            };
+
+            mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
+            mockPermissionsService.canViewAllMinutas.mockResolvedValue(false);
+            mockPermissionsService.hasProjectAccess.mockResolvedValue(false);
+            mockPermissionsService.canSignMinuta.mockResolvedValue(false);
+
+            const result = await service.findOne('minuta-123', userId);
+
+            expect(result.Id).toBe('minuta-123');
+        });
+
+        it('should throw NotFoundException if minuta does not exist', async () => {
+            mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(null);
+
+            await expect(service.findOne('nonexistent', 'user-123')).rejects.toThrow(NotFoundException);
+        });
+
+        it('should throw ForbiddenException if user has no access', async () => {
             const mockMinuta = {
                 Id: 'minuta-123',
                 UsuarioId: 'other-user',
                 Estado: 'pendiente',
-                Proyecto: 'proyecto-999',
             };
 
             mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
-            mockPrismaService.usuariosRoles.findMany.mockResolvedValue([]);
-            mockPrismaService.usuariosProyectos.findFirst.mockResolvedValue(null);
+            mockPermissionsService.canViewAllMinutas.mockResolvedValue(false);
+            mockPermissionsService.hasProjectAccess.mockResolvedValue(false);
+            mockPermissionsService.canSignMinuta.mockResolvedValue(false);
 
             await expect(service.findOne('minuta-123', 'user-123')).rejects.toThrow(ForbiddenException);
+        });
+
+        it('should allow access if user can view all minutas', async () => {
+            const mockMinuta = {
+                Id: 'minuta-123',
+                UsuarioId: 'other-user',
+                Estado: 'pendiente',
+                users: { email: 'user@example.com' },
+                Proyectos: { Nombre: 'Proyecto A' },
+                Dato: {},
+            };
+
+            mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
+            mockPermissionsService.canViewAllMinutas.mockResolvedValue(true);
+
+            const result = await service.findOne('minuta-123', 'user-123');
+
+            expect(result.Id).toBe('minuta-123');
+        });
+
+        it('should allow access if user has project access', async () => {
+            const mockMinuta = {
+                Id: 'minuta-123',
+                UsuarioId: 'other-user',
+                Estado: 'pendiente',
+                Proyecto: 'proyecto-123',
+                users: { email: 'user@example.com' },
+                Proyectos: { Nombre: 'Proyecto A' },
+                Dato: {},
+            };
+
+            mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
+            mockPermissionsService.canViewAllMinutas.mockResolvedValue(false);
+            mockPermissionsService.hasProjectAccess.mockResolvedValue(true);
+
+            const result = await service.findOne('minuta-123', 'user-123');
+
+            expect(result.Id).toBe('minuta-123');
+        });
+
+        it('should allow signer to view approved minutas', async () => {
+            const mockMinuta = {
+                Id: 'minuta-123',
+                UsuarioId: 'other-user',
+                Estado: 'aprobada',
+                Proyecto: 'proyecto-123',
+                users: { email: 'user@example.com' },
+                Proyectos: { Nombre: 'Proyecto A' },
+                Dato: {},
+            };
+
+            mockPrismaService.minutasDefinitivas.findUnique.mockResolvedValue(mockMinuta);
+            mockPermissionsService.canViewAllMinutas.mockResolvedValue(false);
+            mockPermissionsService.hasProjectAccess.mockResolvedValue(false);
+            mockPermissionsService.canSignMinuta.mockResolvedValue(true);
+
+            const result = await service.findOne('minuta-123', 'user-123');
+
+            expect(result.Id).toBe('minuta-123');
+        });
+    });
+
+    describe('State Helpers', () => {
+        it('should delegate getValidTransitions to stateService', () => {
+            mockStateService.getValidTransitions.mockReturnValue(['aprobada', 'cancelada']);
+
+            const result = service.getValidTransitions('pendiente');
+
+            expect(result).toEqual(['aprobada', 'cancelada']);
+            expect(mockStateService.getValidTransitions).toHaveBeenCalledWith('pendiente');
+        });
+
+        it('should delegate isFinalState to stateService', () => {
+            mockStateService.isFinalState.mockReturnValue(true);
+
+            const result = service.isFinalState('firmada');
+
+            expect(result).toBe(true);
+            expect(mockStateService.isFinalState).toHaveBeenCalledWith('firmada');
+        });
+    });
+
+    describe('Cache Management', () => {
+        it('should expose cache stats via getPermissionsCacheStats', async () => {
+            const mockStats = { hitRate: 0.95, size: 100 };
+            mockPermissionsService.getStats.mockResolvedValue(mockStats);
+
+            const result = await service.getPermissionsCacheStats();
+
+            expect(result).toEqual(mockStats);
+            expect(mockPermissionsService.getStats).toHaveBeenCalled();
+        });
+
+        it('should invalidate user cache correctly', async () => {
+            mockPermissionsService.invalidateUser.mockResolvedValue(undefined);
+
+            await service.invalidateUserCache('user-123');
+
+            expect(mockPermissionsService.invalidateUser).toHaveBeenCalledWith('user-123');
+        });
+
+        it('should clear all cache correctly', async () => {
+            mockPermissionsService.clearAll.mockResolvedValue(undefined);
+
+            await service.clearAllCache();
+
+            expect(mockPermissionsService.clearAll).toHaveBeenCalled();
+        });
+    });
+
+    describe('Document Generation', () => {
+        it('should throw error if N8N_WEBHOOK_URL not configured', async () => {
+            const originalEnv = process.env.N8N_WEBHOOK_URL;
+            delete process.env.N8N_WEBHOOK_URL;
+
+            await expect(service.generate({ data: 'test' })).rejects.toThrow('N8N_WEBHOOK_URL not configured');
+
+            process.env.N8N_WEBHOOK_URL = originalEnv;
+        });
+    });
+
+    describe('Provisoria Methods (Not Implemented)', () => {
+        it('should throw error for createProvisoria', async () => {
+            await expect(service.createProvisoria({} as any, 'user-123')).rejects.toThrow('not implemented');
+        });
+
+        it('should throw error for updateProvisoria', async () => {
+            await expect(service.updateProvisoria('id', {})).rejects.toThrow('not implemented');
         });
     });
 });

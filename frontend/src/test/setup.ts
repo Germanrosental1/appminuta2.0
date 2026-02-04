@@ -30,7 +30,7 @@ Object.defineProperty(globalThis, 'location', {
 });
 
 // Mock IntersectionObserver
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+ 
 globalThis.IntersectionObserver = class IntersectionObserver {
     disconnect() { return; }
     observe() { return; }
@@ -41,7 +41,7 @@ globalThis.IntersectionObserver = class IntersectionObserver {
 } as any;
 
 // Mock ResizeObserver
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+ 
 globalThis.ResizeObserver = class ResizeObserver {
     disconnect() { return; }
     observe() { return; }

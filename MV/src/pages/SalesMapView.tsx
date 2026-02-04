@@ -8,10 +8,9 @@ import { UnitDetailSheet } from "@/components/unit-detail-sheet";
 import { PermissionsTab } from "@/components/permissions-tab";
 import { GastosGeneralesTab } from "@/components/gastos-generales-tab";
 import { mockUsers, mockPermissions } from "@/data/mock-data";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { useUnits, useUpdateUnit } from "@/hooks/useUnits";
+import { useUnits, useUpdateUnit, useProjectByName } from "@/hooks/useUnits";
 
 export default function SalesMapView() {
   const { mapId } = useParams();
@@ -22,6 +21,8 @@ export default function SalesMapView() {
     isLoading,
     error: unitsError
   } = useUnits(mapId || '');
+
+  const { data: project } = useProjectByName(mapId);
 
   const updateUnitMutation = useUpdateUnit();
 
@@ -46,30 +47,12 @@ export default function SalesMapView() {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Fetch project ID when mapId changes
+  // Update projectId when project data is fetched
   useEffect(() => {
-    const fetchProjectId = async () => {
-      if (!mapId || mapId === 'undefined') return;
-
-      try {
-        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const projectResponse = await fetch(`${backendUrl}/proyectos/by-name/${mapId}`, {
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-        });
-
-        if (projectResponse.ok) {
-          const projectData = await projectResponse.json();
-          setProjectId(projectData.Id || projectData.id);
-        }
-      } catch (error) {
-        console.error(`Error loading project ID for ${mapId}:`, error);
-      }
-    };
-
-    fetchProjectId();
-  }, [mapId]);
+    if (project) {
+      setProjectId(project.Id || project.id);
+    }
+  }, [project]);
 
   // Extract project metadata when units change
   useEffect(() => {
@@ -138,7 +121,7 @@ export default function SalesMapView() {
       if (filters.dormitorios === "null") {
         if (unit.dormitorios !== 0 && unit.dormitorios !== null) return false;
       } else {
-        const dormitoriosNum = parseInt(filters.dormitorios);
+        const dormitoriosNum = Number.parseInt(filters.dormitorios);
         if (unit.dormitorios !== dormitoriosNum) return false;
       }
     }
@@ -149,14 +132,14 @@ export default function SalesMapView() {
     }
 
     // Filtro por precio mínimo
-    if (filters.precioMin && !isNaN(parseFloat(filters.precioMin))) {
-      const precioMin = parseFloat(filters.precioMin);
+    if (filters.precioMin && !Number.isNaN(Number.parseFloat(filters.precioMin))) {
+      const precioMin = Number.parseFloat(filters.precioMin);
       if (unit.precioUSD < precioMin) return false;
     }
 
     // Filtro por precio máximo
-    if (filters.precioMax && !isNaN(parseFloat(filters.precioMax))) {
-      const precioMax = parseFloat(filters.precioMax);
+    if (filters.precioMax && !Number.isNaN(Number.parseFloat(filters.precioMax))) {
+      const precioMax = Number.parseFloat(filters.precioMax);
       if (unit.precioUSD > precioMax) return false;
     }
 
@@ -231,7 +214,7 @@ export default function SalesMapView() {
 
             <TabsContent value="permissions">
               <PermissionsTab
-                mapId={mapId!}
+                mapId={mapId}
                 users={mockUsers}
                 permissions={mockPermissions}
                 onSavePermissions={handleSavePermissions}

@@ -8,20 +8,20 @@ export class UnidadesHelper {
 
     // --- Create Helpers ---
 
-    static async resolveEstadoId(tx: Prisma.TransactionClient, nombre?: string): Promise<string | null> {
-        if (!nombre) return null;
+    static async resolveEstadoId(tx: Prisma.TransactionClient, nombre?: string): Promise<string | undefined> {
+        if (!nombre) return undefined;
         const estado = await tx.estadoComercial.findFirst({ where: { NombreEstado: { equals: nombre, mode: 'insensitive' } } });
-        return estado ? estado.Id : null;
+        return estado ? estado.Id : undefined;
     }
 
-    static async resolveComercialId(tx: Prisma.TransactionClient, nombre?: string): Promise<string | null> {
-        if (!nombre) return null;
+    static async resolveComercialId(tx: Prisma.TransactionClient, nombre?: string): Promise<string | undefined> {
+        if (!nombre) return undefined;
         const comercial = await tx.comerciales.findFirst({ where: { Nombre: { equals: nombre, mode: 'insensitive' } } });
-        return comercial ? comercial.Id : null;
+        return comercial ? comercial.Id : undefined;
     }
 
-    static async resolveTipoUnidadId(tx: Prisma.TransactionClient, tipoId?: string): Promise<string | null> {
-        if (!tipoId || tipoId.includes('-')) return tipoId || null;
+    static async resolveTipoUnidadId(tx: Prisma.TransactionClient, tipoId?: string): Promise<string | undefined> {
+        if (!tipoId || tipoId.includes('-')) return tipoId || undefined;
 
         const tipo = await tx.tiposUnidad.findFirst({ where: { Nombre: { equals: tipoId, mode: 'insensitive' } } });
         if (tipo) return tipo.Id;
@@ -30,8 +30,8 @@ export class UnidadesHelper {
         return newTipo.Id;
     }
 
-    static async resolveEdificioId(tx: Prisma.TransactionClient, edificioId?: string, proyectoId?: string): Promise<string | null> {
-        if (!edificioId || edificioId.includes('-')) return edificioId || null;
+    static async resolveEdificioId(tx: Prisma.TransactionClient, edificioId?: string, proyectoId?: string): Promise<string | undefined> {
+        if (!edificioId || edificioId.includes('-')) return edificioId || undefined;
 
         const whereClause: any = { NombreEdificio: { equals: edificioId, mode: 'insensitive' } };
         if (proyectoId) {
@@ -51,11 +51,11 @@ export class UnidadesHelper {
             return newEdificio.Id;
         }
 
-        return null;
+        return undefined;
     }
 
-    static async resolveEtapaId(tx: Prisma.TransactionClient, etapaId?: string): Promise<string | null> {
-        if (!etapaId || etapaId.includes('-')) return etapaId || null;
+    static async resolveEtapaId(tx: Prisma.TransactionClient, etapaId?: string): Promise<string | undefined> {
+        if (!etapaId || etapaId.includes('-')) return etapaId || undefined;
 
         const etapa = await tx.etapas.findFirst({ where: { Nombre: { equals: etapaId, mode: 'insensitive' } } });
         if (etapa) return etapa.Id;
@@ -67,22 +67,22 @@ export class UnidadesHelper {
     static async createUnidadEntity(
         tx: Prisma.TransactionClient,
         dto: CreateUnidadDto,
-        ids: { tipoId: string | null, edificioId: string | null, etapaId: string | null }
+        ids: { tipoId: string | undefined, edificioId: string | undefined, etapaId: string | undefined }
     ) {
-        return tx.unidades.create({
-            data: {
-                SectorId: dto.sectorid,
-                TipoUnidadId: ids.tipoId,
-                EdificioId: ids.edificioId,
-                EtapaId: ids.etapaId,
-                Piso: dto.piso,
-                NroUnidad: dto.nrounidad,
-                Dormitorio: dto.dormitorios,
-                Manzana: dto.manzana,
-                Destino: dto.destino,
-                Frente: dto.frente,
-            }
-        });
+        const createData: any = {
+            SectorId: dto.sectorid,
+        };
+        if (ids.tipoId !== undefined) createData.TipoUnidadId = ids.tipoId;
+        if (ids.edificioId !== undefined) createData.EdificioId = ids.edificioId;
+        if (ids.etapaId !== undefined) createData.EtapaId = ids.etapaId;
+        if (dto.piso !== undefined) createData.Piso = dto.piso;
+        if (dto.nrounidad !== undefined) createData.NroUnidad = dto.nrounidad;
+        if (dto.dormitorios !== undefined) createData.Dormitorio = dto.dormitorios;
+        if (dto.manzana !== undefined) createData.Manzana = dto.manzana;
+        if (dto.destino !== undefined) createData.Destino = dto.destino;
+        if (dto.frente !== undefined) createData.Frente = dto.frente;
+
+        return tx.unidades.create({ data: createData });
     }
 
     static async createMetrics(tx: Prisma.TransactionClient, unidadId: string, dto: CreateUnidadDto) {
@@ -104,14 +104,14 @@ export class UnidadesHelper {
         tx: Prisma.TransactionClient,
         unidadId: string,
         dto: CreateUnidadDto,
-        ids: { estadoId: string | null, comercialId: string | null }
+        ids: { estadoId: string | undefined, comercialId: string | undefined }
     ) {
         await tx.detallesVenta.create({
             data: {
                 UnidadId: unidadId,
                 PrecioUsd: dto.preciousd || 0,
                 UsdM2: dto.usdm2 || 0,
-                ClienteInteresado: dto.clienteinteresado || null,
+                ClienteInteresado: dto.clienteinteresado ?? undefined,
                 Obs: dto.obs,
                 FechaReserva: dto.fechareserva,
                 EstadoId: ids.estadoId,
@@ -212,7 +212,7 @@ export class UnidadesHelper {
                 salesData.clienteInteresado = clienteInteresado;
             } catch (e) {
                 this.logger.warn(`Invalid BigInt for clienteinteresado: ${clienteInteresado}`);
-                salesData.clienteInteresado = null;
+                salesData.clienteInteresado = undefined;
             }
         } else {
             salesData.clienteInteresado = null;
@@ -225,9 +225,9 @@ export class UnidadesHelper {
         if (updateDto.fechaposesion !== undefined) salesData.FechaPosesion = this.parseDate(updateDto.fechaposesion);
     }
 
-    private static parseDate(dateStr?: string): Date | null {
-        if (!dateStr) return null;
+    private static parseDate(dateStr?: string): Date | undefined {
+        if (!dateStr) return undefined;
         const date = new Date(dateStr);
-        return Number.isNaN(date.getTime()) ? null : date;
+        return Number.isNaN(date.getTime()) ? undefined : date;
     }
 }

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { backendAPI } from './backendAPI';
-import { TablaItem, TablaInsert, TablaUpdate, Unit, mapTablaToUnit, mapUnitToTabla, EstadoUnidad, normalizeEstado } from '@/types/supabase-types';
+import { TablaItem, Unit, mapTablaToUnit } from '@/types/supabase-types';
 
 const TABLE_NAME = 'vista_buscador_propiedades';
 
@@ -118,6 +118,7 @@ export const supabaseService = {
       // Retornar la unidad actualizada
       return unit;
     } catch (error) {
+      console.error('Error updating unit:', error);
       throw error;
     }
   },
@@ -168,9 +169,10 @@ export const supabaseService = {
 
       // Debemos asegurarnos que el backend las resuelva.
 
-      const createdUnit = await backendAPI.createUnitComplete(backendData);
+      const createdUnit = await backendAPI.createUnitComplete(backendData) as TablaItem;
       return mapTablaToUnit(createdUnit);
     } catch (error) {
+      console.error('Error creating unit:', error);
       throw error;
     }
   },
@@ -186,9 +188,11 @@ export const supabaseService = {
         .eq('Id', id);  // PascalCase
 
       if (error) {
+        console.error('Error deleting unit:', error);
         throw error;
       }
     } catch (error) {
+      console.error('Error in deleteUnit:', error);
       throw error;
     }
   },
@@ -204,6 +208,7 @@ export const supabaseService = {
         .not('Proyecto', 'is', null);  // PascalCase
 
       if (error) {
+        console.error('Error fetching projects:', error);
         throw error;
       }
 
@@ -211,7 +216,21 @@ export const supabaseService = {
       const projects = [...new Set(data.map(item => item.Proyecto))].filter(Boolean) as string[];
       return projects;
     } catch (error) {
+      console.error('Error in getProjects:', error);
       throw error;
+    }
+  },
+
+  /**
+   * Obtiene información de proyecto por nombre usando backend API
+   */
+  async getProjectByName(projectName: string): Promise<{ Id: string; id: string; Nombre?: string } | null> {
+    try {
+      const result = await backendAPI.getProjectByName(projectName);
+      return result;
+    } catch (error) {
+      console.error(`Error fetching project by name ${projectName}:`, error);
+      return null;
     }
   },
 
@@ -223,9 +242,7 @@ export const supabaseService = {
     try {
       // La vista no tiene natdelproyecto, retornar vacío
       return [];
-    } catch (error) {
-      throw error;
-    }
+    } catch (error) { }
   },
 
   /**
@@ -250,11 +267,12 @@ export const supabaseService = {
       // Retornar todos los proyectos bajo un solo grupo "Proyectos"
       const result = [{
         naturaleza: 'Proyectos',
-        proyectos: uniqueProjects.sort()
+        proyectos: [...uniqueProjects].sort((a, b) => a.localeCompare(b))
       }];
 
       return result;
     } catch (error) {
+      console.error('Error fetching projects by naturaleza:', error);
       throw error;
     }
   },

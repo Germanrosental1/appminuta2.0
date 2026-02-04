@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
@@ -11,7 +11,6 @@ import {
   STATUS_NAMES,
   STATUS_COLORS,
   MultiSelectDropdown,
-  MetricasTab,
   StockTab,
   TitularTab,
   getMetrics,
@@ -20,6 +19,9 @@ import {
   getDormitoriosDistribution,
   getMotivosDistribution,
 } from "@/components/dashboard";
+
+// Lazy load heavy chart components (bundle optimization)
+const MetricasTab = lazy(() => import("@/components/dashboard/MetricasTab").then(m => ({ default: m.MetricasTab })));
 
 export default function Dashboard() {
 
@@ -258,18 +260,19 @@ export default function Dashboard() {
         </TabsList>
 
         <TabsContent value="metricas">
-          <MetricasTab
-            loading={loading}
-            metrics={metrics}
-            statusData={statusData}
-            tipoData={tipoData}
-            dormitoriosData={dormitoriosData}
-            motivosData={motivosData}
-            selectedStatus={selectedStatus}
-            setSelectedStatus={setSelectedStatus}
-            selectedType={selectedType}
-            setSelectedType={setSelectedType}
-            selectedDorms={selectedDorms}
+          <Suspense fallback={<div className="flex items-center justify-center p-8">Cargando métricas...</div>}>
+            <MetricasTab
+              loading={loading}
+              metrics={metrics}
+              statusData={statusData}
+              tipoData={tipoData}
+              dormitoriosData={dormitoriosData}
+              motivosData={motivosData}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+              selectedType={selectedType}
+              setSelectedType={setSelectedType}
+              selectedDorms={selectedDorms}
             setSelectedDorms={setSelectedDorms}
             selectedMotivo={selectedMotivo}
             setSelectedMotivo={setSelectedMotivo}
@@ -278,6 +281,7 @@ export default function Dashboard() {
             animationKey={animationKey}
             hasDepartamentos={tipoData.some(t => t.name === 'Departamento' && t.value > 0)}
           />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="stock">

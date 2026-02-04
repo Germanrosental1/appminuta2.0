@@ -54,7 +54,7 @@ workbook.SheetNames.forEach((sheetName, sheetIdx) => {
     function normalizeKey(key) {
         return key.toLowerCase()
             .replace(/\s+/g, '')
-            .replace(/[áàäâ]/g, 'a')
+            .replaceAll(/[áàäâ]/g, 'a')
             .replace(/[éèëê]/g, 'e')
             .replace(/[íìïî]/g, 'i')
             .replace(/[óòöô]/g, 'o')

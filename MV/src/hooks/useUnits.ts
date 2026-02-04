@@ -178,3 +178,23 @@ export function useProjects() {
     gcTime: 10 * 60 * 1000, // 10 minutos
   });
 }
+
+/**
+ * Hook para obtener proyecto por nombre
+ */
+export function useProjectByName(projectName: string | undefined) {
+  return useQuery({
+    queryKey: ['projects', 'by-name', projectName],
+    queryFn: async () => {
+      if (!projectName || projectName === 'undefined') {
+        return null;
+      }
+
+      const project = await supabaseService.getProjectByName(projectName);
+      return project;
+    },
+    enabled: !!projectName && projectName !== 'undefined',
+    staleTime: 10 * 60 * 1000, // 10 minutos (projects rarely change)
+    gcTime: 15 * 60 * 1000,
+  });
+}
