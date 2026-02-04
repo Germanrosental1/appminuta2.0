@@ -87,19 +87,19 @@ export const DashboardComercial: React.FC = () => {
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case 'pendiente':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">Pendiente</Badge>;
       case 'en_edicion':
-        return <Badge variant="outline" className="bg-orange-100 text-orange-800">En Edición</Badge>;
+        return <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20">En Edición</Badge>;
       case 'revisada':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Revisada</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Revisada</Badge>;
       case 'aprobada':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Aprobada</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">Aprobada</Badge>;
       case 'firmada':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Firmada</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Firmada</Badge>;
       case 'cancelada':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Cancelada</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">Cancelada</Badge>;
       case 'rechazada':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Rechazada</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">Rechazada</Badge>;
       default:
         return <Badge variant="outline">{estado}</Badge>;
     }
@@ -160,6 +160,7 @@ export const DashboardComercial: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="border-[#334366] text-[#92a4c8] hover:bg-white/5 hover:text-white"
                       onClick={() => handleVerMinuta(minuta.Id)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -169,7 +170,7 @@ export const DashboardComercial: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="bg-orange-50 hover:bg-orange-100"
+                        className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
                         onClick={() => navigate(`/wizard?edit=${minuta.Id}`)}
                       >
                         <Edit className="h-4 w-4 mr-1" />

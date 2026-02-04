@@ -270,7 +270,7 @@ export const Step3ComposicionFSB: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-0 h-10 rounded-lg overflow-hidden">
+        <div className="flex items-center gap-0 h-3 rounded-lg overflow-hidden">
           <div
             className="h-full bg-blue-500 flex items-center justify-center transition-all duration-300"
             style={{ width: `${data.modoA === "porcentaje" ? data.porcA : (data.impA / precioTotal) * 100}%` }}

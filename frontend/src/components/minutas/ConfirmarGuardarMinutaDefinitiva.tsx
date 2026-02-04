@@ -232,16 +232,29 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
         </DialogHeader>
 
         <Tabs defaultValue="resumen">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="resumen">Resumen</TabsTrigger>
-            <TabsTrigger value="mapa-ventas">
+          <TabsList className="grid w-full grid-cols-3 bg-[#0f131a] border border-[#334366] p-1 h-auto">
+            <TabsTrigger
+              value="resumen"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 hover:text-white transition-all py-2"
+            >
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger
+              value="mapa-ventas"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 hover:text-white transition-all py-2"
+            >
               Mapa de Ventas {loadingMapaVentas && "(Cargando...)"}
             </TabsTrigger>
-            <TabsTrigger value="json">Datos JSON</TabsTrigger>
+            <TabsTrigger
+              value="json"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 hover:text-white transition-all py-2"
+            >
+              Datos JSON
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="resumen" className="mt-4">
-            <ScrollArea className="h-[50vh] bg-[#0f131a] rounded-md border border-[#334366]">
-              <Card className="bg-transparent border-none">
+            <ScrollArea className="h-[50vh] bg-[#0f131a] rounded-md border border-[#334366] text-slate-300">
+              <Card className="bg-transparent border-none text-slate-300">
                 <CardContent className="pt-6">
                   <MapaVentasContent
                     loading={loadingMapaVentas}
@@ -399,8 +412,8 @@ const formatearDatosUnidad = (datos: any): Array<{ label: string; value: string 
 const MapaVentasContent: React.FC<{ loading: boolean; datos: any[] }> = ({ loading, datos }) => {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center py-8 text-slate-300">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         <span className="ml-2">Cargando datos del mapa de ventas...</span>
       </div>
     );

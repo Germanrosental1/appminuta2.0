@@ -248,12 +248,14 @@
 .dashboard-table {
     border-radius: 0.5rem;
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #334366;
+    background-color: transparent;
 }
 
 .dashboard-table tbody tr {
     transition: all 0.15s ease;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid #334366;
+    color: #ffffff;
 }
 
 .dashboard-table tbody tr:last-child {
@@ -261,7 +263,7 @@
 }
 
 .dashboard-table tbody tr:hover {
-    background: #f9fafb;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 /* Enhanced Tab Styles */
