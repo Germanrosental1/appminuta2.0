@@ -165,7 +165,7 @@ export const initialWizardData: WizardData = {
   impA: 0,
   monedaA: "ARS",
   monedaB: "USD",
-  tipoPago: "contado",
+  tipoPago: "financiado",
   tcFuente: "MEP",
   tcValor: 1100,
   valorArsConIVA: 0,

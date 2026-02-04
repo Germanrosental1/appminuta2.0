@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Paso 2: Condiciones Comerciales</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Noto+Sans:wght@300..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2463eb",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111622",
+                        "surface-dark": "#1a2233",
+                        "border-dark": "#242f47",
+                        "text-secondary": "#92a4c8",
+                        "sidebar-bg": "#0f131d", // Darker sidebar background
+                        "sidebar-active": "#1a2438", // Active item bg
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased overflow-hidden">
+<div class="flex h-screen w-full overflow-hidden">
+<aside class="w-80 flex-shrink-0 bg-sidebar-bg border-r border-border-dark flex flex-col h-full z-20 overflow-y-auto">
+<div class="p-8 pb-8">
+<h1 class="text-2xl font-bold text-white tracking-tight mb-1">Gestión Inmobiliaria</h1>
+<p class="text-text-secondary text-base">Asistente de Minutas</p>
+</div>
+<nav class="flex-1 px-4 flex flex-col gap-2">
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-white transition-colors">domain</span>
+<span class="font-medium text-[15px]">Proyecto y Unidad</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-white transition-colors">group</span>
+<span class="font-medium text-[15px]">Propietarios</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-white transition-colors">payments</span>
+<span class="font-medium text-[15px]">Precio y Forma de Pago</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl bg-sidebar-active border border-primary/20 text-white shadow-lg shadow-blue-900/10" href="#">
+<span class="material-symbols-outlined text-[24px] text-primary">gavel</span>
+<span class="font-medium text-[15px] text-blue-100">Condiciones</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-white transition-colors">description</span>
+<span class="font-medium text-[15px]">Observaciones</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-white transition-colors">fact_check</span>
+<span class="font-medium text-[15px]">Revisión</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-white transition-colors">draw</span>
+<span class="font-medium text-[15px]">Firmas</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-white transition-colors">print</span>
+<span class="font-medium text-[15px]">Generar</span>
+</a>
+</nav>
+</aside>
+<div class="flex-1 flex flex-col h-full overflow-hidden relative">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark bg-background-dark px-8 py-4 z-10">
+<div class="flex flex-col">
+<span class="text-sm font-medium text-text-secondary">Paso 2 de 8</span> 
+<h2 class="text-white text-lg font-bold leading-tight">Condiciones Comerciales</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-6 mr-4">
+<a class="text-text-secondary hover:text-white transition-colors text-sm font-medium" href="#">Dashboard</a>
+<a class="text-primary text-sm font-medium border-b-2 border-primary pb-0.5" href="#">Minutas</a>
+<a class="text-text-secondary hover:text-white transition-colors text-sm font-medium" href="#">Clientes</a>
+</div>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-border-dark" data-alt="User profile avatar showing a smiling professional" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB8iBqa5Npj83hRrz-3u9i0PKjiQdLTr8W5Sm8fpClSR1j1mutFGeZUuxEExFv1nHCAy9N6tNMxycJqRob7VRa2J7VFFUdwHXcY8xOIWju2CVmFSEvBwkxCPxvXxeQ4SvHCyI-rny6KXv4Qgtpixkr0fZnjqdBaBdIVzCaMpJPQX6BqKV8dJ4cpC8hAz9K_c00L16lnAToQ_DVZysfrV8wLlfgwUPmV_dY3jbzfbccdqGFYqBwDQGak87pCfguOTpZtKWpaL1bpR6k");'></div>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto p-8">
+<div class="flex flex-col max-w-5xl mx-auto gap-8 pb-20">
+<div class="h-1 w-full bg-surface-dark rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 25%"></div> 
+</div>
+<div class="flex flex-col gap-2">
+<h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
+                            Condiciones Comerciales
+                        </h1>
+<p class="text-text-secondary text-base md:text-lg max-w-3xl">
+                            Configure los precios de lista y aplique los descuentos correspondientes a cada unidad seleccionada para la minuta.
+                        </p>
+</div>
+<div class="flex flex-col gap-6">
+<div class="flex flex-col rounded-xl bg-surface-dark border border-border-dark shadow-sm overflow-hidden">
+<div class="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-[#1e2738]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">apartment</span>
+<h3 class="text-lg font-bold text-white">Unidad 304 - Torre A</h3>
+</div>
+<span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">Disponible</span>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Precio Lista</label>
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined text-[20px]">attach_money</span>
+<input class="w-full h-11 pl-10 pr-4 bg-[#111622] border border-border-dark rounded-lg text-text-secondary font-mono text-sm opacity-70 cursor-not-allowed select-none" disabled="" type="text" value="185,000.00"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Tipo Descuento</label>
+<div class="relative">
+<select class="w-full h-11 pl-4 pr-10 bg-background-dark border border-border-dark rounded-lg text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer">
+<option selected="" value="none">Ninguno</option>
+<option value="percent">Porcentaje (%)</option>
+<option value="amount">Importe Fijo ($)</option>
+</select>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 opacity-50">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Valor Descuento</label>
+<input class="w-full h-11 px-4 bg-background-dark border border-border-dark rounded-lg text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-not-allowed" disabled="" placeholder="0" type="number"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-primary">Precio Negociado</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-white material-symbols-outlined text-[20px]">paid</span>
+<input class="w-full h-11 pl-10 pr-4 bg-primary/10 border border-primary/30 rounded-lg text-white font-mono font-bold text-sm focus:outline-none" readonly="" type="text" value="185,000.00"/>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col rounded-xl bg-surface-dark border border-border-dark shadow-sm overflow-hidden">
+<div class="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-[#1e2738]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">apartment</span>
+<h3 class="text-lg font-bold text-white">Unidad 501 - Torre B</h3>
+</div>
+<span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">Disponible</span>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Precio Lista</label>
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined text-[20px]">attach_money</span>
+<input class="w-full h-11 pl-10 pr-4 bg-[#111622] border border-border-dark rounded-lg text-text-secondary font-mono text-sm opacity-70 cursor-not-allowed select-none" disabled="" type="text" value="210,000.00"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Tipo Descuento</label>
+<div class="relative">
+<select class="w-full h-11 pl-4 pr-10 bg-background-dark border border-border-dark rounded-lg text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer">
+<option value="none">Ninguno</option>
+<option selected="" value="percent">Porcentaje (%)</option>
+<option value="amount">Importe Fijo ($)</option>
+</select>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Valor Descuento (%)</label>
+<div class="relative">
+<input class="w-full h-11 px-4 pr-8 bg-background-dark border border-border-dark rounded-lg text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all font-mono" max="100" min="0" type="number" value="5"/>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary font-bold">%</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-primary">Precio Negociado</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-white material-symbols-outlined text-[20px]">paid</span>
+<input class="w-full h-11 pl-10 pr-4 bg-primary/10 border border-primary/30 rounded-lg text-white font-mono font-bold text-sm focus:outline-none" readonly="" type="text" value="199,500.00"/>
+</div>
+<span class="text-xs text-emerald-400 text-right">Ahorro: $10,500.00</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col rounded-xl bg-surface-dark border border-border-dark shadow-sm overflow-hidden">
+<div class="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-[#1e2738]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">apartment</span>
+<h3 class="text-lg font-bold text-white">Unidad PH-01 - Torre B</h3>
+</div>
+<span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">Disponible</span>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Precio Lista</label>
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined text-[20px]">attach_money</span>
+<input class="w-full h-11 pl-10 pr-4 bg-[#111622] border border-border-dark rounded-lg text-text-secondary font-mono text-sm opacity-70 cursor-not-allowed select-none" disabled="" type="text" value="350,000.00"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Tipo Descuento</label>
+<div class="relative">
+<select class="w-full h-11 pl-4 pr-10 bg-background-dark border border-border-dark rounded-lg text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer">
+<option value="none">Ninguno</option>
+<option value="percent">Porcentaje (%)</option>
+<option selected="" value="amount">Importe Fijo ($)</option>
+</select>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Valor Descuento ($)</label>
+<div class="relative">
+<input class="w-full h-11 pl-8 pr-4 bg-background-dark border border-border-dark rounded-lg text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all font-mono" min="0" type="number" value="15000"/>
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">$</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-primary">Precio Negociado</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-white material-symbols-outlined text-[20px]">paid</span>
+<input class="w-full h-11 pl-10 pr-4 bg-primary/10 border border-primary/30 rounded-lg text-white font-mono font-bold text-sm focus:outline-none" readonly="" type="text" value="335,000.00"/>
+</div>
+<span class="text-xs text-emerald-400 text-right">Ahorro: $15,000.00</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-4 rounded-xl bg-blue-900/20 border border-blue-800/50 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg backdrop-blur-sm">
+<div class="flex items-center gap-4">
+<div class="p-3 bg-blue-500/20 rounded-full text-blue-400">
+<span class="material-symbols-outlined text-3xl">calculate</span>
+</div>
+<div class="flex flex-col">
+<h4 class="text-text-secondary text-sm font-medium uppercase tracking-wide">Resumen de la Operación</h4>
+<p class="text-white text-lg">Total Unidades: <span class="font-bold">3</span></p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="text-text-secondary text-sm">Total Final (USD)</span>
+<span class="text-3xl md:text-4xl font-black text-white tracking-tight tabular-nums">$ 719,500.00</span>
+<span class="text-sm text-emerald-400">Ahorro Total: $ 25,500.00</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 pb-12">
+<button class="flex items-center gap-2 px-6 py-3 rounded-lg border border-border-dark text-white hover:bg-surface-dark transition-colors font-medium">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+<span>Atrás</span>
+</button>
+<button class="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-900/20 transition-all font-bold">
+<span>Siguiente</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+</div>
+
+</body></html>

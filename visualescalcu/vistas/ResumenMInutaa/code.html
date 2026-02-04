@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Resumen Consolidado</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2463eb",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111622", 
+                        "card-dark": "#1e293b",
+                        "border-dark": "#334366",
+                        "text-secondary": "#92a4c8"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "Noto Sans", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #111622; }
+        ::-webkit-scrollbar-thumb { background: #334366; border-radius: 4px; }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased min-h-screen flex">
+<aside class="hidden lg:flex flex-col w-72 h-screen sticky top-0 border-r border-slate-200 dark:border-border-dark bg-white dark:bg-[#0f131a]">
+<div class="p-6 flex flex-col gap-1 border-b border-transparent">
+<h2 class="text-xl font-bold leading-tight tracking-[-0.015em] text-slate-900 dark:text-white">Gestión Inmobiliaria</h2>
+<p class="text-sm text-slate-500 dark:text-text-secondary">Asistente de Minutas</p>
+</div>
+<nav class="flex-1 px-4 space-y-2 overflow-y-auto pt-2">
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-xl">domain</span>
+            Proyecto y Unidad
+        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-xl">group</span>
+            Propietarios
+        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-xl">payments</span>
+            Precio y Forma de Pago
+        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-xl">gavel</span>
+            Condiciones
+        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-xl">article</span>
+            Observaciones
+        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/20" href="#">
+<span class="material-symbols-outlined text-xl text-primary">fact_check</span>
+            Revisión
+        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-xl">edit_square</span>
+            Firmas
+        </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-xl">print</span>
+            Generar
+        </a>
+</nav>
+<div class="p-4 border-t border-slate-100 dark:border-border-dark mt-auto">
+<div class="flex items-center gap-3 px-2 py-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 ring-2 ring-slate-200 dark:ring-slate-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAIjRb0KmmDx0CGIS6u8agy19gwgIdNs0umhy29kZj6DDQYvU9fwNUWGLPcKVOQL9SuOeqLkh6BidxNZx1SXmRkdSXNuy4fMS8ffZbU2ZX6QBO3c6Cr7DbtT5S4jkbACRMkjbUhgPRxSY_TVVE53ciPkqZ6ZQCEeeCZp9RstQoJWx6gszcCIkCw-_akWTf0qZWPgf2sSDhcFZ-ozKL-4qaSJH8Sh_xKAbdSVFs8jIyg_dAntbuhv7-p29SwyV_AZ_Ww3HZofAcaqCA");'></div>
+<div class="flex flex-col overflow-hidden">
+<span class="text-sm font-bold truncate text-slate-900 dark:text-white">Admin Usuario</span>
+<span class="text-xs truncate text-slate-500 dark:text-text-secondary">admin@empresa.com</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+<header class="lg:hidden flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-[#242f47] bg-white dark:bg-[#111622] px-6 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-3xl">domain</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Minutas Web</h2>
+</div>
+<button class="text-slate-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<div class="flex-1 flex flex-col max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+<div>
+<h1 class="text-2xl md:text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">
+                    Resumen Final de Minuta
+                </h1>
+<p class="text-slate-500 dark:text-text-secondary text-sm font-normal mt-1 max-w-3xl">
+                    Revise la información consolidada. Utilice las opciones superiores para corregir o reiniciar el proceso.
+                </p>
+</div>
+<div class="flex flex-wrap gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined text-lg">refresh</span>
+                    Reiniciar
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined text-lg">dashboard</span>
+                    Volver al Dashboard
+                </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+<div class="flex flex-col bg-[#1E293B] rounded-xl border border-slate-700/60 p-5 shadow-sm hover:border-slate-600 transition-colors">
+<div class="flex items-center gap-3 mb-3 pb-3 border-b border-slate-700/50">
+<div class="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+<span class="material-symbols-outlined text-xl">apartment</span>
+</div>
+<h3 class="font-bold text-base text-white">Proyecto &amp; Unidades</h3>
+</div>
+<div class="flex flex-col gap-2 text-sm flex-1 justify-center">
+<div class="flex justify-between">
+<span class="text-slate-400">Unidad</span>
+<span class="text-white font-medium">Unidad 14</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Proyecto</span>
+<span class="text-white font-medium">Arboria</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Posesión</span>
+<span class="text-white font-medium">2026</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col bg-[#1E293B] rounded-xl border border-slate-700/60 p-5 shadow-sm hover:border-slate-600 transition-colors">
+<div class="flex items-center gap-3 mb-3 pb-3 border-b border-slate-700/50">
+<div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+<span class="material-symbols-outlined text-xl">request_quote</span>
+</div>
+<h3 class="font-bold text-base text-white">Acuerdo Comercial</h3>
+</div>
+<div class="flex flex-col gap-2 text-sm flex-1 justify-center">
+<div class="flex justify-between items-end">
+<span class="text-slate-400">Valor Total</span>
+<span class="text-white font-bold text-lg">$17.000,00</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Métrica</span>
+<span class="text-slate-300">Desglose USD/m²</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Descuento</span>
+<span class="text-emerald-400 font-medium">0% Aplicado</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col bg-[#1E293B] rounded-xl border border-slate-700/60 p-5 shadow-sm hover:border-slate-600 transition-colors">
+<div class="flex items-center gap-3 mb-3 pb-3 border-b border-slate-700/50">
+<div class="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
+<span class="material-symbols-outlined text-xl">person</span>
+</div>
+<h3 class="font-bold text-base text-white">Datos del Cliente</h3>
+</div>
+<div class="flex flex-col gap-3 text-sm flex-1 justify-center">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
+                            NC
+                        </div>
+<div class="flex flex-col leading-tight">
+<span class="text-white font-medium">Nombre Cliente</span>
+<span class="text-slate-400 text-xs">Propietario Principal</span>
+</div>
+</div>
+<div class="flex items-center gap-3 pl-1 mt-1">
+<span class="material-symbols-outlined text-slate-500 text-lg">phone</span>
+<span class="text-slate-300">+54 9 11 1234-5678</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col bg-[#1E293B] rounded-xl border border-slate-700/60 p-5 shadow-sm hover:border-slate-600 transition-colors lg:col-span-2">
+<div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-700/50">
+<div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+<span class="material-symbols-outlined text-xl">gavel</span>
+</div>
+<h3 class="font-bold text-base text-white">Reglas de Financiación</h3>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center flex-1">
+<div class="flex items-center justify-center sm:justify-start gap-4">
+<div class="relative size-20 shrink-0">
+<svg class="size-full -rotate-90" viewBox="0 0 36 36">
+<path class="text-slate-700/50" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.3)]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="85, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="text-sm font-bold text-white">85%</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-white font-medium text-sm">Financiado</span>
+<span class="text-slate-400 text-xs">A fecha de posesión</span>
+<span class="text-slate-500 text-[10px] mt-1">Regla Activa</span>
+</div>
+</div>
+<div class="flex flex-col justify-center gap-3 w-full border-l border-slate-700/50 pl-0 sm:pl-6 border-t sm:border-t-0 pt-4 sm:pt-0">
+<div class="flex justify-between items-end mb-1">
+<span class="text-slate-400 text-xs font-medium">Estado de Deuda Estimado</span>
+</div>
+<div class="h-3 w-full bg-slate-800 rounded-full overflow-hidden flex ring-1 ring-slate-700/50">
+<div class="h-full bg-emerald-500 w-[15%]"></div>
+<div class="h-full bg-indigo-500 w-[85%]"></div>
+</div>
+<div class="flex justify-between text-[10px] text-slate-400 font-medium px-1">
+<div class="flex items-center gap-1.5"><div class="size-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]"></div>15% Pagado</div>
+<div class="flex items-center gap-1.5"><div class="size-2 rounded-full bg-indigo-500 shadow-[0_0_6px_rgba(99,102,241,0.4)]"></div>85% Pendiente</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col bg-[#1E293B] rounded-xl border border-slate-700/60 p-5 shadow-sm hover:border-slate-600 transition-colors">
+<div class="flex items-center gap-3 mb-3 pb-3 border-b border-slate-700/50">
+<div class="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+<span class="material-symbols-outlined text-xl">pie_chart</span>
+</div>
+<h3 class="font-bold text-base text-white">Estructura de Pago</h3>
+</div>
+<div class="flex flex-col gap-3 text-sm h-full justify-center">
+<div class="flex items-center justify-between p-2 bg-slate-800/50 rounded border border-slate-700/50">
+<span class="text-slate-400">Fondo ARS</span>
+<span class="text-white font-bold">0%</span>
+</div>
+<div class="flex items-center justify-between p-2 bg-slate-800/50 rounded border border-slate-700/50">
+<span class="text-slate-400">Saldo B. USD</span>
+<span class="text-white font-bold">100%</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col bg-[#1E293B] rounded-xl border border-slate-700/60 p-5 shadow-sm hover:border-slate-600 transition-colors lg:col-span-2">
+<div class="flex items-center gap-3 mb-3 pb-3 border-b border-slate-700/50">
+<div class="p-2 rounded-lg bg-pink-500/10 text-pink-400">
+<span class="material-symbols-outlined text-xl">receipt_long</span>
+</div>
+<h3 class="font-bold text-base text-white">Cargos &amp; Extras</h3>
+</div>
+<div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm flex-1">
+<div class="flex justify-between">
+<span class="text-slate-400">Certificación</span>
+<span class="text-white font-medium">$80k</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Planos</span>
+<span class="text-white font-medium">Incluidos</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Sellado</span>
+<span class="text-white font-medium">$0</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Otros</span>
+<span class="text-white font-medium">-</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Alhajamiento</span>
+<span class="text-white font-medium">$340</span>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center">
+<span class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Totales Estimados</span>
+<div class="text-right">
+<span class="text-white font-bold text-sm">ARS / USD</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col bg-[#1E293B] rounded-xl border border-slate-700/60 p-5 shadow-sm hover:border-slate-600 transition-colors">
+<div class="flex items-center gap-3 mb-3 pb-3 border-b border-slate-700/50">
+<div class="p-2 rounded-lg bg-orange-500/10 text-orange-400">
+<span class="material-symbols-outlined text-xl">payments</span>
+</div>
+<h3 class="font-bold text-base text-white">Forma de Pago</h3>
+</div>
+<div class="flex flex-col gap-2 text-sm flex-1 justify-center">
+<div class="flex justify-between">
+<span class="text-slate-400">Modalidad</span>
+<span class="text-white font-medium">Contado</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Tipo Cambio</span>
+<span class="text-white font-medium">$1.100</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Anticipos</span>
+<span class="text-white font-medium">$0</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-400">Base Ajuste</span>
+<span class="text-white font-medium">CAC 2026-04</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sticky bottom-0 z-40 w-full bg-white dark:bg-[#111622] border-t border-slate-200 dark:border-border-dark py-4 px-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+<div class="max-w-[1600px] mx-auto flex justify-between items-center">
+<button class="flex items-center gap-2 px-6 py-3 rounded-lg text-slate-600 dark:text-text-secondary font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+                Volver
+            </button>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30 transition-all transform hover:scale-[1.02]">
+<span class="material-symbols-outlined">save</span>
+                    Guardar Minuta
+                </button>
+</div>
+</div>
+</div>
+</main>
+
+</body></html>

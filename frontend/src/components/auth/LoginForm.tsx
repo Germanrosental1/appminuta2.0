@@ -28,96 +28,98 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="w-full max-w-md px-4">
-        {/* Logo Section */}
-        <div className="text-center mb-8">
-          <img
-            src="/logoRosental.png"
-            alt="Rosental"
-            className="h-20 mx-auto drop-shadow-lg"
-          />
+    <div className="w-full max-w-[480px] bg-white dark:bg-[#1a2233] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      {/* Header / Logo Area */}
+      <div className="flex flex-col items-center pt-8 pb-2 px-8">
+        <div className="h-16 w-16 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+          <span className="material-symbols-outlined text-primary text-4xl">apartment</span>
         </div>
+        <h2 className="text-2xl font-bold tracking-tight text-center text-slate-900 dark:text-white">AppMinuta</h2>
+      </div>
 
-        {/* Login Card */}
-        <Card className="border shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
-            <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-            <CardDescription className="text-blue-100">
-              Ingresa tus credenciales para continuar
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="usuario@empresa.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="pl-10 h-11 border-gray-300 focus:border-blue-600 focus:ring-blue-600"
-                  />
-                </div>
-              </div>
+      {/* Page Heading */}
+      <div className="px-8 pb-4 text-center">
+        <p className="text-2xl font-bold leading-tight mb-2 text-slate-900 dark:text-white">Bienvenido de nuevo</p>
+        <p className="text-slate-500 dark:text-[#92a4c8] text-sm font-normal leading-normal">
+          Genera tus minutas inmobiliarias en segundos.
+        </p>
+      </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Contraseña
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="pl-10 h-11 border-gray-300 focus:border-blue-600 focus:ring-blue-600"
-                  />
-                </div>
-              </div>
+      {/* Form Section */}
+      <div className="px-8 pb-8 pt-2 flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* Email Field */}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="email" className="text-sm font-medium leading-normal text-slate-700 dark:text-white">
+              Correo Electrónico
+            </Label>
+            <input
+              id="email"
+              type="email"
+              placeholder="ejemplo@appminuta.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#334366] bg-slate-50 dark:bg-[#111622] focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#92a4c8] px-4 text-base font-normal leading-normal transition-all"
+            />
+          </div>
 
-              <Button
-                type="submit"
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium text-base shadow-md transition-all"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Iniciando sesión...
-                  </>
-                ) : (
-                  'Iniciar Sesión'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="bg-slate-50 border-t rounded-b-lg py-4">
-            <div className="w-full text-center">
-              <p className="text-sm text-gray-600">
-                © 2025 Rosental - Todos los derechos reservados
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Acceso restringido a personal autorizado
-              </p>
+          {/* Password Field */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="password" className="text-sm font-medium leading-normal text-slate-700 dark:text-white">
+                Contraseña
+              </Label>
             </div>
-          </CardFooter>
-        </Card>
+            <div className="relative flex w-full items-center">
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#334366] bg-slate-50 dark:bg-[#111622] focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#92a4c8] pl-4 pr-12 text-base font-normal leading-normal transition-all"
+              />
+              <button
+                type="button"
+                className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center text-slate-400 dark:text-[#92a4c8] hover:text-primary transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">visibility</span>
+              </button>
+            </div>
+            <div className="flex justify-end mt-1">
+              <a className="text-sm font-medium text-primary hover:text-blue-400 transition-colors" href="#">
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
+          </div>
 
-        {/* Additional Info */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">
-            ¿Necesitas ayuda? Contacta al administrador del sistema
-          </p>
+          {/* Submit Button */}
+          <div className="pt-2">
+            <Button
+              type="submit"
+              className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary hover:bg-blue-600 text-white text-base font-bold leading-normal tracking-[0.015em] transition-all shadow-lg shadow-blue-900/20"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  Iniciando...
+                </>
+              ) : (
+                <span className="truncate">Iniciar Sesión</span>
+              )}
+            </Button>
+          </div>
+        </form>
+
+        {/* Sign Up Link */}
+        <div className="flex justify-center items-center gap-2 pt-2">
+          <p className="text-slate-500 dark:text-[#92a4c8] text-sm">¿No tienes una cuenta?</p>
+          <a className="text-sm font-bold text-primary hover:text-blue-400 transition-colors" href="#">
+            Regístrate
+          </a>
         </div>
       </div>
     </div>

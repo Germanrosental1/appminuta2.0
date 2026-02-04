@@ -1,0 +1,799 @@
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { CreateUnidadDto } from './dto/create-unidad.dto';
+import { UpdateUnidadDto } from './dto/update-unidad.dto';
+import { UpdateUnidadCompleteDto } from './dto/update-unidad-complete.dto';
+import { FindAllUnidadesQueryDto } from './dto/find-all-unidades-query.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+
+
+@Injectable()
+export class UnidadesService {
+    constructor(private readonly prisma: PrismaService) { }
+
+    async create(createUnidadDto: CreateUnidadDto) {
+        // Verificar que el sectorid no exista
+        const existing = await this.prisma.unidades.findUnique({
+            where: { SectorId: createUnidadDto.sectorid },
+        });
+
+        if (existing) {
+            throw new ConflictException(
+                `Ya existe una unidad con sectorid '${createUnidadDto.sectorid}'`
+            );
+        }
+
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Resolver IDs de catálogos si vienen nombres (para soportar input de texto del frontend)
+            let estadoId: string | null = null;
+            if (createUnidadDto.estadocomercial) {
+                const estado = await tx.estadoComercial.findFirst({ where: { NombreEstado: { equals: createUnidadDto.estadocomercial, mode: 'insensitive' } } });
+                if (estado) estadoId = estado.Id;
+            }
+
+            let comercialId: string | null = null;
+            if (createUnidadDto.comercial) {
+                const comercial = await tx.comerciales.findFirst({ where: { Nombre: { equals: createUnidadDto.comercial, mode: 'insensitive' } } });
+                if (comercial) comercialId = comercial.Id;
+            }
+
+            // Resolver Tipo Unidad (Find or Create)
+            let tipoId = createUnidadDto.tipounidad_id;
+            if (tipoId && !tipoId.includes('-')) {
+                const tipo = await tx.tiposUnidad.findFirst({ where: { Nombre: { equals: tipoId, mode: 'insensitive' } } });
+                if (tipo) {
+                    tipoId = tipo.Id;
+                } else {
+                    // Crear si no existe
+                    const newTipo = await tx.tiposUnidad.create({ data: { Nombre: tipoId } });
+                    tipoId = newTipo.Id;
+                }
+            }
+
+            // Resolver Edificio (Find or Create)
+            let edificioId = createUnidadDto.edificio_id;
+            if (edificioId && !edificioId.includes('-')) {
+                // Intentar buscar por nombre
+                // Si tenemos proyecto_id, filtramos por proyecto también (idealmente)
+                // Pero Buildings en esquema actual es :: id, proyecto_id, nombreedificio
+                const whereClause: any = { NombreEdificio: { equals: edificioId, mode: 'insensitive' } };
+                if (createUnidadDto.proyecto_id) {
+                    whereClause.ProyectoId = createUnidadDto.proyecto_id;
+                }
+
+                const edificio = await tx.edificios.findFirst({ where: whereClause });
+
+                if (edificio) {
+                    edificioId = edificio.Id;
+                } else if (createUnidadDto.proyecto_id) {
+                    // Solo podemos crear si tenemos el proyecto_id
+                    const newEdificio = await tx.edificios.create({
+                        data: {
+                            NombreEdificio: edificioId,
+                            ProyectoId: createUnidadDto.proyecto_id
+                        }
+                    });
+                    edificioId = newEdificio.Id;
+                } else {
+                    // Si no hay proyecto_id, no podemos crear, dejamos que falle o null?
+                    // Dejamos el string original, fallará ID inválido, correcto.
+                }
+            }
+
+            // Resolver Etapa (Find or Create)
+            let etapaId = createUnidadDto.etapa_id;
+            if (etapaId && !etapaId.includes('-')) {
+                const etapa = await tx.etapas.findFirst({ where: { Nombre: { equals: etapaId, mode: 'insensitive' } } });
+                if (etapa) {
+                    etapaId = etapa.Id;
+                } else {
+                    // Crear si no existe
+                    const newEtapa = await tx.etapas.create({ data: { Nombre: etapaId } });
+                    etapaId = newEtapa.Id;
+                }
+            }
+
+            // 2. Crear Unidad
+            const newUnit = await tx.unidades.create({
+                data: {
+                    SectorId: createUnidadDto.sectorid,
+                    TipoUnidadId: tipoId,
+                    EdificioId: edificioId,
+                    EtapaId: etapaId,
+                    Piso: createUnidadDto.piso,
+                    NroUnidad: createUnidadDto.nrounidad,
+                    Dormitorio: createUnidadDto.dormitorios,
+                    Manzana: createUnidadDto.manzana,
+                    Destino: createUnidadDto.destino,
+                    Frente: createUnidadDto.frente,
+                }
+            });
+
+            // 3. Crear Métricas
+            await tx.unidadesMetricas.create({
+                data: {
+                    UnidadId: newUnit.Id,
+                    M2Exclusivo: createUnidadDto.m2exclusivos || 0,
+                    M2Total: createUnidadDto.m2totales || 0,
+                    M2Comun: createUnidadDto.m2comunes || 0,
+                    M2PatioTerraza: createUnidadDto.m2patioterraza || 0,
+                    Tamano: createUnidadDto.tamano || '0',
+                    // default values needed
+                    M2Cubierto: 0,
+                    M2Semicubierto: 0,
+                }
+            });
+
+            // 4. Crear Detalles Venta
+            await tx.detallesVenta.create({
+                data: {
+                    UnidadId: newUnit.Id,
+                    PrecioUsd: createUnidadDto.preciousd || 0,
+                    UsdM2: createUnidadDto.usdm2 || 0,
+                    ClienteInteresado: createUnidadDto.clienteinteresado || null,
+                    Obs: createUnidadDto.obs,
+                    FechaReserva: createUnidadDto.fechareserva,
+                    EstadoId: estadoId,
+                    ComercialId: comercialId
+                }
+            });
+
+            // Devolver unidad completa
+            return tx.unidades.findUnique({
+                where: { Id: newUnit.Id },
+                include: {
+                    Edificios: true,
+                    Etapas: true,
+                    TiposUnidad: true,
+                }
+            });
+        });
+    }
+
+    async findAll(query: FindAllUnidadesQueryDto) {
+        const where: Record<string, any> = {};
+
+        //  Cache proyecto_id para evitar query extra en cada request
+        if (query.proyecto) {
+            const proyecto = await this.prisma.proyectos.findFirst({
+                where: { Nombre: { equals: query.proyecto, mode: 'insensitive' } },
+                select: { Id: true }, // Solo necesitamos el ID
+            });
+            if (proyecto) {
+                where.Edificios = {
+                    ProyectoId: proyecto.Id,
+                };
+            } else {
+                return [];
+            }
+        }
+
+        // Filtrar por estado - por defecto "Disponible" y "Pisada" (case insensitive)
+        // Soporta múltiples estados separados por coma (ej: "disponible,pisada")
+        const estadoFiltro = query.estado || 'disponible,pisada';
+        const estados = estadoFiltro.split(',').map(e => e.trim());
+
+        if (estados.length === 1) {
+            // Filtro simple por un solo estado
+            where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
+                is: {
+                    EstadoComercial: {
+                        NombreEstado: { equals: estados[0], mode: 'insensitive' },
+                    },
+                },
+            };
+        } else {
+            // Filtro por múltiples estados usando OR
+            where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
+                is: {
+                    EstadoComercial: {
+                        NombreEstado: { in: estados, mode: 'insensitive' },
+                    },
+                },
+            };
+        }
+
+        if (query.etapa && query.etapa !== 'Ninguna') {
+            where.Etapas = {
+                Nombre: query.etapa,
+            };
+        }
+
+        if (query.tipo) {
+            where.TiposUnidad = {
+                Nombre: query.tipo,
+            };
+        }
+
+        if (query.sectorid) {
+            where.SectorId = query.sectorid;
+        }
+
+        if (query.nrounidad) {
+            where.NroUnidad = query.nrounidad;
+        }
+
+        // Usar select en lugar de include para reducir ~60% datos transferidos
+        const unidades = await this.prisma.unidades.findMany({
+            where,
+            select: {
+                Id: true,
+                SectorId: true,
+                Piso: true,
+                NroUnidad: true,
+                Dormitorio: true,
+                Manzana: true,
+                Destino: true,
+                Frente: true,
+                Edificios: {
+                    select: {
+                        Id: true,
+                        NombreEdificio: true,
+                        Proyectos: {
+                            select: {
+                                Id: true,
+                                Nombre: true,
+                            },
+                        },
+                    },
+                },
+                Etapas: {
+                    select: {
+                        Id: true,
+                        Nombre: true,
+                    },
+                },
+                TiposUnidad: {
+                    select: {
+                        Id: true,
+                        Nombre: true,
+                    },
+                },
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
+                    select: {
+                        PrecioUsd: true,
+                        UsdM2: true,
+                        EstadoComercial: {
+                            select: {
+                                Id: true,
+                                NombreEstado: true,
+                            },
+                        },
+                    },
+                },
+                UnidadesMetricas: {
+                    select: {
+                        M2Exclusivo: true,
+                        M2Total: true,
+                        M2Cubierto: true,
+                    },
+                },
+            },
+            orderBy: [{ SectorId: 'asc' }, { NroUnidad: 'asc' }],
+        });
+
+        // Eliminar duplicados por sectorid (clave única)
+        const uniqueUnidades = unidades.filter(
+            (unidad, index, self) =>
+                index === self.findIndex((u) => u.SectorId === unidad.SectorId)
+        );
+
+        return uniqueUnidades;
+    }
+
+    async findOne(id: string) {
+        // id ahora es UUID
+        return this.prisma.unidades.findUnique({
+            where: { Id: id },
+            include: {
+                Edificios: {
+                    include: {
+                        Proyectos: true,
+                    },
+                },
+                Etapas: true,
+                TiposUnidad: true,
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
+                    include: {
+                        EstadoComercial: true,
+                        Comerciales: true,
+                    },
+                },
+                UnidadesMetricas: true,
+            },
+        });
+    }
+
+    // ⚡ OPTIMIZACIÓN: Batch query para múltiples unidades (elimina N+1)
+    async findByIds(ids: string[]) {
+        if (!ids.length) return [];
+
+        return this.prisma.unidades.findMany({
+            where: { Id: { in: ids } },
+            include: {
+                Edificios: {
+                    include: {
+                        Proyectos: true,
+                    },
+                },
+                Etapas: true,
+                TiposUnidad: true,
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
+                    include: {
+                        EstadoComercial: true,
+                        Comerciales: true,
+                    },
+                },
+                UnidadesMetricas: true,
+            },
+        });
+    }
+
+    async getNaturalezas(): Promise<string[]> {
+        // Naturaleza viene de proyectos -> naturalezas
+        const result = await this.prisma.naturalezas.findMany({
+            select: { Nombre: true },
+            orderBy: { Nombre: 'asc' },
+        });
+        return result.map((r) => r.Nombre).filter(Boolean);
+    }
+
+    /**
+     * Get all available unit types across all projects
+     */
+    async getTiposDisponibles(): Promise<string[]> {
+        // Usar tabla tiposunidad
+        const result = await this.prisma.tiposUnidad.findMany({
+            select: { Nombre: true },
+            orderBy: { Nombre: 'asc' },
+        });
+        return result.map((r) => r.Nombre).filter(Boolean);
+    }
+
+    /**
+     * Get projects that have units of a specific type
+     */
+    async getProyectosPorTipo(tipo: string): Promise<string[]> {
+        // Query via unidades -> tiposunidad -> proyectostiposunidad -> proyectos
+        const result = await this.prisma.proyectos.findMany({
+            where: {
+                ProyectosTiposUnidad: {
+                    some: {
+                        TiposUnidad: {
+                            Nombre: tipo,
+                        },
+                    },
+                },
+            },
+            select: { Nombre: true },
+            orderBy: { Nombre: 'asc' },
+        });
+        return result.map((r) => r.Nombre);
+    }
+
+    async getEtapas(nombreProyecto: string): Promise<string[]> {
+        if (!nombreProyecto) return [];
+
+        const proyecto = await this.prisma.proyectos.findFirst({
+            where: { Nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+            select: { Id: true },
+        });
+
+        if (!proyecto) {
+            return [];
+        }
+
+        // Query unidades -> edificios -> proyectos + etapas
+        const result = await this.prisma.unidades.findMany({
+            where: {
+                Edificios: {
+                    ProyectoId: proyecto.Id,
+                },
+                EtapaId: { not: null },
+            },
+            select: {
+                Etapas: {
+                    select: { Nombre: true },
+                },
+            },
+            distinct: ['EtapaId'],
+            orderBy: {
+                Etapas: {
+                    Nombre: 'asc',
+                },
+            },
+        });
+
+        return result.map((r) => r.Etapas?.Nombre).filter(Boolean);
+    }
+
+    async getTipos(nombreProyecto: string, etapa?: string): Promise<string[]> {
+        if (!nombreProyecto) return [];
+
+        const proyecto = await this.prisma.proyectos.findFirst({
+            where: { Nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+        });
+
+        if (!proyecto) return [];
+
+        const where: any = {
+            Edificios: {
+                ProyectoId: proyecto.Id,
+            },
+        };
+
+        if (etapa && etapa !== 'Ninguna') {
+            where.Etapas = {
+                Nombre: etapa,
+            };
+        }
+
+        // Query unidades -> tiposunidad
+        const result = await this.prisma.unidades.findMany({
+            where,
+            select: {
+                TiposUnidad: {
+                    select: { Nombre: true },
+                },
+            },
+            distinct: ['TipoUnidadId'],
+            orderBy: {
+                TiposUnidad: {
+                    Nombre: 'asc',
+                },
+            },
+        });
+
+        return result.map((r) => r.TiposUnidad.Nombre).filter(Boolean);
+    }
+
+    async getSectores(
+        nombreProyecto: string,
+        etapa?: string,
+        tipo?: string,
+    ): Promise<string[]> {
+        try {
+            const proyecto = await this.prisma.proyectos.findFirst({
+                where: { Nombre: { equals: nombreProyecto, mode: 'insensitive' } },
+                select: { Id: true },
+            });
+
+            if (!proyecto) {
+                return [];
+            }
+
+            const where: any = {
+                Edificios: {
+                    ProyectoId: proyecto.Id,
+                },
+            };
+
+            if (etapa && etapa !== 'Ninguna') {
+                where.Etapas = {
+                    Nombre: etapa,
+                };
+            }
+
+            if (tipo) {
+                where.TiposUnidad = {
+                    Nombre: tipo,
+                };
+            }
+
+            // Query unidades con filtros de relaciones
+            const result = await this.prisma.unidades.findMany({
+                where,
+                select: { SectorId: true },
+                distinct: ['SectorId'],
+                orderBy: { SectorId: 'asc' },
+            });
+
+            return result
+                .map((r) => r.SectorId)
+                .filter((s) => s != null && s !== '');
+        } catch (error) {
+            console.error('[ERROR] getSectores failed:', error);
+            return []; // Return empty instead of crashing
+        }
+    }
+
+    async update(id: string, updateUnidadDto: UpdateUnidadDto) {
+        // Verificar que la unidad existe
+        const existing = await this.prisma.unidades.findUnique({
+            where: { Id: id },
+        });
+
+        if (!existing) {
+            throw new NotFoundException(`Unidad con ID '${id}' no encontrada`);
+        }
+
+        // Verificar unicidad de sectorid si se está cambiando
+        if (updateUnidadDto.sectorid && updateUnidadDto.sectorid !== existing.SectorId) {
+            const duplicate = await this.prisma.unidades.findUnique({
+                where: { SectorId: updateUnidadDto.sectorid },
+            });
+
+            if (duplicate) {
+                throw new ConflictException(
+                    `Ya existe una unidad con sectorid '${updateUnidadDto.sectorid}'`
+                );
+            }
+        }
+
+        // Map DTO fields to Prisma model fields
+        const updateData: any = {};
+        if (updateUnidadDto.sectorid !== undefined) updateData.SectorId = updateUnidadDto.sectorid;
+        if (updateUnidadDto.tipounidad_id !== undefined) updateData.TipoUnidadId = updateUnidadDto.tipounidad_id;
+        if (updateUnidadDto.edificio_id !== undefined) updateData.EdificioId = updateUnidadDto.edificio_id;
+        if (updateUnidadDto.etapa_id !== undefined) updateData.EtapaId = updateUnidadDto.etapa_id;
+        if (updateUnidadDto.piso !== undefined) updateData.Piso = updateUnidadDto.piso;
+        if (updateUnidadDto.nrounidad !== undefined) updateData.NroUnidad = updateUnidadDto.nrounidad;
+        if (updateUnidadDto.dormitorios !== undefined) updateData.Dormitorio = updateUnidadDto.dormitorios;
+        if (updateUnidadDto.manzana !== undefined) updateData.Manzana = updateUnidadDto.manzana;
+        if (updateUnidadDto.destino !== undefined) updateData.Destino = updateUnidadDto.destino;
+        if (updateUnidadDto.frente !== undefined) updateData.Frente = updateUnidadDto.frente;
+
+        return this.prisma.unidades.update({
+            where: { Id: id },
+            data: updateData,
+            include: {
+                Edificios: true,
+                Etapas: true,
+                TiposUnidad: true,
+            },
+        });
+    }
+
+    async updateComplete(id: string, updateDto: UpdateUnidadCompleteDto) {
+        const existing = await this.prisma.unidades.findUnique({ where: { Id: id } });
+        if (!existing) throw new NotFoundException(`Unidad con ID '${id}' no encontrada`);
+
+        try {
+            return await this.prisma.$transaction(async (tx) => {
+                // 🔒 SEGURIDAD: Logs de debug eliminados - exponen IDs internos
+
+                // 2. Update Unidad Base
+                const unidadData: any = {};
+                if (updateDto.edificio_id !== undefined) unidadData.EdificioId = updateDto.edificio_id;
+                if (updateDto.tipounidad_id !== undefined) unidadData.TipoUnidadId = updateDto.tipounidad_id;
+                if (updateDto.etapa_id !== undefined) unidadData.EtapaId = updateDto.etapa_id;
+                if (updateDto.piso !== undefined) unidadData.Piso = updateDto.piso;
+                if (updateDto.nrounidad !== undefined) unidadData.NroUnidad = updateDto.nrounidad;
+                if (updateDto.dormitorios !== undefined) unidadData.Dormitorio = updateDto.dormitorios;
+                if (updateDto.manzana !== undefined) unidadData.Manzana = updateDto.manzana;
+                if (updateDto.destino !== undefined) unidadData.Destino = updateDto.destino;
+                if (updateDto.frente !== undefined) unidadData.Frente = updateDto.frente;
+
+                if (Object.keys(unidadData).length > 0) {
+                    await tx.unidades.update({
+                        where: { Id: id },
+                        data: unidadData
+                    });
+                }
+
+                // 3. Upsert Metrics
+                const metricsData: any = {};
+                if (updateDto.m2exclusivos !== undefined) metricsData.M2Exclusivo = updateDto.m2exclusivos;
+                if (updateDto.m2patioterraza !== undefined) metricsData.M2PatioTerraza = updateDto.m2patioterraza;
+                if (updateDto.tipopatio_id !== undefined) metricsData.TipoPatioId = updateDto.tipopatio_id;
+                if (updateDto.m2comunes !== undefined) metricsData.M2Comun = updateDto.m2comunes;
+                if (updateDto.m2calculo !== undefined) metricsData.M2Calculo = updateDto.m2calculo;
+                if (updateDto.m2totales !== undefined) metricsData.M2Total = updateDto.m2totales;
+                if (updateDto.m2cubiertos !== undefined) metricsData.M2Cubierto = updateDto.m2cubiertos;
+                if (updateDto.m2semicubiertos !== undefined) metricsData.M2Semicubierto = updateDto.m2semicubiertos;
+                if (updateDto.tamano !== undefined) metricsData.Tamano = updateDto.tamano;
+
+                if (Object.keys(metricsData).length > 0) {
+                    // Check existance first or use upsert
+                    const existingMetrics = await tx.unidadesMetricas.findUnique({ where: { UnidadId: id } });
+                    if (existingMetrics) {
+                        await tx.unidadesMetricas.update({ where: { UnidadId: id }, data: metricsData });
+                    } else {
+                        await tx.unidadesMetricas.create({ data: { ...metricsData, UnidadId: id } });
+                    }
+                }
+
+                // 4. Upsert Sales Details
+                const salesData: any = {};
+
+                // Resolver estado_id si viene como texto
+                if (updateDto.estadocomercial) {
+                    const estado = await tx.estadoComercial.findUnique({
+                        where: { NombreEstado: updateDto.estadocomercial }
+                    });
+                    if (estado) {
+                        salesData.EstadoId = estado.Id;
+                    } else {
+                        console.warn(`Estado comercial '${updateDto.estadocomercial}' no encontrado`);
+                    }
+                }
+
+                if (updateDto.estado_id !== undefined) salesData.EstadoId = updateDto.estado_id;
+                if (updateDto.comercial_id !== undefined) salesData.ComercialId = updateDto.comercial_id;
+                if (updateDto.motivonodisp_id !== undefined) salesData.MotivoNoDispId = updateDto.motivonodisp_id;
+                if (updateDto.preciousd !== undefined) salesData.PrecioUsd = updateDto.preciousd;
+                if (updateDto.usdm2 !== undefined) salesData.UsdM2 = updateDto.usdm2;
+
+                if (updateDto.clienteinteresado !== undefined) {
+                    if (updateDto.clienteinteresado && String(updateDto.clienteinteresado).trim() !== '') {
+                        try {
+                            salesData.ClienteInteresado = updateDto.clienteinteresado;
+                        } catch (e) {
+                            console.warn(`Invalid BigInt for clienteinteresado: ${updateDto.clienteinteresado}`, e);
+                            salesData.ClienteInteresado = null;
+                        }
+                    } else {
+                        salesData.ClienteInteresado = null;
+                    }
+                }
+
+                if (updateDto.clientetitularboleto !== undefined) salesData.Titular = updateDto.clientetitularboleto;
+                if (updateDto.obs !== undefined) salesData.Obs = updateDto.obs;
+
+                // Helper to parse dates
+                const parseDate = (dateStr?: string) => {
+                    if (!dateStr) return null;
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? null : date;
+                };
+
+                if (updateDto.fechareserva !== undefined) salesData.FechaReserva = parseDate(updateDto.fechareserva);
+                if (updateDto.fechafirmaboleto !== undefined) salesData.FechaFirmaBoleto = parseDate(updateDto.fechafirmaboleto);
+                if (updateDto.fechaposesion !== undefined) salesData.FechaPosesion = parseDate(updateDto.fechaposesion);
+
+                if (updateDto.tipocochera_id !== undefined) salesData.TipoCocheraId = updateDto.tipocochera_id;
+                if (updateDto.unidadcomprador_id !== undefined) salesData.UnidadCompradorId = updateDto.unidadcomprador_id;
+
+                if (Object.keys(salesData).length > 0) {
+                    const existingSales = await tx.detallesVenta.findUnique({ where: { UnidadId: id } });
+                    if (existingSales) {
+                        await tx.detallesVenta.update({ where: { UnidadId: id }, data: salesData });
+                    } else {
+                        await tx.detallesVenta.create({ data: { ...salesData, UnidadId: id } });
+                    }
+                }
+
+                // Return complete updated unit
+                return await tx.unidades.findUnique({
+                    where: { Id: id },
+                    include: {
+                        Edificios: { include: { Proyectos: true } },
+                        Etapas: true,
+                        TiposUnidad: true,
+                        DetallesVenta_DetallesVenta_UnidadIdToUnidades: {
+                            include: {
+                                EstadoComercial: true,
+                                Comerciales: true,
+                            },
+                        },
+                        UnidadesMetricas: true,
+                    },
+                });
+            }, {
+                timeout: 10000 // Increase timeout just in case
+            });
+        } catch (error) {
+            console.error('Error in updateComplete transaction:', error);
+            throw error; // Re-throw to let global filter handle it, but now we have logs
+        }
+    }
+
+    async remove(id: string) {
+        // Verificar que la unidad existe
+        const existing = await this.prisma.unidades.findUnique({
+            where: { Id: id },
+            include: {
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: true,
+            },
+        });
+
+        if (!existing) {
+            throw new NotFoundException(`Unidad con ID '${id}' no encontrada`);
+        }
+
+        // Si tiene detalles de venta relacionados, eliminarlos primero
+        if (existing.DetallesVenta_DetallesVenta_UnidadIdToUnidades) {
+            await this.prisma.detallesVenta.delete({
+                where: { UnidadId: id },
+            });
+        }
+
+        // Eliminar métricas si existen
+        await this.prisma.unidadesMetricas.deleteMany({
+            where: { UnidadId: id },
+        });
+
+        return this.prisma.unidades.delete({
+            where: { Id: id },
+        });
+    }
+
+    /**
+     * Adjust prices for all units in specified projects
+     * Supports percentage-based and fixed value adjustments
+     */
+    async adjustPricesByProjects(
+        projectIds: string[],
+        mode: 'PERCENTAGE_TOTAL' | 'PERCENTAGE_M2' | 'FIXED_TOTAL' | 'FIXED_M2',
+        percentage?: number,
+        fixedValue?: number
+    ) {
+        const unidades = await this.prisma.unidades.findMany({
+            where: {
+                Edificios: {
+                    ProyectoId: { in: projectIds }
+                }
+            },
+            include: {
+                DetallesVenta_DetallesVenta_UnidadIdToUnidades: true,
+                UnidadesMetricas: true
+            }
+        });
+
+        const updates = [];
+
+        for (const unidad of unidades) {
+            const detalles = unidad.DetallesVenta_DetallesVenta_UnidadIdToUnidades;
+            const metricas = unidad.UnidadesMetricas;
+
+            if (!detalles) continue;
+
+            let newPrecioUsd = detalles.PrecioUsd ? Number(detalles.PrecioUsd) : 0;
+            let newUsdM2 = detalles.UsdM2 ? Number(detalles.UsdM2) : 0;
+            const m2Total = metricas?.M2Total ? Number(metricas.M2Total) : 0;
+
+            switch (mode) {
+                case 'PERCENTAGE_TOTAL':
+                    if (percentage !== undefined) {
+                        newPrecioUsd = newPrecioUsd * (1 + percentage / 100);
+                        newUsdM2 = newUsdM2 * (1 + percentage / 100);
+                    }
+                    break;
+
+                case 'PERCENTAGE_M2':
+                    if (percentage !== undefined) {
+                        newUsdM2 = newUsdM2 * (1 + percentage / 100);
+                        if (m2Total > 0) {
+                            newPrecioUsd = newUsdM2 * m2Total;
+                        }
+                    }
+                    break;
+
+                case 'FIXED_TOTAL':
+                    if (fixedValue !== undefined) {
+                        newPrecioUsd = fixedValue;
+                        if (m2Total > 0) {
+                            newUsdM2 = fixedValue / m2Total;
+                        }
+                    }
+                    break;
+
+                case 'FIXED_M2':
+                    if (fixedValue !== undefined) {
+                        newUsdM2 = fixedValue;
+                        if (m2Total > 0) {
+                            newPrecioUsd = fixedValue * m2Total;
+                        }
+                    }
+                    break;
+            }
+
+            updates.push(
+                this.prisma.detallesVenta.update({
+                    where: { UnidadId: unidad.Id },
+                    data: {
+                        PrecioUsd: newPrecioUsd,
+                        UsdM2: newUsdM2
+                    }
+                })
+            );
+        }
+
+        await this.prisma.$transaction(updates);
+
+        return {
+            updated: updates.length,
+            message: `Successfully updated ${updates.length} units`
+        };
+    }
+}

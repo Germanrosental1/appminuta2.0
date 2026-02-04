@@ -97,21 +97,21 @@ export const Step35IVACalculo: React.FC = () => {
 
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
-            <Card>
-                <CardHeader className="bg-muted/50">
-                    <CardTitle className="text-xl flex items-center gap-2">
-                        <Info className="w-5 h-5 text-primary" />
+            <Card className="border border-[#334366] bg-[#1a2233]">
+                <CardHeader className="bg-[#0f131a] border-b border-[#334366]">
+                    <CardTitle className="text-xl flex items-center gap-2 text-white">
+                        <Info className="w-5 h-5 text-blue-400" />
                         Cálculo de Impuestos (IVA)
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
-                    <Alert>
-                        <Info className="h-4 w-4" />
+                    <Alert className="bg-blue-900/10 border-blue-900/30 text-slate-300">
+                        <Info className="h-4 w-4 text-blue-400" />
                         <AlertDescription>
-                            Este proyecto tiene el <strong>IVA NO INCLUIDO</strong>.
-                            Por favor, ingrese el porcentaje de IVA a aplicar sobre la <strong>Parte F (Financiada)</strong>.
+                            Este proyecto tiene el <strong className="text-white">IVA NO INCLUIDO</strong>.
+                            Por favor, ingrese el porcentaje de IVA a aplicar sobre la <strong className="text-white">Parte F (Financiada)</strong>.
                             <br />
-                            <span className="text-xs mt-1 block text-muted-foreground">
+                            <span className="text-xs mt-1 block text-slate-400">
                                 * El cálculo se realiza en USD sobre el valor base de la unidad. La conversión a ARS se realizará en el siguiente paso si corresponde.
                             </span>
                         </AlertDescription>
@@ -119,12 +119,12 @@ export const Step35IVACalculo: React.FC = () => {
 
                     <div className="space-y-6">
                         {/* Visualización del Monto Base (Parte F) */}
-                        <div className="p-4 bg-secondary/20 rounded-lg border border-secondary/30">
-                            <Label className="text-muted-foreground">Parte F (Financiada)</Label>
-                            <p className="text-3xl font-bold tracking-tight">
+                        <div className="p-4 bg-[#0f131a] rounded-lg border border-[#334366]">
+                            <Label className="text-slate-400">Parte F (Financiada)</Label>
+                            <p className="text-3xl font-bold tracking-tight text-white">
                                 USD {formatCurrency(montoA)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-slate-500">
                                 Monto total de la Parte F (en USD).
                             </p>
                         </div>
@@ -132,7 +132,7 @@ export const Step35IVACalculo: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Input de Base Imponible */}
                             <div className="space-y-2">
-                                <Label htmlFor="baseImponible" className="text-lg">Base Imponible (%)</Label>
+                                <Label htmlFor="baseImponible" className="text-lg text-white">Base Imponible (%)</Label>
                                 <div className="relative">
                                     <Input
                                         id="baseImponible"
@@ -140,24 +140,24 @@ export const Step35IVACalculo: React.FC = () => {
                                         placeholder="100"
                                         value={data.baseImponiblePorc !== undefined ? data.baseImponiblePorc : 100}
                                         onChange={(e) => handleBaseImponibleChange(e.target.value)}
-                                        className="text-xl h-12 pr-8"
+                                        className="text-xl h-12 pr-8 bg-[#0f131a] border-[#334366] text-white"
                                         min="0"
                                         max="100"
                                         step="0.01"
                                     />
-                                    <span className="absolute right-3 top-3 text-muted-foreground font-medium">%</span>
+                                    <span className="absolute right-3 top-3 text-slate-400 font-medium">%</span>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-slate-400">
                                     Porcentaje de F sobre el que se calcula el IVA
                                 </p>
-                                <p className="text-sm font-medium text-primary">
+                                <p className="text-sm font-medium text-blue-400">
                                     = USD {formatCurrency(montoA * ((data.baseImponiblePorc || 100) / 100))}
                                 </p>
                             </div>
 
                             {/* Input de Porcentaje de IVA */}
                             <div className="space-y-2">
-                                <Label htmlFor="porcentajeIVA" className="text-lg">Porcentaje de IVA (%)</Label>
+                                <Label htmlFor="porcentajeIVA" className="text-lg text-white">Porcentaje de IVA (%)</Label>
                                 <div className="relative">
                                     <Input
                                         id="porcentajeIVA"
@@ -165,28 +165,28 @@ export const Step35IVACalculo: React.FC = () => {
                                         placeholder="0"
                                         value={data.porcentajeIVA || ''}
                                         onChange={(e) => handlePorcentajeChange(e.target.value)}
-                                        className="text-xl h-12 pr-8"
+                                        className="text-xl h-12 pr-8 bg-[#0f131a] border-[#334366] text-white"
                                         min="0"
                                         step="0.01"
                                     />
-                                    <span className="absolute right-3 top-3 text-muted-foreground font-medium">%</span>
+                                    <span className="absolute right-3 top-3 text-slate-400 font-medium">%</span>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-slate-400">
                                     Porcentaje de IVA sobre la base imponible
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <Separator />
+                    <Separator className="bg-[#334366]" />
 
                     {/* Resultado */}
-                    <div className="bg-primary/5 p-6 rounded-lg space-y-4">
-                        <div className="flex justify-between items-center text-lg">
+                    <div className="bg-blue-900/20 p-6 rounded-lg space-y-4 border border-blue-900/30">
+                        <div className="flex justify-between items-center text-lg text-white">
                             <span>Monto de IVA Calculado:</span>
-                            <span className="font-bold text-primary text-xl">+ USD {formatCurrency(data.montoIVA || 0)}</span>
+                            <span className="font-bold text-blue-400 text-xl">+ USD {formatCurrency(data.montoIVA || 0)}</span>
                         </div>
-                        <div className="flex justify-between items-center font-medium opacity-80">
+                        <div className="flex justify-between items-center font-medium opacity-80 text-white">
                             <span>Total Parte F (Con IVA):</span>
                             <span>USD {formatCurrency(montoA + (data.montoIVA || 0))}</span>
                         </div>

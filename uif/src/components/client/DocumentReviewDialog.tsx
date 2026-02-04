@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, X } from 'lucide-react';
+import { CustomFieldsSection } from './CustomFieldsSection';
 
 interface DocumentReviewDialogProps {
   document: Document;
@@ -34,6 +35,18 @@ const DOC_TYPE_TO_SECTION: Record<string, keyof FinancialData> = {
   'Otros': 'otros',
   'DNI': 'datos',
   'EECC': 'datos_balance',
+};
+
+// Mapping from doc_type to custom_fields section key
+const DOC_TYPE_TO_CUSTOM_SECTION: Record<string, string> = {
+  'Ganancias': 'ganancias',
+  'BienesPersonales': 'bienes_personales',
+  'IVA': 'iva',
+  'ReciboHaberes': 'recibo_haberes',
+  'Monotributo': 'monotributo',
+  'CertificacionContable': 'certificacion_contable',
+  'Otros': 'otros',
+  'EECC': 'estado_resultados',
 };
 
 // Labels for each field in Spanish
@@ -82,12 +95,15 @@ const FIELD_LABELS: Record<string, string> = {
 export function DocumentReviewDialog({ document, client, onClose, onUpdate }: DocumentReviewDialogProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<Record<string, any>>({});
+  const [dolarRate, setDolarRate] = useState<number>(1);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     loadSignedUrl();
     initializeEditedData();
+    loadAnalysisData();
   }, [document]);
 
   const loadSignedUrl = async () => {
@@ -102,6 +118,56 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
     } catch (err) {
       console.error('Error loading signed URL:', err);
     }
+  };
+
+  const loadAnalysisData = async () => {
+    if (!document.analysis_id) return;
+
+    try {
+      const { data: analysis } = await supabase
+        .from('analyses')
+        .select('financial_data')
+        .eq('id', document.analysis_id)
+        .single();
+
+      if (analysis?.financial_data) {
+        // Load custom fields
+        const customSectionKey = DOC_TYPE_TO_CUSTOM_SECTION[document.doc_type];
+        if (customSectionKey && analysis.financial_data.custom_fields?.[customSectionKey]) {
+          setCustomFields(analysis.financial_data.custom_fields[customSectionKey]);
+        }
+
+        // Load dolar rate
+        // Safe access to nested properties
+        const datos = analysis.financial_data.datos as any;
+        const dolar = Number.parseFloat(datos?.dolar) || 0;
+        if (dolar > 0) {
+          setDolarRate(dolar);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading analysis data:', err);
+    }
+  };
+
+  // Custom field CRUD operations
+  const addCustomField = () => {
+    const newField: CustomField = {
+      id: crypto.randomUUID(),
+      label: '',
+      value: 0,
+    };
+    setCustomFields(prev => [...prev, newField]);
+  };
+
+  const updateCustomField = (fieldId: string, updates: Partial<CustomField>) => {
+    setCustomFields(prev => prev.map(f =>
+      f.id === fieldId ? { ...f, ...updates } : f
+    ));
+  };
+
+  const removeCustomField = (fieldId: string) => {
+    setCustomFields(prev => prev.filter(f => f.id !== fieldId));
   };
 
   const initializeEditedData = () => {
@@ -290,6 +356,11 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
         const updatedFinancialData = {
           ...currentAnalysis.financial_data,
           [section]: finalSectionData,
+          // Also update custom_fields for this section
+          custom_fields: {
+            ...(currentAnalysis.financial_data.custom_fields || {}),
+            [DOC_TYPE_TO_CUSTOM_SECTION[document.doc_type] || section]: customFields,
+          },
         };
 
         await supabase
@@ -511,6 +582,17 @@ export function DocumentReviewDialog({ document, client, onClose, onUpdate }: Do
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 {renderFormFields()}
+
+                {/* Custom Fields Section */}
+                <div className="pt-4 border-t">
+                  <CustomFieldsSection
+                    fields={customFields}
+                    onAdd={addCustomField}
+                    onUpdate={(id, updates) => updateCustomField(id, updates)}
+                    onRemove={removeCustomField}
+                    dolarRate={dolarRate}
+                  />
+                </div>
               </div>
             </ScrollArea>
           </div>

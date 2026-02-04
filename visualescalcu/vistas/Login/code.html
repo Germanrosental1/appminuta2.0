@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AppMinuta Login</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2463eb",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                        "card-dark": "#1a2233", // Slightly lighter than background for card
+                        "input-dark": "#111621", // Darker for input fields inside card
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased">
+<div class="relative flex min-h-screen w-full flex-col overflow-hidden">
+<!-- Background Decor: Subtle Gradient -->
+<div class="absolute inset-0 z-0 pointer-events-none">
+<div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-slate-200 dark:from-[#0f141e] dark:to-[#1a2233] opacity-80"></div>
+<!-- Glow effect -->
+<div class="absolute top-[-20%] left-[-10%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[100px]"></div>
+<div class="absolute bottom-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]"></div>
+</div>
+<!-- Main Content -->
+<div class="layout-container flex h-full grow flex-col z-10 justify-center items-center p-4">
+<!-- Login Card -->
+<div class="w-full max-w-[480px] bg-white dark:bg-[#1a2233] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+<!-- Header / Logo Area -->
+<div class="flex flex-col items-center pt-8 pb-2 px-8">
+<div class="h-16 w-16 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary text-4xl">apartment</span>
+</div>
+<h2 class="text-2xl font-bold tracking-tight text-center">AppMinuta</h2>
+</div>
+<!-- Page Heading -->
+<div class="px-8 pb-4 text-center">
+<p class="text-2xl font-bold leading-tight mb-2">Bienvenido de nuevo</p>
+<p class="text-slate-500 dark:text-[#92a4c8] text-sm font-normal leading-normal">
+                        Genera tus minutas inmobiliarias en segundos.
+                    </p>
+</div>
+<!-- Form Section -->
+<div class="px-8 pb-8 pt-2 flex flex-col gap-5">
+<!-- Email Field -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium leading-normal text-slate-700 dark:text-white" for="email">
+                            Correo Electrónico
+                        </label>
+<input class="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#334366] bg-slate-50 dark:bg-[#111622] focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#92a4c8] px-4 text-base font-normal leading-normal transition-all" id="email" placeholder="ejemplo@appminuta.com" type="email" value=""/>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<label class="text-sm font-medium leading-normal text-slate-700 dark:text-white" for="password">
+                                Contraseña
+                            </label>
+</div>
+<div class="relative flex w-full items-center">
+<input class="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#334366] bg-slate-50 dark:bg-[#111622] focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#92a4c8] pl-4 pr-12 text-base font-normal leading-normal transition-all" id="password" placeholder="••••••••" type="password" value=""/>
+<button class="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center text-slate-400 dark:text-[#92a4c8] hover:text-primary transition-colors cursor-pointer" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+<div class="flex justify-end mt-1">
+<a class="text-sm font-medium text-primary hover:text-blue-400 transition-colors" href="#">¿Olvidaste tu contraseña?</a>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-2">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary hover:bg-blue-600 text-white text-base font-bold leading-normal tracking-[0.015em] transition-all shadow-lg shadow-blue-900/20">
+<span class="truncate">Iniciar Sesión</span>
+</button>
+</div>
+<!-- Sign Up Link -->
+<div class="flex justify-center items-center gap-2 pt-2">
+<p class="text-slate-500 dark:text-[#92a4c8] text-sm">¿No tienes una cuenta?</p>
+<a class="text-sm font-bold text-primary hover:text-blue-400 transition-colors" href="#">Regístrate</a>
+</div>
+</div>
+</div>
+<!-- Footer Info -->
+<div class="mt-8 text-center">
+<p class="text-slate-400 dark:text-slate-600 text-xs">
+                    © 2023 AppMinuta. Todos los derechos reservados.
+                </p>
+</div>
+</div>
+</div>
+</body></html>

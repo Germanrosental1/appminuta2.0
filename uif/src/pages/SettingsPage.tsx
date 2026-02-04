@@ -242,36 +242,38 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rem">REM (Relevamiento de Expectativas de Mercado)</Label>
+                  <Label htmlFor="rem">REM - Ajuste Ingresos Congelados (%)</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Percent className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="rem"
                       value={extraSettings.rem}
                       onChange={(e) => handleExtraChange('rem', e.target.value)}
                       className="pl-8"
-                      placeholder="0.00"
+                      placeholder="0"
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Tasa de referencia promedio estimada.
+                    Porcentaje de ajuste para Recibo de Haberes y Monotributo.
+                    Se aplica porque estos valores quedan "congelados" hasta nueva documentación (~1 año).
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cac">CAC (Costo de Adquisición de Clientes - Ref)</Label>
+                  <Label htmlFor="cac">CAC - Índice Actualización Cuotas (%)</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Percent className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="cac"
                       value={extraSettings.cac}
                       onChange={(e) => handleExtraChange('cac', e.target.value)}
                       className="pl-8"
-                      placeholder="0.00"
+                      placeholder="0"
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Valor de referencia para costo construcción/adquisición.
+                    Índice CAC para actualizar el valor de las cuotas mensuales
+                    en ventas a plazo. Se refleja en la minuta actualizada.
                   </p>
                 </div>
               </CardContent>

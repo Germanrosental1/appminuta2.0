@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Financial Summary - Cargos &amp; Extras</title>
+<!-- Load Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Configure Tailwind to match specific dark theme requirements -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // Custom dark palette based on the prompt and image
+            page: '#0f172a',      // Updated deep dark blue
+            card: '#1e293b',      // Updated slate/blue
+            border: '#334155',    // Updated border to slate-700
+            accent: '#3b82f6',    // Bright blue
+            'text-main': '#f8fafc', // Off-white
+            'text-muted': '#94a3b8', // Blue-gray
+            'text-sub': '#64748b',   // Darker gray for subtext
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Styles for specific fine-tuning -->
+<style data-purpose="typography">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-page text-text-main min-h-screen flex items-center justify-center p-4 md:p-8">
+<!-- BEGIN: MainContainer -->
+<!-- This acts as the main wrapper for the financial summary cards -->
+<main class="w-full max-w-4xl mx-auto space-y-8">
+<!-- BEGIN: Section 1 (Cargos & Extras) -->
+<section aria-labelledby="header-cargos" class="bg-card rounded-lg border border-border overflow-hidden shadow-xl">
+<!-- Card Header with Blue Indicator -->
+<header class="bg-slate-700/30 border-b border-border p-4 flex items-center border-l-4 border-accent">
+<h2 class="text-lg font-semibold text-white" id="header-cargos">5. Cargos &amp; Extras</h2>
+</header>
+<!-- Content Body -->
+<div class="p-6 md:p-8">
+<!-- Grid for Charge Items -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12 mb-8">
+<!-- Item 1 -->
+<article>
+<h3 class="text-xs text-text-muted mb-1 uppercase tracking-wide">Certificación de Firmas:</h3>
+<p class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">$80,000,00</p>
+<p class="text-xs text-slate-500 mt-1">Pago: Firma de Boleto</p>
+</article>
+<!-- Item 2 -->
+<article>
+<h3 class="text-xs text-text-muted mb-1 uppercase tracking-wide">Sellado (0.5 %):</h3>
+<p class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">$349,791,75</p>
+<p class="text-xs text-slate-500 mt-1">Pago: Firma de Boleto</p>
+</article>
+<!-- Item 3 -->
+<article>
+<h3 class="text-xs text-text-muted mb-1 uppercase tracking-wide">Alhajamiento:</h3>
+<p class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">$2.543,94</p>
+<p class="text-xs text-slate-500 mt-1">Pago: Fecha Posesión A</p>
+</article>
+<!-- Item 4 -->
+<article>
+<h3 class="text-xs text-text-muted mb-1 uppercase tracking-wide">Planos Unidad:</h3>
+<p class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">$0,00</p>
+<p class="text-xs text-slate-500 mt-1">Pago: Fecha Posesión A</p>
+</article>
+<!-- Item 5 -->
+<article>
+<h3 class="text-xs text-text-muted mb-1 uppercase tracking-wide">Planos Cochera:</h3>
+<p class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">$0,00</p>
+<p class="text-xs text-slate-500 mt-1">Pago: -</p>
+</article>
+<!-- Item 6 -->
+<article>
+<h3 class="text-xs text-text-muted mb-1 uppercase tracking-wide">Otros Gastos:</h3>
+<p class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">$0,00</p>
+<p class="text-xs text-slate-500 mt-1">Pago: -</p>
+</article>
+</div>
+<!-- Divider Line -->
+<div class="h-px bg-slate-700 w-full mb-8"></div>
+<!-- Totals Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+<!-- Total ARS -->
+<div class="flex flex-col">
+<span class="text-sm text-text-muted mb-1">Total Cargos ARS:</span>
+<span class="text-2xl md:text-3xl font-extrabold text-accent tracking-tight">$429.791,75</span>
+</div>
+<!-- Total USD -->
+<div class="flex flex-col">
+<span class="text-sm text-text-muted mb-1">Total Cargos USD:</span>
+<span class="text-2xl md:text-3xl font-extrabold text-accent tracking-tight">$2.543,94</span>
+</div>
+</div>
+</div>
+</section>
+<!-- END: Section 1 -->
+<!-- BEGIN: Section 2 (Reglas de Financiación) -->
+<section aria-labelledby="header-financiacion" class="bg-card rounded-lg border border-border overflow-hidden shadow-xl">
+<!-- Card Header with Blue Indicator -->
+<header class="bg-slate-700/30 border-b border-border p-4 flex items-center border-l-4 border-accent">
+<h2 class="text-lg font-semibold text-white" id="header-financiacion">6. Reglas de Financiación F/SB</h2>
+</header>
+<!-- Content Body -->
+<div class="p-6 md:p-8">
+<!-- Sub-section Title -->
+<h3 class="text-white font-medium mb-4">Parte F (ARS)</h3>
+<!-- Inner Card Box -->
+<div class="border border-slate-700 rounded-lg bg-slate-800/20 p-5">
+<!-- Inner Card Header (Badges) -->
+<div class="flex justify-between items-center mb-6">
+<!-- Left Badge -->
+<span class="bg-slate-700 text-blue-100 text-xs font-medium px-3 py-1 rounded-full">
+              Regla 1
+            </span>
+<!-- Right Badge (Currency) -->
+<span class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+              ARS
+            </span>
+</div>
+<!-- Inner Card Grid Details -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+<!-- Detail 1 -->
+<div>
+<span class="block text-sm text-text-muted mb-1">Saldo a financiar:</span>
+<span class="block text-xl font-bold text-white">$69.958.350,00</span>
+</div>
+<!-- Detail 2 -->
+<div>
+<span class="block text-sm text-text-muted mb-1">Cuotas:</span>
+<span class="block text-xl font-bold text-white">1 (Mensual)</span>
+</div>
+<!-- Detail 3 -->
+<div>
+<span class="block text-sm text-text-muted mb-1">Importe cuota:</span>
+<span class="block text-xl font-bold text-white">$69.958.350,00</span>
+</div>
+<!-- Detail 4 -->
+<div>
+<span class="block text-sm text-text-muted mb-1">Primer vencimiento:</span>
+<span class="block text-xl font-bold text-white">13/01/26</span>
+</div>
+</div>
+</div>
+<!-- Footer Text (Cut off in original, added as placeholder/label) -->
+<div class="mt-6 pt-4">
+<span class="text-sm font-medium text-white">Total financiado F:</span>
+<!-- Placeholder for cut-off value -->
+<span class="ml-2 text-text-muted italic text-sm">--</span>
+</div>
+</div>
+</section>
+<!-- END: Section 2 -->
+</main>
+<!-- END: MainContainer -->
+</body></html>

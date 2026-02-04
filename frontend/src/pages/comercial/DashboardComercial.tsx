@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useMinutas } from '@/hooks/useMinutas';
 import { StaggerTableBody, TableRowStagger } from '@/components/animated/StaggerList';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
@@ -189,115 +189,103 @@ export const DashboardComercial: React.FC = () => {
   const userName = user?.Nombre && user?.Apellido ? `${user.Nombre} ${user.Apellido}` : user?.email || 'Usuario';
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <DashboardHeader
-        title="Mis Minutas"
-        userName={userName}
-        onLogout={handleLogout}
-      />
-
-      {/* Historial de Minutas Card */}
-      <Card className="border shadow-sm">
-        <CardHeader className="bg-slate-50 border-b">
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center">
-              <FileText className="mr-2 h-5 w-5 text-blue-600" />
-              Historial de Minutas
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => refetch()}
-              className="h-8 w-8 hover:bg-blue-50"
-              title="Refrescar lista"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </CardTitle>
-          <CardDescription>
-            Minutas provisorias creadas anteriormente
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Status Filter */}
-          <div className="status-filter mb-4">
-            <button
-              className={`status-filter-btn ${!statusFilter ? 'active' : ''}`}
-              onClick={() => setStatusFilter(null)}
-            >
-              <Filter className="h-4 w-4" />
-              Todas
-              <span className="filter-count">{stats.total}</span>
-            </button>
-            <button
-              className={`status-filter-btn ${statusFilter === 'pendiente' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('pendiente')}
-            >
-              <Clock className="h-4 w-4" />
-              Pendientes
-              <span className="filter-count">{stats.pendientes}</span>
-            </button>
-            <button
-              className={`status-filter-btn ${statusFilter === 'en_edicion' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('en_edicion')}
-            >
-              <Edit className="h-4 w-4" />
-              En Edición
-              <span className="filter-count">{stats.enEdicion}</span>
-            </button>
-            <button
-              className={`status-filter-btn ${statusFilter === 'aprobada' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('aprobada')}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Aprobadas
-              <span className="filter-count">{stats.aprobadas}</span>
-            </button>
-            <button
-              className={`status-filter-btn ${statusFilter === 'firmada' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('firmada')}
-            >
-              <FileSignature className="h-4 w-4" />
-              Firmadas
-              <span className="filter-count">{stats.firmadas}</span>
-            </button>
-            <button
-              className={`status-filter-btn ${statusFilter === 'cancelada' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('cancelada')}
-            >
-              <XCircle className="h-4 w-4" />
-              Canceladas
-              <span className="filter-count">{stats.canceladas}</span>
-            </button>
+    <DashboardLayout>
+      <div className="space-y-8">
+        {/* Header Area */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-white">Dashboard Comercial</h1>
+            <p className="text-[#92a4c8]">Bienvenido, {userName}</p>
           </div>
-
-          {renderMinutasContent()}
-        </CardContent>
-      </Card>
-
-      {/* Floating Action Button with Menu */}
-      <div className="fab-container">
-        <div className="fab-menu">
-          <button
-            className="fab-menu-item fab-menu-item-calculator"
+          <Button
             onClick={handleNuevaCalculadora}
+            className="h-12 bg-primary px-6 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-blue-600"
           >
-            <Calculator className="h-5 w-5" />
-            Nueva Minuta Comercial
-          </button>
+            <Calculator className="mr-2 h-5 w-5" />
+            Nueva Minuta
+          </Button>
         </div>
-        <button className="fab-button" title="Opciones">
-          <Plus className="h-6 w-6" />
-        </button>
-      </div>
 
-      {/* Modal para ver detalles de la minuta */}
-      <DetalleMinutaModal
-        minutaId={selectedMinutaId}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-      />
-    </div>
+        {/* Stats / KPI Cards (Placeholder for Phase 3 Part 2 if needed, or integrating simple stats now) */}
+        {/* For now, just the Table Card */}
+
+        {/* Historial Card */}
+        <Card className="border-none bg-[#1a2233]/80 backdrop-blur-xl shadow-2xl">
+          <CardHeader className="border-b border-[#334366] px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-bold text-white">Mis Minutas</CardTitle>
+                <CardDescription className="text-[#92a4c8]">Tu historial de operaciones recientes</CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                className="text-[#92a4c8] hover:bg-white/5 hover:text-white"
+                title="Refrescar lista"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-8">
+            {/* Status Filters */}
+            <div className="mb-6 flex flex-wrap gap-2">
+              <button
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${!statusFilter
+                  ? 'bg-primary text-white shadow-lg shadow-blue-900/20'
+                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
+                  }`}
+                onClick={() => setStatusFilter(null)}
+              >
+                Todas
+                <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-xs text-white">{stats.total}</span>
+              </button>
+              {/* Additional filters can be mapped or manual */}
+              <button
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'pendiente'
+                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20'
+                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
+                  }`}
+                onClick={() => setStatusFilter('pendiente')}
+              >
+                Pendientes
+                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.pendientes}</span>
+              </button>
+              <button
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'en_edicion'
+                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/20'
+                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
+                  }`}
+                onClick={() => setStatusFilter('en_edicion')}
+              >
+                En Edición
+                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.enEdicion}</span>
+              </button>
+              <button
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'aprobada'
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/20'
+                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
+                  }`}
+                onClick={() => setStatusFilter('aprobada')}
+              >
+                Aprobadas
+                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.aprobadas}</span>
+              </button>
+            </div>
+
+            {renderMinutasContent()}
+          </CardContent>
+        </Card>
+
+        {/* Modal para ver detalles de la minuta */}
+        <DetalleMinutaModal
+          minutaId={selectedMinutaId}
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+        />
+      </div>
+    </DashboardLayout>
   );
 };
 

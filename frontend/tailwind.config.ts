@@ -66,6 +66,11 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      fontFamily: {
+        display: ["Manrope", "sans-serif"],
+        body: ["Noto Sans", "sans-serif"],
+        sans: ["Noto Sans", "sans-serif"], // Set Noto Sans as default sans
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

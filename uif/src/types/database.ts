@@ -6,6 +6,15 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// Custom field for manual user entries (not extracted by n8n)
+export interface CustomField {
+  id: string;           // UUID único
+  label: string;        // Nombre del campo (ej: "Moneda Extranjera USD")
+  value: number;        // Monto (en la moneda seleccionada)
+  currency?: 'ARS' | 'USD'; // Moneda del monto (default: ARS)
+  notes?: string;       // Notas opcionales
+}
+
 export interface FinancialData {
   datos: {
     dolar: string;
@@ -66,6 +75,17 @@ export interface FinancialData {
     porcentaje_patrimonio_neto: number;  // Default 10%
     usar_resultado_bruto: boolean; // Switch: false = Ingresos, true = Resultado Bruto
   };
+  // Campos personalizados por sección (ingreso manual, no procesados por n8n)
+  custom_fields?: {
+    ganancias?: CustomField[];
+    bienes_personales?: CustomField[];
+    iva?: CustomField[];
+    recibo_haberes?: CustomField[];
+    monotributo?: CustomField[];
+    certificacion_contable?: CustomField[];
+    otros?: CustomField[];
+    estado_resultados?: CustomField[];
+  };
 }
 
 // Monotributo category limits - configurable via Settings page
@@ -98,6 +118,8 @@ export interface AnalysisSettings {
     importe_operacion: number;
     aporte_operacion: number;
     cantidad_cuotas: number;
+    rem_percent: number;  // % ajuste para valores congelados (Monotributo, RC Sueldo)
+    cac_percent: number;  // % actualización cuotas mensuales
   };
 }
 
@@ -307,6 +329,16 @@ export const DEFAULT_FINANCIAL_DATA: FinancialData = {
     peso_ingresos: 30,
     porcentaje_patrimonio_neto: 10,
     usar_resultado_bruto: false
+  },
+  custom_fields: {
+    ganancias: [],
+    bienes_personales: [],
+    iva: [],
+    recibo_haberes: [],
+    monotributo: [],
+    certificacion_contable: [],
+    otros: [],
+    estado_resultados: []
   }
 };
 
@@ -324,7 +356,9 @@ export const DEFAULT_ANALYSIS_SETTINGS: AnalysisSettings = {
   simulacion: {
     importe_operacion: 0,
     aporte_operacion: 0,
-    cantidad_cuotas: 24
+    cantidad_cuotas: 24,
+    rem_percent: 0,
+    cac_percent: 0
   }
 };
 

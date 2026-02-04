@@ -30,20 +30,20 @@ export const Step6DatosCliente: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <Card className="border-2 border-primary/20">
-                <CardHeader className="bg-primary/5">
-                    <CardTitle className="flex items-center gap-2 text-xl">
-                        <User className="w-6 h-6" />
+            <Card className="border border-[#334366] bg-[#1a2233]">
+                <CardHeader className="bg-[#0f131a] border-b border-[#334366]">
+                    <CardTitle className="flex items-center gap-2 text-xl text-white">
+                        <User className="w-6 h-6 text-blue-400" />
                         Datos del Cliente Interesado
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-slate-400">
                         Ingrese los datos del cliente que está interesado en la/s unidad/es
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                     {/* Nombre y Apellido */}
                     <div className="space-y-2">
-                        <Label htmlFor="clienteNombre" className="flex items-center gap-2">
+                        <Label htmlFor="clienteNombre" className="flex items-center gap-2 text-white">
                             <User className="w-4 h-4" />
                             Nombre y Apellido
                         </Label>
@@ -54,12 +54,13 @@ export const Step6DatosCliente: React.FC = () => {
                             value={data.clienteInteresado?.nombreApellido || ''}
                             onChange={(e) => handleNombreChange(e.target.value)}
                             maxLength={255}
+                            className="bg-[#0f131a] border-[#334366] text-white"
                         />
                     </div>
 
                     {/* Teléfono */}
                     <div className="space-y-2">
-                        <Label htmlFor="clienteTelefono" className="flex items-center gap-2">
+                        <Label htmlFor="clienteTelefono" className="flex items-center gap-2 text-white">
                             <Phone className="w-4 h-4" />
                             Teléfono
                         </Label>
@@ -70,8 +71,9 @@ export const Step6DatosCliente: React.FC = () => {
                             value={data.clienteInteresado?.telefono || ''}
                             onChange={(e) => handleTelefonoChange(e.target.value)}
                             maxLength={50}
+                            className="bg-[#0f131a] border-[#334366] text-white"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-slate-400">
                             Número de contacto del cliente (sin espacios ni guiones)
                         </p>
                     </div>
@@ -79,12 +81,17 @@ export const Step6DatosCliente: React.FC = () => {
             </Card>
 
             {/* Tip informativo */}
-            <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-                <p className="font-medium mb-1">💡 Tip:</p>
-                <p>
-                    Estos datos se utilizarán para identificar al cliente interesado en la operación.
-                    Si el cliente ya existe en el sistema, se vinculará automáticamente. Si es nuevo, se creará un registro.
-                </p>
+            <div className="rounded-lg bg-blue-900/10 border border-blue-900/30 p-4 text-sm text-slate-300">
+                <div className="flex gap-2 items-start">
+                    <span className="text-blue-400 mt-0.5">💡</span>
+                    <div>
+                        <p className="font-medium mb-1 text-white">Tip:</p>
+                        <p>
+                            Estos datos se utilizarán para identificar al cliente interesado en la operación.
+                            Si el cliente ya existe en el sistema, se vinculará automáticamente. Si es nuevo, se creará un registro.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

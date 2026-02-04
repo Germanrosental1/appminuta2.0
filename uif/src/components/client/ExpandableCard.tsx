@@ -20,19 +20,23 @@ interface ExpandableCardProps {
     children: React.ReactNode;
     className?: string;
     sourceDocuments?: { id: string, filename: string, formattedValue?: string }[];
+    hideWeight?: boolean;
 }
 
-export default function ExpandableCard({ title, weight, onWeightChange, subtotal, children, className, sourceDocuments }: ExpandableCardProps) {
+export default function ExpandableCard({ title, weight, onWeightChange, subtotal, children, className, sourceDocuments, hideWeight }: ExpandableCardProps) {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Card className={`analysis-card card-income flex flex-col cursor-pointer hover:border-primary/50 transition-all hover:shadow-md ${className || ''}`}>
+                <Card className={`analysis-card flex flex-col cursor-pointer transition-all ${className || ''}`}>
                     <CardHeader className="py-4 px-4 flex-row items-center justify-between gap-2 pb-2">
                         <CardTitle className="text-lg font-bold text-foreground/90">{title}</CardTitle>
-                        <div className="flex items-center gap-1 bg-secondary/50 px-2 py-1 rounded-md">
-                            <span className="text-xs font-medium text-muted-foreground">Ponderación:</span>
-                            <span className="text-xs font-bold">{weight}%</span>
-                        </div>
+                        {!hideWeight && (
+                            <div className="flex items-center gap-1 bg-secondary/50 px-2 py-1 rounded-md">
+                                <span className="text-xs font-medium text-muted-foreground">Ponderación:</span>
+                                <span className="text-xs font-bold">{weight}%</span>
+                            </div>
+                        )}
+
                     </CardHeader>
                     <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-end">
                         <div className="pt-2 text-right">
@@ -47,23 +51,26 @@ export default function ExpandableCard({ title, weight, onWeightChange, subtotal
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-between mr-8">
                         <span className="text-xl">Detalle de {title}</span>
-                        <div className="flex items-center gap-2 bg-secondary/30 p-2 rounded-lg border">
-                            <span className="text-sm font-medium text-muted-foreground">Ponderación:</span>
-                            <div className="flex items-center gap-1">
-                                <Input
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={weight}
-                                    autoFocus={false}
-                                    onChange={(e) => {
-                                        const val = Number(e.target.value.replace(/[^0-9]/g, ''));
-                                        onWeightChange(Math.min(100, Math.max(0, val)));
-                                    }}
-                                    className="w-12 h-7 text-sm text-center p-0 bg-background"
-                                />
-                                <span className="text-sm text-foreground">%</span>
+                        {!hideWeight && (
+                            <div className="flex items-center gap-2 bg-secondary/30 p-2 rounded-lg border">
+                                <span className="text-sm font-medium text-muted-foreground">Ponderación:</span>
+                                <div className="flex items-center gap-1">
+                                    <Input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={weight}
+                                        autoFocus={false}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                            onWeightChange(Math.min(100, Math.max(0, val)));
+                                        }}
+                                        className="w-12 h-7 text-sm text-center p-0 bg-background"
+                                    />
+                                    <span className="text-sm text-foreground">%</span>
+                                </div>
                             </div>
-                        </div>
+                        )}
+
                     </DialogTitle>
                 </DialogHeader>
 

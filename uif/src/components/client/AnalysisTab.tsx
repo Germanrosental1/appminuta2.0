@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Calculator, DollarSign, Loader2, Download, Package } from 'lucide-react';
+import { Save, Calculator, DollarSign, Loader2, Download, Package, TrendingUp, Calendar, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 // ⚡ PERFORMANCE: jsPDF, JSZip, file-saver son lazy imports en las funciones de descarga (bundle optimization)
@@ -49,12 +49,168 @@ const DEFAULT_ESTADO_RESULTADOS_SETTINGS = {
   usar_resultado_bruto: false,
 };
 
+// Configuration for available sections
+const AVAILABLE_SECTIONS = [
+  { id: 'ganancias', label: 'Ganancias', type: 'PF' },
+  { id: 'otros', label: 'Otros', type: 'BOTH' },
+  { id: 'monotributo', label: 'Monotributo', type: 'PF' },
+  { id: 'iva', label: 'IVA', type: 'BOTH' },
+  { id: 'recibo_haberes', label: 'Recibo de Haberes', type: 'PF' },
+  { id: 'certificacion_contable', label: 'Certificación Contable', type: 'PF' },
+  { id: 'bienes_personales', label: 'Bienes Personales', type: 'PF' },
+  { id: 'estado_resultados', label: 'Estado de Resultados', type: 'PJ' },
+] as const;
+
 export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<AnalysisTabProps>) {
   const [financialData, setFinancialData] = useState<FinancialData>(analysis.financial_data);
-  const [settings, setSettings] = useState<AnalysisSettings>(analysis.analysis_settings);
+  const [settings, setSettings] = useState<AnalysisSettings>(() => {
+    // Ensure simulacion has rem_percent and cac_percent (backwards compatibility)
+    const baseSettings = analysis.analysis_settings;
+    return {
+      ...baseSettings,
+      simulacion: {
+        ...baseSettings.simulacion,
+        rem_percent: baseSettings.simulacion?.rem_percent ?? 0,
+        cac_percent: baseSettings.simulacion?.cac_percent ?? 10,
+      }
+    };
+  });
+  const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize visible sections based on data
+  useEffect(() => {
+    if (isInitialized) return;
+
+    const newVisible = new Set<string>();
+
+    // Logic to determine if a section should be visible
+    const hasData = (sectionId: string) => {
+      // 1. Check subtotals (need access to calculations or raw data)
+      // We can use financialData directly for raw values
+      const rawValue = (financialData as any)[sectionId];
+      if (rawValue) {
+        // Check if rawValue has any non-zero fields or if it's an object with data
+        // This is a bit complex as structure varies. 
+        // Simpler: Use calculations subtotals if available, but calculations is inside component body.
+        // We can use the helper from the plan: check custom fields, check docs.
+      }
+      return false; // Fallback
+    };
+
+    // We need access to calculations for subtotals, but calculations is defined AFTER this effect.
+    // Solution: Move this logic to a separate effect that depends on calculations, or define calculations before.
+    // Actually, calculations uses financialData, so we can rely on financialData.
+
+    // Let's rely on data presence in financialData and Documents for now
+    AVAILABLE_SECTIONS.forEach(section => {
+      let isVisible = false;
+
+      // 1. Check Custom Fields
+      if (financialData.custom_fields?.[section.id as keyof typeof financialData.custom_fields]?.length ?? 0 > 0) {
+        isVisible = true;
+      }
+
+      // 2. Check Documents
+      // Mapping from config.type/id to doc_type
+      // Simple mapping based on known IDs
+      const docMapping: Record<string, string> = {
+        'ganancias': 'Ganancias',
+        'bienes_personales': 'BienesPersonales',
+        'iva': 'IVA',
+        'recibo_haberes': 'ReciboHaberes',
+        'monotributo': 'Monotributo',
+        'certificacion_contable': 'CertificacionContable',
+        'estado_resultados': 'EECC',
+      };
+
+      const docType = docMapping[section.id];
+      if (docType && documents.some(d => d.doc_type === docType && d.status === 'Validado')) {
+        isVisible = true;
+      }
+
+      // 3. Check specific financial data fields (subtotals > 0)
+      if (!isVisible) {
+        const g = financialData.ganancias as any;
+        if (section.id === 'ganancias' && (Number(g.monto_consumido) > 0 || Number(g.impuesto_determinado) > 0 || Number(g.primera_cat) > 0)) isVisible = true;
+
+        if (section.id === 'monotributo' && financialData.monotributo.categoria) isVisible = true;
+
+        if (section.id === 'iva' && (financialData.iva.debitos_fiscales?.length ?? 0) > 0) isVisible = true;
+
+        if (section.id === 'recibo_haberes' && Number(financialData.recibo_haberes.sueldo_neto) > 0) isVisible = true;
+
+        if (section.id === 'certificacion_contable' && Number(financialData.certificacion_contable.certificacion_firmada) > 0) isVisible = true;
+
+        if (section.id === 'bienes_personales') {
+          const bp = financialData.bienes_personales as any;
+          if (Number(bp.efectivo_pais) > 0 || Number(bp.efectivo_exterior) > 0 || Number(bp.exento_no_alcanzado) > 0) isVisible = true;
+        }
+
+        if (section.id === 'otros') {
+          const o = financialData.otros as any;
+          if (Number(o.venta_propiedad) > 0 || Number(o.arrendamiento) > 0 || Number(o.jubilacion) > 0) isVisible = true;
+        }
+
+        if (section.id === 'estado_resultados') {
+          const db = (financialData.datos_balance || {}) as any;
+          if (Number(db.ventas) > 0 || Number(db.costo_ventas) > 0 || Number(db.gastos) > 0 || Number(db.resultado_operativo) > 0 || Number(db.caja_y_bancos) > 0 || Number(db.patrimonio_neto) > 0) isVisible = true;
+        }
+      }
+
+      // Default visibility for PJ: Estado de Resultados
+      if (client.person_type === 'PJ' && section.id === 'estado_resultados') isVisible = true;
+
+      // Filter by person type
+      if (section.type === 'PF' && client.person_type !== 'PF') isVisible = false;
+      if (section.type === 'PJ' && client.person_type !== 'PJ') isVisible = false;
+
+      if (isVisible) newVisible.add(section.id);
+    });
+
+    // Always show at least one? Maybe not needed if "Add" button exists.
+
+    setVisibleSections(newVisible);
+    setIsInitialized(true);
+
+  }, [client.person_type, documents, isInitialized]); // financialData dependency removed to avoid constant resets, only init once. Or better, check specific flags.
+
+
   const [saving, setSaving] = useState(false);
   const [simCurrency, setSimCurrency] = useState<'USD' | 'ARS'>('USD');
   const { toast } = useToast();
+
+  // Initialize REM/CAC from system_settings only if not already set in analysis
+  useEffect(() => {
+    const initializeFromSystemSettings = async () => {
+      // Only fetch if values are 0 (new analysis or never set)
+      if (settings.simulacion.rem_percent === 0 && settings.simulacion.cac_percent === 0) {
+        try {
+          const { data, error } = await supabase
+            .from('system_settings')
+            .select('extra_settings')
+            .single();
+
+          if (!error && data?.extra_settings) {
+            const { rem = 0, cac = 0 } = data.extra_settings as { rem: number; cac: number };
+            if (rem > 0 || cac > 0) {
+              setSettings(prev => ({
+                ...prev,
+                simulacion: {
+                  ...prev.simulacion,
+                  rem_percent: rem,
+                  cac_percent: cac,
+                }
+              }));
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching system settings:', err);
+        }
+      }
+    };
+    initializeFromSystemSettings();
+  }, []);
 
   // Helper to standardise input parsing/display
   const formatCurrencyInput = (usdValue: number, currency: 'USD' | 'ARS', dolar: number): string => {
@@ -127,6 +283,14 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       ...financialData.estado_resultados_settings,
     };
 
+    // Helper to sum custom fields with currency conversion (USD -> ARS)
+    const sumCustomFields = (fields: typeof financialData.custom_fields.ganancias): number => {
+      return (fields || []).reduce((sum, f) => {
+        const value = toNum(f.value);
+        // If currency is USD, convert to ARS
+        return sum + (f.currency === 'USD' ? value * dolar : value);
+      }, 0);
+    };
 
 
     // Base calculations - use toNum to handle string values from Supabase JSON
@@ -138,40 +302,58 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       toNum(financialData.ganancias.tercera_cat) +
       toNum(financialData.ganancias.cuarta_cat);
 
+    // Custom fields sum for ganancias (with USD conversion)
+    const custom_ganancias = sumCustomFields(financialData.custom_fields?.ganancias);
+
     const base_ganancias = Math.max(0,
-      sum_categorias_ganancias - toNum(financialData.ganancias.monto_consumido)
+      sum_categorias_ganancias + custom_ganancias - toNum(financialData.ganancias.monto_consumido)
     );
 
     // Monotributo: Look up category value from table based on letter
+    // Apply REM adjustment: frozen values are adjusted by REM %
     const monotributo_category = financialData.monotributo.categoria?.toUpperCase();
-    const base_monotributo = MONOTRIBUTO_CATEGORIES[monotributo_category] || 0;
+    const rem_factor = 1 + (settings.simulacion.rem_percent / 100);
+    const base_monotributo_original = MONOTRIBUTO_CATEGORIES[monotributo_category] || 0;
+    // REM adjustment applied to monotributo (frozen value)
+    const custom_monotributo = sumCustomFields(financialData.custom_fields?.monotributo);
+    const base_monotributo = (base_monotributo_original * rem_factor) + custom_monotributo;
 
     // IVA: Calculate monthly average from debitos_fiscales array and project annually
     const debitos = financialData.iva.debitos_fiscales || [];
     const total_debitos = debitos.reduce((acc, val) => acc + toNum(val), 0);
     const promedio_mensual_iva = debitos.length > 0 ? total_debitos / debitos.length : 0;
     const proyeccion_anual_iva = promedio_mensual_iva * 12;
-    const base_iva = proyeccion_anual_iva / 0.21;
+    const custom_iva = sumCustomFields(financialData.custom_fields?.iva);
+    const base_iva = (proyeccion_anual_iva / 0.21) + custom_iva;
 
-    const base_haberes_anual = toNum(financialData.recibo_haberes.sueldo_neto) * 12;
+    // REM adjustment applied to recibo de haberes (frozen value)
+    const sueldo_neto_original = toNum(financialData.recibo_haberes.sueldo_neto);
+    const sueldo_neto_ajustado = sueldo_neto_original * rem_factor;
+    const custom_haberes = sumCustomFields(financialData.custom_fields?.recibo_haberes);
+    const base_haberes_anual = (sueldo_neto_ajustado * 12) + custom_haberes;
 
     // Venta propiedad está en USD, se convierte a pesos
     const venta_propiedad_pesos = toNum(financialData.otros.venta_propiedad) * dolar;
 
+    const custom_otros = sumCustomFields(financialData.custom_fields?.otros);
     const base_otros =
       venta_propiedad_pesos +
       toNum(financialData.otros.arrendamiento) +
       toNum(financialData.otros.escriturasCesionesVentas) +
-      toNum(financialData.otros.blanqueo);
+      toNum(financialData.otros.blanqueo) +
+      custom_otros;
 
     // Bienes Personales (patrimonio)
+    const custom_bienes_personales = sumCustomFields(financialData.custom_fields?.bienes_personales);
     const base_bienes_personales =
       toNum(financialData.bienes_personales.efectivo_pais) +
       toNum(financialData.bienes_personales.efectivo_exterior) +
-      toNum(financialData.bienes_personales.exento_no_alcanzado);
+      toNum(financialData.bienes_personales.exento_no_alcanzado) +
+      custom_bienes_personales;
 
     // Certificación contable
-    const base_certificacion = toNum(financialData.certificacion_contable.certificacion_firmada);
+    const custom_certificacion = sumCustomFields(financialData.custom_fields?.certificacion_contable);
+    const base_certificacion = toNum(financialData.certificacion_contable.certificacion_firmada) + custom_certificacion;
 
     // Estados Contables (EECC) - Nueva lógica para PJ
     // Paso 1: Calcular Ingresos o Resultado Bruto según switch
@@ -180,17 +362,24 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     const resultado_bruto = ingresos - costos;
     const monto_ingresos_a_usar = estadoResultadosSettings.usar_resultado_bruto ? resultado_bruto : ingresos;
 
-    // Paso 2: Aplicar ponderaciones
-    const caja_bancos_ponderado = toNum(datosBalance.caja_y_bancos) * (estadoResultadosSettings.peso_caja_bancos / 100);
-    const ingresos_ponderado = monto_ingresos_a_usar * (estadoResultadosSettings.peso_ingresos / 100);
+    // Paso 2: Aplicar ponderaciones (ensure percentages are valid numbers)
+    const peso_caja = toNum(estadoResultadosSettings.peso_caja_bancos) || 70;
+    const peso_ing = toNum(estadoResultadosSettings.peso_ingresos) || 30;
+    const pct_patrimonio = toNum(estadoResultadosSettings.porcentaje_patrimonio_neto) || 10;
+
+    const caja_bancos_ponderado = toNum(datosBalance.caja_y_bancos) * (peso_caja / 100);
+    const ingresos_ponderado = monto_ingresos_a_usar * (peso_ing / 100);
     const suma_ponderada = caja_bancos_ponderado + ingresos_ponderado;
 
     // Paso 3: Calcular % del patrimonio neto
     const patrimonio_neto = toNum(datosBalance.patrimonio_neto);
-    const porcentaje_patrimonio = patrimonio_neto * (estadoResultadosSettings.porcentaje_patrimonio_neto / 100);
+    const porcentaje_patrimonio = patrimonio_neto * (pct_patrimonio / 100);
 
-    // Paso 4: El mayor entre suma ponderada y % patrimonio neto
-    const base_datos_balance = Math.max(suma_ponderada, porcentaje_patrimonio);
+    // Custom fields para estado de resultados (PJ)
+    const custom_estado_resultados = sumCustomFields(financialData.custom_fields?.estado_resultados);
+
+    // Paso 4: El mayor entre suma ponderada y % patrimonio neto, más custom fields
+    const base_datos_balance = (Math.max(suma_ponderada, porcentaje_patrimonio) || 0) + custom_estado_resultados;
 
     // Subtotals with weights
     const subtotal_ganancias = base_ganancias * (weights.ganancias / 100);
@@ -200,7 +389,8 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     const subtotal_otros = base_otros * (weights.otros / 100);
     const subtotal_bienes_personales = base_bienes_personales * (weights.bienes_personales / 100);
     const subtotal_certificacion = base_certificacion * (weights.certificacion_contable / 100);
-    const subtotal_datos_balance = base_datos_balance * (weights.datos_balance / 100);
+    // Estados de Resultados uses 100% always (already internally weighted)
+    const subtotal_datos_balance = base_datos_balance;
 
     // MONTO TOTAL A OPERAR (en pesos) = suma de todos los subtotales ponderados
     const monto_total_operar_ars =
@@ -222,11 +412,15 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     );
 
     // Cuota mensual en USD = Saldo a financiar / cantidad cuotas
-    const cuota_mensual_usd = settings.simulacion.cantidad_cuotas > 0
+    // CAC adjustment: installments are updated monthly with CAC index
+    const cac_factor = 1 + (settings.simulacion.cac_percent / 100);
+    const cuota_mensual_base_usd = settings.simulacion.cantidad_cuotas > 0
       ? saldo_a_financiar_usd / settings.simulacion.cantidad_cuotas
       : 0;
+    // Apply CAC to get adjusted installment value
+    const cuota_mensual_usd = cuota_mensual_base_usd * cac_factor;
 
-    // SOLVENCIA EN MESES = Monto total USD / cuota mensual USD
+    // SOLVENCIA EN MESES = Monto total USD / cuota mensual USD (con CAC)
     const solvencia_meses = cuota_mensual_usd > 0
       ? monto_total_operar_usd / cuota_mensual_usd
       : 0;
@@ -256,11 +450,15 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
 
     return {
       dolar,
+      rem_factor,
+      cac_factor,
       bases: {
         ganancias: base_ganancias,
         monotributo: base_monotributo,
+        monotributo_original: base_monotributo_original,
         iva: base_iva,
         haberes: base_haberes_anual,
+        haberes_original: sueldo_neto_original * 12,
         otros: base_otros,
         bienes_personales: base_bienes_personales,
         datos_balance: base_datos_balance,
@@ -292,9 +490,11 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       monto_total_operar_ars,
       monto_total_operar_usd,
       saldo_a_financiar_usd,
+      cuota_mensual_base_usd,
       cuota_mensual_usd,
       solvencia_meses,
       ratio_cobertura,
+      cantidad_cuotas: settings.simulacion.cantidad_cuotas,
       status,
       statusClass,
     };
@@ -328,6 +528,51 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
         [field]: value,
       },
     }));
+  };
+
+  // Custom fields management
+  type CustomFieldSection = 'ganancias' | 'bienes_personales' | 'iva' | 'recibo_haberes' | 'monotributo' | 'certificacion_contable' | 'otros' | 'estado_resultados';
+
+  const addCustomField = (section: CustomFieldSection) => {
+    const newField: CustomField = {
+      id: crypto.randomUUID(),
+      label: '',
+      value: 0,
+    };
+    setFinancialData(prev => ({
+      ...prev,
+      custom_fields: {
+        ...prev.custom_fields,
+        [section]: [...(prev.custom_fields?.[section] || []), newField],
+      },
+    }));
+  };
+
+  const updateCustomField = (section: CustomFieldSection, fieldId: string, updates: Partial<CustomField>) => {
+    setFinancialData(prev => ({
+      ...prev,
+      custom_fields: {
+        ...prev.custom_fields,
+        [section]: (prev.custom_fields?.[section] || []).map(f =>
+          f.id === fieldId ? { ...f, ...updates } : f
+        ),
+      },
+    }));
+  };
+
+  const removeCustomField = (section: CustomFieldSection, fieldId: string) => {
+    setFinancialData(prev => ({
+      ...prev,
+      custom_fields: {
+        ...prev.custom_fields,
+        [section]: (prev.custom_fields?.[section] || []).filter(f => f.id !== fieldId),
+      },
+    }));
+  };
+
+  // Helper to sum custom fields for a section
+  const getCustomFieldsSum = (section: CustomFieldSection): number => {
+    return (financialData.custom_fields?.[section] || []).reduce((sum, f) => sum + (f.value || 0), 0);
   };
 
   // ⚡ PERFORMANCE: generatePDF ahora usa dynamic import
@@ -379,7 +624,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
         ['Bienes Personales', `${settings.weights.bienes_personales}%`, formatCurrency(calculations.subtotals.bienes_personales)]
       );
     } else {
-      subtotalData.push(['Estado de Resultados', `${settings.weights.datos_balance || 0}%`, formatCurrency(calculations.subtotals.datos_balance)]);
+      subtotalData.push(['Estado de Resultados', '100%', formatCurrency(calculations.subtotals.datos_balance)]);
     }
     subtotalData.push(
       ['IVA', `${settings.weights.iva}%`, formatCurrency(calculations.subtotals.iva)],
@@ -395,13 +640,26 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     });
 
     // Simulation
-    const simData = [
+    const simData: [string, string][] = [
       ['Importe Operación', formatUSD(settings.simulacion.importe_operacion)],
       ['Anticipo', formatUSD(settings.simulacion.aporte_operacion)],
       ['Saldo a Financiar', formatUSD(calculations.saldo_a_financiar_usd)],
-      ['Cuota Estimada/Mes', formatUSD(calculations.cuota_mensual_usd)],
-      ['Solvencia (Meses)', calculations.solvencia_meses.toFixed(1)],
+      ['Cantidad de Cuotas', `${settings.simulacion.cantidad_cuotas} meses`],
+      ['Cuota Base (sin ajuste)', formatUSD(calculations.cuota_mensual_base_usd)],
     ];
+
+    // Add CAC info if active
+    if (settings.simulacion.cac_percent > 0) {
+      simData.push(
+        ['Índice CAC', `${settings.simulacion.cac_percent}%`],
+        ['Ajuste CAC/Cuota', `+ ${formatUSD(calculations.cuota_mensual_usd - calculations.cuota_mensual_base_usd)}`],
+      );
+    }
+
+    simData.push(
+      ['Cuota Mensual Final', formatUSD(calculations.cuota_mensual_usd)],
+      ['Solvencia (Meses)', calculations.solvencia_meses.toFixed(1)],
+    );
 
     autoTable(doc, {
       startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
@@ -410,6 +668,37 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       theme: 'grid',
       headStyles: { fillColor: [39, 174, 96] },
     });
+
+    // Índices de Ajuste (REM + CAC)
+    if (settings.simulacion.rem_percent > 0 || settings.simulacion.cac_percent > 0) {
+      const indicesData: [string, string, string][] = [];
+
+      if (settings.simulacion.rem_percent > 0) {
+        const remImpactMonotributo = (calculations.bases.monotributo_original || 0) * (settings.simulacion.rem_percent / 100);
+        const remImpactHaberes = (calculations.bases.haberes_original || 0) * (settings.simulacion.rem_percent / 100);
+        indicesData.push(
+          ['REM (Relevamiento Expectativas Mercado)', `${settings.simulacion.rem_percent}%`, 'Ajuste valores congelados'],
+          ['  → Impacto en Monotributo', `+ ${formatCurrency(remImpactMonotributo)}`, `Total: ${formatCurrency(calculations.bases.monotributo || 0)}`],
+          ['  → Impacto en RC Haberes', `+ ${formatCurrency(remImpactHaberes)}`, `Total: ${formatCurrency(calculations.bases.haberes || 0)}`],
+        );
+      }
+
+      if (settings.simulacion.cac_percent > 0) {
+        const cacImpact = calculations.cuota_mensual_usd - calculations.cuota_mensual_base_usd;
+        indicesData.push(
+          ['CAC (Coef. Ajuste Construcción)', `${settings.simulacion.cac_percent}%`, 'Actualización cuotas'],
+          ['  → Impacto en Cuota Mensual', `+ ${formatUSD(cacImpact)}`, `Total: ${formatUSD(calculations.cuota_mensual_usd)}`],
+        );
+      }
+
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 10,
+        head: [['Índice de Ajuste', 'Porcentaje', 'Descripción']],
+        body: indicesData,
+        theme: 'striped',
+        headStyles: { fillColor: [142, 68, 173] },
+      });
+    }
 
     // ============ DESGLOSE DETALLADO POR SECCIÓN ============
     doc.addPage();
@@ -639,19 +928,62 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     <div className="space-y-3 h-[calc(100vh-180px)] overflow-hidden flex flex-col">
       {/* Top Section: Header + Simulator + Result */}
       <div className="flex-shrink-0">
-        {/* Header with Dolar and Save */}
+        {/* Header with Dolar, REM, CAC and Save */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <Label className="text-sm font-medium">Dólar:</Label>
+          <div className="flex items-center gap-4">
+            {/* Dólar */}
             <div className="flex items-center gap-1">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-xs text-muted-foreground">Dólar:</Label>
+              <DollarSign className="h-3 w-3 text-muted-foreground" />
               <Input
                 type="text"
                 inputMode="decimal"
                 value={financialData.datos.dolar}
                 onChange={(e) => updateFinancialField('datos', 'dolar', e.target.value.replace(/[^0-9.]/g, ''))}
-                className="w-24 h-8 input-currency [appearance:textfield]"
+                className="w-20 h-7 text-xs input-currency [appearance:textfield]"
               />
+            </div>
+
+            {/* REM - Ajuste para valores congelados */}
+            <div className="flex items-center gap-1" title="Ajuste para Monotributo y RC de Sueldo (valores congelados)">
+              <Label className="text-xs text-muted-foreground">REM:</Label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={settings.simulacion.rem_percent}
+                  onChange={(e) => {
+                    const val = Number.parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
+                    setSettings(prev => ({
+                      ...prev,
+                      simulacion: { ...prev.simulacion, rem_percent: val }
+                    }));
+                  }}
+                  className="w-14 h-7 text-xs pr-5 input-currency [appearance:textfield]"
+                />
+                <Percent className="absolute right-1.5 top-1.5 h-3 w-3 text-muted-foreground" />
+              </div>
+            </div>
+
+            {/* CAC - Índice actualización cuotas */}
+            <div className="flex items-center gap-1" title="Índice para actualizar cuotas mensuales">
+              <Label className="text-xs text-muted-foreground">CAC:</Label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={settings.simulacion.cac_percent}
+                  onChange={(e) => {
+                    const val = Number.parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
+                    setSettings(prev => ({
+                      ...prev,
+                      simulacion: { ...prev.simulacion, cac_percent: val }
+                    }));
+                  }}
+                  className="w-14 h-7 text-xs pr-5 input-currency [appearance:textfield]"
+                />
+                <Percent className="absolute right-1.5 top-1.5 h-3 w-3 text-muted-foreground" />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -757,6 +1089,11 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                       ? formatUSD(calculations.cuota_mensual_usd)
                       : formatCurrency(calculations.cuota_mensual_usd * (Number.parseFloat(financialData.datos.dolar) || 1))}
                   </p>
+                  {settings.simulacion.cac_percent > 0 && (
+                    <p className="text-[9px] text-amber-600 dark:text-amber-400">
+                      Base {formatUSD(calculations.cuota_mensual_base_usd)} + CAC {formatUSD(calculations.cuota_mensual_usd - calculations.cuota_mensual_base_usd)}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground">Solvencia</p>
@@ -791,6 +1128,113 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
             </CardContent>
           </Card>
         </div>
+
+        {/* Timeline Visualization - Operation Duration vs Solvency */}
+        {calculations.cantidad_cuotas > 0 && (
+          <Card className="analysis-card mt-3">
+            <CardContent className="py-2 px-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    Línea de Tiempo
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-[10px]">
+                  {settings.simulacion.rem_percent > 0 && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded text-blue-700 dark:text-blue-300">
+                      <TrendingUp className="h-3 w-3" />
+                      REM +{settings.simulacion.rem_percent}%
+                    </div>
+                  )}
+                  {settings.simulacion.cac_percent > 0 && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 rounded text-amber-700 dark:text-amber-300">
+                      <TrendingUp className="h-3 w-3" />
+                      CAC +{settings.simulacion.cac_percent}%
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {/* Operation Duration Bar (reference) */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-muted-foreground">Plazo Operación</span>
+                    <span className="font-mono font-medium">{calculations.cantidad_cuotas} meses</span>
+                  </div>
+                  <div className="h-3 bg-muted rounded-full relative overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-slate-400 to-slate-500 rounded-full transition-all duration-500"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Solvency Bar (parallel comparison) */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-muted-foreground">Cobertura Solvencia</span>
+                    <span className={cn(
+                      "font-mono font-medium",
+                      calculations.solvencia_meses >= calculations.cantidad_cuotas ? "text-green-600" : "text-amber-600"
+                    )}>
+                      {calculations.solvencia_meses.toFixed(1)} meses ({((calculations.solvencia_meses / calculations.cantidad_cuotas) * 100).toFixed(0)}%)
+                    </span>
+                  </div>
+                  <div className="h-3 bg-muted rounded-full relative overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        calculations.solvencia_meses >= calculations.cantidad_cuotas
+                          ? "bg-gradient-to-r from-green-400 to-green-500"
+                          : calculations.solvencia_meses >= calculations.cantidad_cuotas * 0.75
+                            ? "bg-gradient-to-r from-amber-400 to-amber-500"
+                            : "bg-gradient-to-r from-red-400 to-red-500"
+                      )}
+                      style={{
+                        width: `${Math.min(100, (calculations.solvencia_meses / calculations.cantidad_cuotas) * 100)}%`
+                      }}
+                    />
+                    {/* 100% marker line */}
+                    {calculations.solvencia_meses < calculations.cantidad_cuotas && (
+                      <div
+                        className="absolute top-0 bottom-0 w-0.5 bg-slate-500 dark:bg-slate-400"
+                        style={{ left: '100%', transform: 'translateX(-1px)' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status message */}
+              <div className={cn(
+                "mt-2 pt-2 border-t flex items-center justify-center gap-2 text-[10px] font-medium",
+                calculations.solvencia_meses >= calculations.cantidad_cuotas
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-amber-600 dark:text-amber-400"
+              )}>
+                {calculations.solvencia_meses >= calculations.cantidad_cuotas ? (
+                  <>
+                    <span>✓ Cobertura completa</span>
+                    {calculations.solvencia_meses > calculations.cantidad_cuotas && (
+                      <span className="text-muted-foreground">
+                        (+{(calculations.solvencia_meses - calculations.cantidad_cuotas).toFixed(1)} meses adicionales)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span>⚠ Cobertura parcial</span>
+                    <span className="text-muted-foreground">
+                      (faltan {(calculations.cantidad_cuotas - calculations.solvencia_meses).toFixed(1)} meses)
+                    </span>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Income Cards Grid */}
@@ -821,24 +1265,43 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                 <CompactField label="4ta Categoría (Trabajo Personal)" value={financialData.ganancias.cuarta_cat} onChange={(v) => updateFinancialField('ganancias', 'cuarta_cat', v)} />
               </div>
 
-              <div className="mt-4 pt-4 border-t">
-                <CompactField label="Monto Consumido / Gastos" value={financialData.ganancias.monto_consumido} onChange={(v) => updateFinancialField('ganancias', 'monto_consumido', v)} />
-              </div>
-            </ExpandableCard>
+                <div className="mt-4 pt-4 border-t">
+                  <CompactField label="Monto Consumido / Gastos" value={financialData.ganancias.monto_consumido} onChange={(v) => updateFinancialField('ganancias', 'monto_consumido', v)} />
+                </div>
 
-            <ExpandableCard
-              title="Otros"
-              weight={settings.weights.otros}
-              onWeightChange={(v) => updateWeight('otros', v)}
-              subtotal={calculations.subtotals.otros}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <CompactField label="Donación / Mutuo (USD)" value={financialData.otros.venta_propiedad} onChange={(v) => updateFinancialField('otros', 'venta_propiedad', v)} />
-                <CompactField label="Arrendamiento" value={financialData.otros.arrendamiento} onChange={(v) => updateFinancialField('otros', 'arrendamiento', v)} />
-                <CompactField label="Escritura / Venta" value={financialData.otros.escriturasCesionesVentas} onChange={(v) => updateFinancialField('otros', 'escriturasCesionesVentas', v)} />
-                <CompactField label="Blanqueo / Moratoria" value={financialData.otros.blanqueo} onChange={(v) => updateFinancialField('otros', 'blanqueo', v)} />
-              </div>
-            </ExpandableCard>
+                <CustomFieldsSection
+                  fields={financialData.custom_fields?.ganancias || []}
+                  onAdd={() => addCustomField('ganancias')}
+                  onUpdate={(id, updates) => updateCustomField('ganancias', id, updates)}
+                  onRemove={(id) => removeCustomField('ganancias', id)}
+                  dolarRate={calculations.dolar}
+                />
+              </ExpandableCard>
+            )}
+
+            {visibleSections.has('otros') && (
+              <ExpandableCard
+                title="Otros"
+                weight={settings.weights.otros}
+                onWeightChange={(v) => updateWeight('otros', v)}
+                subtotal={calculations.subtotals.otros}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CompactField label="Donación / Mutuo (USD)" value={financialData.otros.venta_propiedad} onChange={(v) => updateFinancialField('otros', 'venta_propiedad', v)} />
+                  <CompactField label="Arrendamiento" value={financialData.otros.arrendamiento} onChange={(v) => updateFinancialField('otros', 'arrendamiento', v)} />
+                  <CompactField label="Escritura / Venta" value={financialData.otros.escriturasCesionesVentas} onChange={(v) => updateFinancialField('otros', 'escriturasCesionesVentas', v)} />
+                  <CompactField label="Blanqueo / Moratoria" value={financialData.otros.blanqueo} onChange={(v) => updateFinancialField('otros', 'blanqueo', v)} />
+                </div>
+
+                <CustomFieldsSection
+                  fields={financialData.custom_fields?.otros || []}
+                  onAdd={() => addCustomField('otros')}
+                  onUpdate={(id, updates) => updateCustomField('otros', id, updates)}
+                  onRemove={(id) => removeCustomField('otros', id)}
+                  dolarRate={calculations.dolar}
+                />
+              </ExpandableCard>
+            )}
 
             <ExpandableCard
               title="Monotributo"
@@ -866,13 +1329,44 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                     ))}
                   </select>
                 </div>
-                <div className="flex justify-between items-center bg-card p-3 rounded border">
-                  <span className="text-sm font-medium text-muted-foreground">Tope Anual (Tabla 2024/25)</span>
-                  <span className="font-mono text-lg font-bold">
-                    ${(MONOTRIBUTO_CATEGORIES[financialData.monotributo.categoria?.toUpperCase()] || 0).toLocaleString('es-AR')}
-                  </span>
+                <div className="space-y-2 bg-card p-3 rounded border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Tope Anual (Tabla)</span>
+                    <span className="font-mono text-sm">
+                      {formatCurrency(calculations.bases.monotributo_original || 0)}
+                    </span>
+                  </div>
+                  {settings.simulacion.rem_percent > 0 && (
+                    <>
+                      <div className="flex justify-between items-center text-blue-600 dark:text-blue-400">
+                        <span className="text-xs">Ajuste REM (+{settings.simulacion.rem_percent}%)</span>
+                        <span className="font-mono text-sm">
+                          + {formatCurrency((calculations.bases.monotributo_original || 0) * (settings.simulacion.rem_percent / 100))}
+                        </span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between items-center font-semibold">
+                        <span className="text-xs">Subtotal Ajustado</span>
+                        <span className="font-mono text-base text-green-600 dark:text-green-400">
+                          {formatCurrency(calculations.bases.monotributo || 0)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {settings.simulacion.rem_percent === 0 && (
+                    <div className="text-[10px] text-muted-foreground italic pt-1 border-t">
+                      Sin ajuste REM. Configure el % en el encabezado para aplicar ajuste.
+                    </div>
+                  )}
                 </div>
               </div>
+
+              <CustomFieldsSection
+                fields={financialData.custom_fields?.monotributo || []}
+                onAdd={() => addCustomField('monotributo')}
+                onUpdate={(id, updates) => updateCustomField('monotributo', id, updates)}
+                onRemove={(id) => removeCustomField('monotributo', id)}
+                dolarRate={calculations.dolar}
+              />
             </ExpandableCard>
           </>
         )}
@@ -925,6 +1419,14 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
               </div>
             </div>
           </div>
+
+          <CustomFieldsSection
+            fields={financialData.custom_fields?.iva || []}
+            onAdd={() => addCustomField('iva')}
+            onUpdate={(id, updates) => updateCustomField('iva', id, updates)}
+            onRemove={(id) => removeCustomField('iva', id)}
+            dolarRate={calculations.dolar}
+          />
         </ExpandableCard>
 
         {client.person_type === 'PF' && (
@@ -939,11 +1441,42 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
           >
             <div className="p-4 bg-secondary/10 rounded-lg space-y-4">
               <CompactField label="Total Sueldo Neto (Mensual)" value={financialData.recibo_haberes.sueldo_neto} onChange={(v) => updateFinancialField('recibo_haberes', 'sueldo_neto', v)} />
-              <div className="flex justify-between items-center pt-2 border-t border-dashed">
-                <span className="text-sm text-muted-foreground">Proyección Anual (x12):</span>
-                <span className="font-mono font-bold text-lg">{formatCurrency(financialData.recibo_haberes.sueldo_neto * 12)}</span>
+              <div className="space-y-2 pt-2 border-t border-dashed">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Proyección Anual (x12)</span>
+                  <span className="font-mono text-sm">{formatCurrency(calculations.bases.haberes_original || 0)}</span>
+                </div>
+                {settings.simulacion.rem_percent > 0 && (
+                  <>
+                    <div className="flex justify-between items-center text-blue-600 dark:text-blue-400">
+                      <span className="text-xs">Ajuste REM (+{settings.simulacion.rem_percent}%)</span>
+                      <span className="font-mono text-sm">
+                        + {formatCurrency((calculations.bases.haberes_original || 0) * (settings.simulacion.rem_percent / 100))}
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between items-center font-semibold">
+                      <span className="text-xs">Subtotal Ajustado</span>
+                      <span className="font-mono text-base text-green-600 dark:text-green-400">
+                        {formatCurrency(calculations.bases.haberes || 0)}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {settings.simulacion.rem_percent === 0 && (
+                  <div className="text-[10px] text-muted-foreground italic">
+                    Sin ajuste REM. Configure el % en el encabezado para aplicar ajuste.
+                  </div>
+                )}
               </div>
             </div>
+
+            <CustomFieldsSection
+              fields={financialData.custom_fields?.recibo_haberes || []}
+              onAdd={() => addCustomField('recibo_haberes')}
+              onUpdate={(id, updates) => updateCustomField('recibo_haberes', id, updates)}
+              onRemove={(id) => removeCustomField('recibo_haberes', id)}
+              dolarRate={calculations.dolar}
+            />
           </ExpandableCard>
         )}
 
@@ -963,6 +1496,14 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
               <div className="p-4 bg-secondary/10 rounded-lg">
                 <CompactField label="Monto Certificación Firmada" value={financialData.certificacion_contable.certificacion_firmada} onChange={(v) => updateFinancialField('certificacion_contable', 'certificacion_firmada', v)} />
               </div>
+
+              <CustomFieldsSection
+                fields={financialData.custom_fields?.certificacion_contable || []}
+                onAdd={() => addCustomField('certificacion_contable')}
+                onUpdate={(id, updates) => updateCustomField('certificacion_contable', id, updates)}
+                onRemove={(id) => removeCustomField('certificacion_contable', id)}
+                dolarRate={calculations.dolar}
+              />
             </ExpandableCard>
 
             <ExpandableCard
@@ -987,6 +1528,14 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                 <span className="text-sm text-muted-foreground mr-2">Total Bienes: </span>
                 <span className="text-lg font-mono font-medium">{formatCurrency(calculations.bases.bienes_personales)}</span>
               </div>
+
+              <CustomFieldsSection
+                fields={financialData.custom_fields?.bienes_personales || []}
+                onAdd={() => addCustomField('bienes_personales')}
+                onUpdate={(id, updates) => updateCustomField('bienes_personales', id, updates)}
+                onRemove={(id) => removeCustomField('bienes_personales', id)}
+                dolarRate={calculations.dolar}
+              />
             </ExpandableCard>
           </>
         )}
@@ -994,9 +1543,10 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
         {client.person_type === 'PJ' && (
           <ExpandableCard
             title="Estado de Resultados"
-            weight={settings.weights.datos_balance ?? 0}
-            onWeightChange={(v) => updateWeight('datos_balance', v)}
+            weight={100}
+            onWeightChange={() => { }}
             subtotal={calculations.subtotals.datos_balance}
+            hideWeight={true}
             sourceDocuments={documents
               .filter(d => (d.doc_type === 'EECC' || d.doc_type === 'Otros') && d.status === 'Validado')
               .map(d => ({ id: d.id, filename: d.original_filename, formattedValue: d.doc_type }))}
@@ -1169,6 +1719,15 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                   <span className="font-mono">{formatCurrency(calculations.bases.datos_balance)}</span>
                 </div>
               </div>
+
+              {/* Custom Fields Section */}
+              <CustomFieldsSection
+                fields={financialData.custom_fields?.estado_resultados || []}
+                onAdd={() => addCustomField('estado_resultados')}
+                onUpdate={(id, updates) => updateCustomField('estado_resultados', id, updates)}
+                onRemove={(id) => removeCustomField('estado_resultados', id)}
+                dolarRate={calculations.dolar}
+              />
             </div>
           </ExpandableCard>
         )}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { uifApi } from '@/lib/api-client';
 import { Client, DEFAULT_FINANCIAL_DATA, DEFAULT_ANALYSIS_SETTINGS, PersonType } from '@/types/database';
@@ -61,6 +61,7 @@ const ClientsTableSkeleton = () => (
 
 export default function ClientsPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -297,6 +298,8 @@ export default function ClientsPage() {
               {filteredClients.map((client) => (
                 <TableRow
                   key={client.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/clientes/${client.id}`)}
                   // ⚡ PERFORMANCE: Prefetch al hover para navegación instantánea
                   onMouseEnter={() => {
                     queryClient.prefetchQuery({
