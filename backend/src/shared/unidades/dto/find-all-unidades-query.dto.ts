@@ -22,9 +22,12 @@ export class FindAllUnidadesQueryDto {
         'Reservado',
         'Vendido',
         'No Disponible',
-        'Bloqueado'
+        'Bloqueado',
+        'All',
+        'Todos',
+        'Todas'
     ], {
-        message: 'estado debe ser uno de: Disponible, Reservado, Vendido, No Disponible, Bloqueado'
+        message: 'estado debe ser uno de: Disponible, Reservado, Vendido, No Disponible, Bloqueado, All'
     })
     estado?: string;
 

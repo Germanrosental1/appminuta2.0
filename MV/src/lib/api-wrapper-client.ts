@@ -20,7 +20,7 @@ import {
   isSuccessResponse,
 } from '../types/api-response.types';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:3000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ⚡ OPTIMIZACIÓN: Cache de sesión (reutilizado del api-client.ts existente)
 let cachedSession: Session | null = null;

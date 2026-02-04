@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Client, FinancialData, AnalysisSettings, MONOTRIBUTO_CATEGORIES, Analysis, Document, ReviewedData } from '@/types/database';
+import { Client, FinancialData, AnalysisSettings, MONOTRIBUTO_CATEGORIES, Analysis, Document, ReviewedData, CustomField } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 // ⚡ PERFORMANCE: jsPDF, JSZip, file-saver son lazy imports en las funciones de descarga (bundle optimization)
 import ExpandableCard from './ExpandableCard';
+import CustomFieldsSection from './CustomFieldsSection';
 import type { jsPDF } from 'jspdf';
 
 interface AutoTableDoc extends jsPDF {
@@ -1265,19 +1266,19 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                 <CompactField label="4ta Categoría (Trabajo Personal)" value={financialData.ganancias.cuarta_cat} onChange={(v) => updateFinancialField('ganancias', 'cuarta_cat', v)} />
               </div>
 
-                <div className="mt-4 pt-4 border-t">
-                  <CompactField label="Monto Consumido / Gastos" value={financialData.ganancias.monto_consumido} onChange={(v) => updateFinancialField('ganancias', 'monto_consumido', v)} />
-                </div>
+              <div className="mt-4 pt-4 border-t">
+                <CompactField label="Monto Consumido / Gastos" value={financialData.ganancias.monto_consumido} onChange={(v) => updateFinancialField('ganancias', 'monto_consumido', v)} />
+              </div>
 
-                <CustomFieldsSection
-                  fields={financialData.custom_fields?.ganancias || []}
-                  onAdd={() => addCustomField('ganancias')}
-                  onUpdate={(id, updates) => updateCustomField('ganancias', id, updates)}
-                  onRemove={(id) => removeCustomField('ganancias', id)}
-                  dolarRate={calculations.dolar}
-                />
-              </ExpandableCard>
-            )}
+              <CustomFieldsSection
+                fields={financialData.custom_fields?.ganancias || []}
+                onAdd={() => addCustomField('ganancias')}
+                onUpdate={(id, updates) => updateCustomField('ganancias', id, updates)}
+                onRemove={(id) => removeCustomField('ganancias', id)}
+                dolarRate={calculations.dolar}
+              />
+            </ExpandableCard>
+
 
             {visibleSections.has('otros') && (
               <ExpandableCard

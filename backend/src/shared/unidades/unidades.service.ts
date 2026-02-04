@@ -288,7 +288,7 @@ export class UnidadesService {
         const where: Record<string, any> = {};
 
         //  Cache proyecto_id para evitar query extra en cada request
-        if (query.proyecto) {
+        if (query.proyecto && query.proyecto.toLowerCase() !== 'all' && query.proyecto.toLowerCase() !== 'todos') {
             const proyecto = await this.prisma.proyectos.findFirst({
                 where: { Nombre: { equals: query.proyecto, mode: 'insensitive' } },
                 select: { Id: true }, // Solo necesitamos el ID

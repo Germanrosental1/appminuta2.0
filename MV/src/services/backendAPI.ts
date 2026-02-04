@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from '../lib/api-wrapper-client';
+import { apiGet, apiPatch, apiPost, apiPut, apiDelete } from '../lib/api-wrapper-client';
 import { GastosGenerales } from '../types/api-response.types';
 
 /**
@@ -9,6 +9,41 @@ class BackendAPI {
 
     // ... (skipping unchanged parts)
 
+
+    /**
+     * Proxy for generic GET request
+     */
+    async apiGet<T>(endpoint: string, options?: any): Promise<T> {
+        return apiGet<T>(endpoint, options);
+    }
+
+    /**
+     * Proxy for generic POST request
+     */
+    async apiPost<T>(endpoint: string, body?: any, options?: any): Promise<T> {
+        return apiPost<T>(endpoint, body, options);
+    }
+
+    /**
+     * Proxy for generic PUT request
+     */
+    async apiPut<T>(endpoint: string, body?: any, options?: any): Promise<T> {
+        return apiPut<T>(endpoint, body, options);
+    }
+
+    /**
+     * Proxy for generic PATCH request
+     */
+    async apiPatch<T>(endpoint: string, body?: any, options?: any): Promise<T> {
+        return apiPatch<T>(endpoint, body, options);
+    }
+
+    /**
+     * Proxy for generic DELETE request
+     */
+    async apiDelete<T>(endpoint: string, options?: any): Promise<T> {
+        return apiDelete<T>(endpoint, options);
+    }
 
     /**
      * Update a complete unit (all fields across normalized tables)

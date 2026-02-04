@@ -12,7 +12,7 @@ export class UnidadesQueryService {
         const where: Record<string, any> = {};
 
         //  Cache proyecto_id para evitar query extra en cada request
-        if (query.proyecto) {
+        if (query.proyecto && query.proyecto.toLowerCase() !== 'all' && query.proyecto.toLowerCase() !== 'todos') {
             const proyecto = await this.prisma.proyectos.findFirst({
                 where: { Nombre: { equals: query.proyecto, mode: 'insensitive' } },
                 select: { Id: true }, // Solo necesitamos el ID
@@ -28,27 +28,34 @@ export class UnidadesQueryService {
 
         // Filtrar por estado - por defecto "Disponible" y "Pisada" (case insensitive)
         // Soporta múltiples estados separados por coma (ej: "disponible,pisada")
+        // Filtrar por estado - por defecto "Disponible" y "Pisada" (case insensitive)
+        // Soporta múltiples estados separados por coma (ej: "disponible,pisada")
         const estadoFiltro = query.estado || 'disponible,pisada';
         const estados = estadoFiltro.split(',').map(e => e.trim());
 
-        if (estados.length === 1) {
-            // Filtro simple por un solo estado
-            where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
-                is: {
-                    EstadoComercial: {
-                        NombreEstado: { equals: estados[0], mode: 'insensitive' },
+        const isAll = estados.some(e => ['todos', 'all', 'todas'].includes(e.toLowerCase()));
+
+        if (!isAll) {
+
+            if (estados.length === 1) {
+                // Filtro simple por un solo estado
+                where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
+                    is: {
+                        EstadoComercial: {
+                            NombreEstado: { equals: estados[0], mode: 'insensitive' },
+                        },
                     },
-                },
-            };
-        } else {
-            // Filtro por múltiples estados usando OR
-            where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
-                is: {
-                    EstadoComercial: {
-                        NombreEstado: { in: estados, mode: 'insensitive' },
+                };
+            } else {
+                // Filtro por múltiples estados usando OR
+                where.DetallesVenta_DetallesVenta_UnidadIdToUnidades = {
+                    is: {
+                        EstadoComercial: {
+                            NombreEstado: { in: estados, mode: 'insensitive' },
+                        },
                     },
-                },
-            };
+                };
+            }
         }
 
         if (query.etapa && query.etapa !== 'Ninguna') {
@@ -119,6 +126,22 @@ export class UnidadesQueryService {
                             select: {
                                 Id: true,
                                 NombreEstado: true,
+                            },
+                        },
+                        Titular: true,
+                        ClienteInteresado: true,
+                        Obs: true,
+                        FechaReserva: true,
+                        MotivoNoDispId: true,
+                        MotivosNoDisp: {
+                            select: {
+                                Nombre: true,
+                            },
+                        },
+                        ComercialId: true,
+                        Comerciales: {
+                            select: {
+                                Nombre: true,
                             },
                         },
                     },

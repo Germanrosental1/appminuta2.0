@@ -10,17 +10,18 @@ import { GastosGeneralesTab } from "@/components/gastos-generales-tab";
 import { mockUsers, mockPermissions } from "@/data/mock-data";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { useUnits, useUpdateUnit, useProjectByName } from "@/hooks/useUnits";
+import { useUnits, useUpdateUnit, useProjectByName, useAllUnits } from "@/hooks/useUnits";
 
 export default function SalesMapView() {
   const { mapId } = useParams();
 
   // ===== REACT QUERY HOOKS =====
-  const {
-    data: units = [],
-    isLoading,
-    error: unitsError
-  } = useUnits(mapId || '');
+  const { data: projectUnits = [], isLoading: pLoading, error: pError } = useUnits(mapId || '');
+  const { data: allUnits = [], isLoading: aLoading, error: aError } = useAllUnits();
+
+  const units = mapId ? projectUnits : allUnits;
+  const isLoading = mapId ? pLoading : aLoading;
+  const unitsError = mapId ? pError : aError;
 
   const { data: project } = useProjectByName(mapId);
 

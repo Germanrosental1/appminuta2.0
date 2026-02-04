@@ -6,9 +6,6 @@ import { MinutasGateway } from './minutas.gateway';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UsuariosRolesModule } from '../shared/iam/usuarios-roles/usuarios-roles.module';
 import { AuthorizationModule } from '../auth/authorization/authorization.module';
-import { PrismaMinutasRepository } from './repositories/prisma-minutas.repository';
-import { DocumentGenerationService } from './services/document-generation/document-generation.service';
-import { N8nDocumentGenerator } from './services/document-generation/n8n-generator.service';
 import { UnitStateService } from './services/unit-state.service';
 import { MinutasStateService } from './services/minutas-state.service';
 import { MinutasQueryService } from './services/minutas-query.service';
@@ -32,9 +29,6 @@ import { PermissionsCacheModule } from '../shared/iam/services/permissions-cache
   providers: [
     MinutasService,
     MinutasGateway,
-    PrismaMinutasRepository,
-    DocumentGenerationService,
-    N8nDocumentGenerator,
     UnitStateService,
     MinutasStateService,
     MinutasQueryService,
@@ -43,8 +37,6 @@ import { PermissionsCacheModule } from '../shared/iam/services/permissions-cache
   ],
   exports: [
     MinutasService,
-    MinutasGateway,
-    UnitStateService,
     MinutasStateService,
     MinutasQueryService,
     MinutasCommandService,
