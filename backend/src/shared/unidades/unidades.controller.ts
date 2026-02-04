@@ -173,7 +173,9 @@ export class UnidadesController {
         @CurrentUser() user: any,
         @Query('etapa') etapa?: string
     ) {
-
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
+        }
         return await this.unidadesQueryService.getTipos(proyecto, etapa);
     }
 
@@ -193,6 +195,18 @@ export class UnidadesController {
     }
 
     private async validateProjectAccess(userId: string, projectName: string): Promise<void> {
+        // Check if user has global admin role (superadminmv or adminmv)
+        const userAccessInfo = await this.authService.getUserAccessInfo(userId);
+        const isGlobalAdmin = userAccessInfo?.UsuariosRoles?.some(
+            ur => ur.Roles?.Nombre === 'superadminmv' || ur.Roles?.Nombre === 'adminmv'
+        );
+
+        // Global admins have access to all projects
+        if (isGlobalAdmin) {
+            return;
+        }
+
+        // For non-admin users, check project-specific access
         const userProjects = await this.authService.getUserProjectsDetailed(userId);
         const hasAccess = userProjects.some(p =>
             p.Nombre.toLowerCase() === projectName.toLowerCase()

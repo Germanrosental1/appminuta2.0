@@ -37,11 +37,10 @@ export class MinutasPermissionsService {
                 where: { IdUsuario: userId },
                 include: {
                     Roles: {
-                        select: { Nombre: true },
                         include: {
                             RolesPermisos: {
-                                select: {
-                                    Permisos: { select: { Nombre: true } }
+                                include: {
+                                    Permisos: true
                                 }
                             }
                         }
