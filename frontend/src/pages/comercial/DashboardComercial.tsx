@@ -28,8 +28,17 @@ import {
   Filter,
   FileSignature,
   XCircle,
+  Folder,
+  Timer,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { KPICard } from '@/components/dashboard/KPICard';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import '@/components/dashboard/dashboard.css';
 
 export const DashboardComercial: React.FC = () => {
@@ -139,11 +148,11 @@ export const DashboardComercial: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Proyecto</TableHead>
-              <TableHead>Unidad</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+              <TableHead className="w-[30%]">Proyecto</TableHead>
+              <TableHead className="w-[20%]">Unidad</TableHead>
+              <TableHead className="w-[20%]">Fecha</TableHead>
+              <TableHead className="w-[20%]">Estado</TableHead>
+              <TableHead className="text-right w-[10%]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <StaggerTableBody>
@@ -157,25 +166,38 @@ export const DashboardComercial: React.FC = () => {
                 <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-[#334366] text-[#92a4c8] hover:bg-white/5 hover:text-white"
-                      onClick={() => handleVerMinuta(minuta.Id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="border-border text-muted-foreground hover:bg-muted"
+                          onClick={() => handleVerMinuta(minuta.Id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ver</p>
+                      </TooltipContent>
+                    </Tooltip>
+
                     {minuta.Estado === 'en_edicion' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
-                        onClick={() => navigate(`/wizard?edit=${minuta.Id}`)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
+                            onClick={() => navigate(`/wizard?edit=${minuta.Id}`)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Editar</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </TableCell>
@@ -191,101 +213,129 @@ export const DashboardComercial: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header Area */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-white">Dashboard Comercial</h1>
-            <p className="text-[#92a4c8]">Bienvenido, {userName}</p>
+      <TooltipProvider>
+        <div className="space-y-8">
+          {/* Header Area */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="font-display text-3xl font-bold text-foreground">Dashboard Comercial</h1>
+              <p className="text-muted-foreground">Bienvenido, {userName}</p>
+            </div>
+            <Button
+              onClick={handleNuevaCalculadora}
+              className="h-12 bg-primary px-6 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-blue-600"
+            >
+              <Calculator className="mr-2 h-5 w-5" />
+              Nueva Minuta
+            </Button>
           </div>
-          <Button
-            onClick={handleNuevaCalculadora}
-            className="h-12 bg-primary px-6 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-blue-600"
-          >
-            <Calculator className="mr-2 h-5 w-5" />
-            Nueva Minuta
-          </Button>
-        </div>
 
-        {/* Stats / KPI Cards (Placeholder for Phase 3 Part 2 if needed, or integrating simple stats now) */}
-        {/* For now, just the Table Card */}
+          {/* Stats / KPI Cards */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <KPICard
+              title="Total Minutas"
+              value={stats.total}
+              icon={Folder}
+              variant="default"
+            />
+            <KPICard
+              title="Pendientes"
+              value={stats.pendientes}
+              icon={Timer}
+              urgentCount={5} // Placeholder por ahora, idealmente vendría del backend
+              variant="yellow"
+            />
+            <KPICard
+              title="Firmadas"
+              value={stats.firmadas}
+              icon={CheckCircle2}
+              variant="blue"
+            />
+            <KPICard
+              title="Canceladas"
+              value={stats.canceladas}
+              icon={XCircle}
+              variant="red"
+            />
+          </div>
 
-        {/* Historial Card */}
-        <Card className="border-none bg-[#1a2233]/80 backdrop-blur-xl shadow-2xl">
-          <CardHeader className="border-b border-[#334366] px-8 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-bold text-white">Mis Minutas</CardTitle>
-                <CardDescription className="text-[#92a4c8]">Tu historial de operaciones recientes</CardDescription>
+          {/* Historial Card */}
+          <Card className="border-none bg-card/80 backdrop-blur-xl shadow-2xl">
+            <CardHeader className="border-b border-border px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-bold text-card-foreground">Mis Minutas</CardTitle>
+                  <CardDescription className="text-muted-foreground">Tu historial de operaciones recientes</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => refetch()}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title="Refrescar lista"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => refetch()}
-                className="text-[#92a4c8] hover:bg-white/5 hover:text-white"
-                title="Refrescar lista"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-8">
-            {/* Status Filters */}
-            <div className="mb-6 flex flex-wrap gap-2">
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${!statusFilter
-                  ? 'bg-primary text-white shadow-lg shadow-blue-900/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter(null)}
-              >
-                Todas
-                <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-xs text-white">{stats.total}</span>
-              </button>
-              {/* Additional filters can be mapped or manual */}
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'pendiente'
-                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter('pendiente')}
-              >
-                Pendientes
-                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.pendientes}</span>
-              </button>
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'en_edicion'
-                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter('en_edicion')}
-              >
-                En Edición
-                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.enEdicion}</span>
-              </button>
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'aprobada'
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter('aprobada')}
-              >
-                Aprobadas
-                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.aprobadas}</span>
-              </button>
-            </div>
+            </CardHeader>
+            <CardContent className="p-8">
+              {/* Status Filters */}
+              <div className="mb-6 flex flex-wrap gap-2">
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${!statusFilter
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-blue-900/20'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  onClick={() => setStatusFilter(null)}
+                >
+                  Todas
+                  <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-xs text-white">{stats.total}</span>
+                </button>
+                {/* Additional filters can be mapped or manual */}
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'pendiente'
+                    ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/20'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  onClick={() => setStatusFilter('pendiente')}
+                >
+                  Pendientes
+                  <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.pendientes}</span>
+                </button>
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'en_edicion'
+                    ? 'bg-orange-500/20 text-orange-500 border border-orange-500/20'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  onClick={() => setStatusFilter('en_edicion')}
+                >
+                  En Edición
+                  <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.enEdicion}</span>
+                </button>
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'aprobada'
+                    ? 'bg-green-500/20 text-green-500 border border-green-500/20'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  onClick={() => setStatusFilter('aprobada')}
+                >
+                  Aprobadas
+                  <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.aprobadas}</span>
+                </button>
+              </div>
 
-            {renderMinutasContent()}
-          </CardContent>
-        </Card>
+              {renderMinutasContent()}
+            </CardContent>
+          </Card>
 
-        {/* Modal para ver detalles de la minuta */}
-        <DetalleMinutaModal
-          minutaId={selectedMinutaId}
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-        />
-      </div>
+          {/* Modal para ver detalles de la minuta */}
+          <DetalleMinutaModal
+            minutaId={selectedMinutaId}
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+          />
+        </div>
+      </TooltipProvider>
     </DashboardLayout>
   );
 };

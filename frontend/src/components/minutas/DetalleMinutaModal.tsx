@@ -80,21 +80,21 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case 'pendiente':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">Pendiente</Badge>;
       case 'en_edicion':
-        return <Badge variant="outline" className="bg-orange-100 text-orange-800">En Edición</Badge>;
+        return <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20">En Edición</Badge>;
       case 'revisada':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Revisada</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Revisada</Badge>;
       case 'aprobada':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Aprobada</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">Aprobada</Badge>;
       case 'firmada':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Firmada</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Firmada</Badge>;
       case 'cancelada':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Cancelada</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">Cancelada</Badge>;
       case 'rechazada':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Rechazada</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">Rechazada</Badge>;
       default:
-        return <Badge variant="outline">{estado}</Badge>;
+        return <Badge variant="outline" className="text-white border-[#334366]">{estado}</Badge>;
     }
   };
 
@@ -234,7 +234,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           </TabsList>
 
           <TabsContent value="consolidado">
-            <div ref={consolidadoRef} className="p-4 bg-white rounded-md">
+            <div ref={consolidadoRef} className="p-4 bg-card border border-border rounded-md text-card-foreground">
               <div className="mb-6">
                 <h2 className="text-xl font-bold mb-4">Datos de la Minuta Comercial</h2>
                 <ResumenCompleto wizardData={minuta.Dato} />
@@ -280,47 +280,47 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                         const descripcionUnidad = item._unidad_descripcion || `${sector} - ${edificio} - Unidad ${nroUnidad}`;
 
                         return (
-                          <div key={item.Id || item.id || index} className="border rounded-lg overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 border-b">
-                              <h3 className="font-semibold flex items-center gap-2">
-                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Unidad {index + 1}</span>
+                          <div key={item.Id || item.id || index} className="border border-border rounded-lg overflow-hidden bg-background">
+                            <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                              <h3 className="font-semibold flex items-center gap-2 text-card-foreground">
+                                <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs px-2 py-0.5 rounded">Unidad {index + 1}</span>
                                 {descripcionUnidad}
                               </h3>
                             </div>
-                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                               {/* Ubicación */}
                               <div>
-                                <h4 className="font-semibold text-muted-foreground mb-2">📍 Ubicación</h4>
+                                <h4 className="font-semibold text-white mb-2">📍 Ubicación</h4>
                                 <div className="space-y-1">
-                                  <div><span className="font-medium">Proyecto:</span> {proyecto}</div>
-                                  <div><span className="font-medium">Etapa:</span> {etapa}</div>
-                                  <div><span className="font-medium">Edificio:</span> {edificio}</div>
-                                  <div><span className="font-medium">Sector:</span> {sector}</div>
-                                  <div><span className="font-medium">Piso:</span> {piso}</div>
-                                  <div><span className="font-medium">Nro Unidad:</span> {nroUnidad}</div>
+                                  <div><span className="font-medium text-white">Proyecto:</span> {proyecto}</div>
+                                  <div><span className="font-medium text-card-foreground">Etapa:</span> {etapa}</div>
+                                  <div><span className="font-medium text-card-foreground">Edificio:</span> {edificio}</div>
+                                  <div><span className="font-medium text-card-foreground">Sector:</span> {sector}</div>
+                                  <div><span className="font-medium text-card-foreground">Piso:</span> {piso}</div>
+                                  <div><span className="font-medium text-card-foreground">Nro Unidad:</span> {nroUnidad}</div>
                                   {/* Agregar manzana, frente, destino si faltaban antes */}
-                                  <div><span className="font-medium">Manzana:</span> {manzana}</div>
-                                  <div><span className="font-medium">Frente:</span> {frente}</div>
+                                  <div><span className="font-medium text-card-foreground">Manzana:</span> {manzana}</div>
+                                  <div><span className="font-medium text-card-foreground">Frente:</span> {frente}</div>
                                 </div>
                               </div>
                               {/* Características */}
                               <div>
-                                <h4 className="font-semibold text-muted-foreground mb-2">🏠 Características</h4>
+                                <h4 className="font-semibold text-card-foreground mb-2">🏠 Características</h4>
                                 <div className="space-y-1">
-                                  <div><span className="font-medium">Tipo:</span> {tipoUnidad}</div>
-                                  <div><span className="font-medium">Dormitorios:</span> {dormitorios}</div>
-                                  <div><span className="font-medium">Destino:</span> {destino}</div>
+                                  <div><span className="font-medium text-card-foreground">Tipo:</span> {tipoUnidad}</div>
+                                  <div><span className="font-medium text-card-foreground">Dormitorios:</span> {dormitorios}</div>
+                                  <div><span className="font-medium text-card-foreground">Destino:</span> {destino}</div>
                                 </div>
                               </div>
                               {/* Superficies */}
                               <div>
-                                <h4 className="font-semibold text-muted-foreground mb-2">📐 Superficies</h4>
+                                <h4 className="font-semibold text-card-foreground mb-2">📐 Superficies</h4>
                                 <div className="space-y-1">
-                                  <div><span className="font-medium">Total:</span> {m2Totales} m²</div>
-                                  <div><span className="font-medium">Cubiertos:</span> {m2Cubiertos} m²</div>
-                                  <div><span className="font-medium">Exclusivos:</span> {m2Exclusivos} m²</div>
-                                  <div><span className="font-medium">Semicubiertos:</span> {m2Semicubiertos} m²</div>
-                                  <div><span className="font-medium">Patio/Terraza:</span> {m2PatioTerraza} m²</div>
+                                  <div><span className="font-medium text-card-foreground">Total:</span> {m2Totales} m²</div>
+                                  <div><span className="font-medium text-card-foreground">Cubiertos:</span> {m2Cubiertos} m²</div>
+                                  <div><span className="font-medium text-card-foreground">Exclusivos:</span> {m2Exclusivos} m²</div>
+                                  <div><span className="font-medium text-card-foreground">Semicubiertos:</span> {m2Semicubiertos} m²</div>
+                                  <div><span className="font-medium text-card-foreground">Patio/Terraza:</span> {m2PatioTerraza} m²</div>
                                 </div>
                               </div>
                             </div>
@@ -387,49 +387,49 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                   const descripcionUnidad = item._unidad_descripcion || `${sector} - ${edificio} - Unidad ${nroUnidad}`;
 
                   return (
-                    <Card key={item.Id || item.id || index} className="overflow-hidden border-2">
-                      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-3">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Badge variant="outline" className="bg-white">Unidad {index + 1}</Badge>
-                          <span className="text-primary">{descripcionUnidad}</span>
+                    <Card key={item.Id || item.id || index} className="overflow-hidden border border-border bg-background">
+                      <CardHeader className="bg-muted/50 pb-3 border-b border-border">
+                        <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Unidad {index + 1}</Badge>
+                          <span className="text-card-foreground">{descripcionUnidad}</span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {/* Información General */}
                           <div className="space-y-2">
-                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">📍 Ubicación</h4>
-                            <div className="grid grid-cols-2 gap-1 text-sm">
-                              <span className="font-medium">Proyecto:</span><span>{proyecto}</span>
-                              <span className="font-medium">Etapa:</span><span>{etapa}</span>
-                              <span className="font-medium">Edificio:</span><span>{edificio}</span>
-                              <span className="font-medium">Sector:</span><span>{sector}</span>
-                              <span className="font-medium">Piso:</span><span>{piso}</span>
-                              <span className="font-medium">Nro Unidad:</span><span>{nroUnidad}</span>
-                              <span className="font-medium">Manzana:</span><span>{manzana}</span>
-                              <span className="font-medium">Frente:</span><span>{frente}</span>
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b border-border pb-1">📍 Ubicación</h4>
+                            <div className="grid grid-cols-2 gap-1 text-sm text-muted-foreground">
+                              <span className="font-medium text-card-foreground">Proyecto:</span><span>{proyecto}</span>
+                              <span className="font-medium text-card-foreground">Etapa:</span><span>{etapa}</span>
+                              <span className="font-medium text-card-foreground">Edificio:</span><span>{edificio}</span>
+                              <span className="font-medium text-card-foreground">Sector:</span><span>{sector}</span>
+                              <span className="font-medium text-card-foreground">Piso:</span><span>{piso}</span>
+                              <span className="font-medium text-card-foreground">Nro Unidad:</span><span>{nroUnidad}</span>
+                              <span className="font-medium text-card-foreground">Manzana:</span><span>{manzana}</span>
+                              <span className="font-medium text-card-foreground">Frente:</span><span>{frente}</span>
                             </div>
                           </div>
 
                           {/* Características */}
                           <div className="space-y-2">
-                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">🏠 Características</h4>
-                            <div className="grid grid-cols-2 gap-1 text-sm">
-                              <span className="font-medium">Tipo:</span><span>{tipoUnidad}</span>
-                              <span className="font-medium">Dormitorios:</span><span>{dormitorios}</span>
-                              <span className="font-medium">Destino:</span><span>{destino}</span>
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b border-border pb-1">🏠 Características</h4>
+                            <div className="grid grid-cols-2 gap-1 text-sm text-muted-foreground">
+                              <span className="font-medium text-card-foreground">Tipo:</span><span>{tipoUnidad}</span>
+                              <span className="font-medium text-card-foreground">Dormitorios:</span><span>{dormitorios}</span>
+                              <span className="font-medium text-card-foreground">Destino:</span><span>{destino}</span>
                             </div>
                           </div>
 
                           {/* Superficies */}
                           <div className="space-y-2">
-                            <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">📐 Superficies</h4>
-                            <div className="grid grid-cols-2 gap-1 text-sm">
-                              <span className="font-medium">Total:</span><span>{m2Totales} m²</span>
-                              <span className="font-medium">Cubiertos:</span><span>{m2Cubiertos} m²</span>
-                              <span className="font-medium">Exclusivos:</span><span>{m2Exclusivos} m²</span>
-                              <span className="font-medium">Semicubiertos:</span><span>{m2Semicubiertos} m²</span>
-                              <span className="font-medium">Patio/Terraza:</span><span>{m2PatioTerraza} m²</span>
+                            <h4 className="font-semibold text-sm text-muted-foreground border-b border-border pb-1">📐 Superficies</h4>
+                            <div className="grid grid-cols-2 gap-1 text-sm text-muted-foreground">
+                              <span className="font-medium text-card-foreground">Total:</span><span>{m2Totales} m²</span>
+                              <span className="font-medium text-card-foreground">Cubiertos:</span><span>{m2Cubiertos} m²</span>
+                              <span className="font-medium text-card-foreground">Exclusivos:</span><span>{m2Exclusivos} m²</span>
+                              <span className="font-medium text-card-foreground">Semicubiertos:</span><span>{m2Semicubiertos} m²</span>
+                              <span className="font-medium text-card-foreground">Patio/Terraza:</span><span>{m2PatioTerraza} m²</span>
                             </div>
                           </div>
 
@@ -444,9 +444,9 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
           </TabsContent>
 
           <TabsContent value="json">
-            <Card>
+            <Card className="bg-muted/10 border-border">
               <CardContent className="pt-6">
-                <pre className="text-xs overflow-auto">
+                <pre className="text-xs overflow-auto text-muted-foreground">
                   {JSON.stringify(minuta, null, 2)}
                 </pre>
               </CardContent>
@@ -455,8 +455,8 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
         </Tabs>
 
         {minuta.Comentario && (
-          <div className="mt-4 p-4 bg-muted rounded-md">
-            <h3 className="font-medium mb-2">Observaciones:</h3>
+          <div className="mt-4 p-4 bg-muted/10 border border-border rounded-md text-muted-foreground">
+            <h3 className="font-medium mb-2 text-card-foreground">Observaciones:</h3>
             <p className="text-sm">{minuta.Comentario}</p>
           </div>
         )}
@@ -524,10 +524,10 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border text-card-foreground">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>Detalles de la Minuta</span>
+            <span className="text-xl font-bold">Detalles de la Minuta</span>
             {minuta && (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-muted-foreground">Estado:</span>
@@ -535,7 +535,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
               </div>
             )}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-muted-foreground">
             {minuta && "Información detallada de la minuta provisoria"}
           </DialogDescription>
 
@@ -544,20 +544,20 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
               {/* Proyecto y Fecha */}
               <div className="flex justify-between items-center text-sm">
                 <div>
-                  <span className="font-medium">Proyecto: </span>
-                  <span>{minuta.Proyectos?.nombre || minuta.Proyecto}</span>
+                  <span className="font-medium text-muted-foreground">Proyecto: </span>
+                  <span className="text-card-foreground">{minuta.Proyectos?.nombre || minuta.Proyecto}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Fecha: </span>
-                  <span>{new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}</span>
+                  <span className="font-medium text-muted-foreground">Fecha: </span>
+                  <span className="text-card-foreground">{new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}</span>
                 </div>
               </div>
 
               {/* Email del Comercial */}
               {minuta.users?.email && (
                 <div className="text-sm">
-                  <span className="font-medium">Comercial: </span>
-                  <span className="text-muted-foreground">{minuta.users.email}</span>
+                  <span className="font-medium text-muted-foreground">Comercial: </span>
+                  <span className="text-card-foreground">{minuta.users.email}</span>
                 </div>
               )}
 
@@ -615,7 +615,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                                 {indicator}
                               </div>
                               <span
-                                className={`text-[10px] mt-1 ${isCurrent ? 'text-green-600 font-semibold' : 'text-gray-500'
+                                className={`text-[10px] mt-1 ${isCurrent ? 'text-green-400 font-semibold' : 'text-[#5a6a8b]'
                                   }`}
                               >
                                 {estadoLabels[estado] || estado}
@@ -624,7 +624,7 @@ export const DetalleMinutaModal: React.FC<DetalleMinutaModalProps> = ({
                             {/* Connecting line */}
                             {idx < estados.length - 1 && (
                               <div
-                                className={`w-8 h-0.5 mx-1 -mt-6 ${idx < indexActual ? 'bg-gray-400' : 'bg-gray-200'
+                                className={`w-8 h-0.5 mx-1 -mt-6 ${idx < indexActual ? 'bg-[#5a6a8b]' : 'bg-[#334366]'
                                   }`}
                               />
                             )}

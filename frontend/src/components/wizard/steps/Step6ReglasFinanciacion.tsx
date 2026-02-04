@@ -754,34 +754,34 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       {/* 3 Top Cards - Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Saldo Restante F */}
-        <div className="flex flex-col gap-1 rounded-xl p-5 bg-[#1a2233] border border-[#334366] shadow-sm">
-          <div className="flex items-center gap-2 text-white">
-            <Wallet className="w-5 h-5 text-blue-500" />
+        <div className="flex flex-col gap-1 rounded-xl p-5 bg-card border border-border shadow-sm">
+          <div className="flex items-center gap-2 text-card-foreground">
+            <Wallet className="w-5 h-5 text-primary" />
             <p className="text-xs font-bold uppercase tracking-wider">Saldo Restante F ({data.monedaA || "ARS"})</p>
           </div>
-          <p className="text-2xl font-bold tracking-tight text-white mt-2">${formatCurrency(calcularSaldoRestanteA(), data.monedaA || "ARS")}</p>
+          <p className="text-2xl font-bold tracking-tight text-card-foreground mt-2">${formatCurrency(calcularSaldoRestanteA(), data.monedaA || "ARS")}</p>
         </div>
 
         {/* Card 2: Saldo Restante SB */}
-        <div className="flex flex-col gap-1 rounded-xl p-5 bg-[#1a2233] border border-[#334366] shadow-sm">
-          <div className="flex items-center gap-2 text-white">
+        <div className="flex flex-col gap-1 rounded-xl p-5 bg-card border border-border shadow-sm">
+          <div className="flex items-center gap-2 text-card-foreground">
             <Coins className="w-5 h-5 text-emerald-500" />
             <p className="text-xs font-bold uppercase tracking-wider">Saldo Restante SB ({data.monedaB})</p>
           </div>
-          <p className="text-2xl font-bold tracking-tight text-white mt-2">${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</p>
+          <p className="text-2xl font-bold tracking-tight text-card-foreground mt-2">${formatCurrency(calcularSaldoRestanteB(), data.monedaB)}</p>
         </div>
 
         {/* Card 3: Percentage Paid */}
-        <div className="flex flex-col justify-between gap-3 rounded-xl p-5 bg-[#1a2233] border border-rose-900/50 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col justify-between gap-3 rounded-xl p-5 bg-card border border-rose-900/50 shadow-sm relative overflow-hidden">
           <div className="flex justify-between items-start mb-2 relative z-10">
-            <p className="text-sm font-medium text-white">Pagado a posesión</p>
+            <p className="text-sm font-medium text-card-foreground">Pagado a posesión</p>
             {porcentajePagado < 50 && <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-900/40 text-rose-300">Crítico</span>}
           </div>
           <div className="flex items-end gap-2 mb-2 relative z-10">
-            <p className="text-3xl font-bold text-white">{porcentajePagado}%</p>
+            <p className="text-3xl font-bold text-card-foreground">{porcentajePagado}%</p>
             <p className="text-sm text-rose-400 mb-1.5 font-medium">Requerido: 50%</p>
           </div>
-          <div className="h-2.5 w-full rounded-full bg-[#334366] overflow-hidden relative z-10">
+          <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden relative z-10">
             <div className={`h-full rounded-full ${porcentajePagado < 50 ? 'bg-rose-500' : 'bg-green-500'}`} style={{ width: `${Math.min(porcentajePagado, 100)}%` }}></div>
           </div>
         </div>
@@ -791,9 +791,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
         {/* Left Column: Unified Form */}
         <div className="xl:col-span-1 flex flex-col gap-4">
-          <div className="bg-[#1a2233] rounded-xl border border-[#334366] p-6 shadow-sm">
+          <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">Nueva regla de financiación</h3>
+              <h3 className="text-xl font-bold text-card-foreground">Nueva regla de financiación</h3>
             </div>
 
             {/* Tabs to switch Context */}
@@ -802,7 +802,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                 onClick={() => setActiveTab("F")}
                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all ${activeTab === "F"
                   ? "border-primary bg-primary/10 text-primary"
-                  : "border-[#334366] bg-[#0f131a] text-white hover:bg-[#1f2937]"
+                  : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   }`}
               >
                 <Landmark className="w-5 h-5" />
@@ -812,7 +812,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                 onClick={() => setActiveTab("SB")}
                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all ${activeTab === "SB"
                   ? "border-emerald-500 bg-emerald-500/10 text-emerald-500"
-                  : "border-[#334366] bg-[#0f131a] text-white hover:bg-[#1f2937]"
+                  : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   }`}
               >
                 <ArrowRightLeft className="w-5 h-5" />
@@ -825,19 +825,19 @@ export const Step6ReglasFinanciacion: React.FC = () => {
               {/* Row 1: Amount & Currency */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Saldo a Financiar</Label>
+                  <Label className="text-card-foreground">Saldo a Financiar</Label>
                   {activeTab === "F" ? (
                     <div className="flex gap-2 mt-1.5">
                       <CurrencyInput
                         value={nuevaReglaA.saldoFinanciar}
                         onChange={(v) => setNuevaReglaA({ ...nuevaReglaA, saldoFinanciar: v })}
                         max={calcularMaximoPermitidoA()}
-                        className="bg-[#0f131a] border-[#334366] text-white flex-1 h-10"
+                        className="bg-background border-input text-foreground flex-1 h-10"
                         prefix="$"
                       />
                       <Select value={nuevaReglaA.moneda || "ARS"} onValueChange={(v) => setNuevaReglaA({ ...nuevaReglaA, moneda: v as Moneda })}>
-                        <SelectTrigger className="w-20 bg-[#0f131a] border-[#334366] text-white"><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                        <SelectTrigger className="w-20 bg-background border-input text-foreground"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-popover border-border text-popover-foreground">
                           <SelectItem value="ARS">ARS</SelectItem><SelectItem value="USD">USD</SelectItem>
                         </SelectContent>
                       </Select>
@@ -848,12 +848,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                         value={nuevaReglaB.saldoFinanciar}
                         onChange={(v) => setNuevaReglaB({ ...nuevaReglaB, saldoFinanciar: v })}
                         max={calcularMaximoPermitidoB()}
-                        className="bg-[#0f131a] border-[#334366] text-white flex-1 h-10"
+                        className="bg-background border-input text-foreground flex-1 h-10"
                         prefix="$"
                       />
                       <Select value={nuevaReglaB.moneda || data.monedaB} onValueChange={(v) => setNuevaReglaB({ ...nuevaReglaB, moneda: v as Moneda })}>
-                        <SelectTrigger className="w-20 bg-[#0f131a] border-[#334366] text-white"><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                        <SelectTrigger className="w-20 bg-background border-input text-foreground"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-popover border-border text-popover-foreground">
                           <SelectItem value="ARS">ARS</SelectItem><SelectItem value="USD">USD</SelectItem>
                           {data.monedaB === "MIX" && <SelectItem value="MIX">MIX</SelectItem>}
                         </SelectContent>
@@ -862,12 +862,12 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <Label className="text-white">Cuotas</Label>
+                  <Label className="text-card-foreground">Cuotas</Label>
                   <Input
                     type="number"
                     value={activeTab === "F" ? nuevaReglaA.numCuotas || "" : nuevaReglaB.numCuotas || ""}
                     onChange={(e) => activeTab === "F" ? setNuevaReglaA({ ...nuevaReglaA, numCuotas: Number(e.target.value) }) : setNuevaReglaB({ ...nuevaReglaB, numCuotas: Number(e.target.value) })}
-                    className="mt-1.5 bg-[#0f131a] border-[#334366] text-white h-10"
+                    className="mt-1.5 bg-background border-input text-foreground h-10"
                   />
                 </div>
               </div>
@@ -875,13 +875,13 @@ export const Step6ReglasFinanciacion: React.FC = () => {
               {/* Row 2: Periodicity & First Date */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white">Periodicidad</Label>
+                  <Label className="text-card-foreground">Periodicidad</Label>
                   <Select
                     value={activeTab === "F" ? (nuevaReglaA.periodicidad || "") : (nuevaReglaB.periodicidad || "")}
                     onValueChange={(v) => activeTab === "F" ? setNuevaReglaA({ ...nuevaReglaA, periodicidad: v as PeriodicidadCuota }) : setNuevaReglaB({ ...nuevaReglaB, periodicidad: v as PeriodicidadCuota })}
                   >
-                    <SelectTrigger className="mt-1.5 w-full bg-[#0f131a] border-[#334366] text-white h-10"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                    <SelectTrigger className="mt-1.5 w-full bg-background border-input text-foreground h-10"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectContent className="bg-popover border-border text-popover-foreground">
                       <SelectItem value="Mensual">Mensual</SelectItem>
                       <SelectItem value="Trimestral">Trimestral</SelectItem>
                       <SelectItem value="Semestral">Semestral</SelectItem>
@@ -891,15 +891,15 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-white">Primer Vencimiento</Label>
+                  <Label className="text-card-foreground">Primer Vencimiento</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant={"outline"} className={cn("mt-1.5 w-full justify-start text-left font-normal bg-[#0f131a] border-[#334366] text-white h-10", !(activeTab === "F" ? nuevaReglaA.primerVencimiento : nuevaReglaB.primerVencimiento) && "text-muted-foreground")}>
+                      <Button variant={"outline"} className={cn("mt-1.5 w-full justify-start text-left font-normal bg-background border-input text-foreground h-10", !(activeTab === "F" ? nuevaReglaA.primerVencimiento : nuevaReglaB.primerVencimiento) && "text-muted-foreground")}>
                         <CalendarIconLucide className="mr-2 h-4 w-4" />
                         {(activeTab === "F" ? nuevaReglaA.primerVencimiento : nuevaReglaB.primerVencimiento) || "Seleccionar"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-[#1a2233] border-[#334366] text-white">
+                    <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground">
                       <Calendar
                         mode="single"
                         selected={parseDate((activeTab === "F" ? nuevaReglaA.primerVencimiento : nuevaReglaB.primerVencimiento) || fechaHoy)}
@@ -910,7 +910,7 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                           }
                         }}
                         initialFocus
-                        className="bg-[#1a2233] text-white"
+                        className="bg-popover text-popover-foreground"
                       />
                     </PopoverContent>
                   </Popover>
@@ -932,31 +932,31 @@ export const Step6ReglasFinanciacion: React.FC = () => {
         {/* Right Column: Tables */}
         <div className="xl:col-span-1 flex flex-col gap-6">
           {/* Table F */}
-          <div className="bg-[#1a2233] rounded-xl border border-[#334366] overflow-hidden shadow-sm flex flex-col">
-            <div className="p-4 border-b border-[#334366] bg-[#0f131a]/50 flex justify-between items-center">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-blue-500" /> Reglas Parte F (ARS)
+          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm flex flex-col">
+            <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
+              <h3 className="text-base font-bold text-card-foreground flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-primary" /> Reglas Parte F (ARS)
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 uppercase tracking-tighter">ARS</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-tighter">ARS</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#0f131a] text-white text-[10px] uppercase tracking-wider font-semibold border-b border-[#334366]">
+                  <tr className="bg-muted/30 text-muted-foreground text-[10px] uppercase tracking-wider font-semibold border-b border-border">
                     <th className="p-3">Concepto</th><th className="p-3 text-right">Monto</th><th className="p-3 text-center">Cuotas</th><th className="p-3 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#334366] text-sm">
+                <tbody className="divide-y divide-border text-sm">
                   {(data.reglasFinanciacionA || []).map((regla: ReglaFinanciacion) => (
-                    <tr key={regla.id} className="group hover:bg-[#0f131a]/40 transition-colors">
+                    <tr key={regla.id} className="group hover:bg-muted/50 transition-colors">
                       <td className="p-3">
-                        <div className="font-medium text-white text-xs">{regla.periodicidad} - {regla.primerVencimiento}</div>
-                        <div className="text-[10px] text-white">{regla.moneda}</div>
+                        <div className="font-medium text-card-foreground text-xs">{regla.periodicidad} - {regla.primerVencimiento}</div>
+                        <div className="text-[10px] text-muted-foreground">{regla.moneda}</div>
                       </td>
-                      <td className="p-3 text-right font-mono text-white text-xs">{formatCurrency(regla.saldoFinanciar, regla.moneda)}</td>
-                      <td className="p-3 text-center text-xs text-white">{regla.numCuotas}</td>
+                      <td className="p-3 text-right font-mono text-card-foreground text-xs">{formatCurrency(regla.saldoFinanciar, regla.moneda)}</td>
+                      <td className="p-3 text-center text-xs text-card-foreground">{regla.numCuotas}</td>
                       <td className="p-3 text-center">
-                        <button onClick={() => eliminarReglaA(regla.id)} className="text-white hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => eliminarReglaA(regla.id)} className="text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}
@@ -966,9 +966,9 @@ export const Step6ReglasFinanciacion: React.FC = () => {
           </div>
 
           {/* Table SB */}
-          <div className="bg-[#1a2233] rounded-xl border border-[#334366] overflow-hidden shadow-sm flex flex-col">
-            <div className="p-4 border-b border-[#334366] bg-[#0f131a]/50 flex justify-between items-center">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm flex flex-col">
+            <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
+              <h3 className="text-base font-bold text-card-foreground flex items-center gap-2">
                 <Coins className="w-5 h-5 text-emerald-500" /> Reglas Parte SB ({data.monedaB})
               </h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-400 uppercase tracking-tighter">USD</span>
@@ -976,21 +976,21 @@ export const Step6ReglasFinanciacion: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#0f131a] text-white text-[10px] uppercase tracking-wider font-semibold border-b border-[#334366]">
+                  <tr className="bg-muted/30 text-muted-foreground text-[10px] uppercase tracking-wider font-semibold border-b border-border">
                     <th className="p-3">Concepto</th><th className="p-3 text-right">Monto</th><th className="p-3 text-center">Cuotas</th><th className="p-3 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#334366] text-sm">
+                <tbody className="divide-y divide-border text-sm">
                   {(data.reglasFinanciacionB || []).map((regla: ReglaFinanciacion) => (
-                    <tr key={regla.id} className="group hover:bg-[#0f131a]/40 transition-colors">
+                    <tr key={regla.id} className="group hover:bg-muted/50 transition-colors">
                       <td className="p-3">
-                        <div className="font-medium text-white text-xs">{regla.periodicidad} - {regla.primerVencimiento}</div>
-                        <div className="text-[10px] text-white">{regla.moneda}</div>
+                        <div className="font-medium text-card-foreground text-xs">{regla.periodicidad} - {regla.primerVencimiento}</div>
+                        <div className="text-[10px] text-muted-foreground">{regla.moneda}</div>
                       </td>
-                      <td className="p-3 text-right font-mono text-white text-xs">{formatCurrency(regla.saldoFinanciar, regla.moneda)}</td>
-                      <td className="p-3 text-center text-xs text-white">{regla.numCuotas}</td>
+                      <td className="p-3 text-right font-mono text-card-foreground text-xs">{formatCurrency(regla.saldoFinanciar, regla.moneda)}</td>
+                      <td className="p-3 text-center text-xs text-card-foreground">{regla.numCuotas}</td>
                       <td className="p-3 text-center">
-                        <button onClick={() => eliminarReglaB(regla.id)} className="text-white hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => eliminarReglaB(regla.id)} className="text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}

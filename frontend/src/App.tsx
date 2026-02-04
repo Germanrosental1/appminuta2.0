@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from "react";
+import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -331,19 +332,21 @@ const AppWrapper = () => {
 };
 
 const App = () => (
-  <TooltipProvider>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <WizardProvider>
-          <AppWrapper />
-          {/* ⚡ OPTIMIZACIÓN: DevTools solo en desarrollo */}
-          {import.meta.env.DEV && (
-            <ReactQueryDevtools initialIsOpen={false} />
-          )}
-        </WizardProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </TooltipProvider>
+  <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <TooltipProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <WizardProvider>
+            <AppWrapper />
+            {/* ⚡ OPTIMIZACIÓN: DevTools solo en desarrollo */}
+            {import.meta.env.DEV && (
+              <ReactQueryDevtools initialIsOpen={false} />
+            )}
+          </WizardProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </TooltipProvider>
+  </ThemeProvider>
 );
 
 export default App;

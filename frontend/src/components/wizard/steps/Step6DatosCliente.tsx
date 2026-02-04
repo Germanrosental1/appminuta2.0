@@ -30,20 +30,20 @@ export const Step6DatosCliente: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <Card className="border border-[#334366] bg-[#1a2233]">
-                <CardHeader className="bg-[#0f131a] border-b border-[#334366]">
-                    <CardTitle className="flex items-center gap-2 text-xl text-white">
-                        <User className="w-6 h-6 text-blue-400" />
+            <Card className="border border-border bg-card">
+                <CardHeader className="bg-muted/30 border-b border-border">
+                    <CardTitle className="flex items-center gap-2 text-xl text-card-foreground">
+                        <User className="w-6 h-6 text-primary" />
                         Datos del Cliente Interesado
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-muted-foreground">
                         Ingrese los datos del cliente que está interesado en la/s unidad/es
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                     {/* Nombre y Apellido */}
                     <div className="space-y-2">
-                        <Label htmlFor="clienteNombre" className="flex items-center gap-2 text-white">
+                        <Label htmlFor="clienteNombre" className="flex items-center gap-2 text-card-foreground">
                             <User className="w-4 h-4" />
                             Nombre y Apellido
                         </Label>
@@ -54,13 +54,13 @@ export const Step6DatosCliente: React.FC = () => {
                             value={data.clienteInteresado?.nombreApellido || ''}
                             onChange={(e) => handleNombreChange(e.target.value)}
                             maxLength={255}
-                            className="bg-[#0f131a] border-[#334366] text-white"
+                            className="bg-background border-input text-foreground"
                         />
                     </div>
 
                     {/* Teléfono */}
                     <div className="space-y-2">
-                        <Label htmlFor="clienteTelefono" className="flex items-center gap-2 text-white">
+                        <Label htmlFor="clienteTelefono" className="flex items-center gap-2 text-card-foreground">
                             <Phone className="w-4 h-4" />
                             Teléfono
                         </Label>
@@ -71,9 +71,9 @@ export const Step6DatosCliente: React.FC = () => {
                             value={data.clienteInteresado?.telefono || ''}
                             onChange={(e) => handleTelefonoChange(e.target.value)}
                             maxLength={50}
-                            className="bg-[#0f131a] border-[#334366] text-white"
+                            className="bg-background border-input text-foreground"
                         />
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                             Número de contacto del cliente (sin espacios ni guiones)
                         </p>
                     </div>
@@ -81,11 +81,11 @@ export const Step6DatosCliente: React.FC = () => {
             </Card>
 
             {/* Tip informativo */}
-            <div className="rounded-lg bg-blue-900/10 border border-blue-900/30 p-4 text-sm text-slate-300">
+            <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 text-sm text-muted-foreground">
                 <div className="flex gap-2 items-start">
-                    <span className="text-blue-400 mt-0.5">💡</span>
+                    <span className="text-primary mt-0.5">💡</span>
                     <div>
-                        <p className="font-medium mb-1 text-white">Tip:</p>
+                        <p className="font-medium mb-1 text-foreground">Tip:</p>
                         <p>
                             Estos datos se utilizarán para identificar al cliente interesado en la operación.
                             Si el cliente ya existe en el sistema, se vinculará automáticamente. Si es nuevo, se creará un registro.

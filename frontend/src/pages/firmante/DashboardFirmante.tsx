@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllMinutasDefinitivasForAdmin, actualizarEstadoMinutaDefinitiva } from '@/services/minutas';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { MotivoModal } from '@/components/minutas/MotivoModal';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -19,15 +20,26 @@ import {
     TableRow
 } from '@/components/ui/table';
 import {
-    FileText,
     Eye,
     RefreshCw,
     CheckCircle,
     Edit,
     XCircle,
     Loader2,
+    CheckCircle2,
+    LogOut,
+    Clock,
+    Folder,
+    Filter,
+    FileText
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { KPICard } from '@/components/dashboard/KPICard';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import '@/components/dashboard/dashboard.css';
 
 export const DashboardFirmante: React.FC = () => {
@@ -38,6 +50,10 @@ export const DashboardFirmante: React.FC = () => {
 
     const [selectedMinutaId, setSelectedMinutaId] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
+
+    // Filtros
+    const [statusFilter, setStatusFilter] = useState<string>('aprobada'); // Default to what requires attention
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Estados para modales de motivo
     const [actionModalOpen, setActionModalOpen] = useState(false);
@@ -50,11 +66,36 @@ export const DashboardFirmante: React.FC = () => {
         queryFn: getAllMinutasDefinitivasForAdmin,
     });
 
-    // Filtrar solo minutas aprobadas (las que el firmante puede firmar)
-    const minutasAprobadas = allMinutas.filter((m: any) => m.Estado === 'aprobada');
+    // Calcular estadísticas
+    const stats = useMemo(() => {
+        return {
+            total: allMinutas.length,
+            pendientes: allMinutas.filter((m: any) => m.Estado === 'pendiente').length,
+            en_edicion: allMinutas.filter((m: any) => m.Estado === 'en_edicion').length,
+            aprobadas: allMinutas.filter((m: any) => m.Estado === 'aprobada').length,
+            firmadas: allMinutas.filter((m: any) => m.Estado === 'firmada').length,
+            canceladas: allMinutas.filter((m: any) => m.Estado === 'cancelada').length,
+        };
+    }, [allMinutas]);
 
-    // Filtrar minutas ya firmadas
-    const minutasFirmadas = allMinutas.filter((m: any) => m.Estado === 'firmada');
+    // Filtrar minutas según selección
+    const filteredMinutas = useMemo(() => {
+        let minutas = [...allMinutas];
+
+        if (statusFilter !== 'todas') {
+            minutas = minutas.filter((m: any) => m.Estado === statusFilter);
+        }
+
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            minutas = minutas.filter((m: any) =>
+                (m.Dato?.proyecto || m.Proyectos?.Nombre || '').toLowerCase().includes(term) ||
+                (m.Dato?.unidadDescripcion || '').toLowerCase().includes(term)
+            );
+        }
+
+        return minutas;
+    }, [allMinutas, statusFilter, searchTerm]);
 
     // Mutation para cambiar estado
     const updateEstadoMutation = useMutation({
@@ -134,82 +175,201 @@ export const DashboardFirmante: React.FC = () => {
         : user?.email || 'Usuario';
 
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            <DashboardHeader
-                title="Mis Firmas"
-                userName={displayName}
-                onLogout={handleLogout}
-            />
+        <DashboardLayout>
+            <TooltipProvider>
+                <div className="space-y-6">
+                    {/* Header Section */}
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight text-foreground font-display">
+                                Mis Firmas
+                            </h1>
+                            <p className="text-muted-foreground">
+                                Bienvenido, {displayName}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={handleLogout}
+                                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Cerrar Sesión
+                            </Button>
+                        </div>
+                    </div>
 
-            {/* Tabs for Minuta Status */}
-            <Tabs defaultValue="pendientes" className="w-full">
-                <TabsList className="mb-4">
-                    <TabsTrigger value="pendientes" className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Pendiente de Firma
-                        <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs h-5 min-w-5 flex items-center justify-center">
-                            {minutasAprobadas.length}
-                        </Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="firmadas" className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4" />
-                        Firmadas
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 ml-1 px-1.5 py-0.5 text-xs h-5 min-w-5 flex items-center justify-center">
-                            {minutasFirmadas.length}
-                        </Badge>
-                    </TabsTrigger>
-                </TabsList>
+                    {/* KPIs */}
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+                        <KPICard
+                            title="Firmadas"
+                            value={stats.firmadas}
+                            icon={CheckCircle2}
+                            variant="blue"
+                        />
+                        <KPICard
+                            title="A Editar"
+                            value={stats.en_edicion}
+                            icon={Edit}
+                            variant="orange"
+                        />
+                        <KPICard
+                            title="Pendientes"
+                            value={stats.pendientes}
+                            icon={Clock}
+                            variant="yellow"
+                        />
+                        <KPICard
+                            title="Canceladas"
+                            value={stats.canceladas}
+                            icon={XCircle}
+                            variant="red"
+                        />
+                        <KPICard
+                            title="Totales"
+                            value={stats.total}
+                            icon={Folder}
+                            variant="default"
+                        />
+                    </div>
 
-                <TabsContent value="pendientes">
-                    <Card className="border shadow-sm">
-                        <CardHeader className="bg-slate-50 border-b">
-                            <CardTitle className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <FileText className="mr-3 h-6 w-6 text-blue-600" />
-                                    <span className="text-xl">Minutas Pendientes de Firma</span>
+                    {/* Main Content Card */}
+                    <Card className="border-none bg-card/80 backdrop-blur-xl shadow-2xl">
+                        <CardHeader className="border-b border-border px-8 py-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-xl font-bold text-card-foreground">
+                                        Minutas Definitivas
+                                    </CardTitle>
+                                    <CardDescription className="text-muted-foreground">
+                                        Gestión de minutas y firmas pendientes
+                                    </CardDescription>
                                 </div>
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => refetch()}
-                                    className="h-10 w-10 hover:bg-blue-50"
+                                    size="icon"
+                                    onClick={() => refetch()}
+                                    className="text-muted-foreground hover:bg-muted hover:text-foreground"
                                     title="Refrescar lista"
                                 >
-                                    <RefreshCw className="h-5 w-5" />
+                                    <RefreshCw className="h-4 w-4" />
                                 </Button>
-                            </CardTitle>
-                            <CardDescription className="text-base mt-2">
-                                Minutas aprobadas que requieren firma para completar el proceso
-                            </CardDescription>
+                            </div>
                         </CardHeader>
-                        <CardContent className="pt-6">
+                        <CardContent className="p-8">
+
+                            {/* Filtros "Pill" y Search */}
+                            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start mb-6">
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'todas'
+                                            ? 'bg-primary text-primary-foreground shadow-lg shadow-blue-500/20'
+                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                            }`}
+                                        onClick={() => setStatusFilter('todas')}
+                                    >
+                                        <Filter className="h-4 w-4" />
+                                        Todas
+                                        <span className={`ml-1 rounded-full px-1.5 py-0.5 text-xs ${statusFilter === 'todas' ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>{stats.total}</span>
+                                    </button>
+                                    <button
+                                        className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'aprobada'
+                                            ? 'bg-blue-500/20 text-blue-500 border border-blue-500/20'
+                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                            }`}
+                                        onClick={() => setStatusFilter('aprobada')}
+                                    >
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Por Firmar
+                                        <span className="ml-1 rounded-full bg-background/50 px-1.5 py-0.5 text-xs">{stats.aprobadas}</span>
+                                    </button>
+                                    <button
+                                        className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'en_edicion'
+                                            ? 'bg-orange-500/20 text-orange-500 border border-orange-500/20'
+                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                            }`}
+                                        onClick={() => setStatusFilter('en_edicion')}
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                        A Editar
+                                        <span className="ml-1 rounded-full bg-background/50 px-1.5 py-0.5 text-xs">{stats.en_edicion}</span>
+                                    </button>
+                                    <button
+                                        className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'pendiente'
+                                            ? 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/20'
+                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                            }`}
+                                        onClick={() => setStatusFilter('pendiente')}
+                                    >
+                                        <Clock className="h-4 w-4" />
+                                        Pendientes
+                                        <span className="ml-1 rounded-full bg-background/50 px-1.5 py-0.5 text-xs">{stats.pendientes}</span>
+                                    </button>
+                                    <button
+                                        className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'firmada'
+                                            ? 'bg-blue-500/20 text-blue-500 border border-blue-500/20'
+                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                            }`}
+                                        onClick={() => setStatusFilter('firmada')}
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                        Firmadas
+                                        <span className="ml-1 rounded-full bg-background/50 px-1.5 py-0.5 text-xs">{stats.firmadas}</span>
+                                    </button>
+                                    <button
+                                        className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'cancelada'
+                                            ? 'bg-red-500/20 text-red-500 border border-red-500/20'
+                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                            }`}
+                                        onClick={() => setStatusFilter('cancelada')}
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Canceladas
+                                        <span className="ml-1 rounded-full bg-background/50 px-1.5 py-0.5 text-xs">{stats.canceladas}</span>
+                                    </button>
+                                </div>
+
+                                <div className="w-full sm:w-64">
+                                    <Input
+                                        placeholder="Buscar..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="bg-muted/50 border-border text-foreground"
+                                    />
+                                </div>
+                            </div>
+
                             {isLoading && (
                                 <div className="flex justify-center py-12">
                                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                                 </div>
                             )}
-                            {!isLoading && minutasAprobadas.length === 0 && (
+
+                            {!isLoading && filteredMinutas.length === 0 && (
                                 <div className="text-center py-16 text-muted-foreground">
                                     <CheckCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                                    <p className="text-lg font-medium">No hay minutas pendientes de firma</p>
-                                    <p className="text-sm mt-2">Todas las minutas están al día</p>
+                                    <p className="text-lg font-medium">No hay minutas en esta sección</p>
                                 </div>
                             )}
-                            {!isLoading && minutasAprobadas.length > 0 && (
+
+                            {!isLoading && filteredMinutas.length > 0 && (
                                 <div className="rounded-md border dashboard-table">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>Proyecto</TableHead>
-                                                <TableHead>Unidad</TableHead>
-                                                <TableHead>Comercial</TableHead>
-                                                <TableHead>Fecha</TableHead>
-                                                <TableHead>Estado</TableHead>
-                                                <TableHead className="text-right">Acciones</TableHead>
+                                                <TableHead className="w-[20%]">Proyecto</TableHead>
+                                                <TableHead className="w-[20%]">Unidad</TableHead>
+                                                <TableHead className="w-[20%]">Comercial</TableHead>
+                                                <TableHead className="w-[15%]">Fecha</TableHead>
+                                                <TableHead className="w-[15%]">Estado</TableHead>
+                                                <TableHead className="text-right w-[10%]">Acciones</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {minutasAprobadas.map((minuta: any) => (
+                                            {filteredMinutas.map((minuta: any) => (
                                                 <TableRow key={minuta.Id}>
                                                     <TableCell className="font-medium">{minuta.Dato?.proyecto || minuta.Proyectos?.Nombre || 'Sin proyecto'}</TableCell>
                                                     <TableCell>{minuta.Dato?.unidadDescripcion || 'Sin unidad'}</TableCell>
@@ -218,53 +378,103 @@ export const DashboardFirmante: React.FC = () => {
                                                         {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge variant="outline" className="bg-green-100 text-green-800">
-                                                            Aprobada
-                                                        </Badge>
+                                                        {minuta.Estado === 'aprobada' ? (
+                                                            <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">
+                                                                Pendiente Firma
+                                                            </Badge>
+                                                        ) : minuta.Estado === 'pendiente' ? (
+                                                            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+                                                                Pendiente
+                                                            </Badge>
+                                                        ) : minuta.Estado === 'en_edicion' ? (
+                                                            <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20">
+                                                                En Edición
+                                                            </Badge>
+                                                        ) : minuta.Estado === 'cancelada' ? (
+                                                            <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">
+                                                                Cancelada
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                                                                Firmada
+                                                            </Badge>
+                                                        )}
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex justify-end gap-2">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => handleVerMinuta(minuta.Id)}
-                                                            >
-                                                                <Eye className="h-4 w-4 mr-1" />
-                                                                Ver
-                                                            </Button>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="bg-orange-50 hover:bg-orange-100 border-orange-200"
-                                                                onClick={() => openActionModal(minuta.Id, 'edit')}
-                                                                disabled={updateEstadoMutation.isPending}
-                                                            >
-                                                                <Edit className="h-4 w-4 mr-1" />
-                                                                A Edición
-                                                            </Button>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                                                                onClick={() => openActionModal(minuta.Id, 'cancel')}
-                                                                disabled={updateEstadoMutation.isPending}
-                                                            >
-                                                                <XCircle className="h-4 w-4 mr-1" />
-                                                                Cancelar
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                                                                onClick={() => handleFirmar(minuta.Id)}
-                                                                disabled={updateEstadoMutation.isPending}
-                                                            >
-                                                                {updateEstadoMutation.isPending ? (
-                                                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                                                ) : (
-                                                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                                                )}
-                                                                Firmar
-                                                            </Button>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                                        onClick={() => handleVerMinuta(minuta.Id)}
+                                                                    >
+                                                                        <Eye className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Ver</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+
+                                                            {minuta.Estado === 'aprobada' && (
+                                                                <>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="icon"
+                                                                                className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
+                                                                                onClick={() => openActionModal(minuta.Id, 'edit')}
+                                                                                disabled={updateEstadoMutation.isPending}
+                                                                            >
+                                                                                <Edit className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Enviar a Edición</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="icon"
+                                                                                className="bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+                                                                                onClick={() => openActionModal(minuta.Id, 'cancel')}
+                                                                                disabled={updateEstadoMutation.isPending}
+                                                                            >
+                                                                                <XCircle className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Cancelar</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                size="icon"
+                                                                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                                                onClick={() => handleFirmar(minuta.Id)}
+                                                                                disabled={updateEstadoMutation.isPending}
+                                                                            >
+                                                                                {updateEstadoMutation.isPending ? (
+                                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                                ) : (
+                                                                                    <CheckCircle className="h-4 w-4" />
+                                                                                )}
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Firmar</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>
@@ -275,121 +485,39 @@ export const DashboardFirmante: React.FC = () => {
                             )}
                         </CardContent>
                     </Card>
-                </TabsContent>
 
-                <TabsContent value="firmadas">
-                    <Card className="border shadow-sm">
-                        <CardHeader className="bg-slate-50 border-b">
-                            <CardTitle className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <CheckCircle className="mr-3 h-6 w-6 text-green-600" />
-                                    <span className="text-xl">Historial de Minutas Firmadas</span>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => refetch()}
-                                    className="h-10 w-10 hover:bg-blue-50"
-                                    title="Refrescar lista"
-                                >
-                                    <RefreshCw className="h-5 w-5" />
-                                </Button>
-                            </CardTitle>
-                            <CardDescription className="text-base mt-2">
-                                Registro de minutas que ya han sido firmadas y completadas
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            {isLoading && (
-                                <div className="flex justify-center py-12">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                                </div>
-                            )}
-                            {!isLoading && minutasFirmadas.length === 0 && (
-                                <div className="text-center py-16 text-muted-foreground">
-                                    <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                                    <p className="text-lg font-medium">No hay minutas firmadas aún</p>
-                                </div>
-                            )}
-                            {!isLoading && minutasFirmadas.length > 0 && (
-                                <div className="rounded-md border dashboard-table">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Proyecto</TableHead>
-                                                <TableHead>Unidad</TableHead>
-                                                <TableHead>Comercial</TableHead>
-                                                <TableHead>Fecha</TableHead>
-                                                <TableHead>Estado</TableHead>
-                                                <TableHead className="text-right">Acciones</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {minutasFirmadas.map((minuta: any) => (
-                                                <TableRow key={minuta.Id}>
-                                                    <TableCell className="font-medium">{minuta.Dato?.proyecto || minuta.Proyectos?.Nombre || 'Sin proyecto'}</TableCell>
-                                                    <TableCell>{minuta.Dato?.unidadDescripcion || 'Sin unidad'}</TableCell>
-                                                    <TableCell>{minuta.users?.email || 'Sin asignar'}</TableCell>
-                                                    <TableCell>
-                                                        {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                                                            Firmada
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleVerMinuta(minuta.Id)}
-                                                        >
-                                                            <Eye className="h-4 w-4 mr-1" />
-                                                            Ver Detalle
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                    {/* Modal para ver detalles */}
+                    <DetalleMinutaModal
+                        minutaId={selectedMinutaId}
+                        open={modalOpen}
+                        onOpenChange={setModalOpen}
+                    />
 
-            {/* Modal para ver detalles */}
-            <DetalleMinutaModal
-                minutaId={selectedMinutaId}
-                open={modalOpen}
-                onOpenChange={setModalOpen}
-            />
-
-            {/* Modal Genérico para Motivos (Cancelar / Editar) */}
-            <MotivoModal
-                open={actionModalOpen}
-                onOpenChange={setActionModalOpen}
-                onConfirm={handleConfirmAction}
-                isLoading={updateEstadoMutation.isPending}
-                title={actionType === 'cancel' ? "Cancelar Minuta" : "Enviar a Edición"}
-                description={
-                    actionType === 'cancel'
-                        ? "Esta acción no se puede deshacer. Por favor, indica el motivo de la cancelación."
-                        : "Por favor, indica el motivo por el cual solicitas que se edite esta minuta."
-                }
-                label={actionType === 'cancel' ? "Motivo de cancelación" : "Motivo de edición"}
-                placeholder={
-                    actionType === 'cancel'
-                        ? "Escribe por qué cancelas la minuta..."
-                        : "Describe qué cambios son necesarios..."
-                }
-                actionLabel={actionType === 'cancel' ? "Confirmar Cancelación" : "Enviar a Edición"}
-                variant={actionType === 'cancel' ? "destructive" : "default"}
-            />
-        </div>
+                    {/* Modal Genérico para Motivos (Cancelar / Editar) */}
+                    <MotivoModal
+                        open={actionModalOpen}
+                        onOpenChange={setActionModalOpen}
+                        onConfirm={handleConfirmAction}
+                        isLoading={updateEstadoMutation.isPending}
+                        title={actionType === 'cancel' ? "Cancelar Minuta" : "Enviar a Edición"}
+                        description={
+                            actionType === 'cancel'
+                                ? "Esta acción no se puede deshacer. Por favor, indica el motivo de la cancelación."
+                                : "Por favor, indica el motivo por el cual solicitas que se edite esta minuta."
+                        }
+                        label={actionType === 'cancel' ? "Motivo de cancelación" : "Motivo de edición"}
+                        placeholder={
+                            actionType === 'cancel'
+                                ? "Escribe por qué cancelas la minuta..."
+                                : "Describe qué cambios son necesarios..."
+                        }
+                        actionLabel={actionType === 'cancel' ? "Confirmar Cancelación" : "Enviar a Edición"}
+                        variant={actionType === 'cancel' ? "destructive" : "default"}
+                    />
+                </div>
+            </TooltipProvider>
+        </DashboardLayout>
     );
 };
 
 export default DashboardFirmante;
-

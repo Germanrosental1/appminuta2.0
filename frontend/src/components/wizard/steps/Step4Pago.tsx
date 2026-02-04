@@ -223,7 +223,7 @@ export const Step4Pago: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Referencia al precio total */}
-      <div className="rounded-lg bg-[#0f131a] border border-[#334366] p-4">
+      <div className="rounded-lg bg-muted/50 border border-border p-4">
         <div className="flex items-center gap-2">
 
           <div className="w-full">
@@ -237,25 +237,25 @@ export const Step4Pago: React.FC = () => {
               return (
                 <>
                   <div className="flex justify-between items-center mb-1">
-                    <p className="text-sm font-medium text-white">Precio total (unidad + adicionales)</p>
+                    <p className="text-sm font-medium text-foreground">Precio total (unidad + adicionales)</p>
                     {tieneIVA && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-primary">
                         CON IVA
                       </span>
                     )}
                   </div>
 
-                  <p className="text-2xl font-bold text-blue-400">
+                  <p className="text-2xl font-bold text-primary">
                     USD {precioFinal.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
 
                   {tieneIVA && (
-                    <div className="mt-1 text-sm text-slate-200 flex items-center gap-2">
+                    <div className="mt-1 text-sm text-muted-foreground flex items-center gap-2">
                       <span>Incluye IVA ({data.porcentajeIVA}%): USD {ivaUSD.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   )}
 
-                  <div className="text-xs text-slate-200 mt-2 pt-2 border-t border-[#334366]">
+                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
                     {data.unidades && data.unidades.length > 0 ? (
                       // Mostrar todas las unidades del nuevo modelo
                       <>
@@ -287,8 +287,8 @@ export const Step4Pago: React.FC = () => {
         </div>
       </div>
       {/* Tipo de pago */}
-      <div className="rounded-lg border border-[#334366] bg-[#1a2233] p-4 space-y-4">
-        <h3 className="font-semibold text-white">Tipo de pago</h3>
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-foreground">Tipo de pago</h3>
 
         <RadioGroup
           value={data.tipoPago}
@@ -296,15 +296,15 @@ export const Step4Pago: React.FC = () => {
           className="flex flex-col space-y-3"
         >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="contado" id="tipo-contado" className="border-white text-white" />
-            <Label htmlFor="tipo-contado" className="flex items-center cursor-pointer text-white">
+            <RadioGroupItem value="contado" id="tipo-contado" className="border-primary text-primary" />
+            <Label htmlFor="tipo-contado" className="flex items-center cursor-pointer text-foreground">
               <Check className="w-4 h-4 mr-2" />
               Pago de contado
             </Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="financiado" id="tipo-financiado" className="border-white text-white" />
-            <Label htmlFor="tipo-financiado" className="flex items-center cursor-pointer text-white">
+            <RadioGroupItem value="financiado" id="tipo-financiado" className="border-primary text-primary" />
+            <Label htmlFor="tipo-financiado" className="flex items-center cursor-pointer text-foreground">
               <CreditCard className="w-4 h-4 mr-2" />
               Pago financiado
             </Label>
@@ -313,22 +313,22 @@ export const Step4Pago: React.FC = () => {
       </div>
 
       {/* Tipo de cambio */}
-      <div className="rounded-lg border border-[#334366] bg-[#1a2233] p-4 space-y-4">
-        <h3 className="font-semibold text-white">Tipo de cambio</h3>
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-foreground">Tipo de cambio</h3>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="tcFuente" className="text-white">
-              Fuente <span className="text-red-400">*</span>
+            <Label htmlFor="tcFuente" className="text-foreground">
+              Fuente <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.tcFuente}
               onValueChange={(val: "MEP" | "BNA" | "Acordado" | "Otro") => handleChange("tcFuente", val)}
             >
-              <SelectTrigger id="tcFuente" className="bg-[#0f131a] border-[#334366] text-white">
+              <SelectTrigger id="tcFuente" className="bg-background border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+              <SelectContent className="bg-popover border-border text-popover-foreground">
                 <SelectItem value="MEP">MEP</SelectItem>
                 <SelectItem value="BNA">BNA</SelectItem>
                 <SelectItem value="Acordado">Acordado</SelectItem>
@@ -338,8 +338,8 @@ export const Step4Pago: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tcValor" className="text-white">
-              Valor ($/USD) <span className="text-red-400">*</span>
+            <Label htmlFor="tcValor" className="text-foreground">
+              Valor ($/USD) <span className="text-destructive">*</span>
             </Label>
             <CurrencyInput
               id="tcValor"
@@ -348,23 +348,23 @@ export const Step4Pago: React.FC = () => {
               onBlur={handleBlur}
               error={!!errors.tcValor}
               decimals={0}
-              className="bg-[#0f131a] border-[#334366] text-white"
+              className="bg-background border-border text-foreground"
             />
-            {errors.tcValor && <p className="text-sm text-red-400">{errors.tcValor}</p>}
+            {errors.tcValor && <p className="text-sm text-destructive">{errors.tcValor}</p>}
           </div>
         </div>
       </div>
 
       {/* Valores a financiar (IVA incluido) */}
-      <div className="rounded-lg border border-[#334366] bg-[#1a2233] p-4 space-y-4">
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
         <div>
-          <h3 className="font-semibold text-white">Valores a financiar (IVA incluido)</h3>
+          <h3 className="font-semibold text-foreground">Valores a financiar (IVA incluido)</h3>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="valorArsConIVA" className="flex items-center gap-2 text-white">
-              Valor F <span className="text-slate-200">({data.monedaA || "ARS"})</span>
+            <Label htmlFor="valorArsConIVA" className="flex items-center gap-2 text-foreground">
+              Valor F <span className="text-muted-foreground">({data.monedaA || "ARS"})</span>
             </Label>
             <CurrencyInput
               id="valorArsConIVA"
@@ -372,17 +372,17 @@ export const Step4Pago: React.FC = () => {
               onChange={() => { }}
               disabled={true}
               prefix="$"
-              className="bg-[#0f131a] border-[#334366] text-white opacity-100 cursor-default"
+              className="bg-muted/50 border-border text-foreground opacity-100 cursor-default"
             />
-            <div className="flex justify-between text-xs text-slate-200">
+            <div className="flex justify-between text-xs text-muted-foreground">
               <span>IVA incluido</span>
-              <span className="font-medium text-white">{data.modoA === "porcentaje" ? `${data.porcA}% ` : ""}</span>
+              <span className="font-medium text-foreground">{data.modoA === "porcentaje" ? `${data.porcA}% ` : ""}</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="valorUsdConIVA" className="flex items-center gap-2 text-white">
-              Valor SB <span className="text-slate-200">({data.monedaB})</span>
+            <Label htmlFor="valorUsdConIVA" className="flex items-center gap-2 text-foreground">
+              Valor SB <span className="text-muted-foreground">({data.monedaB})</span>
             </Label>
             <CurrencyInput
               id="valorUsdConIVA"
@@ -390,11 +390,11 @@ export const Step4Pago: React.FC = () => {
               onChange={() => { }}
               disabled={true}
               prefix="$"
-              className="bg-[#0f131a] border-[#334366] text-white opacity-100 cursor-default"
+              className="bg-muted/50 border-border text-foreground opacity-100 cursor-default"
             />
-            <div className="flex justify-between text-xs text-slate-200">
+            <div className="flex justify-between text-xs text-muted-foreground">
               <span>IVA incluido</span>
-              <span className="font-medium text-white">{data.modoA === "porcentaje" ? `${100 - data.porcA}% ` : ""}</span>
+              <span className="font-medium text-foreground">{data.modoA === "porcentaje" ? `${100 - data.porcA}% ` : ""}</span>
             </div>
           </div>
         </div>
@@ -402,22 +402,22 @@ export const Step4Pago: React.FC = () => {
 
       {/* Anticipo al boleto - Solo visible si es financiado */}
       {data.tipoPago === "financiado" && (
-        <div className="rounded-lg border border-[#334366] bg-[#1a2233] p-4 space-y-4">
-          <h3 className="font-semibold text-white">Anticipo al boleto</h3>
+        <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+          <h3 className="font-semibold text-foreground">Anticipo al boleto</h3>
 
           <div className="mb-4">
             <table className="w-full border-collapse">
               <thead>
                 <tr>
                   <th className="text-left p-2"></th>
-                  <th className="text-center p-2 font-medium text-slate-200">Anticipo F</th>
-                  <th className="text-center p-2 font-medium text-slate-200">Anticipo SB</th>
+                  <th className="text-center p-2 font-medium text-muted-foreground">Anticipo F</th>
+                  <th className="text-center p-2 font-medium text-muted-foreground">Anticipo SB</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Fila para ARS */}
                 <tr>
-                  <td className="p-2 font-medium text-slate-200">ARS</td>
+                  <td className="p-2 font-medium text-muted-foreground">ARS</td>
                   <td className="p-2">
                     <div className="space-y-2">
                       <CurrencyInput
@@ -427,9 +427,9 @@ export const Step4Pago: React.FC = () => {
                         onBlur={handleBlur}
                         error={!!errors.anticipoArsA}
                         prefix="$"
-                        className="bg-[#0f131a] border-[#334366] text-white"
+                        className="bg-background border-border text-foreground"
                       />
-                      {errors.anticipoArsA && <p className="text-sm text-red-400">{errors.anticipoArsA}</p>}
+                      {errors.anticipoArsA && <p className="text-sm text-destructive">{errors.anticipoArsA}</p>}
                     </div>
 
                   </td>
@@ -442,9 +442,9 @@ export const Step4Pago: React.FC = () => {
                         onBlur={handleBlur}
                         error={!!errors.anticipoArsB}
                         prefix="$"
-                        className="bg-[#0f131a] border-[#334366] text-white"
+                        className="bg-background border-border text-foreground"
                       />
-                      {errors.anticipoArsB && <p className="text-sm text-red-400">{errors.anticipoArsB}</p>}
+                      {errors.anticipoArsB && <p className="text-sm text-destructive">{errors.anticipoArsB}</p>}
                     </div>
 
                   </td>
@@ -452,7 +452,7 @@ export const Step4Pago: React.FC = () => {
 
                 {/* Fila para USD */}
                 <tr>
-                  <td className="p-2 font-medium text-slate-200">USD</td>
+                  <td className="p-2 font-medium text-muted-foreground">USD</td>
                   <td className="p-2">
                     <div className="space-y-2">
                       <CurrencyInput
@@ -463,9 +463,9 @@ export const Step4Pago: React.FC = () => {
                         error={!!errors.anticipoUsdA}
                         prefix="$"
                         suffix="USD"
-                        className="bg-[#0f131a] border-[#334366] text-white"
+                        className="bg-background border-border text-foreground"
                       />
-                      {errors.anticipoUsdA && <p className="text-sm text-red-400">{errors.anticipoUsdA}</p>}
+                      {errors.anticipoUsdA && <p className="text-sm text-destructive">{errors.anticipoUsdA}</p>}
                     </div>
 
                   </td>
@@ -479,36 +479,36 @@ export const Step4Pago: React.FC = () => {
                         error={!!errors.anticipoUsdB}
                         prefix="$"
                         suffix="USD"
-                        className="bg-[#0f131a] border-[#334366] text-white"
+                        className="bg-background border-border text-foreground"
                       />
-                      {errors.anticipoUsdB && <p className="text-sm text-red-400">{errors.anticipoUsdB}</p>}
+                      {errors.anticipoUsdB && <p className="text-sm text-destructive">{errors.anticipoUsdB}</p>}
                     </div>
 
                   </td>
                 </tr>
-              </tbody >
-            </table >
-          </div >
-        </div >
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* Totales a financiar - Solo visible si es financiado */}
       {
         data.tipoPago === "financiado" && (
-          <div className="rounded-lg bg-[#0f131a] border border-[#334366] p-4 space-y-3">
-            <h3 className="font-semibold text-white">Totales a financiar</h3>
+          <div className="rounded-lg bg-card border border-border p-4 space-y-3">
+            <h3 className="font-semibold text-foreground">Totales a financiar</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <p className="text-sm text-slate-200">A financiar F ({data.monedaA || "ARS"})</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-sm text-muted-foreground">A financiar F ({data.monedaA || "ARS"})</p>
+                <p className="text-2xl font-bold text-foreground">
                   ${data.totalFinanciarArs.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
               <div className="space-y-1">
-                <p className="text-sm text-slate-200">A financiar SB ({data.monedaB})</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-sm text-muted-foreground">A financiar SB ({data.monedaB})</p>
+                <p className="text-2xl font-bold text-foreground">
                   ${data.totalFinanciarUsd.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -518,13 +518,13 @@ export const Step4Pago: React.FC = () => {
       }
 
       {/* Fechas */}
-      <div className="rounded-lg border border-[#334366] bg-[#1a2233] p-4 space-y-4">
-        <h3 className="font-semibold text-white">Fechas</h3>
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-foreground">Fechas</h3>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="fechaBaseCAC" className="text-white">
-              Base CAC (mes/año) <span className="text-red-400">*</span>
+            <Label htmlFor="fechaBaseCAC" className="text-foreground">
+              Base CAC (mes/año) <span className="text-destructive">*</span>
             </Label>
             <Input
               id="fechaBaseCAC"
@@ -533,11 +533,11 @@ export const Step4Pago: React.FC = () => {
               onChange={(e) => handleChange("fechaBaseCAC", e.target.value)}
               onBlur={handleBlur}
               placeholder="YYYY-MM"
-              className={`bg-[#0f131a] border-[#334366] text-white hover:bg-[#1a2233] h-12 [color-scheme:dark] ${errors.fechaBaseCAC ? "border-red-400" : ""}`}
+              className={`bg-background border-border text-foreground hover:bg-muted/50 h-12 dark:[color-scheme:dark] ${errors.fechaBaseCAC ? "border-destructive" : ""}`}
               onWheel={(e) => e.currentTarget.blur()} // Evitar cambios con la rueda del mouse
             />
-            {errors.fechaBaseCAC && <p className="text-sm text-red-400">{errors.fechaBaseCAC}</p>}
-            <p className="text-xs text-slate-200">Mes y año de referencia para CAC</p>
+            {errors.fechaBaseCAC && <p className="text-sm text-destructive">{errors.fechaBaseCAC}</p>}
+            <p className="text-xs text-muted-foreground">Mes y año de referencia para CAC</p>
           </div>
         </div>
       </div>
@@ -545,12 +545,12 @@ export const Step4Pago: React.FC = () => {
       {/* Resumen compacto - Solo visible si es financiado */}
       {
         data.tipoPago === "financiado" && (
-          <div className="rounded-lg bg-[#1a2233] p-4 border border-[#334366]">
-            <p className="text-sm font-medium mb-2 text-white">Resumen</p>
-            <p className="text-sm text-slate-200">
-              <span className="font-medium text-white">Anticipo F:</span> ARS ${(data.anticipoArsA || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdA || 0).toLocaleString("es-AR")} <br />
-              <span className="font-medium text-white">Anticipo SB:</span> ARS ${(data.anticipoArsB || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdB || 0).toLocaleString("es-AR")} <br />
-              <span className="font-medium text-white">Saldo:</span> F ({data.monedaA || "ARS"}) ${data.totalFinanciarArs.toLocaleString("es-AR")} / SB ({data.monedaB}) ${data.totalFinanciarUsd.toLocaleString("es-AR")}
+          <div className="rounded-lg bg-card p-4 border border-border">
+            <p className="text-sm font-medium mb-2 text-foreground">Resumen</p>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Anticipo F:</span> ARS ${(data.anticipoArsA || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdA || 0).toLocaleString("es-AR")} <br />
+              <span className="font-medium text-foreground">Anticipo SB:</span> ARS ${(data.anticipoArsB || 0).toLocaleString("es-AR")} / USD ${(data.anticipoUsdB || 0).toLocaleString("es-AR")} <br />
+              <span className="font-medium text-foreground">Saldo:</span> F ({data.monedaA || "ARS"}) ${data.totalFinanciarArs.toLocaleString("es-AR")} / SB ({data.monedaB}) ${data.totalFinanciarUsd.toLocaleString("es-AR")}
             </p>
           </div>
         )
@@ -570,20 +570,20 @@ export const Step4Pago: React.FC = () => {
                 <Check className="w-5 h-5 text-emerald-400" />
                 <p className="text-sm font-medium text-emerald-400">Pago de contado</p>
                 {tieneIVA && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                     CON IVA
                   </span>
                 )}
               </div>
-              <p className="text-2xl font-bold text-emerald-400">
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 USD {precioConIVA.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
               </p>
               {tieneIVA && (
-                <p className="text-sm text-emerald-400/80 mt-1">
+                <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80 mt-1">
                   Incluye IVA ({data.porcentajeIVA}%): USD {ivaUSD.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
                 </p>
               )}
-              <p className="text-sm text-emerald-400/80 mt-1">
+              <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80 mt-1">
                 No se requieren anticipos ni financiamiento adicional.
               </p>
             </div>
@@ -592,11 +592,11 @@ export const Step4Pago: React.FC = () => {
       }
 
       {/* Tip */}
-      <div className="rounded-lg bg-blue-900/10 border border-blue-900/30 p-4 text-sm text-slate-300">
+      <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4 text-sm text-muted-foreground">
         <div className="flex gap-2 items-start">
           <span className="text-blue-400 mt-0.5">💡</span>
           <div>
-            <p className="font-medium mb-1 text-white">Tip:</p>
+            <p className="font-medium mb-1 text-foreground">Tip:</p>
             <p>
               Los valores a financiar se inicializan automáticamente con el precio total, que incluye todas las unidades seleccionadas en el paso 1. El cálculo de totales a financiar descuenta los anticipos y se usará en la minuta final.
             </p>
