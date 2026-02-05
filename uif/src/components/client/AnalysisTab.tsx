@@ -86,18 +86,6 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
     const newVisible = new Set<string>();
 
     // Logic to determine if a section should be visible
-    const hasData = (sectionId: string) => {
-      // 1. Check subtotals (need access to calculations or raw data)
-      // We can use financialData directly for raw values
-      const rawValue = (financialData as any)[sectionId];
-      if (rawValue) {
-        // Check if rawValue has any non-zero fields or if it's an object with data
-        // This is a bit complex as structure varies. 
-        // Simpler: Use calculations subtotals if available, but calculations is inside component body.
-        // We can use the helper from the plan: check custom fields, check docs.
-      }
-      return false; // Fallback
-    };
 
     // We need access to calculations for subtotals, but calculations is defined AFTER this effect.
     // Solution: Move this logic to a separate effect that depends on calculations, or define calculations before.
@@ -108,7 +96,7 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       let isVisible = false;
 
       // 1. Check Custom Fields
-      if (financialData.custom_fields?.[section.id as keyof typeof financialData.custom_fields]?.length ?? 0 > 0) {
+      if (financialData.custom_fields?.[section.id]?.length ?? 0 > 0) {
         isVisible = true;
       }
 
@@ -572,9 +560,6 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
   };
 
   // Helper to sum custom fields for a section
-  const getCustomFieldsSum = (section: CustomFieldSection): number => {
-    return (financialData.custom_fields?.[section] || []).reduce((sum, f) => sum + (f.value || 0), 0);
-  };
 
   // ⚡ PERFORMANCE: generatePDF ahora usa dynamic import
   const generatePDF = async () => {

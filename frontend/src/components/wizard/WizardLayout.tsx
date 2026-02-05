@@ -1,10 +1,10 @@
 import React from "react";
 import { useWizard } from "@/context/WizardContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Home } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface WizardLayoutProps {
@@ -18,25 +18,49 @@ interface WizardLayoutProps {
 
 // Definir títulos base
 const TITLES_BASE = [
-  "Proyecto & Unidad",
-  "Acuerdo Comercial",
-  "Estructura de Pago",
-  "Forma de Pago",
-  "Cargos & Extras",
-  "Reglas de Financiación F/SB",
-  "Datos del Cliente",
-  "Resumen",
+  "Proyecto y Unidad",
+  "Propietarios",
+  "Precio y Forma de Pago",
+  "Condiciones",
+  "Observaciones",
+  "Revisión",
+  "Firmas",
+  "Generar",
 ];
 
 const TITLES_CONTADO = [
-  "Proyecto & Unidad",
-  "Acuerdo Comercial",
-  "Estructura de Pago",
-  "Forma de Pago",
-  "Cargos & Extras",
-  "Datos del Cliente",
-  "Resumen",
+  "Proyecto y Unidad",
+  "Propietarios",
+  "Precio y Forma de Pago",
+  "Condiciones",
+  "Observaciones",
+  "Revisión",
+  "Firmas",
 ];
+
+// Iconos para cada paso
+const STEP_ICONS = [
+  "apartment",      // Proyecto y Unidad
+  "group",          // Propietarios
+  "payments",       // Precio y Forma de Pago
+  "gavel",          // Condiciones
+  "description",    // Observaciones
+  "rate_review",    // Revisión
+  "draw",           // Firmas
+  "task",           // Generar
+];
+
+// Descripciones para cada paso
+const STEP_DESCRIPTIONS: Record<string, string> = {
+  "Proyecto y Unidad": "Selecciona el contexto del proyecto y agrega las unidades (departamentos, estacionamientos, bodegas) que formarán parte de la minuta.",
+  "Propietarios": "Define los propietarios y sus porcentajes de participación en cada unidad.",
+  "Precio y Forma de Pago": "Establece el precio de venta y las condiciones de pago acordadas.",
+  "Condiciones": "Especifica las condiciones particulares y cláusulas del acuerdo.",
+  "Observaciones": "Agrega observaciones adicionales o comentarios relevantes para la operación.",
+  "Revisión": "Revisa y verifica toda la información ingresada antes de continuar.",
+  "Firmas": "Obtén las firmas digitales de las partes involucradas.",
+  "Generar": "Genera y descarga el documento final de la minuta.",
+};
 
 // WizardLayout component definition
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -48,6 +72,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   isEditMode = false,
 }) => {
   const { currentStep, setCurrentStep, resetWizard, data } = useWizard();
+  const { user } = useAuth();
 
   // Determine array based on payment type
   const titles = data.tipoPago === "contado" ? [...TITLES_CONTADO] : [...TITLES_BASE];
@@ -84,82 +109,65 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
     }
   };
 
-  const handleReset = () => {
-    if (globalThis.confirm('¿Estás seguro de que quieres reiniciar toda la minuta comercial? Todos los datos se perderán.')) {
-      resetWizard();
-      toast.success("Minuta comercial reiniciada correctamente");
-    }
-  };
+  const userName = user?.Nombre && user?.Apellido ? `${user.Nombre} ${user.Apellido}` : user?.email || 'Usuario';
+  const userRole = user?.Roles?.Nombre || 'Agente Inmobiliario';
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Sidebar Steps (Desktop) */}
-      <aside className="hidden w-80 flex-col border-r border-border bg-[#111622] p-6 lg:flex">
-        <div className="mb-8 flex items-center gap-2">
-          <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold text-white">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
-              <span className="material-symbols-outlined text-lg">apartment</span>
-            </span>
-            <span>AppMinuta</span>
-          </Link>
-        </div>
+      <aside className="hidden w-64 flex-col border-r border-border bg-[#1a2233] lg:flex">
+        <div className="flex h-full flex-col justify-between p-4">
+          <div className="flex flex-col gap-4">
+            {/* Logo/Header */}
+            <div className="flex flex-col gap-1 mb-4 px-2">
+              <h1 className="text-white text-lg font-bold leading-tight">Gestión Inmobiliaria</h1>
+              <p className="text-muted-foreground text-xs font-normal leading-normal">Asistente de Minutas</p>
+            </div>
 
-        <div className="flex-1 overflow-y-auto pr-2">
-          <div className="space-y-1">
-            {titles.map((title, index) => {
-              const isActive = currentStep === index;
-              const isCompleted = index < currentStep;
+            {/* Navigation Steps */}
+            <nav className="flex flex-col gap-2">
+              {titles.map((title, index) => {
+                const isActive = currentStep === index;
+                const isCompleted = index < currentStep;
+                const icon = STEP_ICONS[index] || "circle";
 
-              return (
-                <div
-                  key={index}
-                  onClick={() => {
-                    if (isEditMode && index === 0) {
-                      toast.error("En modo edición no puedes cambiar el proyecto/unidad");
-                      return;
-                    }
-                    setCurrentStep(index);
-                  }}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 cursor-pointer",
-                    isActive
-                      ? "bg-primary text-white shadow-lg shadow-blue-900/20"
-                      : isCompleted
-                        ? "text-[#92a4c8] hover:bg-white/5 hover:text-white"
-                        : "text-slate-600 dark:text-slate-500 hover:text-slate-400"
-                  )}
-                >
-                  <div className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all",
-                    isActive
-                      ? "border-white bg-white text-primary"
-                      : isCompleted
-                        ? "border-green-500 bg-green-500 text-white"
-                        : "border-slate-600 bg-transparent text-slate-600"
-                  )}>
-                    {isCompleted ? (
-                      <span className="material-symbols-outlined text-sm font-bold">check</span>
-                    ) : (
-                      <span className="text-xs font-bold">{index + 1}</span>
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (isEditMode && index === 0) {
+                        toast.error("En modo edición no puedes cambiar el proyecto/unidad");
+                        return;
+                      }
+                      setCurrentStep(index);
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium leading-normal transition-colors",
+                      isActive
+                        ? "bg-primary text-white"
+                        : isCompleted
+                          ? "text-muted-foreground hover:bg-secondary hover:text-white"
+                          : "text-muted-foreground hover:bg-secondary hover:text-white"
                     )}
-                  </div>
-                  <span className="font-semibold">{title}</span>
-                </div>
-              );
-            })}
+                  >
+                    <span className="material-symbols-outlined text-[24px]">{icon}</span>
+                    <span>{title}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-        </div>
 
-        {/* Bottom Actions */}
-        <div className="mt-4 pt-4 border-t border-slate-800">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-white/5"
-            onClick={handleReset}
-          >
-            <RefreshCw className="h-4 w-4" />
-            Reiniciar Minuta
-          </Button>
+          {/* User Info at Bottom */}
+          <div className="flex items-center gap-3 px-2 py-3 border-t border-border">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white text-sm font-bold">
+              {userName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <p className="text-white text-sm font-medium leading-tight truncate">{userName}</p>
+              <p className="text-muted-foreground text-xs leading-tight truncate">{userRole}</p>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -183,16 +191,25 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               <Progress value={progress} className="h-2 w-full" />
             </div>
 
-            <div className="mb-8 hidden lg:block">
-              <h2 className="text-3xl font-display font-bold text-white mb-2">{titles[currentStep]}</h2>
-              <p className="text-[#92a4c8]">Complete la información solicitada para avanzar.</p>
+            {/* Header Section */}
+            <div className="mb-8">
+              <div className="mb-3">
+                <span className="text-primary text-sm font-semibold tracking-wide uppercase">
+                  PASO {currentStep + 1} DE {titles.length}
+                </span>
+              </div>
+              <h1 className="text-white text-3xl md:text-4xl font-extrabold tracking-tight font-display mb-3">
+                {titles[currentStep]}
+              </h1>
+              {STEP_DESCRIPTIONS[titles[currentStep]] && (
+                <p className="text-muted-foreground text-base font-medium max-w-3xl">
+                  {STEP_DESCRIPTIONS[titles[currentStep]]}
+                </p>
+              )}
             </div>
 
-            <div className="bg-[#1a2233]/80 backdrop-blur-xl rounded-2xl border border-[#334366] p-6 md:p-8 shadow-2xl relative overflow-hidden">
-              {/* Glow inside card */}
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-primary opacity-50"></div>
-              {children}
-            </div>
+            {/* Content Card */}
+            {children}
           </div>
         </main>
 

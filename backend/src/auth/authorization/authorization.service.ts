@@ -5,7 +5,7 @@ import { LoggerService } from '../../logger/logger.service';
 @Injectable()
 export class AuthorizationService {
     constructor(
-        private prisma: PrismaService,
+        private readonly prisma: PrismaService,
         private readonly logger: LoggerService
     ) { }
 
@@ -253,7 +253,7 @@ export class AuthorizationService {
             select: { IdOrg: true },
         });
 
-        if (!project || !project.IdOrg) {
+        if (!project?.IdOrg) {
             throw new Error('Proyecto no encontrado o no pertenece a una organización');
         }
 

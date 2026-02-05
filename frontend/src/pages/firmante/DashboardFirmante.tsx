@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAllMinutasDefinitivasForAdmin, actualizarEstadoMinutaDefinitiva } from '@/services/minutas';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { MotivoModal } from '@/components/minutas/MotivoModal';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { StatCard } from '@/components/dashboard/StatCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,11 +50,21 @@ export const DashboardFirmante: React.FC = () => {
         queryFn: getAllMinutasDefinitivasForAdmin,
     });
 
-    // Filtrar solo minutas aprobadas (las que el firmante puede firmar)
-    const minutasAprobadas = allMinutas.filter((m: any) => m.Estado === 'aprobada');
+    // Calcular estadísticas y filtrar minutas
+    const { minutasAprobadas, minutasFirmadas, stats } = useMemo(() => {
+        const aprobadas = allMinutas.filter((m: any) => m.Estado === 'aprobada');
+        const firmadas = allMinutas.filter((m: any) => m.Estado === 'firmada');
+        const borradores = allMinutas.filter((m: any) => m.Estado === 'en_edicion').length;
+        const canceladas = allMinutas.filter((m: any) => m.Estado === 'cancelada').length;
+        const total = allMinutas.length;
+        const pendientes = aprobadas.length;
 
-    // Filtrar minutas ya firmadas
-    const minutasFirmadas = allMinutas.filter((m: any) => m.Estado === 'firmada');
+        return {
+            minutasAprobadas: aprobadas,
+            minutasFirmadas: firmadas,
+            stats: { total, borradores, pendientes, firmadas: firmadas.length, canceladas }
+        };
+    }, [allMinutas]);
 
     // Mutation para cambiar estado
     const updateEstadoMutation = useMutation({
@@ -128,21 +138,80 @@ export const DashboardFirmante: React.FC = () => {
         navigate('/login');
     };
 
-    // Nombre de usuario para mostrar
-    const displayName = user?.Nombre && user?.Apellido
-        ? `${user.Nombre} ${user.Apellido}`
-        : user?.email || 'Usuario';
-
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            <DashboardHeader
-                title="Mis Firmas"
-                userName={displayName}
-                onLogout={handleLogout}
-            />
+        <div className="min-h-screen bg-background">
+            {/* Header */}
+            <div className="border-b border-border bg-card/50 backdrop-blur-sm">
+                <div className="container mx-auto px-4 py-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-extrabold tracking-tight text-foreground font-display md:text-4xl">
+                                Mis Firmas
+                            </h1>
+                            <p className="text-base font-medium text-muted-foreground mt-1">
+                                Gestiona tus documentos inmobiliarios pendientes y firmados
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            onClick={handleLogout}
+                            className="logout-button"
+                        >
+                            <span className="material-symbols-outlined mr-2">logout</span>
+                            Cerrar Sesión
+                        </Button>
+                    </div>
+                </div>
+            </div>
 
-            {/* Tabs for Minuta Status */}
-            <Tabs defaultValue="pendientes" className="w-full">
+            {/* Stats Cards */}
+            <div className="container mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-5">
+                    <StatCard
+                        title="TOTAL MINUTAS"
+                        value={stats.total}
+                        trend={{
+                            value: '+12% esta semana',
+                            positive: true
+                        }}
+                        icon="folder"
+                        iconColor="text-muted-foreground"
+                    />
+                    <StatCard
+                        title="BORRADORES"
+                        value={stats.borradores}
+                        subtitle="Actualizado hace 2m"
+                        icon="edit_note"
+                        iconColor="text-muted-foreground"
+                    />
+                    <StatCard
+                        title="PENDIENTES"
+                        value={stats.pendientes}
+                        subtitle={`${stats.pendientes > 0 ? '! 5urgentes' : 'Sin urgentes'}`}
+                        icon="hourglass_top"
+                        iconColor="text-amber-400"
+                    />
+                    <StatCard
+                        title="FIRMADAS"
+                        value={stats.firmadas}
+                        trend={{
+                            value: '+15% esta semana',
+                            positive: true
+                        }}
+                        icon="verified"
+                        iconColor="text-primary"
+                    />
+                    <StatCard
+                        title="CANCELADAS"
+                        value={stats.canceladas}
+                        subtitle="-2% esta semana"
+                        icon="block"
+                        iconColor="text-red-400"
+                    />
+                </div>
+
+                {/* Tabs for Minuta Status */}
+                <Tabs defaultValue="pendientes" className="w-full">
                 <TabsList className="mb-4">
                     <TabsTrigger value="pendientes" className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
@@ -387,6 +456,7 @@ export const DashboardFirmante: React.FC = () => {
                 actionLabel={actionType === 'cancel' ? "Confirmar Cancelación" : "Enviar a Edición"}
                 variant={actionType === 'cancel' ? "destructive" : "default"}
             />
+            </div>
         </div>
     );
 };

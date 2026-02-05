@@ -7,6 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import {
   Table,
   TableCell,
   TableHead,
@@ -21,13 +34,15 @@ import {
   RefreshCw,
   Edit,
   Filter,
-  Clock,
-  CheckCircle2,
-  FileText,
+  CalendarIcon,
+  Search,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DetalleMinutaModal } from '@/components/minutas/DetalleMinutaModal';
 import { MotivoModal } from '@/components/minutas/MotivoModal';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
 
 interface ListaMinutasDefinitivasAdminProps {
   readOnly?: boolean;
@@ -35,7 +50,10 @@ interface ListaMinutasDefinitivasAdminProps {
 
 export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdminProps> = ({ readOnly = false }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('todas');
+  const [estadoFilter, setEstadoFilter] = useState<string>('todos');
+  const [proyectoFilter, setProyectoFilter] = useState<string>('todos');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const { toast } = useToast();
 
   // ⚡ PAGINACIÓN
@@ -58,41 +76,71 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
   );
   const updateEstadoMutation = useUpdateMinutaEstado();
 
+  // Obtener lista de proyectos únicos de las minutas
+  const proyectos = useMemo(() => {
+    const allMinutas = data?.data || [];
+    const uniqueProyectos = new Set(
+      allMinutas
+        .map(m => m.ProyectoNombre)
+        .filter(Boolean)
+    );
+    return Array.from(uniqueProyectos).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [data]);
+
   // Debounce search para evitar filtrado en cada tecla
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // ⚡ FILTRADO EN FRONTEND: Por estado y por búsqueda
+  // ⚡ FILTRADO EN FRONTEND: Por estado, proyecto, fecha y por búsqueda
   const filteredMinutas = useMemo(() => {
     let minutas = data?.data || [];
 
-    // Filtrar por estado (si no es 'todas')
-    if (activeTab !== 'todas') {
-      minutas = minutas.filter(m => m.estado === activeTab);
+    // Filtrar por estado (si no es 'todos')
+    if (estadoFilter !== 'todos') {
+      minutas = minutas.filter(m => m.Estado === estadoFilter);
+    }
+
+    // Filtrar por proyecto (si no es 'todos')
+    if (proyectoFilter !== 'todos') {
+      minutas = minutas.filter(m => m.ProyectoNombre === proyectoFilter);
+    }
+
+    // Filtrar por rango de fechas
+    if (dateRange?.from) {
+      minutas = minutas.filter(m => {
+        const minutaDate = new Date(m.CreatedAt);
+        const fromDate = dateRange.from;
+        const toDate = dateRange.to || fromDate;
+
+        return minutaDate >= fromDate && minutaDate <= toDate;
+      });
     }
 
     // Filtrar por término de búsqueda (usa debounced value)
     if (debouncedSearchTerm) {
       const term = debouncedSearchTerm.toLowerCase();
       minutas = minutas.filter(m =>
-        m.proyectos?.nombre?.toLowerCase().includes(term) ||
-        m.datos?.unidadDescripcion?.toLowerCase().includes(term) ||
-        m.users?.email?.toLowerCase().includes(term)
+        m.Id?.toLowerCase().includes(term) ||
+        m.Numero?.toLowerCase().includes(term) ||
+        m.ProyectoNombre?.toLowerCase().includes(term) ||
+        m.UnidadIdentificador?.toLowerCase().includes(term) ||
+        m.CreadoPor?.toLowerCase().includes(term) ||
+        m.ClienteNombre?.toLowerCase().includes(term)
       );
     }
 
     return minutas;
-  }, [debouncedSearchTerm, data, activeTab]);
+  }, [debouncedSearchTerm, data, estadoFilter, proyectoFilter, dateRange]);
 
   // Calculate statistics for filter counts
   const stats = useMemo(() => {
     const allMinutas = data?.data || [];
     return {
       todas: allMinutas.length,
-      pendiente: allMinutas.filter(m => m.estado === 'pendiente').length,
-      en_edicion: allMinutas.filter(m => m.estado === 'en_edicion').length,
-      aprobada: allMinutas.filter(m => m.estado === 'aprobada').length,
-      firmada: allMinutas.filter(m => m.estado === 'firmada').length,
-      cancelada: allMinutas.filter(m => m.estado === 'cancelada').length,
+      pendiente: allMinutas.filter(m => m.Estado === 'pendiente').length,
+      en_edicion: allMinutas.filter(m => m.Estado === 'en_edicion').length,
+      aprobada: allMinutas.filter(m => m.Estado === 'aprobada').length,
+      firmada: allMinutas.filter(m => m.Estado === 'firmada').length,
+      cancelada: allMinutas.filter(m => m.Estado === 'cancelada').length,
     };
   }, [data]);
 
@@ -173,66 +221,136 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Filter Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
-              <div className="status-filter">
-                <button
-                  className={`status-filter-btn ${activeTab === 'todas' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('todas')}
+            {/* Advanced Filter Bar */}
+            <div className="flex flex-col gap-3">
+              {/* First Row - Main Filters */}
+              <div className="flex flex-col lg:flex-row gap-3">
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por ID, nombre o proy..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Date Range Picker */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full lg:w-[240px] justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "dd MMM", { locale: es })} -{" "}
+                            {format(dateRange.to, "dd MMM yyyy", { locale: es })}
+                          </>
+                        ) : (
+                          format(dateRange.from, "dd MMM yyyy", { locale: es })
+                        )
+                      ) : (
+                        <span>Rango de fechas</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      locale={es}
+                    />
+                    {dateRange?.from && (
+                      <div className="border-t p-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setDateRange(undefined)}
+                        >
+                          Limpiar fechas
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                {/* Estado Dropdown */}
+                <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+                  <SelectTrigger className="w-full lg:w-[180px]">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los estados</SelectItem>
+                    <SelectItem value="pendiente">Pendientes ({stats.pendiente})</SelectItem>
+                    <SelectItem value="en_edicion">En Edición ({stats.en_edicion})</SelectItem>
+                    <SelectItem value="aprobada">Aprobadas ({stats.aprobada})</SelectItem>
+                    <SelectItem value="firmada">Firmadas ({stats.firmada})</SelectItem>
+                    <SelectItem value="cancelada">Canceladas ({stats.cancelada})</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Proyecto Dropdown */}
+                <Select value={proyectoFilter} onValueChange={setProyectoFilter}>
+                  <SelectTrigger className="w-full lg:w-[180px]">
+                    <SelectValue placeholder="Proyecto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los proyectos</SelectItem>
+                    {proyectos.map((proyecto) => (
+                      <SelectItem key={proyecto} value={proyecto}>
+                        {proyecto}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* More Filters Button */}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowMoreFilters(!showMoreFilters)}
+                  className="w-full lg:w-auto"
                 >
-                  <Filter className="h-4 w-4" />
-                  Todas
-                  <span className="filter-count">{stats.todas}</span>
-                </button>
-                <button
-                  className={`status-filter-btn ${activeTab === 'pendiente' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('pendiente')}
-                >
-                  <Clock className="h-4 w-4" />
-                  Pendientes
-                  <span className="filter-count">{stats.pendiente}</span>
-                </button>
-                <button
-                  className={`status-filter-btn ${activeTab === 'en_edicion' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('en_edicion')}
-                >
-                  <Edit className="h-4 w-4" />
-                  En Edición
-                  <span className="filter-count">{stats.en_edicion}</span>
-                </button>
-                <button
-                  className={`status-filter-btn ${activeTab === 'aprobada' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('aprobada')}
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Aprobadas
-                  <span className="filter-count">{stats.aprobada}</span>
-                </button>
-                <button
-                  className={`status-filter-btn ${activeTab === 'firmada' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('firmada')}
-                >
-                  <FileText className="h-4 w-4" />
-                  Firmadas
-                  <span className="filter-count">{stats.firmada}</span>
-                </button>
-                <button
-                  className={`status-filter-btn ${activeTab === 'cancelada' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('cancelada')}
-                >
-                  <XCircle className="h-4 w-4" />
-                  Canceladas
-                  <span className="filter-count">{stats.cancelada}</span>
-                </button>
+                  <Filter className="h-4 w-4 mr-2" />
+                  Más Filtros
+                </Button>
               </div>
 
-              <div className="w-full sm:w-64">
-                <Input
-                  placeholder="Buscar minutas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+              {/* Second Row - Active Filters Summary */}
+              {(estadoFilter !== 'todos' || proyectoFilter !== 'todos' || dateRange?.from || searchTerm) && (
+                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                  <span>Filtros activos:</span>
+                  {estadoFilter !== 'todos' && (
+                    <Badge variant="secondary" className="cursor-pointer" onClick={() => setEstadoFilter('todos')}>
+                      Estado: {estadoFilter} ✕
+                    </Badge>
+                  )}
+                  {proyectoFilter !== 'todos' && (
+                    <Badge variant="secondary" className="cursor-pointer" onClick={() => setProyectoFilter('todos')}>
+                      Proyecto: {proyectoFilter} ✕
+                    </Badge>
+                  )}
+                  {dateRange?.from && (
+                    <Badge variant="secondary" className="cursor-pointer" onClick={() => setDateRange(undefined)}>
+                      Fecha: {format(dateRange.from, "dd/MM/yy", { locale: es })}
+                      {dateRange.to && ` - ${format(dateRange.to, "dd/MM/yy", { locale: es })}`} ✕
+                    </Badge>
+                  )}
+                  {searchTerm && (
+                    <Badge variant="secondary" className="cursor-pointer" onClick={() => setSearchTerm('')}>
+                      Búsqueda: "{searchTerm}" ✕
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
 
             {isLoading && (
@@ -273,11 +391,11 @@ export const ListaMinutasDefinitivasAdmin: React.FC<ListaMinutasDefinitivasAdmin
                       ) : (
                         filteredMinutas.map((minuta) => (
                           <TableRowStagger key={minuta.Id}>
-                            <TableCell>{minuta.Proyectos?.Nombre || minuta.Proyecto || 'Sin proyecto'}</TableCell>
-                            <TableCell>{minuta.Dato?.unidadDescripcion || minuta.Dato?.unidadCodigo || 'Sin unidad'}</TableCell>
-                            <TableCell>{minuta.users?.email || minuta.UsuarioId}</TableCell>
+                            <TableCell>{minuta.ProyectoNombre || 'Sin proyecto'}</TableCell>
+                            <TableCell>{minuta.UnidadIdentificador || 'Sin unidad'}</TableCell>
+                            <TableCell>{minuta.CreadoPor || 'Sin usuario'}</TableCell>
                             <TableCell>
-                              {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
+                              {new Date(minuta.CreatedAt).toLocaleDateString('es-AR')}
                             </TableCell>
                             <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
                             <TableCell className="text-right">

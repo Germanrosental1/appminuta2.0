@@ -227,11 +227,22 @@ export class UnidadesImportService {
         }
 
         // 4. Create/Find Unit
-        const sectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
+        // Normalizar SectorId: mayúsculas, sin espacios alrededor de guiones
+        const rawSectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
+        const sectorId = this.normalizeSectorId(rawSectorId);
 
         let unidadId: string;
         let isNew = false;
-        const existingUnidad = await tx.unidades.findUnique({ where: { SectorId: sectorId } });
+
+        // Lookup using composite unique key (SectorId + ProyectoId)
+        const existingUnidad = await tx.unidades.findUnique({
+            where: {
+                SectorId_ProyectoId: {
+                    SectorId: sectorId,
+                    ProyectoId: proyectoId
+                }
+            }
+        });
 
         if (existingUnidad) {
             unidadId = existingUnidad.Id;
@@ -240,6 +251,7 @@ export class UnidadesImportService {
                 where: { Id: unidadId },
                 data: {
                     EdificioId: edificioId,
+                    ProyectoId: proyectoId, // Ensure consistency
                     EtapaId: etapaId,
                     TipoUnidadId: tipoId,
                     Piso: String(normalizedRow.piso || ''),
@@ -253,6 +265,7 @@ export class UnidadesImportService {
         } else {
             const createData: any = {
                 SectorId: sectorId,
+                ProyectoId: proyectoId,
                 Piso: String(normalizedRow.piso || ''),
                 NroUnidad: String(normalizedRow.numerounidad || ''),
                 Dormitorio: Number(normalizedRow.dormitorios) || 0,
@@ -273,7 +286,7 @@ export class UnidadesImportService {
         const clienteInteresadoId = await this.resolveCliente(tx, normalizedRow.clienteinteresado, cache);
 
         // 6. Resolve Unidad Comprador (lookup by sectorId pattern)
-        const unidadCompradorId = await this.resolveUnidadComprador(tx, normalizedRow.deptartamentocomprador, cache);
+        const unidadCompradorId = await this.resolveUnidadComprador(tx, normalizedRow.deptartamentocomprador, proyectoId, cache);
 
         // 7. Upsert Related Data
         await this.upsertMetrics(tx, unidadId, normalizedRow, patioId);
@@ -424,16 +437,21 @@ export class UnidadesImportService {
     }
 
     // Resolve unidad comprador by looking up sectorid
-    private async resolveUnidadComprador(tx: PrismaTransaction, sectorId: string | undefined, cache: Map<string, string>): Promise<string | undefined> {
+    private async resolveUnidadComprador(tx: PrismaTransaction, sectorId: string | undefined, proyectoId: string, cache: Map<string, string>): Promise<string | undefined> {
         if (!sectorId || String(sectorId).trim() === '') return undefined;
 
-        const cleanSectorId = String(sectorId).trim();
-        const cacheKey = `unidad_comprador:${cleanSectorId}`;
+        const cleanSectorId = this.normalizeSectorId(String(sectorId));
+        const cacheKey = `unidad_comprador:${proyectoId}:${cleanSectorId}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached;
 
         const existing = await tx.unidades.findUnique({
-            where: { SectorId: cleanSectorId }
+            where: {
+                SectorId_ProyectoId: {
+                    SectorId: cleanSectorId,
+                    ProyectoId: proyectoId
+                }
+            }
         });
 
         if (existing) {
@@ -652,4 +670,21 @@ export class UnidadesImportService {
         const num = Number(strValue);
         return Number.isNaN(num) ? null : num;
     }
+
+    /**
+     * Normaliza el SectorId a un formato estándar:
+     * - Convierte a mayúsculas
+     * - Elimina espacios alrededor de guiones (" - " -> "-")
+     * - Elimina espacios múltiples
+     * Ejemplo: "e1 - 202" -> "E1-202"
+     */
+    private normalizeSectorId(sectorId: string): string {
+        if (!sectorId) return sectorId;
+        return String(sectorId)
+            .trim()
+            .toUpperCase()
+            .replace(/\s*-\s*/g, '-')  // Elimina espacios alrededor de guiones
+            .replace(/\s+/g, '-');      // Reemplaza espacios múltiples con guión
+    }
 }
+

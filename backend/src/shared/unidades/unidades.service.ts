@@ -15,14 +15,22 @@ export class UnidadesService {
     constructor(private readonly prisma: PrismaService) { }
 
     async create(createUnidadDto: CreateUnidadDto) {
-        // Verificar que el sectorid no exista
-        const existing = await this.prisma.unidades.findUnique({
-            where: { SectorId: createUnidadDto.sectorid },
-        });
+        // Verificar que el sectorid no exista en este proyecto
+        let existing = null;
+        if (createUnidadDto.proyecto_id) {
+            existing = await this.prisma.unidades.findUnique({
+                where: {
+                    SectorId_ProyectoId: {
+                        SectorId: createUnidadDto.sectorid,
+                        ProyectoId: createUnidadDto.proyecto_id
+                    }
+                },
+            });
+        }
 
         if (existing) {
             throw new ConflictException(
-                `Ya existe una unidad con sectorid '${createUnidadDto.sectorid}'`
+                `Ya existe una unidad con sectorid '${createUnidadDto.sectorid}' en este proyecto`
             );
         }
 
@@ -137,6 +145,7 @@ export class UnidadesService {
     private _mapDtoToUnidadData(dto: any, tipoId?: string, edificioId?: string, etapaId?: string) {
         const data: any = {};
         if (dto.sectorid !== undefined) data.SectorId = dto.sectorid;
+        if (dto.proyecto_id !== undefined) data.ProyectoId = dto.proyecto_id;
         if (tipoId !== undefined) data.TipoUnidadId = tipoId;
         else if (dto.tipounidad_id !== undefined) data.TipoUnidadId = dto.tipounidad_id;
 
@@ -656,20 +665,30 @@ export class UnidadesService {
 
         // Verificar unicidad de sectorid si se está cambiando
         if (updateUnidadDto.sectorid && updateUnidadDto.sectorid !== existing.SectorId) {
-            const duplicate = await this.prisma.unidades.findUnique({
-                where: { SectorId: updateUnidadDto.sectorid },
-            });
 
-            if (duplicate) {
-                throw new ConflictException(
-                    `Ya existe una unidad con sectorid '${updateUnidadDto.sectorid}'`
-                );
+            // Check for duplicate in the *same project* as existing unit
+            if (existing.ProyectoId) {
+                const duplicate = await this.prisma.unidades.findUnique({
+                    where: {
+                        SectorId_ProyectoId: {
+                            SectorId: updateUnidadDto.sectorid,
+                            ProyectoId: existing.ProyectoId
+                        }
+                    },
+                });
+
+                if (duplicate) {
+                    throw new ConflictException(
+                        `Ya existe una unidad con sectorid '${updateUnidadDto.sectorid}' en este proyecto`
+                    );
+                }
             }
         }
 
         // Map DTO fields to Prisma model fields
         const updateData: any = {};
         if (updateUnidadDto.sectorid !== undefined) updateData.SectorId = updateUnidadDto.sectorid;
+        if (updateUnidadDto.proyecto_id !== undefined) updateData.ProyectoId = updateUnidadDto.proyecto_id;
         if (updateUnidadDto.tipounidad_id !== undefined) updateData.TipoUnidadId = updateUnidadDto.tipounidad_id;
         if (updateUnidadDto.edificio_id !== undefined) updateData.EdificioId = updateUnidadDto.edificio_id;
         if (updateUnidadDto.etapa_id !== undefined) updateData.EtapaId = updateUnidadDto.etapa_id;

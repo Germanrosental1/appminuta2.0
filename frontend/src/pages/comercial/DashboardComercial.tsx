@@ -8,6 +8,7 @@ import { StaggerTableBody, TableRowStagger } from '@/components/animated/Stagger
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/dashboard/StatCard';
 import { useRequirePasswordChange } from '@/middleware/RequirePasswordChange';
 import {
   Table,
@@ -18,7 +19,6 @@ import {
 } from '@/components/ui/table';
 import {
   FileText,
-  Calculator,
   Eye,
   RefreshCw,
   Edit,
@@ -194,20 +194,62 @@ export const DashboardComercial: React.FC = () => {
         {/* Header Area */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold text-white">Dashboard Comercial</h1>
-            <p className="text-[#92a4c8]">Bienvenido, {userName}</p>
+            <h1 className="font-display text-3xl font-bold text-white md:text-4xl">Panel de Control</h1>
+            <p className="text-[#92a4c8]">Bienvenido de nuevo, {userName}. Aquí tienes el resumen general de todas las minutas.</p>
           </div>
           <Button
             onClick={handleNuevaCalculadora}
             className="h-12 bg-primary px-6 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-blue-600"
           >
-            <Calculator className="mr-2 h-5 w-5" />
-            Nueva Minuta
+            <Plus className="mr-2 h-5 w-5" />
+            Crear Nueva Minuta
           </Button>
         </div>
 
-        {/* Stats / KPI Cards (Placeholder for Phase 3 Part 2 if needed, or integrating simple stats now) */}
-        {/* For now, just the Table Card */}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard
+            title="TOTAL MINUTAS"
+            value={stats.total}
+            trend={{
+              value: '+12% esta semana',
+              positive: true
+            }}
+            icon="folder"
+            iconColor="text-muted-foreground"
+          />
+          <StatCard
+            title="BORRADORES"
+            value={stats.enEdicion}
+            subtitle="Actualizado hace 2m"
+            icon="edit_note"
+            iconColor="text-muted-foreground"
+          />
+          <StatCard
+            title="PENDIENTES"
+            value={stats.pendientes}
+            subtitle={`${stats.pendientes > 0 ? '5 urgentes' : 'Sin urgentes'}`}
+            icon="hourglass_top"
+            iconColor="text-amber-400"
+          />
+          <StatCard
+            title="FIRMADAS"
+            value={stats.firmadas}
+            trend={{
+              value: '+15% esta semana',
+              positive: true
+            }}
+            icon="verified"
+            iconColor="text-primary"
+          />
+          <StatCard
+            title="CANCELADAS"
+            value={stats.canceladas}
+            subtitle="-2% esta semana"
+            icon="block"
+            iconColor="text-red-400"
+          />
+        </div>
 
         {/* Historial Card */}
         <Card className="border-none bg-[#1a2233]/80 backdrop-blur-xl shadow-2xl">

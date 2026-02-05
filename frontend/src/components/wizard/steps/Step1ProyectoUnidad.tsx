@@ -9,7 +9,7 @@ import { Plus, Trash, Building, Car, Package, Store, Warehouse, Pencil, Lock, Re
 import { UnidadSeleccionada, TipoUnidad } from "@/types/wizard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUnidadFilters } from "@/hooks/useUnidadFilters";
-import { useProyectos, useTipos } from "@/hooks/useUnidades";
+import { useProyectos, useTipos, useEtapas } from "@/hooks/useUnidades";
 import { UnidadFormulario } from "./UnidadFormulario";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -42,6 +42,9 @@ export const Step1ProyectoUnidad: React.FC = () => {
 
   // Cargar tipos disponibles para el proyecto seleccionado
   const { data: tiposDelProyecto = [], isLoading: loadingTipos } = useTipos(proyectoGlobal);
+
+  // Cargar etapas del proyecto global (para el formulario)
+  const { data: etapasProyecto = [] } = useEtapas(proyectoGlobal);
 
   // Estados para la selección múltiple de unidades
   const [tipoUnidadSeleccionado, setTipoUnidadSeleccionado] = useState<string>("");

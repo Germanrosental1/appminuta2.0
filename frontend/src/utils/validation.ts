@@ -104,64 +104,37 @@ export const step3Schema = z.object({
   monedaB: z.enum(["USD", "ARS"]),
   // Incluimos estos campos para poder validar el importe A contra el precio total
   precioNegociado: z.number(),
-  cocheras: z.array(itemSchema).optional(),
-  baulera: itemSchema.nullable().optional(),
-  // Nuevo campo para unidades múltiples
-  unidades: z.array(z.any()).optional(),
-}).refine(
-  (data) => {
-    if (data.modoA === "importe") {
-      const precioTotal = calcularPrecioTotal(data);
-      return data.impA <= precioTotal;
-    }
-    return true;
-  },
-  {
-    message: "El importe A no puede superar el precio total",
-    path: ["impA"],
-  }
-);
+  porcA: z.number().min(0).max(100).optional(),
+  impA: z.number().min(0).optional(),
+  monedaA: z.enum(["USD", "ARS"]).optional(),
+  monedaB: z.enum(["USD", "ARS"]).optional(), // Usually inferred/set
 
-export const step4Schema = z
-  .object({
-    tipoPago: z.enum(["contado", "financiado"]),
-    tcFuente: z.enum(["MEP", "BNA", "Acordado", "Otro"]),
-    tcValor: z.number().positive("El tipo de cambio debe ser mayor a 0"),
-    valorArsConIVA: z.number().min(0),
-    valorUsdConIVA: z.number().min(0),
-    anticipoArs: z.number().min(0),
-    anticipoUsd: z.number().min(0),
-    totalFinanciarArs: z.number().min(0),
-    totalFinanciarUsd: z.number().min(0),
-    // fechaFirmaBoleto eliminada
-    fechaBaseCAC: z.string().min(1, "La fecha base CAC es requerida"),
-  })
-  .refine(
-    (data) => {
-      // Solo validar anticipos si el pago es financiado
-      if (data.tipoPago === "financiado") {
-        return data.anticipoArs <= data.valorArsConIVA;
-      }
-      return true;
-    },
-    {
-      message: "El anticipo en ARS no puede superar el valor a financiar",
-      path: ["anticipoArs"],
-    }
-  )
-  .refine(
-    (data) => {
-      // Solo validar anticipos si el pago es financiado
-      if (data.tipoPago === "financiado") {
-        return data.anticipoUsd <= data.valorUsdConIVA;
-      }
-      return true;
-    },
-    {
-      message: "El anticipo en USD no puede superar el valor a financiar",
-      path: ["anticipoUsd"],
-    }
-  );
+  // Exchange Rate fields moved here
+  tcFuente: z.enum(["MEP", "BNA", "Acordado", "Otro"]).optional(),
+  tcValor: z.number().positive("El tipo de cambio debe ser mayor a 0").optional(),
+  fechaBaseCAC: z.string().min(1, "La fecha base CAC es requerida").optional(),
+}).refine(data => {
+  if (data.modoA === "porcentaje") {
+    return data.porcA !== undefined && data.porcA >= 0;
+  }
+  return data.impA !== undefined && data.impA >= 0;
+}, {
+  message: "Debe ingresar un porcentaje o importe válido",
+  path: ["porcA"], // or impA
+});
+
+// PAGO SCHEMA (Ahora Step 3 en UI, pero mantenemos el nombre variable step4Schema por conveniencia o renombramos)
+// Vamos a actualizar step4Schema para reflejar los nuevos campos de Pago
+// Schema for Step 4: Pago y Anticipos
+export const step4Schema = z.object({
+  tipoPago: z.enum(["contado", "financiado"]),
+
+  // Anticipos
+  anticipoArsA: z.number().min(0).optional(),
+  anticipoUsdA: z.number().min(0).optional(),
+  anticipoArsB: z.number().min(0).optional(),
+  anticipoUsdB: z.number().min(0).optional(),
+});
 
 export const step5Schema = z.object({
   certificacionFirmas: z.number().min(0),
@@ -315,12 +288,21 @@ export const validateStep = (step: number, data: any, tipoPago?: string) => {
         step2Schema.parse(data);
         return { valid: true, errors: {} };
       case 2:
+        // Index 2 is now COMPOSICION, so use step3Schema
         step3Schema.parse(data);
         return { valid: true, errors: {} };
       case 3:
+        // Index 3 is now PAGO, so use step4Schema
         step4Schema.parse(data);
         return { valid: true, errors: {} };
       case 4:
+        // Index 4 might be IVA or Cargos depending on applicability.
+        // Calling code (Wizard.tsx) should know which schema to use? 
+        // Or we map strictly based on ID.
+        // Check Wizard.tsx logic: if IVA is present at index 4, it uses validateIVAStep manually.
+        // If IVA is NOT present, index 4 is Cargos.
+        // We should allow validateStep(4) to be Cargos (step5Schema).
+        // If it is IVA, default validation might fail if it tries step5Schema.
         step5Schema.parse(data);
         return { valid: true, errors: {} };
       case 5:

@@ -57,7 +57,15 @@ async function determineRedirect(): Promise<string> {
 }
 
 // Componente de protección para rutas que requieren autenticación
-const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode, requiredRole?: 'comercial' | 'administrador' | 'viewer' | 'firmante' }) => {
+const ProtectedRoute = ({
+  children,
+  requiredRole,
+  allowedRoles
+}: {
+  children: React.ReactNode,
+  requiredRole?: 'comercial' | 'administrador' | 'viewer' | 'firmante',
+  allowedRoles?: ('comercial' | 'administrador' | 'viewer' | 'firmante')[]
+}) => {
   const { user, loading, hasRole, refreshRoles } = useAuth();
   const [checkingPassword, setCheckingPassword] = React.useState(true);
   const [requiresPasswordChange, setRequiresPasswordChange] = React.useState(false);
@@ -90,7 +98,25 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
         }
 
         // 2. Check Role (Lazy Load)
-        if (requiredRole) {
+        if (allowedRoles && allowedRoles.length > 0) {
+          // Check if user has any of the allowed roles
+          let authorized = false;
+          for (const role of allowedRoles) {
+            const hasAccess = await verifyRole(role, hasRole, async () => {
+              await refreshRoles();
+            });
+            if (hasAccess) {
+              authorized = true;
+              break;
+            }
+          }
+          setIsAuthorized(authorized);
+
+          if (!authorized) {
+            const path = await determineRedirect();
+            setRedirectPath(path);
+          }
+        } else if (requiredRole) {
           const authorized = await verifyRole(requiredRole, hasRole, async () => {
             await refreshRoles();
           });
@@ -117,7 +143,7 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
     if (!loading) {
       checkRequirements();
     }
-  }, [user, loading, requiredRole, hasRole, refreshRoles]);
+  }, [user, loading, requiredRole, allowedRoles, hasRole, refreshRoles]);
 
   if (loading || checkingPassword || isAuthorized === null) {
     return (
@@ -209,7 +235,7 @@ const routes: RouteObject[] = [
   {
     path: "/wizard",
     element: (
-      <ProtectedRoute requiredRole="comercial">
+      <ProtectedRoute allowedRoles={["comercial", "administrador"]}>
         <Suspense fallback={<LoadingSpinner />}>
           <Wizard />
         </Suspense>
