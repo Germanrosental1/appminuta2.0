@@ -1,4 +1,20 @@
 import { z } from "zod";
+import type { WizardData, CocheraData, UnidadSeleccionada } from "@/types/wizard";
+
+// Esquema para UnidadSeleccionada
+export const unidadSeleccionadaSchema = z.object({
+  id: z.string(),
+  tipo: z.enum(["Departamento", "Cochera", "Baulera", "Local", "Nave"]),
+  descripcion: z.string(),
+  proyecto: z.string(),
+  etapa: z.string(),
+  sector: z.string(),
+  precioLista: z.number().min(0),
+  precioNegociado: z.number().min(0),
+  tipoDescuento: z.enum(["porcentaje", "importe", "ninguno"]),
+  valorDescuento: z.number().min(0),
+  m2: z.number().optional(),
+});
 
 export const step1Schema = z.object({
   proyecto: z.string().optional(), // Ahora es opcional porque usamos unidades múltiples
@@ -6,7 +22,7 @@ export const step1Schema = z.object({
   unidadDescripcion: z.string().optional(),
   fechaPosesion: z.string().min(1, "La fecha de posesión es requerida"),
   // Nuevo campo para unidades múltiples
-  unidades: z.array(z.any()).optional(),
+  unidades: z.array(unidadSeleccionadaSchema).optional(),
 }).refine(
   (data) => {
     // Si existe el array de unidades (nuevo modelo), debe tener al menos una
@@ -38,7 +54,7 @@ export const step2Schema = z
     cocheras: z.array(itemSchema).max(3, "Máximo 3 cocheras permitidas"),
     baulera: itemSchema.nullable(),
     // Nuevo campo para unidades múltiples
-    unidades: z.array(z.any()).optional(),
+    unidades: z.array(unidadSeleccionadaSchema).optional(),
   })
   .refine(
     (data) => {
@@ -52,7 +68,7 @@ export const step2Schema = z
       }
       // Si hay unidades, verificar que cada unidad tenga precioLista y precioNegociado válidos
       return data.unidades.every(
-        (unidad: any) =>
+        (unidad) =>
           (unidad.precioLista || 0) > 0 &&
           (unidad.precioNegociado || 0) > 0 &&
           (unidad.precioNegociado || 0) <= (unidad.precioLista || 0)
@@ -65,12 +81,12 @@ export const step2Schema = z
   );
 
 // Función auxiliar para calcular el precio total
-const calcularPrecioTotal = (data: any) => {
+const calcularPrecioTotal = (data: Partial<WizardData>) => {
   let total = 0;
 
   // Sumar precios de todas las unidades en el nuevo modelo
   if (data.unidades && data.unidades.length > 0) {
-    data.unidades.forEach((unidad: any) => {
+    data.unidades.forEach((unidad: UnidadSeleccionada) => {
       total += unidad.precioNegociado || 0;
     });
     return total;
@@ -83,7 +99,7 @@ const calcularPrecioTotal = (data: any) => {
   // Sumar precios de cocheras
   const cocheras = data.cocheras || [];
   if (cocheras.length > 0) {
-    cocheras.forEach((cochera: any) => {
+    cocheras.forEach((cochera: CocheraData) => {
       total += cochera.precioNegociado || 0;
     });
   }
@@ -104,37 +120,64 @@ export const step3Schema = z.object({
   monedaB: z.enum(["USD", "ARS"]),
   // Incluimos estos campos para poder validar el importe A contra el precio total
   precioNegociado: z.number(),
-  porcA: z.number().min(0).max(100).optional(),
-  impA: z.number().min(0).optional(),
-  monedaA: z.enum(["USD", "ARS"]).optional(),
-  monedaB: z.enum(["USD", "ARS"]).optional(), // Usually inferred/set
-
-  // Exchange Rate fields moved here
-  tcFuente: z.enum(["MEP", "BNA", "Acordado", "Otro"]).optional(),
-  tcValor: z.number().positive("El tipo de cambio debe ser mayor a 0").optional(),
-  fechaBaseCAC: z.string().min(1, "La fecha base CAC es requerida").optional(),
-}).refine(data => {
-  if (data.modoA === "porcentaje") {
-    return data.porcA !== undefined && data.porcA >= 0;
+  cocheras: z.array(itemSchema).optional(),
+  baulera: itemSchema.nullable().optional(),
+  // Nuevo campo para unidades múltiples
+  unidades: z.array(unidadSeleccionadaSchema).optional(),
+}).refine(
+  (data) => {
+    if (data.modoA === "importe") {
+      const precioTotal = calcularPrecioTotal(data as Partial<WizardData>);
+      return data.impA <= precioTotal;
+    }
+    return true;
+  },
+  {
+    message: "El importe A no puede superar el precio total",
+    path: ["impA"],
   }
-  return data.impA !== undefined && data.impA >= 0;
-}, {
-  message: "Debe ingresar un porcentaje o importe válido",
-  path: ["porcA"], // or impA
-});
+);
 
-// PAGO SCHEMA (Ahora Step 3 en UI, pero mantenemos el nombre variable step4Schema por conveniencia o renombramos)
-// Vamos a actualizar step4Schema para reflejar los nuevos campos de Pago
-// Schema for Step 4: Pago y Anticipos
-export const step4Schema = z.object({
-  tipoPago: z.enum(["contado", "financiado"]),
-
-  // Anticipos
-  anticipoArsA: z.number().min(0).optional(),
-  anticipoUsdA: z.number().min(0).optional(),
-  anticipoArsB: z.number().min(0).optional(),
-  anticipoUsdB: z.number().min(0).optional(),
-});
+export const step4Schema = z
+  .object({
+    tipoPago: z.enum(["contado", "financiado"]),
+    tcFuente: z.enum(["MEP", "BNA", "Acordado", "Otro"]),
+    tcValor: z.number().positive("El tipo de cambio debe ser mayor a 0"),
+    valorArsConIVA: z.number().min(0),
+    valorUsdConIVA: z.number().min(0),
+    anticipoArs: z.number().min(0),
+    anticipoUsd: z.number().min(0),
+    totalFinanciarArs: z.number().min(0),
+    totalFinanciarUsd: z.number().min(0),
+    // fechaFirmaBoleto eliminada
+    fechaBaseCAC: z.string().min(1, "La fecha base CAC es requerida"),
+  })
+  .refine(
+    (data) => {
+      // Solo validar anticipos si el pago es financiado
+      if (data.tipoPago === "financiado") {
+        return data.anticipoArs <= data.valorArsConIVA;
+      }
+      return true;
+    },
+    {
+      message: "El anticipo en ARS no puede superar el valor a financiar",
+      path: ["anticipoArs"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Solo validar anticipos si el pago es financiado
+      if (data.tipoPago === "financiado") {
+        return data.anticipoUsd <= data.valorUsdConIVA;
+      }
+      return true;
+    },
+    {
+      message: "El anticipo en USD no puede superar el valor a financiar",
+      path: ["anticipoUsd"],
+    }
+  );
 
 export const step5Schema = z.object({
   certificacionFirmas: z.number().min(0),
@@ -164,23 +207,23 @@ export const reglaFinanciacionSchema = z.object({
   moneda: z.enum(["USD", "ARS", "MIX"]),
   saldoFinanciar: z.number().min(0),
   numCuotas: z.number().int().min(0),
-  periodicidad: z.enum(["Mensual", "Trimestral", "Semestral", "Anual", "Pago Único"]),
+  periodicidad: z.string(), // Allow string to be safer, or keep enum if strict
   importeCuota: z.number().min(0),
-  primerVencimiento: z.string(),
-  ultimoVencimiento: z.string(),
-  valorBien: z.string(),
-  cargo: z.string(),
-  porcentajeDeudaTotal: z.number().min(0),
-  porcentajeDeudaParte: z.number().min(0),
-  activa: z.boolean(),
+  primerVencimiento: z.string().optional().or(z.literal("")),
+  ultimoVencimiento: z.string().optional().or(z.literal("")),
+  valorBien: z.string().optional().or(z.literal("")),
+  cargo: z.string().optional().or(z.literal("")),
+  porcentajeDeudaTotal: z.number().min(0).optional(),
+  porcentajeDeudaParte: z.number().min(0).optional(),
+  activa: z.boolean().optional().default(true),
 });
 
 export const step6Schema = z.object({
-  reglasFinanciacionA: z.array(reglaFinanciacionSchema),
-  reglasFinanciacionB: z.array(reglaFinanciacionSchema),
-  porcentajePagadoFechaPosesion: z.number().min(0).max(101),
-  totalFinanciarArs: z.number().min(0),
-  totalFinanciarUsd: z.number().min(0),
+  reglasFinanciacionA: z.array(reglaFinanciacionSchema).default([]),
+  reglasFinanciacionB: z.array(reglaFinanciacionSchema).default([]),
+  porcentajePagadoFechaPosesion: z.number().optional(), // Calculated field, ok if missing
+  totalFinanciarArs: z.number({ required_error: "El total a financiar en ARS es requerido" }).min(0),
+  totalFinanciarUsd: z.number({ required_error: "El total a financiar en USD es requerido" }).min(0),
   tcValor: z.number().positive().optional(),
   monedaB: z.string().optional(),
   monedaA: z.string().optional(),
@@ -255,7 +298,7 @@ export const step7Schema = z.object({
   formatoSalida: z.enum(["PDF", "XLSX"]),
 });
 
-const validateSchema = (schema: any, data: any) => {
+const validateSchema = <T>(schema: z.ZodType<T>, data: unknown) => {
   try {
     schema.parse(data);
     return { valid: true, errors: {} };
@@ -272,7 +315,7 @@ const validateSchema = (schema: any, data: any) => {
   }
 };
 
-export const validateStep = (step: number, data: any, tipoPago?: string) => {
+export const validateStep = (step: number, data: Partial<WizardData>, tipoPago?: string) => {
   try {
     switch (step) {
       case 6:
@@ -288,21 +331,12 @@ export const validateStep = (step: number, data: any, tipoPago?: string) => {
         step2Schema.parse(data);
         return { valid: true, errors: {} };
       case 2:
-        // Index 2 is now COMPOSICION, so use step3Schema
         step3Schema.parse(data);
         return { valid: true, errors: {} };
       case 3:
-        // Index 3 is now PAGO, so use step4Schema
         step4Schema.parse(data);
         return { valid: true, errors: {} };
       case 4:
-        // Index 4 might be IVA or Cargos depending on applicability.
-        // Calling code (Wizard.tsx) should know which schema to use? 
-        // Or we map strictly based on ID.
-        // Check Wizard.tsx logic: if IVA is present at index 4, it uses validateIVAStep manually.
-        // If IVA is NOT present, index 4 is Cargos.
-        // We should allow validateStep(4) to be Cargos (step5Schema).
-        // If it is IVA, default validation might fail if it tries step5Schema.
         step5Schema.parse(data);
         return { valid: true, errors: {} };
       case 5:

@@ -77,6 +77,12 @@ interface WrapperRequestOptions extends RequestInit {
    * Retorna ApiErrorResponse en lugar de lanzar excepción.
    */
   noThrow?: boolean;
+
+  /**
+   * Si true (default), lanza error si no hay sesión activa.
+   * Si false, permite requests sin sesión (para endpoints públicos).
+   */
+  requiresAuth?: boolean;
 }
 
 /**
@@ -106,19 +112,19 @@ export async function apiFetchWrapped<T>(
   endpoint: string,
   options?: WrapperRequestOptions
 ): Promise<T | ApiResponse<T> | ApiErrorResponse> {
-  const { raw, noThrow, ...fetchOptions } = options || {};
+  const { raw, noThrow, requiresAuth = true, ...fetchOptions } = options || {};
 
   // Obtener sesión con cache
   const session = await getCachedSession();
 
-  if (!session) {
+  if (!session && requiresAuth) {
     console.warn('No valid session found, redirecting to login');
     invalidateSessionCache();
     globalThis.location.href = '/login';
     throw new Error('Authentication required');
   }
 
-  const token = session.access_token;
+  const token = session?.access_token;
 
   // CSRF token para métodos mutadores
   const method = (fetchOptions?.method || 'GET').toUpperCase();
@@ -152,23 +158,24 @@ export async function apiFetchWrapped<T>(
 
     // Si raw=true, retornar respuesta completa
     if (raw) {
-      return data as any;
+      return data;
     }
 
     // Si noThrow=true y hay error, retornar error sin lanzar
     if (noThrow && !isSuccessResponse(data)) {
-      return data as any;
+      return data;
     }
 
     // Unwrappear automáticamente (puede lanzar error si success === false)
-    return unwrapResponse(data) as any;
+    return unwrapResponse(data);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Error de red, timeout, o parsing
+    const errorMessage = error instanceof Error ? error.message : 'Error de conexión';
     if (noThrow) {
       return {
         success: false,
-        message: error.message || 'Error de conexión',
+        message: errorMessage,
         statusCode: 0,
         metadata: {
           timestamp: new Date().toISOString(),
@@ -193,9 +200,9 @@ export async function apiGet<T>(
 /**
  * Helper: POST request con wrapper support
  */
-export async function apiPost<T>(
+export async function apiPost<T, B = Record<string, unknown>>(
   endpoint: string,
-  body?: any,
+  body?: B,
   options?: WrapperRequestOptions
 ): Promise<T> {
   return apiFetchWrapped<T>(endpoint, {
@@ -208,9 +215,9 @@ export async function apiPost<T>(
 /**
  * Helper: PATCH request con wrapper support
  */
-export async function apiPatch<T>(
+export async function apiPatch<T, B = Record<string, unknown>>(
   endpoint: string,
-  body?: any,
+  body?: B,
   options?: WrapperRequestOptions
 ): Promise<T> {
   return apiFetchWrapped<T>(endpoint, {
@@ -223,9 +230,9 @@ export async function apiPatch<T>(
 /**
  * Helper: PUT request con wrapper support
  */
-export async function apiPut<T>(
+export async function apiPut<T, B = Record<string, unknown>>(
   endpoint: string,
-  body?: any,
+  body?: B,
   options?: WrapperRequestOptions
 ): Promise<T> {
   return apiFetchWrapped<T>(endpoint, {

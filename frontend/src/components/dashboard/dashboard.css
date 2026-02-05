@@ -1,11 +1,23 @@
-/* Dashboard Header Styles - Visualescalcu Design */
+/* Dashboard Header Styles */
 .dashboard-header {
-    background: transparent;
-    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+    border-radius: 0.5rem;
     padding: 2rem;
     margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(30, 64, 175, 0.15);
     position: relative;
-    overflow: visible;
+    overflow: hidden;
+}
+
+.dashboard-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
 }
 
 .dashboard-header-content {
@@ -26,134 +38,172 @@
     height: 60px;
     width: auto;
     object-fit: contain;
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     transition: transform 0.2s ease;
 }
 
 .dashboard-logo:hover {
-    transform: scale(1.05);
+    transform: scale(1.02);
 }
 
 .dashboard-title-section {
-    color: hsl(var(--foreground));
+    color: white;
 }
 
 .dashboard-title {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 1.875rem;
+    font-weight: 600;
     margin: 0;
-    color: hsl(var(--foreground));
+    color: white;
     letter-spacing: -0.025em;
-    font-family: 'Manrope', sans-serif;
 }
 
 .dashboard-subtitle {
     margin: 0.25rem 0 0 0;
-    color: hsl(var(--muted-foreground));
+    opacity: 0.9;
     font-size: 0.9375rem;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .logout-button {
-    background: transparent;
-    border: 1px solid hsl(var(--border));
-    color: #fa6538;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: white;
     transition: all 0.2s ease;
-    font-weight: 600;
 }
 
 .logout-button:hover {
-    background: rgba(250, 101, 56, 0.1);
-    border-color: #fa6538;
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(250, 101, 56, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Stat Card Styles - Visualescalcu Design */
+/* Stat Card Styles */
 .stat-card {
-    border: 1px solid hsl(var(--border));
-    background: hsl(var(--card));
+    border: 1px solid #e5e7eb;
+    background: white;
     transition: all 0.2s ease;
     position: relative;
-    overflow: visible;
-    border-radius: 0.75rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border-radius: 0.5rem;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    transition: height 0.2s ease;
+}
+
+.stat-card-blue::before {
+    background: #2563eb;
+}
+
+.stat-card-green::before {
+    background: #059669;
+}
+
+.stat-card-orange::before {
+    background: #d97706;
+}
+
+.stat-card-purple::before {
+    background: #7c3aed;
+}
+
+.stat-card-red::before {
+    background: #dc2626;
 }
 
 .stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
 }
 
-.stat-card[style*="border-left-color"] {
-    border-left-width: 4px !important;
+.stat-card:hover::before {
+    height: 4px;
 }
 
 .stat-card-content {
-    padding: 1.25rem;
+    padding: 1.5rem;
 }
 
 .stat-card-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.75rem;
+    align-items: center;
+    margin-bottom: 1rem;
 }
 
-.stat-card-header .material-symbols-outlined {
-    font-size: 24px;
+.stat-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: transform 0.2s ease;
 }
 
-.stat-card:hover .stat-card-header .material-symbols-outlined {
-    transform: scale(1.1);
+.stat-card:hover .stat-card-icon {
+    transform: scale(1.05);
 }
 
 .stat-card-icon-blue {
-    color: hsl(var(--primary));
+    background: #2563eb;
+    color: white;
 }
 
 .stat-card-icon-green {
-    color: hsl(var(--success));
+    background: #059669;
+    color: white;
 }
 
-.stat-card-icon-orange,
-.stat-card-icon-amber {
-    color: hsl(var(--warning));
+.stat-card-icon-orange {
+    background: #d97706;
+    color: white;
 }
 
 .stat-card-icon-purple {
-    color: #7c3aed;
+    background: #7c3aed;
+    color: white;
 }
 
 .stat-card-icon-red {
-    color: hsl(var(--destructive));
+    background: #dc2626;
+    color: white;
 }
 
 .stat-trend {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
 }
 
 .stat-trend-up {
-    color: hsl(var(--success));
+    background: rgba(5, 150, 105, 0.1);
+    color: #047857;
 }
 
 .stat-trend-down {
-    color: hsl(var(--destructive));
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
 }
 
 .stat-card-body {
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
 }
 
 .stat-card-title {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: hsl(var(--muted-foreground));
+    color: #6b7280;
     margin: 0 0 0.5rem 0;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -162,15 +212,14 @@
 .stat-card-value {
     font-size: 1.875rem;
     font-weight: 700;
-    color: hsl(var(--foreground));
+    color: #111827;
     margin: 0;
     line-height: 1;
-    font-family: 'Manrope', sans-serif;
 }
 
 .stat-card-skeleton {
     height: 1.875rem;
-    background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--secondary)) 50%, hsl(var(--muted)) 100%);
+    background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s ease-in-out infinite;
     border-radius: 0.375rem;
@@ -195,18 +244,18 @@
     margin-bottom: 2rem;
 }
 
-/* Enhanced Table Styles - Visualescalcu Design */
+/* Enhanced Table Styles */
 .dashboard-table {
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     overflow: hidden;
     border: 1px solid hsl(var(--border));
-    background: hsl(var(--card));
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: transparent;
 }
 
 .dashboard-table tbody tr {
     transition: all 0.15s ease;
     border-bottom: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
 }
 
 .dashboard-table tbody tr:last-child {
@@ -214,7 +263,7 @@
 }
 
 .dashboard-table tbody tr:hover {
-    background: hsl(var(--secondary) / 0.5);
+    background: hsl(var(--muted) / 0.5);
 }
 
 /* Enhanced Tab Styles */

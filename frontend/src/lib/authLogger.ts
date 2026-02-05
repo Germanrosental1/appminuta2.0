@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { User } from '@supabase/supabase-js';
+import { apiPost, apiGet } from './api-wrapper-client';
 
 // Tipos de eventos de autenticación para el registro
 export type AuthEventType =
@@ -19,9 +20,6 @@ interface AuthLogEntry {
     details?: Record<string, any>;
     user_agent: string;
 }
-
-// URL base del backend API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * Obtiene el token JWT del usuario actual
@@ -44,28 +42,18 @@ export async function logAuthEvent(
         const token = await getAuthToken();
 
         // Si no hay token y el evento requiere autenticación, usar endpoint público
-        const endpoint = token ? '/api/auth/log' : '/api/auth/log-public';
+        const endpoint = token ? '/auth/log' : '/auth/log-public';
 
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-        };
-
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                eventType,
-                email: user?.email,
-                details,
-                userAgent: navigator.userAgent,
-            }),
+        await apiPost(endpoint, {
+            eventType,
+            email: user?.email,
+            details,
+            userAgent: navigator.userAgent,
+        }, {
+            requiresAuth: false, // El wrapper añadirá el token si existe en caché, pero no fallará si no hay sesión
+            noThrow: true
         });
 
-        if (!response.ok) { /* empty */ }
     } catch (error) { /* empty */ }
 }
 
@@ -78,25 +66,16 @@ export async function getRecentAuthEvents(
     limit: number = 5
 ): Promise<AuthLogEntry[]> {
     try {
-        const token = await getAuthToken();
-
-        if (!token) {
-            return [];
-        }
-
-        const response = await fetch(
-            `${API_BASE_URL}/api/auth/logs/${userId}?limit=${limit}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            }
+        // En este caso requerimos autenticación explícita
+        const result = await apiGet<{ events: AuthLogEntry[] }>(
+            `/auth/logs/${userId}?limit=${limit}`,
+            { requiresAuth: true, noThrow: true }
         );
 
-        if (!response.ok) { return []; }
-
-        const data = await response.json();
-        return data.events as AuthLogEntry[];
+        if (result && 'events' in result) {
+            return result.events;
+        }
+        return [];
     } catch (error) {
         return [];
     }
@@ -109,24 +88,14 @@ export async function getRecentAuthEvents(
  */
 export async function detectSuspiciousActivity(userId: string): Promise<boolean> {
     try {
-        const token = await getAuthToken();
-
-        if (!token) {
-            return false;
-        }
-
-        const response = await fetch(
-            `${API_BASE_URL}/api/auth/suspicious/${userId}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            }
+        const result = await apiGet<{ isSuspicious: boolean }>(
+            `/auth/suspicious/${userId}`,
+            { requiresAuth: true, noThrow: true }
         );
 
-        if (!response.ok) { return false; }
-
-        const data = await response.json();
-        return data.isSuspicious;
+        if (result && 'isSuspicious' in result) {
+            return result.isSuspicious;
+        }
+        return false;
     } catch (error) { return false; }
 }

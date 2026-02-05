@@ -99,6 +99,7 @@ export class MinutasService {
           UpdatedAt: true,
           users: { select: { email: true } },
           Proyectos: { select: { Nombre: true } },
+          Dato: true, // Include JSON data to extract details
         }
       }),
     ]);
@@ -109,12 +110,14 @@ export class MinutasService {
       Numero: '',
       Estado: m.Estado,
       Tipo: 'Venta',
-      ProyectoNombre: m.Proyectos?.Nombre || '',
-      ClienteRut: '',
-      ClienteNombre: '',
-      PrecioTotal: 0,
+      ProyectoNombre: m.Proyectos?.Nombre || (m.Dato as any)?.proyecto || '',
+      ClienteRut: (m.Dato as any)?.clienteRut || '',
+      ClienteNombre: (m.Dato as any)?.clienteNombre || '',
+      UnidadIdentificador: (m.Dato as any)?.unidadDescripcion || (m.Dato as any)?.unidad || 'Sin unidad',
+      PrecioTotal: (m.Dato as any)?.precioTotal || 0,
       CreatedAt: m.FechaCreacion,
       CreadoPor: m.users ? PrivacyHelpers.maskEmail(m.users.email) : 'unknown',
+      Dato: m.Dato, // Optionally include full Dato if frontend needs it, but derived fields are better
     }));
 
     return {

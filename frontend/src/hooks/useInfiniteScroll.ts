@@ -5,7 +5,7 @@ import type { MinutaDefinitiva } from '@/services/minutas';
 interface InfiniteScrollResult {
     data: MinutaDefinitiva[];
     isLoading: boolean;
-    error: any;
+    error: Error | null;
     hasMore: boolean;
     loadMore: () => void;
     totalItems: number;
@@ -18,7 +18,13 @@ interface InfiniteScrollResult {
  */
 export function useInfiniteScroll(pageSize: number = 20): InfiniteScrollResult {
     // Obtener todas las minutas (ya optimizado con React Query)
-    const { data: allMinutas = [], isLoading, error } = useAllMinutas();
+    // useAllMinutas returns paginated data, extract the data array
+    const { data: paginatedData, isLoading, error } = useAllMinutas(1, 1000); // Get all with large limit
+
+    // Extract the array from paginated response
+    const allMinutas = useMemo(() => {
+        return paginatedData?.data ?? [];
+    }, [paginatedData]);
 
     // Estado de cuántas páginas mostrar
     const [visiblePages, setVisiblePages] = useState(1);
@@ -56,3 +62,4 @@ export function useInfiniteScroll(pageSize: number = 20): InfiniteScrollResult {
         loadedItems: visibleData.length,
     };
 }
+

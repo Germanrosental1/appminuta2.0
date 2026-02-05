@@ -65,14 +65,6 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Colores adicionales de visualescalcu
-        "background-light": "#f6f6f8",
-        "background-dark": "#111621",
-        "card-dark": "#1a2233",
-        "input-dark": "#111621",
-        "text-muted": "#92a4c8",
-        "border-dark": "#334366",
-        "border-darker": "#242f47",
       },
       fontFamily: {
         display: ["Manrope", "sans-serif"],

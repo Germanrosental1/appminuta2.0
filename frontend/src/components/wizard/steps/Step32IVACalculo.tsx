@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import { Calculator, Percent } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
 export const Step32IVACalculo: React.FC = () => {
@@ -41,8 +40,8 @@ export const Step32IVACalculo: React.FC = () => {
     }, [data]);
 
     const handlePercentageChange = (value: string) => {
-        const num = parseFloat(value);
-        if (!isNaN(num) && num >= 0 && num <= 100) {
+        const num = Number.parseFloat(value);
+        if (!Number.isNaN(num) && num >= 0 && num <= 100) {
             updateData({ porcentajeIVA: num });
         } else if (value === "") {
             updateData({ porcentajeIVA: 0 });

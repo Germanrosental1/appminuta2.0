@@ -3,31 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useAuth } from '@/hooks/useAuth';
 
+import { getHomePathForRoles } from '@/utils/roleUtils';
+
 export const LoginPage: React.FC = () => {
   const { user, loading, refreshRoles } = useAuth();
   const navigate = useNavigate();
   const [verifyingRoles, setVerifyingRoles] = useState(false);
   const hasRedirected = useRef(false);
-
-  // Helper function to check if user has a specific role
-  const hasRole = (roles: Array<{ nombre: string }>, roleName: string): boolean => {
-    return roles.some(r => r.nombre === roleName);
-  };
-
-  // Helper function to determine redirect path based on user roles
-  const getRedirectPath = (roles: Array<{ nombre: string }>): string => {
-    if (hasRole(roles, 'administrador')) {
-      return '/admin/dashboard';
-    } else if (hasRole(roles, 'comercial')) {
-      return '/comercial/dashboard';
-    } else if (hasRole(roles, 'firmante')) {
-      return '/firmante/dashboard';
-    } else if (hasRole(roles, 'viewer')) {
-      return '/viewer/dashboard';
-    } else {
-      return '/perfil-incompleto';
-    }
-  };
 
   // Handle redirect after role verification
   const performRedirect = async (currentUser: typeof user) => {
@@ -37,7 +19,7 @@ export const LoginPage: React.FC = () => {
 
     // FAST PATH: Use roles already in user object (from JWT)
     if (currentUser.roles && currentUser.roles.length > 0) {
-      const redirectPath = getRedirectPath(currentUser.roles);
+      const redirectPath = getHomePathForRoles(currentUser.roles as any[]);
       navigate(redirectPath, { replace: true });
       return;
     }
@@ -46,7 +28,7 @@ export const LoginPage: React.FC = () => {
     setVerifyingRoles(true);
     try {
       const roles = await refreshRoles(currentUser);
-      const redirectPath = getRedirectPath(roles);
+      const redirectPath = getHomePathForRoles(roles as any[]);
       navigate(redirectPath, { replace: true });
     } catch (error) {
       console.error('Error verifying roles:', error);

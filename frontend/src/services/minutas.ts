@@ -9,6 +9,8 @@ import {
   type EstadoMinuta
 } from '@/schemas/minuta.schema';
 
+
+
 export interface MinutaProvisoria {
   Id?: string;
   Proyecto: string;
@@ -20,14 +22,6 @@ export interface MinutaProvisoria {
   Comentario?: string;
 }
 
-// Extended type for backwards compatibility with snake_case fields
-export type LegacyWizardData = WizardData & {
-  unidad_id?: string;
-  proyecto_id?: string;
-  unidadCodigo?: string;
-  [key: string]: unknown; // Allow other legacy fields safely
-};
-
 export interface MinutaDefinitiva {
   Id: string;
   Numero: string;
@@ -35,6 +29,8 @@ export interface MinutaDefinitiva {
   Tipo: string;
   ProyectoId: string;
   ProyectoNombre: string;
+  Proyecto?: string; // Alias para ProyectoNombre en algunos contextos
+  Proyectos?: { nombre?: string }; // Relación con proyecto expandida
   UnidadId?: string | null;
   UnidadIdentificador?: string | null;
   ClienteRut: string;
@@ -43,10 +39,20 @@ export interface MinutaDefinitiva {
   CreadoPor: string;
   CreatedAt: string;
   UpdatedAt: string;
+  FechaCreacion?: string; // Alias para CreatedAt en algunos contextos
   Comentario?: string | null;
-  ClienteInteresadoDni?: number; // Para entrada o compatibilidad
-  // Campos extra opcionales para compatibilidad temporal si son necesarios en UI
-  Dato?: LegacyWizardData | null;
+  ClienteInteresadoDni?: number;
+  // Relación con usuario
+  users?: { email?: string };
+  // Datos del wizard y mapa de ventas
+  Dato?: WizardData;
+  DatoMapaVenta?: Record<string, unknown>;
+  Dato_mapa_ventas?: Record<string, unknown>; // Deprecated: alias for compatibility if needed, but should be removed
+}
+
+export interface DatosMapaVentas {
+  id: string;
+  [key: string]: unknown;
 }
 
 export { ValidationError } from '@/utils/validateRequest';
@@ -89,7 +95,7 @@ export async function getMinutaProvisoriaById(id: string) {
 // Actualizar el estado de una minuta provisoria
 export async function actualizarEstadoMinutaProvisoria(
   id: string,
-  estado: 'pendiente' | 'revisada' | 'aprobada' | 'rechazada',
+  estado: 'revisada' | 'aprobada' | 'rechazada',
   comentarios?: string
 ) {
   return apiPatch<MinutaProvisoria>(`/minutas/provisoria/${id}`, {
@@ -187,7 +193,7 @@ export async function actualizarEstadoMinutaDefinitiva(
 }
 
 // Actualizar los datos de una minuta definitiva (CON VALIDACIÓN)
-export async function actualizarDatosMinutaDefinitiva(id: string, datosActualizados: Partial<MinutaDefinitiva>) {
+export async function actualizarDatosMinutaDefinitiva(id: string, datosActualizados: Partial<WizardData>) {
   // 1. VALIDAR el ID
   if (!id || typeof id !== 'string') {
     throw new ValidationError('ID inválido', [
@@ -201,11 +207,11 @@ export async function actualizarDatosMinutaDefinitiva(id: string, datosActualiza
 }
 
 // Obtener datos del mapa de ventas para una unidad específica
-export async function getDatosMapaVentasByUnidadId(unidadId: string) {
+export async function getDatosMapaVentasByUnidadId(unidadId: string): Promise<DatosMapaVentas | null> {
   // 1. Siempre intentar buscar por ID directo primero (UUID o numérico)
   // Esto asume que el backend tiene un endpoint GET /unidades/:id que maneja esto
   try {
-    const dataById = await apiGet<any>(`/unidades/${unidadId}`);
+    const dataById = await apiGet<DatosMapaVentas>(`/unidades/${unidadId}`);
     if (dataById) return dataById;
   } catch (e) {
     // Ignorar error 404/500 y continuar con siguiente estrategia
@@ -213,17 +219,19 @@ export async function getDatosMapaVentasByUnidadId(unidadId: string) {
   }
 
   // 2. Intenta buscar por nrounidad
-  const dataByNro = await apiGet<any[]>(`/unidades?nrounidad=${encodeURIComponent(unidadId)}`);
+  const dataByNro = await apiGet<DatosMapaVentas[]>(`/unidades?nrounidad=${encodeURIComponent(unidadId)}`);
   if (dataByNro && dataByNro.length > 0) return dataByNro[0];
 
   // 3. Intenta buscar por sectorid
-  const dataBySector = await apiGet<any[]>(`/unidades?sectorid=${encodeURIComponent(unidadId)}`);
+  const dataBySector = await apiGet<DatosMapaVentas[]>(`/unidades?sectorid=${encodeURIComponent(unidadId)}`);
   if (dataBySector && dataBySector.length > 0) return dataBySector[0];
 
   return null;
 }
 
 // ⚡ OPTIMIZACIÓN: Batch endpoint para obtener múltiples unidades en 1 request
+// interface DatosMapaVentas removed (now exported at top)
+
 export async function getDatosMapaVentasBatch(unidadIds: string[]) {
   if (!unidadIds.length) return [];
 
@@ -232,7 +240,7 @@ export async function getDatosMapaVentasBatch(unidadIds: string[]) {
     const validIds = unidadIds.filter(id => id && isValidUUID(id));
     if (!validIds.length) return [];
 
-    const data = await apiGet<any[]>(`/unidades/batch?ids=${validIds.join(',')}`);
+    const data = await apiGet<DatosMapaVentas[]>(`/unidades/batch?ids=${validIds.join(',')}`);
     return data || [];
   } catch (error) {
     console.error('Error fetching batch unidades:', error);
@@ -245,11 +253,14 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id
   try {
     // Obtener unidad_id de la primera unidad seleccionada
     const primeraUnidad = minuta.Dato?.unidades?.[0];
-    const unidadId = primeraUnidad?.id || minuta.Dato?.unidad_id || null;
+    const unidadId = primeraUnidad?.id || minuta.Dato?.unidad || (minuta.Dato as any)?.unidad_id || null;
 
-    let proyectoId = null;
-    if (minuta.Dato?.proyecto_id && isValidUUID(minuta.Dato.proyecto_id)) {
-      proyectoId = minuta.Dato.proyecto_id;
+    let proyectoId: string | null = null;
+    const datoAny = minuta.Dato as any;
+    if (minuta.Dato?.proyecto && typeof minuta.Dato.proyecto === 'string' && isValidUUID(minuta.Dato.proyecto)) {
+      proyectoId = minuta.Dato.proyecto;
+    } else if (datoAny?.proyecto_id && typeof datoAny.proyecto_id === 'string' && isValidUUID(datoAny.proyecto_id)) {
+      proyectoId = datoAny.proyecto_id;
     }
 
     // ⚡ OPTIMIZACIÓN: Obtener datos del mapa de ventas con batch (1 request vs N requests)
@@ -258,15 +269,15 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id
     try {
       const unidades = minuta.Dato?.unidades || [];
 
-      if (unidades.length > 0) {
+      if (Array.isArray(unidades) && unidades.length > 0) {
         // ⚡ BATCH: Extraer todos los IDs y hacer UNA sola request
         const unidadIds = unidades.map((u: { id: string }) => u.id).filter(Boolean);
 
         const batchData = await getDatosMapaVentasBatch(unidadIds);
 
         // Mapear resultados con metadatos adicionales
-        datosMapaVentas = batchData.map((data: Record<string, unknown>) => {
-          const unidadOriginal = unidades.find((u: { id: string, descripcion?: string }) => u.id === data.id);
+        datosMapaVentas = batchData.map((data) => {
+          const unidadOriginal = unidades.find((u: { id: string }) => u.id === data.id);
           return {
             ...data,
             _unidad_id: data.id,
@@ -276,7 +287,8 @@ export async function guardarMinutaDefinitiva(minuta: Omit<MinutaDefinitiva, 'Id
 
       } else {
         // Caso: Sin array de unidades (legacy o single unit directa)
-        const unidadCodigo = unidadId || minuta.Dato?.unidadCodigo || (minuta.Dato?.unidad as any)?.codigo || '';
+        const dato = minuta.Dato as any;
+        const unidadCodigo = unidadId || dato?.unidadCodigo || dato?.unidad?.codigo || '';
 
         if (unidadCodigo) {
           const data = await getDatosMapaVentasByUnidadId(unidadCodigo);
@@ -317,7 +329,7 @@ function isValidUUID(str: string): boolean {
 }
 
 // Conformar una minuta provisoria con el mapa de ventas
-export async function conformarMinutaConMapaVentas(minutaId: string, datosConformacion: LegacyWizardData) {
+export async function conformarMinutaConMapaVentas(minutaId: string, datosConformacion: Record<string, unknown>) {
   return apiPatch<MinutaProvisoria>(`/minutas/provisoria/${minutaId}`, {
     datos_conformacion: datosConformacion,
     estado: 'revisada',
@@ -401,3 +413,5 @@ export async function getMinutasDefinitivas() {
 }
 
 
+
+export { type EstadoMinuta } from '@/schemas/minuta.schema';

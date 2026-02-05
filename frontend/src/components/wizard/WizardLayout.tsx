@@ -1,12 +1,12 @@
 import React from "react";
 import { useWizard } from "@/context/WizardContext";
-import { useAuth } from "@/hooks/useAuth";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Home } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
+import { validateStep } from "@/utils/validation";
 interface WizardLayoutProps {
   children: React.ReactNode;
   onNext?: () => boolean;
@@ -18,49 +18,25 @@ interface WizardLayoutProps {
 
 // Definir títulos base
 const TITLES_BASE = [
-  "Proyecto y Unidad",
-  "Propietarios",
-  "Precio y Forma de Pago",
-  "Condiciones",
-  "Observaciones",
-  "Revisión",
-  "Firmas",
-  "Generar",
+  "Proyecto & Unidad",
+  "Acuerdo Comercial",
+  "Estructura de Pago",
+  "Forma de Pago",
+  "Cargos & Extras",
+  "Reglas de Financiación F/SB",
+  "Datos del Cliente",
+  "Resumen",
 ];
 
 const TITLES_CONTADO = [
-  "Proyecto y Unidad",
-  "Propietarios",
-  "Precio y Forma de Pago",
-  "Condiciones",
-  "Observaciones",
-  "Revisión",
-  "Firmas",
+  "Proyecto & Unidad",
+  "Acuerdo Comercial",
+  "Estructura de Pago",
+  "Forma de Pago",
+  "Cargos & Extras",
+  "Datos del Cliente",
+  "Resumen",
 ];
-
-// Iconos para cada paso
-const STEP_ICONS = [
-  "apartment",      // Proyecto y Unidad
-  "group",          // Propietarios
-  "payments",       // Precio y Forma de Pago
-  "gavel",          // Condiciones
-  "description",    // Observaciones
-  "rate_review",    // Revisión
-  "draw",           // Firmas
-  "task",           // Generar
-];
-
-// Descripciones para cada paso
-const STEP_DESCRIPTIONS: Record<string, string> = {
-  "Proyecto y Unidad": "Selecciona el contexto del proyecto y agrega las unidades (departamentos, estacionamientos, bodegas) que formarán parte de la minuta.",
-  "Propietarios": "Define los propietarios y sus porcentajes de participación en cada unidad.",
-  "Precio y Forma de Pago": "Establece el precio de venta y las condiciones de pago acordadas.",
-  "Condiciones": "Especifica las condiciones particulares y cláusulas del acuerdo.",
-  "Observaciones": "Agrega observaciones adicionales o comentarios relevantes para la operación.",
-  "Revisión": "Revisa y verifica toda la información ingresada antes de continuar.",
-  "Firmas": "Obtén las firmas digitales de las partes involucradas.",
-  "Generar": "Genera y descarga el documento final de la minuta.",
-};
 
 // WizardLayout component definition
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -71,8 +47,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   finalStep = false,
   isEditMode = false,
 }) => {
-  const { currentStep, setCurrentStep, resetWizard, data } = useWizard();
-  const { user } = useAuth();
+  const { currentStep, setCurrentStep, resetWizard, data, maxStepReached } = useWizard();
 
   // Determine array based on payment type
   const titles = data.tipoPago === "contado" ? [...TITLES_CONTADO] : [...TITLES_BASE];
@@ -84,6 +59,10 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
   // Calculate progress
   const progress = ((currentStep + 1) / titles.length) * 100;
+
+  // Validate current step
+  const stepValidation = validateStep(currentStep, data, data.tipoPago);
+  const isStepValid = stepValidation.valid;
 
   const handleBack = () => {
     if (isEditMode && currentStep === 1) {
@@ -99,6 +78,11 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   };
 
   const handleNext = () => {
+    if (!isStepValid) {
+      toast.error("Por favor complete los campos requeridos antes de avanzar");
+      return;
+    }
+
     if (onNext) {
       const canProceed = onNext();
       if (canProceed && currentStep < titles.length - 1) {
@@ -109,79 +93,106 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
     }
   };
 
-  const userName = user?.Nombre && user?.Apellido ? `${user.Nombre} ${user.Apellido}` : user?.email || 'Usuario';
-  const userRole = user?.Roles?.Nombre || 'Agente Inmobiliario';
+  const handleReset = () => {
+    if (globalThis.confirm('¿Estás seguro de que quieres reiniciar toda la minuta comercial? Todos los datos se perderán.')) {
+      resetWizard();
+      toast.success("Minuta comercial reiniciada correctamente");
+    }
+  };
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Sidebar Steps (Desktop) */}
-      <aside className="hidden w-64 flex-col border-r border-border bg-[#1a2233] lg:flex">
-        <div className="flex h-full flex-col justify-between p-4">
-          <div className="flex flex-col gap-4">
-            {/* Logo/Header */}
-            <div className="flex flex-col gap-1 mb-4 px-2">
-              <h1 className="text-white text-lg font-bold leading-tight">Gestión Inmobiliaria</h1>
-              <p className="text-muted-foreground text-xs font-normal leading-normal">Asistente de Minutas</p>
-            </div>
+      <aside className="hidden w-80 flex-col border-r border-border bg-card p-6 lg:flex">
+        <div className="mb-8 flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold text-foreground">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
+              <span className="material-symbols-outlined text-lg">apartment</span>
+            </span>
+            <span>AppMinuta</span>
+          </Link>
+        </div>
 
-            {/* Navigation Steps */}
-            <nav className="flex flex-col gap-2">
-              {titles.map((title, index) => {
-                const isActive = currentStep === index;
-                const isCompleted = index < currentStep;
-                const icon = STEP_ICONS[index] || "circle";
+        <div className="flex-1 overflow-y-auto pr-2">
+          <div className="space-y-1">
+            {titles.map((title, index) => {
+              const isActive = currentStep === index;
+              const isCompleted = index < currentStep || index < maxStepReached;
 
-                return (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      if (isEditMode && index === 0) {
-                        toast.error("En modo edición no puedes cambiar el proyecto/unidad");
-                        return;
-                      }
+              return (
+                <div
+                  key={index}
+                  onClick={() => {
+                    if (isEditMode && index === 0) {
+                      toast.error("En modo edición no puedes cambiar el proyecto/unidad");
+                      return;
+                    }
+                    // Prevent skipping steps if current is invalid, unless going back
+                    if (index > currentStep && !isStepValid) {
+                      toast.error("Complete el paso actual antes de avanzar");
+                      return;
+                    }
+                    // Allow navigation if previously reached (handled by maxStepReached logic in UI) 
+                    // BUT explicitly enforce sequential validation for forward jumps effectively blocked by logic above + maxStepReached implicitly
+                    // Just set step if allowed
+                    if (index <= maxStepReached || (index === currentStep + 1 && isStepValid)) {
                       setCurrentStep(index);
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium leading-normal transition-colors",
-                      isActive
-                        ? "bg-primary text-white"
-                        : isCompleted
-                          ? "text-muted-foreground hover:bg-secondary hover:text-white"
-                          : "text-muted-foreground hover:bg-secondary hover:text-white"
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 cursor-pointer",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-blue-500/20"
+                      : isCompleted
+                        ? "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        : "text-muted-foreground/70 hover:text-foreground"
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all",
+                    isActive
+                      ? "border-background bg-background text-primary"
+                      : isCompleted
+                        ? "border-green-500 bg-green-500 text-white"
+                        : "border-muted-foreground/30 bg-transparent text-muted-foreground"
+                  )}>
+                    {isCompleted ? (
+                      <span className="material-symbols-outlined text-sm font-bold">check</span>
+                    ) : (
+                      <span className="text-xs font-bold">{index + 1}</span>
                     )}
-                  >
-                    <span className="material-symbols-outlined text-[24px]">{icon}</span>
-                    <span>{title}</span>
-                  </button>
-                );
-              })}
-            </nav>
+                  </div>
+                  <span className="font-semibold">{title}</span>
+                </div>
+              );
+            })}
           </div>
+        </div>
 
-          {/* User Info at Bottom */}
-          <div className="flex items-center gap-3 px-2 py-3 border-t border-border">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white text-sm font-bold">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex flex-col overflow-hidden">
-              <p className="text-white text-sm font-medium leading-tight truncate">{userName}</p>
-              <p className="text-muted-foreground text-xs leading-tight truncate">{userRole}</p>
-            </div>
-          </div>
+        {/* Bottom Actions */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            onClick={handleReset}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reiniciar Minuta
+          </Button>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden relative">
         {/* Background Gradients */}
-        <div className="absolute inset-0 z-0 pointer-events-none bg-[#0f131a]">
+        <div className="absolute inset-0 z-0 pointer-events-none bg-background">
           <div className="absolute top-0 right-0 h-[500px] w-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
         </div>
 
         {/* Mobile Header (visible only on small screens) */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-[#111622] px-4 lg:hidden z-20">
-          <span className="font-bold text-white">Paso {currentStep + 1}: {titles[currentStep]}</span>
-          <span className="text-xs text-slate-400">{Math.round(progress)}%</span>
+        <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:hidden z-20">
+          <span className="font-bold text-foreground">Paso {currentStep + 1}: {titles[currentStep]}</span>
+          <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
         </header>
 
         {/* Scrollable Content */}
@@ -191,36 +202,27 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               <Progress value={progress} className="h-2 w-full" />
             </div>
 
-            {/* Header Section */}
-            <div className="mb-8">
-              <div className="mb-3">
-                <span className="text-primary text-sm font-semibold tracking-wide uppercase">
-                  PASO {currentStep + 1} DE {titles.length}
-                </span>
-              </div>
-              <h1 className="text-white text-3xl md:text-4xl font-extrabold tracking-tight font-display mb-3">
-                {titles[currentStep]}
-              </h1>
-              {STEP_DESCRIPTIONS[titles[currentStep]] && (
-                <p className="text-muted-foreground text-base font-medium max-w-3xl">
-                  {STEP_DESCRIPTIONS[titles[currentStep]]}
-                </p>
-              )}
+            <div className="mb-8 hidden lg:block">
+              <h2 className="text-3xl font-display font-bold text-foreground mb-2">{titles[currentStep]}</h2>
+              <p className="text-muted-foreground">Complete la información solicitada para avanzar.</p>
             </div>
 
-            {/* Content Card */}
-            {children}
+            <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border p-6 md:p-8 shadow-2xl relative overflow-hidden">
+              {/* Glow inside card */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-primary opacity-50"></div>
+              {children}
+            </div>
           </div>
         </main>
 
         {/* Footer Navigation (Sticky) */}
         {!hideNavigation && (
-          <footer className="h-20 border-t border-[#334366] bg-[#111622] px-8 flex items-center justify-between z-20">
+          <footer className="h-20 border-t border-border bg-card px-8 flex items-center justify-between z-20">
             <Button
               variant="ghost"
               onClick={handleBack}
               disabled={currentStep === 0 || (isEditMode && currentStep === 1)}
-              className="text-[#92a4c8] hover:text-white hover:bg-white/5"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Volver
@@ -230,7 +232,8 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               {!finalStep && (
                 <Button
                   onClick={handleNext}
-                  className="h-12 bg-primary px-8 text-base font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-600 rounded-xl"
+                  disabled={!isStepValid}
+                  className="h-12 bg-primary px-8 text-base font-bold shadow-lg shadow-blue-500/20 hover:bg-primary/90 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Siguiente Paso
                   <ChevronRight className="w-4 h-4 ml-2" />

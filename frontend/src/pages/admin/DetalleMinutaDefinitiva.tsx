@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getMinutaDefinitivaById, actualizarEstadoMinutaDefinitiva, actualizarDatosMinutaDefinitiva } from '@/services/minutas';
+import { getMinutaDefinitivaById, actualizarEstadoMinutaDefinitiva, actualizarDatosMinutaDefinitiva, MinutaDefinitiva, DatosMapaVentas } from '@/services/minutas';
 import { ResumenCompleto } from '@/components/wizard/ResumenCompleto';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 import { MinutaEditarTab } from './components/MinutaEditarTab';
+import type { WizardData } from '@/types/wizard';
 
 type MinutaEstado = 'aprobada' | 'firmada' | 'cancelada';
 
@@ -35,8 +36,8 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [minuta, setMinuta] = useState<any>(null);
-  const [datosMapaVentas, setDatosMapaVentas] = useState<any>(null);
+  const [minuta, setMinuta] = useState<MinutaDefinitiva | null>(null);
+  const [datosMapaVentas, setDatosMapaVentas] = useState<DatosMapaVentas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [comentarios, setComentarios] = useState('');
@@ -46,7 +47,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
   // Estados para edición de datos
   const [editandoDatos, setEditandoDatos] = useState(false);
-  const [datosEditados, setDatosEditados] = useState<any>(null);
+  const [datosEditados, setDatosEditados] = useState<Partial<WizardData> | null>(null);
   const [guardandoDatos, setGuardandoDatos] = useState(false);
 
   // Hook de generación de PDF
@@ -72,10 +73,10 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
         }
 
         // Inicializar datos editados con los datos actuales
-        setDatosEditados(structuredClone(minutaData.Dato));
+        setDatosEditados(structuredClone(minutaData.Dato || null));
 
         // Obtener datos del mapa de ventas
-        setDatosMapaVentas(minutaData.Dato_mapa_ventas || null);
+        setDatosMapaVentas((minutaData.DatoMapaVenta || minutaData.Dato_mapa_ventas || null) as DatosMapaVentas | null);
 
       } catch (err) {
         setError('No se pudieron cargar los datos de la minuta');
@@ -92,7 +93,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
     try {
       setProcesando(true);
-      await actualizarEstadoMinutaDefinitiva(id, minuta.Estado, comentarios);
+      await actualizarEstadoMinutaDefinitiva(id, minuta.Estado as 'aprobada' | 'firmada' | 'cancelada', comentarios);
 
       toast({
         title: "Comentarios guardados",
@@ -100,7 +101,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       });
 
       // Actualizar el estado local
-      setMinuta((prev: any) => ({ ...prev, comentarios }));
+      setMinuta((prev) => prev ? { ...prev, Comentario: comentarios } : null);
 
     } catch (error) {
       toast({
@@ -119,15 +120,15 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
 
   const handleCancelarEdicion = () => {
     // Restaurar datos originales
-    setDatosEditados(structuredClone(minuta.Dato));
+    setDatosEditados(structuredClone(minuta.Dato || null));
     setEditandoDatos(false);
   };
 
-  const handleCambioDato = (campo: string, valor: any) => {
-    setDatosEditados((prev: any) => ({
+  const handleCambioDato = (campo: string, valor: unknown) => {
+    setDatosEditados((prev) => prev ? ({
       ...prev,
       [campo]: valor
-    }));
+    }) : null);
   };
 
   const handleGuardarDatos = async () => {
@@ -143,7 +144,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       });
 
       // Actualizar el estado local
-      setMinuta((prev: any) => ({ ...prev, datos: datosEditados }));
+      setMinuta((prev) => prev ? { ...prev, Dato: datosEditados as WizardData } : null);
       setEditandoDatos(false);
 
     } catch (error) {
@@ -175,7 +176,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
       });
 
       // Actualizar el estado local
-      setMinuta((prev: any) => ({ ...prev, estado: accionPendiente }));
+      setMinuta((prev) => prev ? { ...prev, Estado: accionPendiente } : null);
       setDialogOpen(false);
 
     } catch (error) {
@@ -190,7 +191,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   };
 
   const handleGenerarPDFClick = () => {
-    if (minuta?.proyecto) {
+    if (minuta?.Proyecto) {
       generarPDF(minuta.Proyecto);
     }
   };
@@ -233,7 +234,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
   };
 
   // Helper
-  const formatMapValue = (value: any): string => {
+  const formatMapValue = (value: unknown): string => {
     if (value === null || value === undefined) return '';
     if (typeof value === 'object') return JSON.stringify(value);
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -307,7 +308,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
                     </div>
                     <div>
                       <span className="font-medium">Fecha: </span>
-                      <span>{new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}</span>
+                      <span>{new Date(minuta.FechaCreacion || minuta.CreatedAt).toLocaleDateString('es-AR')}</span>
                     </div>
                   </div>
                 </CardDescription>
@@ -556,7 +557,7 @@ export const DetalleMinutaDefinitiva: React.FC = () => {
               <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold mb-2">Minuta Definitiva</h1>
                 <p className="text-lg">{minuta.Proyecto}</p>
-                <p className="text-sm">Fecha: {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}</p>
+                <p className="text-sm">Fecha: {new Date(minuta.FechaCreacion || minuta.CreatedAt).toLocaleDateString('es-AR')}</p>
                 <div className="inline-block mt-2">
                   {getEstadoBadge(minuta.Estado)}
                 </div>

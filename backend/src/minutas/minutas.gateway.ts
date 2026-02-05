@@ -22,7 +22,7 @@ interface MinutaEventPayload {
 @Injectable()
 @WebSocketGateway({
     cors: {
-        origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+        origin: process.env.FRONTEND_URL || 'https://localhost:8080',
         credentials: true,
     },
     namespace: '/minutas',

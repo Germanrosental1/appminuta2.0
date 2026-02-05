@@ -28,88 +28,96 @@ export class CsrfInterceptor implements NestInterceptor {
         const origins = process.env.NODE_ENV === 'production'
             ? (process.env.ALLOWED_ORIGINS?.split(',') || [])
             : [
-                'http://localhost:8080',
-                'http://localhost:8081',
-                'http://localhost:5173',
-                'http://localhost:3000',
+                'https://localhost:8080',
+                'https://localhost:8081',
+                'https://localhost:5173',
+                'https://localhost:3000',
             ];
         this.allowedOrigins = new Set(origins.map(o => o.trim().toLowerCase()));
     }
 
-    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
         const request = context.switchToHttp().getRequest();
         const response = context.switchToHttp().getResponse();
-        const method = request.method;
 
-        // Solo validar en operaciones de escritura
-        const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
-
-        if (writeMethods.includes(method)) {
-            // 🔒 SEGURIDAD: En producción, CSRF está HABILITADO por defecto
-            // Para deshabilitar explícitamente, usar CSRF_ENABLED=false
-            // 🛠️ En desarrollo: CSRF es opcional para facilitar el desarrollo
-            const isProduction = process.env.NODE_ENV === 'production';
-            const csrfEnabled = process.env.CSRF_ENABLED !== 'false';
-
-            // Obtener token de cookie y header
-            const cookieToken = request.cookies?.[this.CSRF_COOKIE_NAME];
-            const headerToken = request.headers[this.CSRF_HEADER_NAME];
-
-            // 🔓 EXCEPTION: Permitir bypass si hay Header de Autorización (Bearer Token)
-            const authHeader = request.headers['authorization'];
-            const hasBearerToken = authHeader?.startsWith('Bearer ');
-
-            // 🔓 EXCEPTION: Excluir explícitamente endpoints de importación/webhooks (n8n)
-            const isExcludedPath = request.url.includes('/unidades/import');
-
-            // 🔒 SEC-005 FIX: Even with Bearer token, validate Origin/Referer in production
-            // This provides defense-in-depth against stolen JWTs being used from malicious sites
-            if (isProduction && hasBearerToken && !isExcludedPath) {
-                const originValid = this.validateOriginOrReferer(request);
-                if (!originValid) {
-                    this.logger.warn(
-                        `SEC-005: Request with Bearer token from untrusted origin blocked. ` +
-                        `Origin: ${request.headers['origin'] || 'none'}, ` +
-                        `Referer: ${request.headers['referer'] || 'none'}, ` +
-                        `IP: ${request.ip}`
-                    );
-                    throw new UnauthorizedException(
-                        'Request origin not allowed. Possible CSRF attack detected.'
-                    );
-                }
-            }
-
-            // Validar CSRF en producción (habilitado por defecto)
-            // Solo si NO hay token Bearer Y NO es un path excluido
-            if (isProduction && csrfEnabled && !hasBearerToken && !isExcludedPath) {
-                // Validar que ambos existan y coincidan
-                if (!cookieToken || !headerToken) {
-                    throw new UnauthorizedException(
-                        'CSRF token missing. Please refresh the page.'
-                    );
-                }
-
-                if (cookieToken !== headerToken) {
-                    throw new UnauthorizedException(
-                        'CSRF token mismatch. Possible CSRF attack detected.'
-                    );
-                }
-            }
+        if (this.shouldValidateCsrf(request)) {
+            this.validateCsrf(request);
         }
 
         // Generar nuevo token para la respuesta (rotación)
         const newToken = this.generateToken();
-        response.cookie(this.CSRF_COOKIE_NAME, newToken, {
-            httpOnly: false, // Debe ser accesible por JavaScript
-            secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-            sameSite: 'strict',
-            maxAge: this.COOKIE_MAX_AGE,
-        });
-
-        // Agregar token al header de respuesta para que el frontend lo use
+        this.setCsrfCookie(response, newToken);
         response.setHeader('X-CSRF-Token', newToken);
 
         return next.handle();
+    }
+
+    private shouldValidateCsrf(request: any): boolean {
+        const method = request.method;
+        const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+        if (!writeMethods.includes(method)) return false;
+
+        // 🔓 EXCEPTION: Permitir bypass si hay Header de Autorización (Bearer Token)
+        // Pero aún así validamos Origin en producción (SEC-005)
+        const authHeader = request.headers['authorization'];
+        const hasBearerToken = authHeader?.startsWith('Bearer ');
+
+        // 🔓 EXCEPTION: Excluir explícitamente endpoints de importación/webhooks (n8n)
+        const isExcludedPath = request.url.includes('/unidades/import');
+
+        if (isExcludedPath) return false;
+
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        // 🔒 SEC-005 FIX: Even with Bearer token, validate Origin/Referer in production
+        if (isProduction && hasBearerToken) {
+            this.validateOriginForBearer(request);
+            return false; // Skip standard cookie check if bearer is valid and origin checked
+        }
+
+        // Si hay token bearer, saltamos la validación de cookie CSRF estándar
+        if (hasBearerToken) return false;
+
+        const csrfEnabled = process.env.CSRF_ENABLED !== 'false';
+        return isProduction && csrfEnabled;
+    }
+
+    private validateOriginForBearer(request: any) {
+        const originValid = this.validateOriginOrReferer(request);
+        if (!originValid) {
+            this.logger.warn(
+                `SEC-005: Request with Bearer token from untrusted origin blocked. ` +
+                `Origin: ${request.headers['origin'] || 'none'}, ` +
+                `Referer: ${request.headers['referer'] || 'none'}, ` +
+                `IP: ${request.ip}`
+            );
+            throw new UnauthorizedException(
+                'Request origin not allowed. Possible CSRF attack detected.'
+            );
+        }
+    }
+
+    private validateCsrf(request: any) {
+        const cookieToken = request.cookies?.[this.CSRF_COOKIE_NAME];
+        const headerToken = request.headers[this.CSRF_HEADER_NAME];
+
+        if (!cookieToken || !headerToken) {
+            throw new UnauthorizedException('CSRF token missing. Please refresh the page.');
+        }
+
+        if (cookieToken !== headerToken) {
+            throw new UnauthorizedException('CSRF token mismatch. Possible CSRF attack detected.');
+        }
+    }
+
+    private setCsrfCookie(response: any, token: string) {
+        response.cookie(this.CSRF_COOKIE_NAME, token, {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: this.COOKIE_MAX_AGE,
+        });
     }
 
     /**
@@ -118,7 +126,7 @@ export class CsrfInterceptor implements NestInterceptor {
      * - No Origin/Referer (server-to-server like n8n)
      * - Origin/Referer matches allowed origins
      */
-    private validateOriginOrReferer(request: any): boolean {
+    private validateOriginOrReferer(request: { headers: Record<string, string | undefined> }): boolean {
         const origin = request.headers['origin'];
         const referer = request.headers['referer'];
 

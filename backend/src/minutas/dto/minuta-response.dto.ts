@@ -156,6 +156,9 @@ export class MinutaListItemDto {
   @ApiProperty({ description: 'Cliente nombre' })
   ClienteNombre: string;
 
+  @ApiProperty({ description: 'Identificador de la unidad', nullable: true })
+  UnidadIdentificador: string | null;
+
   @ApiProperty({ description: 'Precio total', type: 'number' })
   PrecioTotal: number;
 

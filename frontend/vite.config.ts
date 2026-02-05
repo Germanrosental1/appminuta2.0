@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "node:path";
@@ -92,6 +93,15 @@ export default defineConfig(({ mode }) => ({
   // 🔒 SECURITY: Remove console logs in production
   esbuild: {
     drop: mode === "production" ? ["console", "debugger"] : [],
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+    },
   },
 }));
 

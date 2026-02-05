@@ -1,64 +1,32 @@
-import { expect, afterEach, vi } from 'vitest';
+import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import * as matchers from '@testing-library/jest-dom/matchers';
-import './mocks/server';
+import { afterEach, vi } from 'vitest';
 
-// Extend Vitest's expect with jest-dom matchers
-expect.extend(matchers);
-
-// Cleanup after each test
+// Runs a cleanup after each test case (e.g. clearing jsdom)
 afterEach(() => {
     cleanup();
 });
 
-// Mock window.location
-delete (globalThis as any).location;
-globalThis.location = {
-    href: '',
-    pathname: '/',
-    search: '',
-    hash: '',
-} as any;
+// Mock ResizeObserver for react-virtual
+globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+}));
 
-// Mock globalThis.location for api-client
-Object.defineProperty(globalThis, 'location', {
-    value: {
-        href: '',
-        pathname: '/',
+// Mock scrollTo (not implemented in JSDOM)
+Element.prototype.scrollTo = vi.fn();
+
+// Mock offsetHeight/offsetWidth for virtualization measurements
+Object.defineProperties(HTMLElement.prototype, {
+    offsetHeight: {
+        get() {
+            return Number.parseFloat(this.style.height) || 100;
+        },
     },
-    writable: true,
-});
-
-// Mock IntersectionObserver
- 
-globalThis.IntersectionObserver = class IntersectionObserver {
-    disconnect() { return; }
-    observe() { return; }
-    takeRecords() {
-        return [];
-    }
-    unobserve() { return; }
-} as any;
-
-// Mock ResizeObserver
- 
-globalThis.ResizeObserver = class ResizeObserver {
-    disconnect() { return; }
-    observe() { return; }
-    unobserve() { return; }
-} as any;
-
-// Mock matchMedia
-Object.defineProperty(globalThis, 'matchMedia', {
-    writable: true,
-    value: vi.fn().mockImplementation((query) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-    })),
+    offsetWidth: {
+        get() {
+            return Number.parseFloat(this.style.width) || 100;
+        },
+    },
 });

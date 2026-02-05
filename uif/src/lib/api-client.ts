@@ -6,7 +6,7 @@ import {
     unwrapResponse
 } from '../types/api-response.types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:3000';
 
 export class ApiError extends Error {
     constructor(public status: number, message: string) {

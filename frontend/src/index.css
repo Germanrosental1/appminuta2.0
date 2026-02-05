@@ -8,7 +8,8 @@
   color: #000;
   background-color: #fff;
   padding: 20px;
-  max-width: 210mm; /* Ancho A4 */
+  max-width: 210mm;
+  /* Ancho A4 */
 }
 
 .pdf-content h2 {
@@ -25,8 +26,9 @@
 
 /* Evitar que los elementos se corten entre páginas */
 @media print {
+
   .pdf-content .card,
-  .pdf-content .grid > div {
+  .pdf-content .grid>div {
     page-break-inside: avoid;
   }
 }
@@ -37,28 +39,28 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Light Mode - Siguiendo visualescalcu */
-    /* Background: #f6f6f8 -> HSL 240 14% 97% */
-    --background: 240 14% 97%;
-    --foreground: 215 20% 15%;
+    --background: 210 20% 98%;
+    /* Light Grey Background */
+    --foreground: 218 27% 8%;
+    /* Dark Mode Background Color #0f131a */
 
     --card: 0 0% 100%;
-    --card-foreground: 215 20% 15%;
+    --card-foreground: 218 27% 8%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 215 20% 15%;
 
-    /* Primary: #2463eb -> HSL 221 84% 53% */
-    --primary: 221 84% 53%;
+    --primary: 214 95% 48%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 15% 95%;
     --secondary-foreground: 215 20% 15%;
 
     --muted: 210 15% 96%;
-    --muted-foreground: 215 15% 45%;
+    --muted-foreground: 218 20% 40%;
+    /* Darker blue-grey for better readability */
 
-    --accent: 221 84% 53%;
+    --accent: 214 95% 48%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -70,9 +72,10 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 20% 88%;
+    --border: 220 13% 85%;
+    /* Slightly darker border for contrast */
     --input: 214 20% 88%;
-    --ring: 221 84% 53%;
+    --ring: 214 95% 48%;
 
     --radius: 0.5rem;
 
@@ -83,64 +86,56 @@ All colors MUST be HSL.
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 221 84% 53%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    /* Dark Mode - Exactamente como visualescalcu */
-    /* Background: #111621 -> HSL 220 33% 10% */
-    --background: 220 33% 10%;
-    --foreground: 210 20% 98%;
+    /* Background: #0f131a (Deep Dark) -> HSL 218 27% 8% */
+    --background: 218 27% 8%;
+    --foreground: 210 20% 95%;
 
     /* Card: #1a2233 -> HSL 221 33% 15% */
     --card: 221 33% 15%;
-    --card-foreground: 210 20% 98%;
+    --card-foreground: 210 20% 95%;
 
-    /* Popover igual a card */
     --popover: 221 33% 15%;
-    --popover-foreground: 210 20% 98%;
+    --popover-foreground: 210 20% 95%;
 
     /* Primary: #2463eb -> HSL 221 84% 53% */
     --primary: 221 84% 53%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: #242f47 -> HSL 221 33% 21% */
-    --secondary: 221 33% 21%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 215 20% 18%;
+    --secondary-foreground: 210 20% 95%;
 
-    /* Muted text: #92a4c8 -> HSL 221 41% 68% */
-    --muted: 221 33% 21%;
-    --muted-foreground: 221 41% 68%;
+    --muted: 215 20% 18%;
+    --muted-foreground: 215 15% 60%;
 
     --accent: 221 84% 53%;
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success: #0bda62 -> HSL 145 91% 45% */
-    --success: 145 91% 45%;
+    /* Success: #0bda62 -> HSL 145 90% 45% approx */
+    --success: 145 90% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning/Amber: #fbbf24 -> HSL 43 96% 56% */
-    --warning: 43 96% 56%;
-    --warning-foreground: 0 0% 0%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
     /* Border: #334366 -> HSL 221 33% 30% */
     --border: 221 33% 30%;
-    /* Input: igual a background para inputs dentro de cards */
-    --input: 220 33% 10%;
+    --input: 221 33% 30%;
 
     --ring: 221 84% 53%;
 
-    /* Sidebar usa mismo background oscuro */
-    --sidebar-background: 220 33% 10%;
-    --sidebar-foreground: 210 20% 98%;
+    --sidebar-background: 218 27% 8%;
+    --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 221 84% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 221 33% 21%;
-    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 221 33% 30%;
     --sidebar-ring: 221 84% 53%;
   }
@@ -152,82 +147,6 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground;
   }
-}
-
-/* Visualescalcu Design System - Effects & Utilities */
-@layer utilities {
-  /* Glow Effects */
-  .glow-primary {
-    box-shadow: 0 0 100px rgba(36, 99, 235, 0.1);
-  }
-
-  .glow-primary-strong {
-    box-shadow: 0 0 120px rgba(36, 99, 235, 0.15);
-  }
-
-  /* Background Gradients */
-  .bg-gradient-dark {
-    background: linear-gradient(to bottom right, #0f141e, #1a2233);
-  }
-
-  .bg-gradient-light {
-    background: linear-gradient(to bottom right, rgb(239 246 255), rgb(226 232 240));
-  }
-
-  /* Scrollbar Hide */
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  /* Shadow Effects like visualescalcu */
-  .shadow-card {
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  }
-
-  .shadow-button {
-    box-shadow: 0 4px 14px rgba(36, 99, 235, 0.2);
-  }
-
-  /* Input Focus Effects */
-  .input-focus {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all;
-  }
-
-  /* Material Symbol Icon Sizes */
-  .material-symbols-outlined {
-    font-variation-settings:
-      'FILL' 0,
-      'wght' 400,
-      'GRAD' 0,
-      'opsz' 24;
-  }
-
-  .material-symbols-outlined.filled {
-    font-variation-settings:
-      'FILL' 1,
-      'wght' 400,
-      'GRAD' 0,
-      'opsz' 24;
-  }
-}
-
-/* Dark mode optimizations */
-.dark {
-  color-scheme: dark;
-}
-
-/* Typography enhancements */
-h1, h2, h3, h4, h5, h6 {
-  @apply font-display;
-}
-
-body, p, span, div {
-  @apply font-sans;
 }

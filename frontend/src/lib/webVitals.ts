@@ -37,7 +37,7 @@ let callback: WebVitalsCallback | null = null;
  * @param onMetric Callback function to receive metrics
  */
 export function initWebVitals(onMetric?: WebVitalsCallback): void {
-    if (globalThis.window === undefined) return;
+    if (typeof window === 'undefined') return;
 
     callback = onMetric || defaultCallback;
 
@@ -58,12 +58,12 @@ export function initWebVitals(onMetric?: WebVitalsCallback): void {
 }
 
 function trackLCP(): void {
-    if (!('PerformanceObserver' in globalThis)) return;
+    if (!('PerformanceObserver' in window)) return;
 
     try {
         const observer = new PerformanceObserver((entryList) => {
             const entries = entryList.getEntries();
-            const lastEntry = entries.at(-1) as PerformanceEntry & { startTime: number };
+            const lastEntry = entries[entries.length - 1] as PerformanceEntry & { startTime: number };
 
             if (lastEntry && callback) {
                 const value = lastEntry.startTime;
@@ -82,7 +82,7 @@ function trackLCP(): void {
 }
 
 function trackFID(): void {
-    if (!('PerformanceObserver' in globalThis)) return;
+    if (!('PerformanceObserver' in window)) return;
 
     try {
         const observer = new PerformanceObserver((entryList) => {
@@ -106,7 +106,7 @@ function trackFID(): void {
 }
 
 function trackCLS(): void {
-    if (!('PerformanceObserver' in globalThis)) return;
+    if (!('PerformanceObserver' in window)) return;
 
     let clsValue = 0;
 
@@ -135,7 +135,7 @@ function trackCLS(): void {
 }
 
 function trackFCP(): void {
-    if (!('PerformanceObserver' in globalThis)) return;
+    if (!('PerformanceObserver' in window)) return;
 
     try {
         const observer = new PerformanceObserver((entryList) => {
@@ -159,7 +159,7 @@ function trackFCP(): void {
 }
 
 function trackTTFB(): void {
-    if (globalThis.window === undefined || !globalThis.performance) return;
+    if (typeof window === 'undefined' || !window.performance) return;
 
     // Wait for navigation timing to be available
     setTimeout(() => {

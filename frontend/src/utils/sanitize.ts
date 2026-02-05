@@ -79,7 +79,7 @@ const sanitizeStringValue = (key: string, value: string): string => {
 };
 
 // Helper para sanitizar cualquier valor basado en su tipo
-const sanitizeValue = (key: string, value: any): any => {
+const sanitizeValue = (key: string, value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
@@ -91,7 +91,7 @@ const sanitizeValue = (key: string, value: any): any => {
   if (Array.isArray(value)) {
     return value.map(item => {
       if (typeof item === 'object' && item !== null) {
-        return sanitizeObject(item);
+        return sanitizeObject(item as Record<string, unknown>);
       }
       if (typeof item === 'string') {
         return sanitizeString(item);
@@ -101,14 +101,14 @@ const sanitizeValue = (key: string, value: any): any => {
   }
 
   if (typeof value === 'object') {
-    return sanitizeObject(value);
+    return sanitizeObject(value as Record<string, unknown>);
   }
 
   return value;
 };
 
 // Sanitiza un objeto recursivamente
-export const sanitizeObject = <T extends Record<string, any>>(obj: T): T => {
+export const sanitizeObject = <T extends Record<string, unknown>>(obj: T): T => {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -116,23 +116,23 @@ export const sanitizeObject = <T extends Record<string, any>>(obj: T): T => {
   if (Array.isArray(obj)) {
     return obj.map(item => {
       if (typeof item === 'object' && item !== null) {
-        return sanitizeObject(item);
+        return sanitizeObject(item as Record<string, unknown>);
       }
       if (typeof item === 'string') {
         return sanitizeString(item);
       }
       return item;
-    }) as any;
+    }) as unknown as T;
   }
 
   if (typeof obj !== 'object') {
     if (typeof obj === 'string') {
-      return sanitizeString(obj) as any;
+      return sanitizeString(obj) as unknown as T;
     }
     return obj;
   }
 
-  const sanitized: any = {};
+  const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     const sanitizedKey = sanitizeString(key);
@@ -221,7 +221,7 @@ export const sanitizeFilePath = (path: string): string => {
   return path
     .replaceAll('..', '') // Remover ..
     .replaceAll(/\/+/g, '/') // Normalizar múltiples slashes
-    .replace(/^\/+/, '')  // Remover slashes iniciales (use replace, not replaceAll)
+    .replaceAll(/^\/+/, '')  // Remover slashes iniciales
     .trim();
 };
 
