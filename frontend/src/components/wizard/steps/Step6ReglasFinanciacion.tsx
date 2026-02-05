@@ -749,6 +749,10 @@ export const Step6ReglasFinanciacion: React.FC = () => {
   const haySaldoRestanteB = calcularSaldoRestanteB() > 0;
   const haySaldosPendientes = haySaldoRestanteA || haySaldoRestanteB;
 
+  const isFormValid = activeTab === "F"
+    ? !!(nuevaReglaA.saldoFinanciar && nuevaReglaA.numCuotas && nuevaReglaA.periodicidad && nuevaReglaA.moneda && nuevaReglaA.primerVencimiento)
+    : !!(nuevaReglaB.saldoFinanciar && nuevaReglaB.numCuotas && nuevaReglaB.periodicidad && nuevaReglaB.moneda && nuevaReglaB.primerVencimiento);
+
   return (
     <div className="flex flex-col gap-8 pb-24">
       {/* 3 Top Cards - Summary */}
@@ -917,10 +921,13 @@ export const Step6ReglasFinanciacion: React.FC = () => {
                 </div>
               </div>
 
+
+
               <div className="flex justify-end pt-4">
                 <Button
                   onClick={activeTab === "F" ? agregarReglaA : agregarReglaB}
-                  className={`w-full ${activeTab === "F" ? "bg-primary hover:bg-blue-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white font-medium py-2.5 h-auto`}
+                  disabled={!isFormValid}
+                  className={`w-full ${activeTab === "F" ? "bg-primary hover:bg-blue-600" : "bg-emerald-600 hover:bg-emerald-700"} text-white font-medium py-2.5 h-auto disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <PlusCircle className="mr-2 h-5 w-5" /> Guardar Regla
                 </Button>

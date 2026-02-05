@@ -11,6 +11,7 @@ interface WizardContextType {
   setGeneratedFile: (file: GeneratedFile | null) => void;
   setDemoMode: (demo: boolean) => void;
   resetWizard: () => void;
+  maxStepReached: number;
 }
 
 const WizardContext = createContext<WizardContextType | undefined>(undefined);
@@ -20,6 +21,7 @@ const WizardContext = createContext<WizardContextType | undefined>(undefined);
 export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [data, setData] = useState<WizardData>(initialWizardData);
   const [currentStep, setCurrentStep] = useState(0);
+  const [maxStepReached, setMaxStepReached] = useState(0);
   const [generatedFile, setGeneratedFile] = useState<GeneratedFile | null>(null);
   const [demoMode, setDemoMode] = useState(false);
 
@@ -32,7 +34,15 @@ export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const resetWizard = () => {
     setData(initialWizardData);
     setCurrentStep(0);
+    setMaxStepReached(0);
     setGeneratedFile(null);
+  };
+
+  const handleSetCurrentStep = (step: number) => {
+    setCurrentStep(step);
+    if (step > maxStepReached) {
+      setMaxStepReached(step);
+    }
   };
 
   // Efectos de auto-guardado y carga eliminados
@@ -42,12 +52,13 @@ export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     currentStep,
     generatedFile,
     demoMode,
+    maxStepReached,
     updateData,
-    setCurrentStep,
+    setCurrentStep: handleSetCurrentStep,
     setGeneratedFile,
     setDemoMode,
     resetWizard,
-  }), [data, currentStep, generatedFile, demoMode]);
+  }), [data, currentStep, generatedFile, demoMode, maxStepReached]);
 
   return (
     <WizardContext.Provider value={value}>

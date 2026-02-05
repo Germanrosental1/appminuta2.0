@@ -12,9 +12,11 @@ import {
     Sun
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/components/theme-provider';
 
 export const Sidebar = () => {
     const { signOut, user } = useAuth();
+    const { setTheme, theme } = useTheme();
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/comercial/dashboard', roles: ['comercial'] },
@@ -65,6 +67,18 @@ export const Sidebar = () => {
                         <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                     </div>
                 </div>
+
+                <Button
+                    variant="ghost"
+                    className="mb-2 w-full justify-start gap-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                    <div className="relative h-5 w-5">
+                        <Sun className="absolute h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    </div>
+                    {theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
+                </Button>
 
                 <Button
                     variant="ghost"

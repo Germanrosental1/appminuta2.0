@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { ResumenGrid } from "../ResumenGrid";
+import { ResumenCompleto } from "../ResumenCompleto";
 import { useWizard } from "@/context/WizardContext";
 import { ConfirmarGuardarMinutaDefinitiva } from "@/components/minutas/ConfirmarGuardarMinutaDefinitiva";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,7 @@ export const Step6Salida: React.FC = () => {
       </div>
 
       <div ref={resumenRef}>
-        <ResumenGrid data={data} />
+        <ResumenCompleto wizardData={data} />
       </div>
 
       {/* Botón de guardar movido al final */}

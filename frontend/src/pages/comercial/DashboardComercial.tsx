@@ -242,7 +242,7 @@ export const DashboardComercial: React.FC = () => {
               title="Pendientes"
               value={stats.pendientes}
               icon={Timer}
-              urgentCount={5} // Placeholder por ahora, idealmente vendría del backend
+
               variant="yellow"
             />
             <KPICard

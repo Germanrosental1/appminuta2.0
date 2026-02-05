@@ -1,5 +1,5 @@
 import { Sidebar } from './Sidebar';
-import { ModeToggle } from '@/components/mode-toggle';
+
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -10,10 +10,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         <div className="flex h-screen w-full overflow-hidden bg-background">
             <Sidebar />
             <main className="flex flex-1 flex-col overflow-hidden bg-background relative">
-                {/* Header with Mode Toggle */}
-                <div className="absolute top-4 right-8 z-50">
-                    <ModeToggle />
-                </div>
+
 
                 {/* Background Gradients for Dashboard Content */}
                 <div className="absolute inset-0 z-0 pointer-events-none">

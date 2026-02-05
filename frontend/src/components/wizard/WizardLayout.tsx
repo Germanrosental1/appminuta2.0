@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, RefreshCw, Home } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
+import { validateStep } from "@/utils/validation";
 interface WizardLayoutProps {
   children: React.ReactNode;
   onNext?: () => boolean;
@@ -47,7 +47,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   finalStep = false,
   isEditMode = false,
 }) => {
-  const { currentStep, setCurrentStep, resetWizard, data } = useWizard();
+  const { currentStep, setCurrentStep, resetWizard, data, maxStepReached } = useWizard();
 
   // Determine array based on payment type
   const titles = data.tipoPago === "contado" ? [...TITLES_CONTADO] : [...TITLES_BASE];
@@ -59,6 +59,10 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
   // Calculate progress
   const progress = ((currentStep + 1) / titles.length) * 100;
+
+  // Validate current step
+  const stepValidation = validateStep(currentStep, data, data.tipoPago);
+  const isStepValid = stepValidation.valid;
 
   const handleBack = () => {
     if (isEditMode && currentStep === 1) {
@@ -74,6 +78,11 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   };
 
   const handleNext = () => {
+    if (!isStepValid) {
+      toast.error("Por favor complete los campos requeridos antes de avanzar");
+      return;
+    }
+
     if (onNext) {
       const canProceed = onNext();
       if (canProceed && currentStep < titles.length - 1) {
@@ -108,7 +117,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
           <div className="space-y-1">
             {titles.map((title, index) => {
               const isActive = currentStep === index;
-              const isCompleted = index < currentStep;
+              const isCompleted = index < currentStep || index < maxStepReached;
 
               return (
                 <div
@@ -118,7 +127,17 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                       toast.error("En modo edición no puedes cambiar el proyecto/unidad");
                       return;
                     }
-                    setCurrentStep(index);
+                    // Prevent skipping steps if current is invalid, unless going back
+                    if (index > currentStep && !isStepValid) {
+                      toast.error("Complete el paso actual antes de avanzar");
+                      return;
+                    }
+                    // Allow navigation if previously reached (handled by maxStepReached logic in UI) 
+                    // BUT explicitly enforce sequential validation for forward jumps effectively blocked by logic above + maxStepReached implicitly
+                    // Just set step if allowed
+                    if (index <= maxStepReached || (index === currentStep + 1 && isStepValid)) {
+                      setCurrentStep(index);
+                    }
                   }}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 cursor-pointer",
@@ -213,7 +232,8 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               {!finalStep && (
                 <Button
                   onClick={handleNext}
-                  className="h-12 bg-primary px-8 text-base font-bold shadow-lg shadow-blue-500/20 hover:bg-primary/90 rounded-xl"
+                  disabled={!isStepValid}
+                  className="h-12 bg-primary px-8 text-base font-bold shadow-lg shadow-blue-500/20 hover:bg-primary/90 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Siguiente Paso
                   <ChevronRight className="w-4 h-4 ml-2" />
