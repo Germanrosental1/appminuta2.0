@@ -164,11 +164,19 @@ const routes: RouteObject[] = [
 const router = createBrowserRouter(routes);
 
 // Componente wrapper para inicializar CSRF
+const AppTitle = () => {
+  React.useEffect(() => {
+    document.title = "AppMinuta";
+  }, []);
+  return null;
+};
+
 const AppWrapper = () => {
   useCSRFProtection();
 
   return (
     <GlobalErrorBoundary>
+      <AppTitle />
       <Toaster />
       <Sonner />
       <MobileBlocker>

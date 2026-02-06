@@ -40,6 +40,7 @@ describe('UnidadesController', () => {
   const mockAuthorizationService = {
     getUserProjects: jest.fn(),
     getUserProjectsDetailed: jest.fn(),
+    getUserAccessInfo: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -76,6 +77,10 @@ describe('UnidadesController', () => {
       const expectedTypes = ['Type A', 'Type B'];
 
       mockUnidadesQueryService.getTipos.mockResolvedValue(expectedTypes);
+      // Mock admin user to skip project validation
+      mockAuthorizationService.getUserAccessInfo.mockResolvedValue({
+        UsuariosRoles: [{ Roles: { Nombre: 'superadminmv' } }]
+      });
       // Ensure getUserProjectsDetailed is NOT called to verify we skipped validation
       mockAuthorizationService.getUserProjectsDetailed.mockClear();
 

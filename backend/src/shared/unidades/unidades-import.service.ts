@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoggerService } from '../../logger/logger.service';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import axios from 'axios';
 import {
     PrismaTransaction,
@@ -20,10 +20,63 @@ export class UnidadesImportService {
     ) { }
 
     async importFromExcel(buffer: Buffer, user?: UserInfo) {
-        const workbook = XLSX.read(buffer, { type: 'buffer', raw: false });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const data: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { raw: false });
+        const workbook = new ExcelJS.Workbook();
+        // Cast to unknown first to avoid direct 'any', though essentially solving a type definition mismatch
+        await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+        const worksheet = workbook.worksheets[0];
+
+        if (!worksheet) {
+            throw new Error('El archivo Excel no contiene hojas de trabajo.');
+        }
+
+        const data: Record<string, unknown>[] = [];
+        let headers: string[] = [];
+
+        // Leer filas
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) {
+                // Header row
+                if (Array.isArray(row.values)) {
+                    // ExcelJS values array is 1-based, index 0 is empty/undefined usually
+                    const rowValues = row.values;
+                    headers = rowValues.slice(1).map(val => {
+                        if (val === null || val === undefined) return '';
+                        if (typeof val === 'object') {
+                            if ('text' in val) return String((val as any).text);
+                            if ('result' in val) return String((val as any).result);
+                            return JSON.stringify(val);
+                        }
+                        return String(val);
+                    });
+                }
+            } else {
+                // Data rows
+                const rowData: Record<string, unknown> = {};
+
+                if (Array.isArray(row.values)) {
+                    const rowValues = row.values;
+
+                    // Map values to headers
+                    headers.forEach((header, index) => {
+                        // ExcelJS arrays are 1-based
+                        let cellValue = rowValues[index + 1];
+
+                        // Manejar enlaces/fórmulas
+                        if (cellValue && typeof cellValue === 'object') {
+                            if ('text' in cellValue) {
+                                cellValue = (cellValue).text;
+                            } else if ('result' in cellValue) {
+                                cellValue = (cellValue as ExcelJS.CellFormulaValue).result;
+                            }
+                        }
+
+                        rowData[header] = cellValue;
+                    });
+                    data.push(rowData);
+                }
+            }
+        });
+
         this.log.log(`Importing ${data.length} rows from Excel`);
 
         const results = {

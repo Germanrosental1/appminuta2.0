@@ -47,6 +47,11 @@ export class MinutasService {
 
   // ==================== CREATE ====================
 
+  /**
+   * Creates a new finalized Minuta.
+   * @param createMinutaDto - Data for creating the minuta
+   * @param userId - ID of the user creating the minuta
+   */
   async create(createMinutaDto: CreateMinutaDto, userId: string) {
     return this.commandService.create(createMinutaDto, userId);
   }
@@ -61,6 +66,11 @@ export class MinutasService {
 
   // ==================== READ ====================
 
+  /**
+   * Retrieves a paginated list of minutas based on filters and user permissions.
+   * @param query - Filter and pagination options
+   * @param userId - ID of the requesting user
+   */
   async findAll(query: FindAllMinutasQueryDto, userId: string) {
     // Get cached permissions
     const { permissions: userPermissions, projectIds: userProjectIds } =
@@ -159,6 +169,13 @@ export class MinutasService {
     return where;
   }
 
+  /**
+   * Retrieves a single minuta by ID, verifying permissions.
+   * @param id - UUID of the minuta
+   * @param userId - ID of the requesting user
+   * @throws NotFoundException if minuta not found
+   * @throws ForbiddenException if user lacks access
+   */
   async findOne(id: string, userId: string) {
     const minuta = await this.prisma.minutasDefinitivas.findUnique({
       where: { Id: id },

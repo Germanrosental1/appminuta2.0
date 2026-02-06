@@ -86,7 +86,7 @@ export class ApiResponse<T> {
 
   @ApiProperty({
     description: 'Datos de la respuesta (tipo genérico)',
-    type: 'object' // Swagger no puede inferir el tipo genérico automáticamente
+    type: Object // Swagger no puede inferir el tipo genérico automáticamente
   })
   data: T;
 
@@ -151,7 +151,7 @@ export class ApiErrorResponse {
   @ApiProperty({
     description: 'Detalles adicionales del error (solo en desarrollo)',
     required: false,
-    type: 'object'
+    type: Object
   })
   details?: any;
 
