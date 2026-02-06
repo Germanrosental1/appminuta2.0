@@ -1,10 +1,7 @@
-import { expect, afterEach, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import * as matchers from '@testing-library/jest-dom/matchers';
 import './mocks/server';
-
-// Extend Vitest's expect with jest-dom matchers
-expect.extend(matchers);
 
 // Cleanup after each test
 afterEach(() => {
@@ -12,8 +9,8 @@ afterEach(() => {
 });
 
 // Mock window.location
-delete (window as any).location;
-window.location = {
+delete (globalThis as any).location;
+globalThis.location = {
   href: '',
   pathname: '/',
   search: '',
@@ -30,26 +27,25 @@ Object.defineProperty(globalThis, 'location', {
 });
 
 // Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
+// Mock IntersectionObserver
+globalThis.IntersectionObserver = class IntersectionObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
   takeRecords() {
     return [];
   }
-  unobserve() {}
+  unobserve = vi.fn();
 } as any;
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
+globalThis.ResizeObserver = class ResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
 } as any;
 
 // Mock matchMedia
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(globalThis, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
     matches: false,

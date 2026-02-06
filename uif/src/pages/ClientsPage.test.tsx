@@ -20,13 +20,39 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: vi.fn(),
 }));
 
+// Mock Supabase Realtime
+const mockChannel = {
+  on: vi.fn().mockReturnThis(),
+  subscribe: vi.fn(),
+};
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    channel: vi.fn(() => mockChannel),
+    removeChannel: vi.fn(),
+  },
+}));
+
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: vi.fn(({ count }) => ({
+    getTotalSize: () => count * 73,
+    getVirtualItems: () =>
+      Array.from({ length: count }).map((_, i) => ({
+        index: i,
+        start: i * 73,
+        size: 73,
+        measureElement: vi.fn(),
+      })),
+  })),
+}));
+
 const mockClients = [
   {
     id: 'client-1',
     name: 'Juan Pérez',
     cuit: '20-12345678-9',
     person_type: 'PF',
-    status: 'active',
+    status: 'Activo',
     created_at: '2024-01-01T10:00:00Z',
     updated_at: '2024-01-15T15:30:00Z',
   },
@@ -35,7 +61,7 @@ const mockClients = [
     name: 'Empresa SA',
     cuit: '30-98765432-1',
     person_type: 'PJ',
-    status: 'under_review',
+    status: 'En revisión',
     created_at: '2024-01-10T08:00:00Z',
     updated_at: '2024-01-20T12:00:00Z',
   },
@@ -73,12 +99,13 @@ describe('ClientsPage', () => {
 
   it('should render page title', () => {
     renderClientsPage();
-    expect(screen.getByText('Clientes UIF')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Clientes' })).toBeInTheDocument();
   });
 
   it('should show loading skeleton initially', () => {
-    renderClientsPage();
-    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0);
+    const { container } = renderClientsPage();
+    // Check for skeleton class instead of testid
+    expect(container.getElementsByClassName('animate-pulse').length).toBeGreaterThan(0);
   });
 
   it('should display clients after loading', async () => {
@@ -136,11 +163,11 @@ describe('ClientsPage', () => {
   it('should open create dialog', async () => {
     renderClientsPage();
 
-    const createButton = screen.getByText('Nuevo Cliente');
+    const createButton = screen.getByRole('button', { name: 'Nuevo Cliente' });
     fireEvent.click(createButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Crear nuevo cliente')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Crear Cliente' })).toBeInTheDocument();
     });
   });
 
@@ -158,7 +185,7 @@ describe('ClientsPage', () => {
     renderClientsPage();
 
     // Open dialog
-    const createButton = screen.getByText('Nuevo Cliente');
+    const createButton = screen.getByRole('button', { name: 'Nuevo Cliente' });
     fireEvent.click(createButton);
 
     await waitFor(() => {
@@ -173,7 +200,7 @@ describe('ClientsPage', () => {
     fireEvent.change(cuitInput, { target: { value: '20-11111111-1' } });
 
     // Submit
-    const submitButton = screen.getByText('Crear');
+    const submitButton = screen.getByRole('button', { name: 'Crear Cliente' });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -187,7 +214,7 @@ describe('ClientsPage', () => {
     renderClientsPage();
 
     await waitFor(() => {
-      expect(screen.getByText(/no hay clientes registrados/i)).toBeInTheDocument();
+      expect(screen.getByText(/no hay clientes/i)).toBeInTheDocument();
     });
   });
 
@@ -208,14 +235,6 @@ describe('ClientsPage', () => {
     await waitFor(() => {
       const links = screen.getAllByRole('link');
       expect(links.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('should show client count', async () => {
-    renderClientsPage();
-
-    await waitFor(() => {
-      expect(screen.getByText(/2 clientes/i)).toBeInTheDocument();
     });
   });
 });

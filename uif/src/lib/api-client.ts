@@ -108,26 +108,28 @@ export async function apiClient<T>(endpoint: string, options: RequestInit & { ra
     }
 }
 
+import { Client, Document, Analysis } from '../types/database';
+
 export const uifApi = {
     clients: {
-        list: () => apiClient<any[]>('/uif/clients'),
-        get: (id: string) => apiClient<any>(`/uif/clients/${id}`),
-        create: (data: Record<string, unknown>) => apiClient<Record<string, unknown>>('/uif/clients', { method: 'POST', body: JSON.stringify(data) }),
-        update: (id: string, data: Record<string, unknown>) => apiClient<Record<string, unknown>>(`/uif/clients/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+        list: () => apiClient<Client[]>('/uif/clients'),
+        get: (id: string) => apiClient<Client>(`/uif/clients/${id}`),
+        create: (data: Partial<Client>) => apiClient<Client>('/uif/clients', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: string, data: Partial<Client>) => apiClient<Client>(`/uif/clients/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
         delete: (id: string) => apiClient<void>(`/uif/clients/${id}`, { method: 'DELETE' }),
     },
     documents: {
-        list: (clientId: string) => apiClient<any[]>(`/uif/documents?client_id=${clientId}`),
-        create: (data: Record<string, unknown>) => apiClient<Record<string, unknown>>('/uif/documents', { method: 'POST', body: JSON.stringify(data) }),
-        update: (id: string, data: Record<string, unknown>) => apiClient<Record<string, unknown>>(`/uif/documents/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+        list: (clientId: string) => apiClient<Document[]>(`/uif/documents?client_id=${clientId}`),
+        create: (data: Partial<Document>) => apiClient<Document>('/uif/documents', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: string, data: Partial<Document>) => apiClient<Document>(`/uif/documents/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
         delete: (id: string) => apiClient<void>(`/uif/documents/${id}`, { method: 'DELETE' }),
         analyze: (id: string, signedUrl: string) => apiClient<Record<string, unknown>>(`/uif/documents/${id}/analyze`, { method: 'POST', body: JSON.stringify({ signedUrl }) }),
     },
     analyses: {
-        list: (clientId: string) => apiClient<any[]>(`/uif/analyses?client_id=${clientId}`),
-        get: (id: string) => apiClient<any>(`/uif/analyses/${id}`),
-        create: (data: Record<string, unknown>) => apiClient<Record<string, unknown>>('/uif/analyses', { method: 'POST', body: JSON.stringify(data) }),
-        update: (id: string, data: Record<string, unknown>) => apiClient<Record<string, unknown>>(`/uif/analyses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+        list: (clientId: string) => apiClient<Analysis[]>(`/uif/analyses?client_id=${clientId}`),
+        get: (id: string) => apiClient<Analysis>(`/uif/analyses/${id}`),
+        create: (data: Partial<Analysis>) => apiClient<Analysis>('/uif/analyses', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: string, data: Partial<Analysis>) => apiClient<Analysis>(`/uif/analyses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
         delete: (id: string) => apiClient<void>(`/uif/analyses/${id}`, { method: 'DELETE' }),
         finalize: (id: string) => apiClient<Record<string, unknown>>(`/uif/analyses/${id}/finalize`, { method: 'POST' }),
     }
