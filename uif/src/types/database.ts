@@ -120,6 +120,7 @@ export interface AnalysisSettings {
     cantidad_cuotas: number;
     rem_percent: number;  // % ajuste para valores congelados (Monotributo, RC Sueldo)
     cac_percent: number;  // % actualización cuotas mensuales
+    moneda_cuota: 'USD' | 'ARS';  // Currency for installment payments (CAC only applies to ARS)
   };
 }
 
@@ -350,7 +351,8 @@ export const DEFAULT_ANALYSIS_SETTINGS: AnalysisSettings = {
     aporte_operacion: 0,
     cantidad_cuotas: 24,
     rem_percent: 0,
-    cac_percent: 0
+    cac_percent: 0,
+    moneda_cuota: 'USD'
   }
 };
 

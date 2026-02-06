@@ -19,6 +19,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PlusCircle } from 'lucide-react';
 
 interface AnalysisTabProps {
@@ -68,14 +75,19 @@ const AVAILABLE_SECTIONS = [
 export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<AnalysisTabProps>) {
   const [financialData, setFinancialData] = useState<FinancialData>(analysis.financial_data);
   const [settings, setSettings] = useState<AnalysisSettings>(() => {
-    // Ensure simulacion has rem_percent and cac_percent (backwards compatibility)
+    // Ensure simulacion has all required fields with safe defaults (backwards compatibility)
     const baseSettings = analysis.analysis_settings;
+    const baseSimulacion = baseSettings?.simulacion as Partial<AnalysisSettings['simulacion']> | undefined;
+
     return {
       ...baseSettings,
       simulacion: {
-        ...baseSettings.simulacion,
-        rem_percent: baseSettings.simulacion?.rem_percent ?? 0,
-        cac_percent: baseSettings.simulacion?.cac_percent ?? 10,
+        importe_operacion: baseSimulacion?.importe_operacion ?? 0,
+        aporte_operacion: baseSimulacion?.aporte_operacion ?? 0,
+        cantidad_cuotas: baseSimulacion?.cantidad_cuotas ?? 24,
+        rem_percent: baseSimulacion?.rem_percent ?? 0,
+        cac_percent: baseSimulacion?.cac_percent ?? 0,
+        moneda_cuota: baseSimulacion?.moneda_cuota ?? 'USD',
       }
     };
   });
@@ -180,41 +192,11 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
   }, [client.person_type, documents, isInitialized]); // financialData dependency removed to avoid constant resets, only init once. Or better, check specific flags.
 
 
+
+
   const [saving, setSaving] = useState(false);
   const [simCurrency, setSimCurrency] = useState<'USD' | 'ARS'>('USD');
   const { toast } = useToast();
-
-  // Initialize REM/CAC from system_settings only if not already set in analysis
-  useEffect(() => {
-    const initializeFromSystemSettings = async () => {
-      // Only fetch if values are 0 (new analysis or never set)
-      if (settings.simulacion.rem_percent === 0 && settings.simulacion.cac_percent === 0) {
-        try {
-          const { data, error } = await supabase
-            .from('system_settings')
-            .select('extra_settings')
-            .single();
-
-          if (!error && data?.extra_settings) {
-            const { rem = 0, cac = 0 } = data.extra_settings as { rem: number; cac: number };
-            if (rem > 0 || cac > 0) {
-              setSettings(prev => ({
-                ...prev,
-                simulacion: {
-                  ...prev.simulacion,
-                  rem_percent: rem,
-                  cac_percent: cac,
-                }
-              }));
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching system settings:', err);
-        }
-      }
-    };
-    initializeFromSystemSettings();
-  }, []);
 
   // Helper to standardise input parsing/display
   const formatCurrencyInput = (usdValue: number, currency: 'USD' | 'ARS', dolar: number): string => {
@@ -246,7 +228,20 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
 
   useEffect(() => {
     setFinancialData(analysis.financial_data);
-    setSettings(analysis.analysis_settings);
+
+    // Ensure all simulacion fields have safe defaults when syncing from props
+    const baseSimulacion = analysis.analysis_settings?.simulacion as Partial<AnalysisSettings['simulacion']> | undefined;
+    setSettings({
+      ...analysis.analysis_settings,
+      simulacion: {
+        importe_operacion: baseSimulacion?.importe_operacion ?? 0,
+        aporte_operacion: baseSimulacion?.aporte_operacion ?? 0,
+        cantidad_cuotas: baseSimulacion?.cantidad_cuotas ?? 24,
+        rem_percent: baseSimulacion?.rem_percent ?? 0,
+        cac_percent: baseSimulacion?.cac_percent ?? 0,
+        moneda_cuota: baseSimulacion?.moneda_cuota ?? 'USD',
+      }
+    });
   }, [analysis]);
 
   // Calculate all values in real-time
@@ -415,16 +410,21 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       settings.simulacion.importe_operacion - settings.simulacion.aporte_operacion
     );
 
-    // Cuota mensual en USD = Saldo a financiar / cantidad cuotas
-    // CAC adjustment: installments are updated monthly with CAC index
-    const cac_factor = 1 + (settings.simulacion.cac_percent / 100);
+    // Cuota mensual calculation
+    // CAC adjustment only applies to ARS-denominated installments
+    const moneda_cuota = settings.simulacion.moneda_cuota || 'USD';
+    const should_apply_cac = moneda_cuota === 'ARS';
+
     const cuota_mensual_base_usd = settings.simulacion.cantidad_cuotas > 0
       ? saldo_a_financiar_usd / settings.simulacion.cantidad_cuotas
       : 0;
-    // Apply CAC to get adjusted installment value
+
+    // Apply CAC only for ARS installments (unrealistic for USD installments)
+    const cac_factor = should_apply_cac ? (1 + (settings.simulacion.cac_percent / 100)) : 1;
     const cuota_mensual_usd = cuota_mensual_base_usd * cac_factor;
 
-    // SOLVENCIA EN MESES = Monto total USD / cuota mensual USD (con CAC)
+    // CRITICAL: Client must justify FULL operation amount, not just financed portion
+    // Solvency compares total income against installment payment
     const solvencia_meses = cuota_mensual_usd > 0
       ? monto_total_operar_usd / cuota_mensual_usd
       : 0;
@@ -456,6 +456,8 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
       dolar,
       rem_factor,
       cac_factor,
+      moneda_cuota,
+      should_apply_cac,
       bases: {
         ganancias: base_ganancias,
         monotributo: base_monotributo,
@@ -645,19 +647,22 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
 
     // Simulation
     const simData: [string, string][] = [
-      ['Importe Operación', formatUSD(settings.simulacion.importe_operacion)],
-      ['Anticipo', formatUSD(settings.simulacion.aporte_operacion)],
+      ['Importe Operación (Total a Justificar)', formatUSD(settings.simulacion.importe_operacion)],
+      ['Anticipo (No reduce justificación)', formatUSD(settings.simulacion.aporte_operacion)],
       ['Saldo a Financiar', formatUSD(calculations.saldo_a_financiar_usd)],
+      ['Moneda de Cuotas', settings.simulacion.moneda_cuota || 'USD'],
       ['Cantidad de Cuotas', `${settings.simulacion.cantidad_cuotas} meses`],
       ['Cuota Base (sin ajuste)', formatUSD(calculations.cuota_mensual_base_usd)],
     ];
 
-    // Add CAC info if active
-    if (settings.simulacion.cac_percent > 0) {
+    // Add CAC info only if active AND currency is ARS
+    if (settings.simulacion.cac_percent > 0 && calculations.should_apply_cac) {
       simData.push(
-        ['Índice CAC', `${settings.simulacion.cac_percent}%`],
+        ['Índice CAC (Aplicado a ARS)', `${settings.simulacion.cac_percent}%`],
         ['Ajuste CAC/Cuota', `+ ${formatUSD(calculations.cuota_mensual_usd - calculations.cuota_mensual_base_usd)}`],
       );
+    } else if (settings.simulacion.cac_percent > 0) {
+      simData.push(['Índice CAC', `${settings.simulacion.cac_percent}% (No aplicado - Cuotas en USD)`]);
     }
 
     simData.push(
@@ -989,6 +994,28 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                 <Percent className="absolute right-1.5 top-1.5 h-3 w-3 text-muted-foreground" />
               </div>
             </div>
+
+            {/* Moneda Cuota - Currency for installments */}
+            <div className="flex items-center gap-1" title="Moneda de las cuotas (CAC solo aplica a ARS)">
+              <Label className="text-xs text-muted-foreground">Cuota:</Label>
+              <Select
+                value={settings.simulacion.moneda_cuota || 'USD'}
+                onValueChange={(value: 'USD' | 'ARS') => {
+                  setSettings(prev => ({
+                    ...prev,
+                    simulacion: { ...prev.simulacion, moneda_cuota: value }
+                  }));
+                }}
+              >
+                <SelectTrigger className="h-7 w-16 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleDownloadUIF} title="Descargar solo el reporte">
@@ -1093,9 +1120,14 @@ export function AnalysisTab({ client, analysis, documents, onUpdate }: Readonly<
                       ? formatUSD(calculations.cuota_mensual_usd)
                       : formatCurrency(calculations.cuota_mensual_usd * (Number.parseFloat(financialData.datos.dolar) || 1))}
                   </p>
-                  {settings.simulacion.cac_percent > 0 && (
+                  {settings.simulacion.cac_percent > 0 && calculations.should_apply_cac && (
                     <p className="text-[9px] text-amber-600 dark:text-amber-400">
                       Base {formatUSD(calculations.cuota_mensual_base_usd)} + CAC {formatUSD(calculations.cuota_mensual_usd - calculations.cuota_mensual_base_usd)}
+                    </p>
+                  )}
+                  {settings.simulacion.cac_percent > 0 && !calculations.should_apply_cac && (
+                    <p className="text-[9px] text-muted-foreground">
+                      CAC no aplica (cuotas en USD)
                     </p>
                   )}
                 </div>
