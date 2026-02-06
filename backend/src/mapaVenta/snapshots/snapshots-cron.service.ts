@@ -18,12 +18,20 @@ export class SnapshotsCronService {
     })
     async handleDailySnapshot() {
         this.logger.log('Starting daily stock snapshot generation...');
+        const start = Date.now();
 
         try {
             const result = await this.snapshotsService.generateSnapshot('DIARIO');
+            const duration = Date.now() - start;
+
             this.logger.log(
-                `Daily snapshot completed: ${result.proyectosProcessados} projects processed`,
+                `Daily snapshot completed: ${result.proyectosProcessados} projects processed in ${duration}ms`,
             );
+
+            // Alert if > 5 minutes (300000ms)
+            if (duration > 300000) {
+                this.logger.warn(`PERFORMANCE ALERT: Daily snapshot took longer than 5 minutes (${(duration / 1000).toFixed(2)}s)`);
+            }
         } catch (error: unknown) {
             this.logger.error(`Daily snapshot failed: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
         }
@@ -48,12 +56,20 @@ export class SnapshotsCronService {
         }
 
         this.logger.log('Starting monthly stock snapshot generation...');
+        const start = Date.now();
 
         try {
             const result = await this.snapshotsService.generateSnapshot('MENSUAL');
+            const duration = Date.now() - start;
+
             this.logger.log(
-                `Monthly snapshot completed: ${result.proyectosProcessados} projects processed`,
+                `Monthly snapshot completed: ${result.proyectosProcessados} projects processed in ${duration}ms`,
             );
+
+            // Alert if > 5 minutes
+            if (duration > 300000) {
+                this.logger.warn(`PERFORMANCE ALERT: Monthly snapshot took longer than 5 minutes (${(duration / 1000).toFixed(2)}s)`);
+            }
         } catch (error: unknown) {
             this.logger.error(`Monthly snapshot failed: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
         }

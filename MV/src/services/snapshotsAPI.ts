@@ -39,13 +39,25 @@ export interface SnapshotComparativo {
     diferencia: SnapshotProyectoData | null;
 }
 
+// Datos de evolución de stock
+export interface EvolutionData {
+    fecha: string;
+    disponibles: number;
+    reservadas: number;
+    vendidas: number;
+}
+
 export const snapshotsAPI = {
     /**
      * Obtiene el snapshot para una fecha específica
      */
+    /**
+     * Obtiene el snapshot para una fecha específica
+     */
     async getByDate(date: string, project_id?: string) {
-        let url = `/snapshots/date/${date}`;
-        if (project_id) url += `?project_id=${project_id}`;
+        let url = `/snapshots?fecha=${date}`;
+        // Note: Backend might not support project_id yet, but keeping it in query just in case it's added
+        if (project_id) url += `&project_id=${project_id}`;
         return apiGet<Snapshot>(url);
     },
 
@@ -54,16 +66,25 @@ export const snapshotsAPI = {
      * Retorna resumen agregado por proyecto/fecha
      */
     async getRange(start: string, end: string, project_id?: string) {
-        let url = `/snapshots/range?start=${start}&end=${end}`;
+        let url = `/snapshots/range?desde=${start}&hasta=${end}`;
         if (project_id) url += `&project_id=${project_id}`;
         return apiGet<SnapshotSummary[]>(url);
+    },
+
+    /**
+     * Obtiene evolución agregada del stock para gráficos
+     * Optimizado para reducir payload
+     */
+    async getStockEvolution(start: string, end: string) {
+        const url = `/snapshots/analytics/evolution?desde=${start}&hasta=${end}`;
+        return apiGet<EvolutionData[]>(url);
     },
 
     /**
      * Genera un comparativo entre dos fechas para todos los proyectos
      */
     async getComparativo(baseDate: string, comparisonDate: string, project_id?: string) {
-        let url = `/snapshots/comparativo?base=${baseDate}&comparison=${comparisonDate}`;
+        let url = `/snapshots/comparativo?mesActual=${baseDate}&mesAnterior=${comparisonDate}`;
         if (project_id) url += `&project_id=${project_id}`;
         return apiGet<SnapshotComparativo[]>(url);
     },

@@ -11,6 +11,8 @@ export const snapshotsKeys = {
     [...snapshotsKeys.all, 'range', start, end, projectId] as const,
   comparativo: (baseDate: string, comparisonDate: string, projectId: string) =>
     [...snapshotsKeys.all, 'comparativo', baseDate, comparisonDate, projectId] as const,
+  evolution: (start: string, end: string) =>
+    [...snapshotsKeys.all, 'evolution', start, end] as const,
 };
 
 /**
@@ -89,6 +91,23 @@ export function useGenerateSnapshot() {
     onError: (error: Error) => {
       toast.error(`Error al generar snapshot: ${error.message}`);
     },
+  });
+}
+
+/**
+ * Hook para obtener la evolución del stock (optimizado)
+ */
+export function useAnalyticsEvolution(start: string, end: string) {
+  return useQuery({
+    queryKey: snapshotsKeys.evolution(start, end),
+    queryFn: async () => {
+      if (!start || !end) return [];
+      const data = await snapshotsAPI.getStockEvolution(start, end);
+      return data;
+    },
+    enabled: !!start && !!end,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }
 

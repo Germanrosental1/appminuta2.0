@@ -3,13 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    BarChart, Bar,
-} from 'recharts';
-import { useSnapshotsRange, useGenerateSnapshot } from '@/hooks/useSnapshots';
-import { snapshotsAPI, SnapshotSummary, SnapshotComparativo } from '@/services/snapshotsAPI';
+import { useAnalyticsEvolution, useGenerateSnapshot } from '@/hooks/useSnapshots';
+import { snapshotsAPI, SnapshotComparativo } from '@/services/snapshotsAPI';
 import { useQuery } from '@tanstack/react-query';
+import StockEvolutionChart from '@/components/dashboard/charts/StockEvolutionChart';
+import MonthlyComparisonChart from '@/components/dashboard/charts/MonthlyComparisonChart';
+import ProjectComparisonChart from '@/components/dashboard/charts/ProjectComparisonChart';
 
 // Colores para los gráficos
 const COLORS = {
@@ -44,10 +43,11 @@ export default function StockHistoryPage() {
     }, [selectedPeriod]);
 
     // ===== REACT QUERY HOOKS (replaces useState/useEffect) =====
+    // ⚡ PERFORMANCE: Use aggregated data instead of full snapshots
     const {
-        data: snapshots = [],
-        isLoading: isSnapshotsLoading,
-    } = useSnapshotsRange(startDate, endDate);
+        data: evolutionRaw = [],
+        isLoading: isEvolutionLoading,
+    } = useAnalyticsEvolution(startDate, endDate);
 
     // Comparativo query
     const {
@@ -64,28 +64,17 @@ export default function StockHistoryPage() {
     const generateMutation = useGenerateSnapshot();
 
     // ===== DERIVED STATE (computed from query data) =====
-    const loading = isSnapshotsLoading || isComparativoLoading;
+    const loading = isEvolutionLoading || isComparativoLoading;
 
     // Preparar datos para gráfico de evolución (Chart 1)
     const evolutionData = useMemo(() => {
-        return snapshots.reduce((acc: { fecha: string; disponibles: number; reservadas: number; vendidas: number }[], snap: SnapshotSummary) => {
-            const fecha = new Date(snap.FechaSnapshot).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
-            const existing = acc.find(d => d.fecha === fecha);
-            if (existing) {
-                existing.disponibles += snap.Disponibles;
-                existing.reservadas += snap.Reservadas;
-                existing.vendidas += snap.Vendidas;
-            } else {
-                acc.push({
-                    fecha,
-                    disponibles: snap.Disponibles,
-                    reservadas: snap.Reservadas,
-                    vendidas: snap.Vendidas,
-                });
-            }
-            return acc;
-        }, []);
-    }, [snapshots]);
+        return evolutionRaw.map((item) => ({
+            fecha: new Date(item.fecha).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }),
+            disponibles: item.disponibles,
+            reservadas: item.reservadas,
+            vendidas: item.vendidas,
+        }));
+    }, [evolutionRaw]);
 
     // Preparar datos para comparativa mes a mes (Chart 2)
     const monthlyComparisonData = useMemo(() => {
@@ -219,85 +208,14 @@ export default function StockHistoryPage() {
             {/* Charts Row 1 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Chart 1: Evolución del Stock */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Evolución del Stock</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {evolutionData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={evolutionData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="fecha" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="disponibles" name="Disponibles" stroke={COLORS.disponible} strokeWidth={2} />
-                                    <Line type="monotone" dataKey="reservadas" name="Reservadas" stroke={COLORS.reservada} strokeWidth={2} />
-                                    <Line type="monotone" dataKey="vendidas" name="Vendidas" stroke={COLORS.vendida} strokeWidth={2} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex items-center justify-center h-64 text-muted-foreground">
-                                No hay datos de snapshots. Genera uno para comenzar.
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <StockEvolutionChart data={evolutionData} colors={COLORS} />
 
                 {/* Chart 2: Comparativa Mes a Mes */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Comparativa Mes a Mes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {monthlyComparisonData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={monthlyComparisonData} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis dataKey="proyecto" type="category" width={100} tick={{ fontSize: 12 }} />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="actual" name="Mes Actual" fill="#3b82f6" />
-                                    <Bar dataKey="anterior" name="Mes Anterior" fill="#94a3b8" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex items-center justify-center h-64 text-muted-foreground">
-                                No hay datos comparativos disponibles.
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <MonthlyComparisonChart data={monthlyComparisonData} />
             </div>
 
             {/* Chart 5: Comparativa por Proyecto */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Stock por Proyecto</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {projectData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={400}>
-                            <BarChart data={projectData} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis dataKey="proyecto" type="category" width={120} tick={{ fontSize: 11 }} />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="disponibles" name="Disponibles" stackId="a" fill={COLORS.disponible} />
-                                <Bar dataKey="reservadas" name="Reservadas" stackId="a" fill={COLORS.reservada} />
-                                <Bar dataKey="vendidas" name="Vendidas" stackId="a" fill={COLORS.vendida} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="flex items-center justify-center h-64 text-muted-foreground">
-                            No hay datos de proyectos disponibles.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            <ProjectComparisonChart data={projectData} colors={COLORS} />
         </div>
     );
 }
