@@ -1,34 +1,27 @@
-# Análisis UIF
+# AppMinuta UIF (Unidad de Información Financiera)
 
-Sistema de análisis de Unidad de Información Financiera.
+Servicio auxiliar para el análisis de cumplimiento normativo y financiero, integrando lógica de validación de usuarios y entidades contra listas de control (UIF).
 
-## Tecnologías
+## 🛠 Stack Tecnológico
 
-Este proyecto está construido con:
+- **Runtime**: Node.js
+- **Herramientas**: Scripts de análisis, integración con Excel/CSV.
+- **Base de Datos**: Integración con PostgreSQL / Supabase.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🚀 Funcionalidades
 
-## Comenzando
+- **Análisis de Riesgo**: Scoring de perfiles.
+- **Validación de Listas**: Cruce con bases de datos de sanciones.
+- **Reportes**: Generación de reportes de cumplimiento.
 
-Para ejecutar este proyecto localmente:
+## ⚙️ Configuración
 
-1. Clonar el repositorio
-2. Instalar dependencias:
-   ```bash
-   npm install
-   ```
-3. Ejecutar servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
+Requiere variables de entorno para conexión a base de datos y servicios externos. Ver `.env.example`.
 
-## Scripts Disponibles
+```bash
+# Ejecutar análisis
+npm run start
+```
 
-- `npm run dev`: Inicia el servidor de desarrollo.
-- `npm run build`: Compila la aplicación para producción.
-- `npm run lint`: Ejecuta el linter.
-- `npm run preview`: Previsualiza la build de producción.
+---
+© 2026 AppMinuta Team

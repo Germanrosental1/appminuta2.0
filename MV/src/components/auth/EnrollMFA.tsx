@@ -42,7 +42,7 @@ export function EnrollMFA({ onEnrolled, onCancelled }: Readonly<EnrollMFAProps>)
                 setFactorId(data.id);
                 setQrCode(data.totp.qr_code);
                 setSecret(data.totp.secret);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 setError(err.message || 'Error al configurar 2FA');
             } finally {
                 setLoading(false);
@@ -88,7 +88,7 @@ export function EnrollMFA({ onEnrolled, onCancelled }: Readonly<EnrollMFAProps>)
 
             // Éxito
             onEnrolled();
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err.message || 'Error al verificar código');
             setVerifying(false);
         }

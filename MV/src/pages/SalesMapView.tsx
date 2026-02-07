@@ -8,15 +8,26 @@ import { UnitDetailSheet } from "@/components/unit-detail-sheet";
 import { PermissionsTab } from "@/components/permissions-tab";
 import { GastosGeneralesTab } from "@/components/gastos-generales-tab";
 import { mockUsers, mockPermissions } from "@/data/mock-data";
-import { supabaseService } from "@/services/supabaseService";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useUnits, useUpdateUnit, useProjectByName, useAllUnits } from "@/hooks/useUnits";
 
 export default function SalesMapView() {
   const { mapId } = useParams();
-  const [loading, setLoading] = useState(true);
-  const [units, setUnits] = useState<Unit[]>([]);
+
+  // ===== REACT QUERY HOOKS =====
+  const { data: projectUnits = [], isLoading: pLoading, error: pError } = useUnits(mapId || '');
+  const { data: allUnits = [], isLoading: aLoading, error: aError } = useAllUnits();
+
+  const units = mapId ? projectUnits : allUnits;
+  const isLoading = mapId ? pLoading : aLoading;
+  const unitsError = mapId ? pError : aError;
+
+  const { data: project } = useProjectByName(mapId);
+
+  const updateUnitMutation = useUpdateUnit();
+
+  // ===== LOCAL UI STATE =====
   const [projectName, setProjectName] = useState<string>('');
   const [projectId, setProjectId] = useState<string>('');
   const [projectNaturaleza, setProjectNaturaleza] = useState<string>('');
@@ -37,53 +48,37 @@ export default function SalesMapView() {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Cargar unidades del proyecto seleccionado
+  // Update projectId when project data is fetched
   useEffect(() => {
-    const loadUnits = async () => {
-      if (!mapId || mapId === 'undefined') {
-        setLoading(false);
-        return;
-      }
+    if (project) {
+      setProjectId(project.Id || project.id);
+    }
+  }, [project]);
 
-      try {
-        setLoading(true);
+  // Extract project metadata when units change
+  useEffect(() => {
+    if (mapId) {
+      setProjectName(mapId);
+    }
 
-        // Primero obtener el ID del proyecto por nombre
-        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const projectResponse = await fetch(`${backendUrl}/proyectos/by-name/${mapId}`, {
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-        });
+    if (units.length > 0) {
+      const firstUnit = units[0];
+      setProjectNaturaleza(firstUnit.natdelproyecto || 'Sin clasificar');
+    }
+  }, [units, mapId]);
 
-        if (projectResponse.ok) {
-          const projectData = await projectResponse.json();
-          // El backend devuelve Id (PascalCase)
-          setProjectId(projectData.Id || projectData.id);
-        }
+  if (unitsError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-red-500 font-medium">Error al cargar las unidades</p>
+          <p className="text-sm text-muted-foreground mt-2">{unitsError.message}</p>
+        </div>
+      </div>
+    );
+  }
 
-        // Luego cargar las unidades
-        const data = await supabaseService.getUnitsByProject(mapId);
-        setUnits(data);
-        setProjectName(mapId);
-
-        // Intentar obtener la naturaleza del proyecto
-        if (data.length > 0) {
-          const firstUnit = data[0];
-          setProjectNaturaleza(firstUnit.natdelproyecto || 'Sin clasificar');
-        }
-      } catch (error) {
-        console.error(`Error loading units for project ${mapId}:`, error);
-        toast.error(`Error al cargar las unidades del proyecto ${mapId}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUnits();
-  }, [mapId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
@@ -127,7 +122,7 @@ export default function SalesMapView() {
       if (filters.dormitorios === "null") {
         if (unit.dormitorios !== 0 && unit.dormitorios !== null) return false;
       } else {
-        const dormitoriosNum = parseInt(filters.dormitorios);
+        const dormitoriosNum = Number.parseInt(filters.dormitorios);
         if (unit.dormitorios !== dormitoriosNum) return false;
       }
     }
@@ -138,14 +133,14 @@ export default function SalesMapView() {
     }
 
     // Filtro por precio mínimo
-    if (filters.precioMin && !isNaN(parseFloat(filters.precioMin))) {
-      const precioMin = parseFloat(filters.precioMin);
+    if (filters.precioMin && !Number.isNaN(Number.parseFloat(filters.precioMin))) {
+      const precioMin = Number.parseFloat(filters.precioMin);
       if (unit.precioUSD < precioMin) return false;
     }
 
     // Filtro por precio máximo
-    if (filters.precioMax && !isNaN(parseFloat(filters.precioMax))) {
-      const precioMax = parseFloat(filters.precioMax);
+    if (filters.precioMax && !Number.isNaN(Number.parseFloat(filters.precioMax))) {
+      const precioMax = Number.parseFloat(filters.precioMax);
       if (unit.precioUSD > precioMax) return false;
     }
 
@@ -159,19 +154,20 @@ export default function SalesMapView() {
 
   const handleSaveUnit = async (unit: Unit) => {
     try {
-      // Guardar los cambios en la base de datos
-      await supabaseService.updateUnit(unit);
+      // React Query mutation handles:
+      // - API call
+      // - Optimistic update
+      // - Cache invalidation
+      // - Toast notifications (configured in hook)
+      await updateUnitMutation.mutateAsync({
+        id: unit.id,
+        data: unit
+      });
 
-      // Actualizar la unidad en el estado local
-      setUnits(prevUnits =>
-        prevUnits.map(u => u.id === unit.id ? unit : u)
-      );
-
-      toast.success("Unidad actualizada correctamente");
       setSheetOpen(false);
     } catch (error) {
+      // Error already handled by mutation's onError
       console.error('Error al guardar la unidad:', error);
-      toast.error("Error al guardar los cambios");
     }
   };
 
@@ -219,7 +215,7 @@ export default function SalesMapView() {
 
             <TabsContent value="permissions">
               <PermissionsTab
-                mapId={mapId!}
+                mapId={mapId}
                 users={mockUsers}
                 permissions={mockPermissions}
                 onSavePermissions={handleSavePermissions}

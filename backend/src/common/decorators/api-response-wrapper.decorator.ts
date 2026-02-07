@@ -1,5 +1,5 @@
 import { applyDecorators, Type } from '@nestjs/common';
-import { ApiExtraModels, ApiOkResponse, ApiCreatedResponse, getSchemaPath } from '@nestjs/swagger';
+import { ApiExtraModels, ApiOkResponse, ApiCreatedResponse, ApiResponse as SwaggerApiResponse, getSchemaPath } from '@nestjs/swagger';
 import { ApiResponse, ApiErrorResponse, PaginatedDto } from '../dto/api-response.dto';
 
 /**
@@ -154,7 +154,7 @@ export const ApiPaginatedResponseWrapper = <TModel extends Type<any>>(
 export const ApiErrorResponseWrapper = (status: number, description: string) => {
   return applyDecorators(
     ApiExtraModels(ApiErrorResponse),
-    ApiOkResponse({
+    SwaggerApiResponse({
       status,
       description,
       schema: {

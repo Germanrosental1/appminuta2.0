@@ -1,181 +1,187 @@
-import { supabase } from '@/lib/supabase';
-import { SalesMapItem } from '@/types';
-import { TablaItem } from '@/types/supabase-types';
+// salesMapService.ts
+import { backendAPI } from './backendAPI';
+import { Unit, UnitStatus } from '@/types/sales-map';
+import { apiGet, apiPatch, apiDelete } from '@/lib/api-wrapper-client';
 
-const TABLE_NAME = 'vista_buscador_propiedades';
+// Interface matching the nested structure returned by NestJS UnidadesService
+interface BackendUnit {
+  Id: string;
+  SectorId: string;
+  Piso: string;
+  NroUnidad: string;
+  Dormitorio: string; // Service might return number or string
+  Manzana?: string;
+  Destino?: string;
+  Frente?: string;
+  Edificios?: {
+    NombreEdificio: string;
+    Proyectos?: { Nombre: string; Naturaleza?: string };
+  };
+  Etapas?: { Nombre: string; };
+  TiposUnidad?: { Nombre: string; };
+  UnidadesMetricas?: {
+    M2Exclusivo?: number;
+    M2Total?: number;
+    M2Comun?: number;
+    M2PatioTerraza?: number;
+    Tamano?: string;
+    M2Cubierto?: number;
+    M2Semicubierto?: number;
+  };
+  DetallesVenta_DetallesVenta_UnidadIdToUnidades?: {
+    PrecioUsd?: number;
+    UsdM2?: number;
+    EstadoComercial?: { NombreEstado: string; };
+    ComercialId?: string;
+    MotivoNoDispId?: string;
+    Obs?: string;
+    FechaReserva?: string;
+    ClienteInteresado?: string;
+    Titular?: string;
+  };
+}
 
-const ParseFloatOrNull = (val: string | number | null): number | null => {
-  if (val === null) return null;
+// Helper to parse numbers safely
+const parseNum = (val: string | number | undefined | null): number => {
+  if (val === null || val === undefined) return 0;
   if (typeof val === 'number') return val;
   const parsed = Number.parseFloat(val);
-  return Number.isNaN(parsed) ? null : parsed;
+  return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-// Mapper: DB (PascalCase from TablaItem) -> Frontend (camelCase)
-const mapDBToSalesMapItem = (db: TablaItem): SalesMapItem => {
+// Mapper: BackendUnit (Nested) -> Unit (Flat)
+// Using 'Unit' type which matches the UI expectations
+const mapBackendToUnit = (backend: BackendUnit): Unit => {
+  const detalles = backend.DetallesVenta_DetallesVenta_UnidadIdToUnidades;
+  const metricas = backend.UnidadesMetricas;
+  const edificio = backend.Edificios;
+  const proyecto = edificio?.Proyectos;
+
+  // Map Backend state string to UnitStatus
+  const rawState = detalles?.EstadoComercial?.NombreEstado || 'Disponible';
+  let estado: UnitStatus = 'Disponible';
+
+  const stateLower = rawState.toLowerCase();
+  if (stateLower.includes('no dispon') || stateLower.includes('alquil')) estado = 'No disponible';
+  else if (stateLower.includes('vend')) estado = 'Vendido';
+  else if (stateLower.includes('reserv')) estado = 'Reservado';
+  // else default 'Disponible'
+
   return {
-    id: db.Id || '',
-    natdelproyecto: (db as any).natdelproyecto || null, // Keeping as is if not in TablaItem
-    proyecto: db.Proyecto || null,
-    etapa: db.Etapa || null,
-    tipo: db.Tipo || null,
-    sectorid: db.SectorId || '',
-    edificiotorre: db.EdificioTorre || null,
-    piso: db.Piso || null,
-    nrounidad: db.NroUnidad || null,
-    dormitorios: db.Dormitorios || null,
-    frente: db.Frente || null,
-    manzana: null,
-    destino: db.Destino || null,
-    tipocochera: db.TipoCochera || null,
-    tamano: db.Tamano || null,
-    m2cubiertos: db.M2Cubiertos || null,
-    m2semicubiertos: db.M2Semicubiert || null,
-    m2exclusivos: ParseFloatOrNull(db.M2Exclusivos),
-    m2patioterraza: db.M2PatioTerraza || null,
-    patioterraza: null,
-    m2comunes: ParseFloatOrNull(db.M2Comunes),
-    m2calculo: null,
-    m2totales: ParseFloatOrNull(db.M2Totales),
-    preciousd: ParseFloatOrNull(db.PrecioUsd),
-    usdm2: ParseFloatOrNull(db.UsdM2),
-    estado: db.Estado || null,
-    motivono_disp: db.MotivoNoDisp || null,
-    obs: db.Obs || null,
-    fechareserva: db.FechaReserva || null,
-    comercial: db.Comercial || null,
-    clienteinteresado: db.ClienteInteresado || null,
-    fechafirmaboleto: null,
-    clientetitularboleto: db.Titular || null,
-    fechaposesionporboletocompraventa: null,
-    deptocomprador: null
+    id: backend.Id,
+    natdelproyecto: proyecto?.Naturaleza || '',
+    proyecto: proyecto?.Nombre || '',
+    manzana: backend.Manzana || '',
+    etapa: backend.Etapas?.Nombre || '',
+    tipo: backend.TiposUnidad?.Nombre || '',
+    sectorId: backend.SectorId || '',
+    edificioTorre: edificio?.NombreEdificio || '',
+    piso: backend.Piso || '',
+    numeroUnidad: backend.NroUnidad || '',
+    dormitorios: parseNum(backend.Dormitorio),
+    frente: backend.Frente || '',
+    destino: backend.Destino || '',
+
+    // Metrics
+    tamano: parseNum(metricas?.Tamano),
+    // Unit interface has these specific keys:
+    m2Exclusivos: parseNum(metricas?.M2Exclusivo),
+    m2PatioTerraza: parseNum(metricas?.M2PatioTerraza),
+    patioTerraza: '', // Not explicitly in backend metrics
+    m2Comunes: parseNum(metricas?.M2Comun),
+    m2ParaCalculo: 0,
+    m2Totales: parseNum(metricas?.M2Total),
+
+    // These might not be on Unit interface but were on SalesMapItem?
+    // Checking Unit interface from step 621:
+    // id, natdelproyecto, proyecto, manzana, destino, sectorId, frente, etapa, tipo, numeroUnidad, edificioTorre, piso, dormitorios, tamano, m2PatioTerraza, patioTerraza, m2Exclusivos, m2Comunes, m2ParaCalculo, m2Totales, precioUSD, usdM2, estado, motivoNoDisponibilidad, observaciones, fechaReserva, comercial, clienteInteresado, fechaFirmaBoleto, clienteTitularBoleto, fechaPosesionBoleto
+
+    // Sales Details
+    precioUSD: parseNum(detalles?.PrecioUsd),
+    usdM2: parseNum(detalles?.UsdM2),
+    estado: estado,
+    motivoNoDisponibilidad: detalles?.MotivoNoDispId || '',
+    observaciones: detalles?.Obs || '',
+    fechaReserva: detalles?.FechaReserva?.toString() || '',
+    comercial: detalles?.ComercialId || '',
+    clienteInteresado: detalles?.ClienteInteresado || '',
+    fechaFirmaBoleto: '',
+    clienteTitularBoleto: detalles?.Titular || '',
+    fechaPosesionBoleto: ''
   };
 };
 
-// Mapper: Frontend Partial (camelCase) -> DB Update (PascalCase to match TablaItem/Supabase expectation for the view)
-const mapPartialToDB = (item: Partial<SalesMapItem>): any => {
-  const db: any = {};
-
-  if (item.id !== undefined) db.Id = item.id;
-  if (item.natdelproyecto !== undefined) db.natdelproyecto = item.natdelproyecto;
-  if (item.proyecto !== undefined) db.Proyecto = item.proyecto;
-  if (item.etapa !== undefined) db.Etapa = item.etapa;
-  if (item.tipo !== undefined) db.Tipo = item.tipo;
-  if (item.sectorid !== undefined) db.SectorId = item.sectorid;
-  if (item.edificiotorre !== undefined) db.EdificioTorre = item.edificiotorre;
-  if (item.piso !== undefined) db.Piso = item.piso;
-  if (item.nrounidad !== undefined) db.NroUnidad = item.nrounidad;
-  if (item.dormitorios !== undefined) db.Dormitorios = item.dormitorios?.toString();
-  if (item.frente !== undefined) db.Frente = item.frente;
-  if (item.destino !== undefined) db.Destino = item.destino;
-  if (item.tipocochera !== undefined) db.TipoCochera = item.tipocochera;
-  if (item.tamano !== undefined) db.Tamano = item.tamano?.toString();
-  if (item.m2cubiertos !== undefined) db.M2Cubiertos = item.m2cubiertos;
-  if (item.m2semicubiertos !== undefined) db.M2Semicubiert = item.m2semicubiertos;
-  if (item.m2exclusivos !== undefined) db.M2Exclusivos = item.m2exclusivos?.toString();
-  if (item.m2patioterraza !== undefined) db.M2PatioTerraza = item.m2patioterraza;
-  if (item.m2comunes !== undefined) db.M2Comunes = item.m2comunes?.toString();
-  if (item.m2totales !== undefined) db.M2Totales = item.m2totales?.toString();
-  if (item.preciousd !== undefined) db.PrecioUsd = item.preciousd?.toString();
-  if (item.usdm2 !== undefined) db.UsdM2 = item.usdm2?.toString();
-  if (item.estado !== undefined) db.Estado = item.estado;
-  if (item.motivono_disp !== undefined) db.MotivoNoDisp = item.motivono_disp;
-  if (item.obs !== undefined) db.Obs = item.obs;
-  if (item.fechareserva !== undefined) db.FechaReserva = item.fechareserva;
-  if (item.comercial !== undefined) db.Comercial = item.comercial;
-  if (item.clienteinteresado !== undefined) db.ClienteInteresado = item.clienteinteresado;
-  if (item.clientetitularboleto !== undefined) db.Titular = item.clientetitularboleto;
-
-  return db;
-};
-
 export const salesMapService = {
-  async getAll(): Promise<SalesMapItem[]> {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching sales map data:', error);
+  async getAll(): Promise<Unit[]> {
+    try {
+      const data = await apiGet<BackendUnit[]>('/unidades');
+      return data.map(mapBackendToUnit);
+    } catch (error) {
+      console.error('Error fetching all units:', error);
       throw error;
     }
-
-    return (data as unknown as TablaItem[])?.map(mapDBToSalesMapItem) || [];
   },
 
-  async getById(id: string): Promise<SalesMapItem | null> {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('Id', id)
-      .single();
-
-    if (error) {
-      console.error(`Error fetching sales map item with id ${id}:`, error);
+  async getByProject(proyecto: string): Promise<Unit[]> {
+    try {
+      const data = await apiGet<BackendUnit[]>(`/unidades?proyecto=${encodeURIComponent(proyecto)}`);
+      return data.map(mapBackendToUnit);
+    } catch (error) {
+      console.error(`Error fetching units for project ${proyecto}:`, error);
       throw error;
     }
-
-    return data ? mapDBToSalesMapItem(data as unknown as TablaItem) : null;
   },
 
-  async update(id: string, item: Partial<SalesMapItem>): Promise<SalesMapItem> {
-    const dbItem = mapPartialToDB(item);
-
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .update(dbItem)
-      .eq('Id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error(`Error updating sales map item with id ${id}:`, error);
-      throw error;
+  async getById(id: string): Promise<Unit | null> {
+    try {
+      const data = await apiGet<BackendUnit>(`/unidades/${id}`);
+      return data ? mapBackendToUnit(data) : null;
+    } catch (error) {
+      console.error(`Error fetching unit ${id}:`, error);
+      return null;
     }
-
-    return mapDBToSalesMapItem(data as unknown as TablaItem);
   },
 
-  async create(item: Omit<SalesMapItem, 'id'>): Promise<SalesMapItem> {
-    const dbItem = mapPartialToDB(item as Partial<SalesMapItem>);
+  async update(id: string, item: Partial<Unit>): Promise<Unit> {
+    try {
+      const updateDto = {
+        // Map fields that are editable to backend DTO structure
+        preciousd: item.precioUSD,
+        usdm2: item.usdM2,
+        estadocomercial: item.estado,
+        clienteinteresado: item.clienteInteresado,
+        obs: item.observaciones,
+        // Add others as needed matching UpdateUnidadCompleteDto
+      };
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([dbItem])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating sales map item:', error);
+      const res = await apiPatch<BackendUnit>(`/unidades/${id}/complete`, updateDto);
+      return mapBackendToUnit(res);
+    } catch (error) {
+      console.error(`Error updating unit ${id}:`, error);
       throw error;
     }
+  },
 
-    return mapDBToSalesMapItem(data as unknown as TablaItem);
+  // Map metadata endpoints
+  async getProjects(): Promise<string[]> {
+    const projects = await backendAPI.getMyProjects();
+    return projects.map((p: any) => p.nombre);
+  },
+
+  async getNaturalezasProyecto(): Promise<string[]> {
+    return apiGet<string[]>('/unidades/metadata/naturalezas');
+  },
+
+  async getProjectsByNaturaleza(): Promise<{ naturaleza: string, proyectos: string[] }[]> {
+    const proyectos = await this.getProjects();
+    return [{ naturaleza: 'Proyectos', proyectos }];
+  },
+
+  async create(item: any): Promise<Unit> {
+    throw new Error('Not implemented directly in salesMapService');
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('Id', id);
-
-    if (error) {
-      console.error(`Error deleting sales map item with id ${id}:`, error);
-      throw error;
-    }
-  },
-
-  async getByProject(proyecto: string): Promise<SalesMapItem[]> {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('Proyecto', proyecto);
-
-    if (error) {
-      console.error(`Error fetching sales map items for project ${proyecto}:`, error);
-      throw error;
-    }
-
-    return (data as unknown as TablaItem[])?.map(mapDBToSalesMapItem) || [];
+    await apiDelete(`/unidades/${id}`);
   }
 };

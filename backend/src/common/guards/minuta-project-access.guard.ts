@@ -41,9 +41,9 @@ export class MinutaProjectAccessGuard implements CanActivate {
         }
 
         // Obtener el proyecto por nombre (ya que minuta tiene proyecto como string)
-        const proyecto = await this.prisma.proyectos.findFirst({
+        const proyecto = minuta.Proyecto ? await this.prisma.proyectos.findFirst({
             where: { Nombre: minuta.Proyecto },
-        });
+        }) : undefined;
 
         if (!proyecto) {
             // Si no hay proyecto definido, permitir acceso

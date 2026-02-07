@@ -7,6 +7,7 @@ import {
     deleteMinuta,
     type MinutaDefinitiva,
 } from '@/services/minutas';
+import { type EstadoMinuta } from '@/schemas/minuta.schema';
 
 // ============================================
 // QUERIES - Obtener datos
@@ -18,13 +19,14 @@ import {
  */
 export function useMinutas(
     usuarioId: string | undefined,
-    filters?: Record<string, any>,
+    filters?: Record<string, string | number | boolean>,
     options?: Omit<UseQueryOptions<MinutaDefinitiva[]>, 'queryKey' | 'queryFn'>
 ) {
     return useQuery({
         queryKey: ['minutas', 'definitivas', usuarioId, filters],
         queryFn: () => getMinutasDefinitivasByUsuario(usuarioId, filters),
         enabled: !!usuarioId,
+        staleTime: 5 * 60 * 1000, // 5 minutos - lista menos dinámica
         ...options,
     });
 }
@@ -52,7 +54,7 @@ export function useMinuta(
 export function useAllMinutas(
     page: number = 1,
     limit: number = 20,
-    filters?: Record<string, any>,
+    filters?: Record<string, string | number | boolean>,
     options?: Omit<UseQueryOptions<{
         data: MinutaDefinitiva[];
         total: number;
@@ -94,7 +96,7 @@ export function useUpdateMinutaEstado() {
             comentarios
         }: {
             id: string;
-            estado: any;
+            estado: EstadoMinuta;
             comentarios?: string;
         }) => actualizarEstadoMinutaDefinitiva(id, estado, comentarios),
 
@@ -110,11 +112,11 @@ export function useUpdateMinutaEstado() {
             // Actualizar optimistamente el caché de la lista
             queryClient.setQueriesData(
                 { queryKey: ['minutas', 'all'] },
-                (old: any) => {
+                (old: { data: MinutaDefinitiva[]; total: number } | undefined) => {
                     if (!old?.data) return old;
                     return {
                         ...old,
-                        data: old.data.map((m: any) =>
+                        data: old.data.map((m: MinutaDefinitiva) =>
                             m.Id === variables.id ? { ...m, Estado: variables.estado, Comentario: variables.comentarios } : m
                         ),
                     };
@@ -124,7 +126,7 @@ export function useUpdateMinutaEstado() {
             // Actualizar optimistamente el caché de la minuta individual
             queryClient.setQueryData(
                 ['minutas', 'definitiva', variables.id],
-                (old: any) => old ? { ...old, Estado: variables.estado, Comentario: variables.comentarios } : old
+                (old: MinutaDefinitiva | undefined) => old ? { ...old, Estado: variables.estado, Comentario: variables.comentarios } : old
             );
 
             // Retornar contexto con datos anteriores para rollback

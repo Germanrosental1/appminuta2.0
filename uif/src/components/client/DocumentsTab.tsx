@@ -132,7 +132,7 @@ export function DocumentsTab({ client, analysisId, documents, onDocumentsChange 
 
       setSelectedDocIds(new Set());
       onDocumentsChange();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error.message || 'No se pudo iniciar el análisis',
@@ -153,7 +153,7 @@ export function DocumentsTab({ client, analysisId, documents, onDocumentsChange 
       });
 
       onDocumentsChange();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error.message || 'No se pudo cancelar',
@@ -315,7 +315,7 @@ export function DocumentsTab({ client, analysisId, documents, onDocumentsChange 
       setUploadDialogOpen(false);
       setPendingFiles([]);
       onDocumentsChange();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       toast({
         title: 'Error al subir',
@@ -353,7 +353,7 @@ export function DocumentsTab({ client, analysisId, documents, onDocumentsChange 
         throw new Error('No se pudo generar URL firma');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error.message || 'Error al reprocesar',

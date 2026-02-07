@@ -34,7 +34,7 @@ export function UnitDetailSheet({
   open,
   onOpenChange,
   onSave,
-}: UnitDetailSheetProps) {
+}: Readonly<UnitDetailSheetProps>) {
   const [editedUnit, setEditedUnit] = useState<Unit | null>(null);
 
   // Usar useEffect para manejar la inicialización y limpieza del estado
@@ -52,7 +52,7 @@ export function UnitDetailSheet({
   if (!unit || !editedUnit) return null;
 
   // Función para actualizar un campo específico
-  const updateField = (field: keyof Unit, value: any) => {
+  const updateField = (field: keyof Unit, value: Unit[keyof Unit]) => {
     setEditedUnit(prev => prev ? { ...prev, [field]: value } : null);
   };
 

@@ -58,8 +58,9 @@ export class SnapshotsService {
         fecha: Date,
         tipoSnapshot: string
     ) {
-        // Get current state of all units for this project via the view
-        const unidades = await this.getProjectUnits(proyecto.Nombre);
+        // Get current state of all units for this project via Prisma
+        // ⚡ P-003 FIX: Use proper Prisma query with index on matches
+        const unidades = await this.getProjectUnits(proyecto.Id);
         if (unidades.length === 0) return null;
 
         // Calculate aggregates
@@ -89,19 +90,34 @@ export class SnapshotsService {
         };
     }
 
-    private async getProjectUnits(projectName: string) {
-        return this.prisma.$queryRaw<any[]>`
-            SELECT 
-              "Id",
-              "SectorId",
-              "Proyecto",
-              "Tipo",
-              "Estado",
-              "PrecioUsd",
-              "UsdM2"
-            FROM public.vista_buscador_propiedades
-            WHERE "Proyecto" = ${projectName}
-        `;
+    private async getProjectUnits(projectId: string) {
+        const units = await this.prisma.tablas.findMany({
+            where: { proyecto_id: projectId },
+            select: {
+                id: true,
+                sectorid: true,
+                tipo: true,
+                estado: true,
+                preciousd: true,
+                usdm2: true,
+                proyectos: {
+                    select: {
+                        Nombre: true
+                    }
+                }
+            }
+        });
+
+        // Map to match expected format for consistency
+        return units.map(u => ({
+            Id: u.id.toString(), // id is Int in schema, simple ID in raw query? schema says Int @id @db.SmallInt
+            SectorId: u.sectorid,
+            Proyecto: u.proyectos?.Nombre,
+            Tipo: u.tipo,
+            Estado: u.estado,
+            PrecioUsd: u.preciousd,
+            UsdM2: u.usdm2
+        }));
     }
 
     private calculateStats(unidades: any[]) {
@@ -298,5 +314,34 @@ export class SnapshotsService {
         });
 
         return comparativo;
+    }
+
+    async getStockEvolution(fechaDesde: Date, fechaHasta: Date) {
+        // ⚡ P-003 FIX: Use database aggregation (groupBy) instead of fetching all records
+        // This reduces payload from N*Projects to N (Days)
+        const result = await this.prisma.snapshotsStock.groupBy({
+            by: ['FechaSnapshot'],
+            where: {
+                FechaSnapshot: {
+                    gte: fechaDesde,
+                    lte: fechaHasta,
+                },
+            },
+            _sum: {
+                Disponibles: true,
+                Reservadas: true,
+                Vendidas: true,
+            },
+            orderBy: {
+                FechaSnapshot: 'asc',
+            },
+        });
+
+        return result.map(item => ({
+            fecha: item.FechaSnapshot,
+            disponibles: item._sum.Disponibles || 0,
+            reservadas: item._sum.Reservadas || 0,
+            vendidas: item._sum.Vendidas || 0,
+        }));
     }
 }

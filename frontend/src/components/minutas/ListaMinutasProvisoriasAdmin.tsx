@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { getAllMinutasProvisoriasForAdmin, actualizarEstadoMinutaProvisoria, MinutaProvisoria } from '@/services/minutas';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,11 +15,8 @@ import {
 import {
   FileText,
   Search,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Eye
 } from 'lucide-react';
+import { MinutaProvisoriaRow } from './MinutaProvisoriaRow';
 import { useToast } from '@/components/ui/use-toast';
 
 export const ListaMinutasProvisoriasAdmin: React.FC = () => {
@@ -56,21 +52,37 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
 
     // Filtrar por estado
     if (activeTab !== 'todas') {
-      filtered = filtered.filter(m => m.estado === activeTab);
+      filtered = filtered.filter(m => m.Estado === activeTab);
     }
 
     // Filtrar por término de búsqueda
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(m =>
-        m.proyecto.toLowerCase().includes(term) ||
-        m.datos?.unidadDescripcion?.toLowerCase().includes(term) ||
-        m.UsuarioId.toLowerCase().includes(term)
+        m.Proyecto?.toLowerCase().includes(term) ||
+        m.Dato?.unidadDescripcion?.toLowerCase().includes(term) ||
+        m.UsuarioId?.toLowerCase().includes(term)
       );
     }
 
     setFilteredMinutas(filtered);
   }, [searchTerm, activeTab, minutas]);
+
+  // Virtualization setup
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: filteredMinutas.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 73, // Aproximadamente 73px por fila
+    overscan: 5,
+  });
+
+  const { getVirtualItems, getTotalSize } = rowVirtualizer;
+  const virtualItems = getVirtualItems();
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length > 0
+    ? getTotalSize() - virtualItems.at(-1).end
+    : 0;
 
   const handleChangeEstado = async (id: string, nuevoEstado: 'revisada' | 'aprobada' | 'rechazada') => {
     try {
@@ -78,7 +90,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
 
       // Actualizar la lista local
       setMinutas(prev => prev.map(m =>
-        m.id === id ? { ...m, estado: nuevoEstado } : m
+        m.Id === id ? { ...m, Estado: nuevoEstado } : m
       ));
 
       toast({
@@ -95,20 +107,7 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
     }
   };
 
-  const getEstadoBadge = (estado: string) => {
-    switch (estado) {
-      case 'pendiente':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
-      case 'revisada':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Revisada</Badge>;
-      case 'aprobada':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Aprobada</Badge>;
-      case 'rechazada':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Rechazada</Badge>;
-      default:
-        return <Badge variant="outline">{estado}</Badge>;
-    }
-  };
+
 
   if (loading) {
     return <div className="flex justify-center p-8">Cargando minutas provisorias...</div>;
@@ -153,9 +152,12 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
               </TabsList>
 
               <TabsContent value={activeTab}>
-                <div className="rounded-md border">
+                <div
+                  ref={parentRef}
+                  className="rounded-md border h-[600px] overflow-auto relative"
+                >
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                       <TableRow>
                         <TableHead>Proyecto</TableHead>
                         <TableHead>Unidad</TableHead>
@@ -173,99 +175,33 @@ export const ListaMinutasProvisoriasAdmin: React.FC = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredMinutas.map((minuta) => (
-                          <TableRow key={minuta.Id}>
-                            <TableCell>{minuta.Proyecto}</TableCell>
-                            <TableCell>{minuta.Dato?.unidadDescripcion || minuta.UnidadId}</TableCell>
-                            <TableCell>{minuta.UsuarioId}</TableCell>
-                            <TableCell>
-                              {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
-                            </TableCell>
-                            <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" asChild>
-                                  <a href={`/ admin / minutas / ${minuta.Id} `}>
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    Ver
-                                  </a>
-                                </Button>
-
-                                {minuta.Estado === 'pendiente' && (
-                                  <>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleChangeEstado(minuta.Id, 'revisada')}
-                                    >
-                                      <Clock className="h-4 w-4 mr-1" />
-                                      Revisar
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-green-600"
-                                      onClick={() => handleChangeEstado(minuta.Id, 'aprobada')}
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                      Aprobar
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-red-600"
-                                      onClick={() => handleChangeEstado(minuta.Id, 'rechazada')}
-                                    >
-                                      <XCircle className="h-4 w-4 mr-1" />
-                                      Rechazar
-                                    </Button>
-                                  </>
-                                )}
-
-                                {minuta.Estado === 'revisada' && (
-                                  <>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-green-600"
-                                      onClick={() => handleChangeEstado(minuta.Id, 'aprobada')}
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                      Aprobar
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-red-600"
-                                      onClick={() => handleChangeEstado(minuta.Id, 'rechazada')}
-                                    >
-                                      <XCircle className="h-4 w-4 mr-1" />
-                                      Rechazar
-                                    </Button>
-                                  </>
-                                )}
-
-                                {minuta.Estado === 'aprobada' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                  >
-                                    <a href={`/ admin / minutas / ${minuta.Id}/definitiva`}>
-                                      <FileText className="h-4 w-4 mr-1" />
-                                      Crear Definitiva
-                                    </a >
-                                  </Button >
-                                )}
-                              </div >
-                            </TableCell >
-                          </TableRow >
-                        ))
+                        <>
+                          {paddingTop > 0 && (
+                            <TableRow>
+                              <TableCell colSpan={6} style={{ height: `${paddingTop}px`, padding: 0 }} />
+                            </TableRow>
+                          )}
+                          {virtualItems.map((virtualRow) => {
+                            const minuta = filteredMinutas[virtualRow.index];
+                            return (
+                              <MinutaProvisoriaRow
+                                key={minuta.Id}
+                                minuta={minuta}
+                                onChangeEstado={handleChangeEstado}
+                              />
+                            );
+                          })}
+                          {paddingBottom > 0 && (
+                            <TableRow>
+                              <TableCell colSpan={6} style={{ height: `${paddingBottom}px`, padding: 0 }} />
+                            </TableRow>
+                          )}
+                        </>
                       )}
-                    </TableBody >
-                  </Table >
-                </div >
-              </TabsContent >
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
             </Tabs >
           </div >
         </CardContent >

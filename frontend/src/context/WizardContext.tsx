@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { WizardData, initialWizardData, GeneratedFile } from "@/types/wizard";
 
 interface WizardContextType {
@@ -11,6 +11,7 @@ interface WizardContextType {
   setGeneratedFile: (file: GeneratedFile | null) => void;
   setDemoMode: (demo: boolean) => void;
   resetWizard: () => void;
+  maxStepReached: number;
 }
 
 const WizardContext = createContext<WizardContextType | undefined>(undefined);
@@ -20,20 +21,35 @@ const WizardContext = createContext<WizardContextType | undefined>(undefined);
 export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [data, setData] = useState<WizardData>(initialWizardData);
   const [currentStep, setCurrentStep] = useState(0);
+  const [maxStepReached, setMaxStepReached] = useState(0);
   const [generatedFile, setGeneratedFile] = useState<GeneratedFile | null>(null);
   const [demoMode, setDemoMode] = useState(false);
 
-  const updateData = (newData: Partial<WizardData>) => {
+  const updateData = useCallback((newData: Partial<WizardData>) => {
     setData((prev) => ({ ...prev, ...newData }));
-  };
+  }, []);
 
   // Funciones de guardado y carga de borradores eliminadas
 
-  const resetWizard = () => {
+  const resetWizard = useCallback(() => {
     setData(initialWizardData);
     setCurrentStep(0);
+    setMaxStepReached(0);
     setGeneratedFile(null);
-  };
+  }, []);
+
+  const handleSetCurrentStep = useCallback((step: number) => {
+    setCurrentStep(step);
+    setMaxStepReached((prev) => Math.max(step, prev));
+  }, []);
+
+  const handleSetGeneratedFile = useCallback((file: GeneratedFile | null) => {
+    setGeneratedFile(file);
+  }, []);
+
+  const handleSetDemoMode = useCallback((demo: boolean) => {
+    setDemoMode(demo);
+  }, []);
 
   // Efectos de auto-guardado y carga eliminados
 
@@ -42,12 +58,13 @@ export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     currentStep,
     generatedFile,
     demoMode,
+    maxStepReached,
     updateData,
-    setCurrentStep,
-    setGeneratedFile,
-    setDemoMode,
+    setCurrentStep: handleSetCurrentStep,
+    setGeneratedFile: handleSetGeneratedFile,
+    setDemoMode: handleSetDemoMode,
     resetWizard,
-  }), [data, currentStep, generatedFile, demoMode]);
+  }), [data, currentStep, generatedFile, demoMode, maxStepReached, updateData, handleSetCurrentStep, handleSetGeneratedFile, handleSetDemoMode, resetWizard]);
 
   return (
     <WizardContext.Provider value={value}>

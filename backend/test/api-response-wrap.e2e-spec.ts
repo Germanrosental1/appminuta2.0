@@ -14,7 +14,7 @@ describe('API Response Wrapping (E2E)', () => {
 
     // Mock guards to bypass Auth
     const mockAuthGuard = {
-        canActivate: (context) => {
+        canActivate: (context: any) => {
             const req = context.switchToHttp().getRequest();
             req.user = { id: 'test-user-id', role: 'admin' };
             return true;

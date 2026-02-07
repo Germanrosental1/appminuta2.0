@@ -47,7 +47,7 @@ class EnvironmentVariables {
     // CORS
     @IsString()
     @IsOptional()
-    ALLOWED_ORIGINS: string = 'http://localhost:3000';
+    ALLOWED_ORIGINS: string = 'https://localhost:3000';
 
     // Optional - usa Matches para soportar URLs con caracteres especiales
     @Matches(/^redis(s)?:\/\/.+/, { message: 'REDIS_URL debe ser una URL válida de Redis' })

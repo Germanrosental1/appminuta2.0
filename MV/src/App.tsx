@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -85,6 +86,15 @@ const App = () => (
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
+
+    {/* React Query DevTools - Only in development */}
+    {import.meta.env.DEV && (
+      <ReactQueryDevtools
+        initialIsOpen={false}
+        position="bottom-right"
+        buttonPosition="bottom-right"
+      />
+    )}
   </QueryClientProvider>
 );
 

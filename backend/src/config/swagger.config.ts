@@ -117,7 +117,7 @@ Versión actual: **v1** (Basado en \`metadata.version\`).
     .addTag('Unidades', 'Endpoints para gestión de unidades inmobiliarias')
     .addTag('Proyectos', 'Endpoints para gestión de proyectos')
     .addTag('Auth', 'Endpoints de autenticación y autorización')
-    .addServer('http://localhost:3000', 'Desarrollo local')
+    .addServer('https://localhost:3000', 'Desarrollo local')
     .addServer('https://api.example.com', 'Producción')
     .build();
 
@@ -130,13 +130,9 @@ Versión actual: **v1** (Basado en \`metadata.version\`).
 
   // Personalizar el documento generado
   // Agregar ejemplos globales de ApiResponse
-  if (!document.components) {
-    document.components = {};
-  }
+  document.components ??= {};
 
-  if (!document.components.examples) {
-    document.components.examples = {};
-  }
+  document.components.examples ??= {};
 
   // Ejemplo de respuesta exitosa
   document.components.examples['SuccessResponseExample'] = {

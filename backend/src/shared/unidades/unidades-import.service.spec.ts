@@ -2,10 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnidadesImportService } from './unidades-import.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoggerService } from '../../logger/logger.service';
-import * as XLSX from 'xlsx';
 import axios from 'axios';
 
-jest.mock('xlsx');
+// Mock ExcelJS
+const mockWorksheet = {
+    eachRow: jest.fn(),
+};
+const mockWorkbook = {
+    xlsx: { load: jest.fn().mockResolvedValue({}) },
+    worksheets: [mockWorksheet],
+};
+jest.mock('exceljs', () => {
+    return {
+        Workbook: jest.fn(() => mockWorkbook),
+    };
+});
+
 jest.mock('axios');
 
 describe('UnidadesImportService', () => {
@@ -103,24 +115,17 @@ describe('UnidadesImportService', () => {
 
     afterEach(() => {
         jest.clearAllMocks();
+        // Reset mockWorksheet behavior
+        mockWorksheet.eachRow.mockReset();
     });
 
     describe('importFromExcel', () => {
         const mockBuffer = Buffer.from('mock-excel-data');
         const mockUser = { sub: 'user-123', email: 'test@example.com' };
 
-        beforeEach(() => {
-            (XLSX.read as jest.Mock).mockReturnValue({
-                SheetNames: ['Sheet1'],
-                Sheets: {
-                    Sheet1: {},
-                },
-            });
-            (XLSX.utils.sheet_to_json as jest.Mock).mockReturnValue([]);
-        });
-
         it('should handle empty Excel file', async () => {
-            (XLSX.utils.sheet_to_json as jest.Mock).mockReturnValue([]);
+            // Mock empty iteration
+            mockWorksheet.eachRow.mockImplementation((cb) => { });
 
             const result = await service.importFromExcel(mockBuffer, mockUser);
 
@@ -130,15 +135,14 @@ describe('UnidadesImportService', () => {
         });
 
         it('should validate required field PrecioM2', async () => {
-            const mockData = [
-                {
-                    proyecto: 'Test Project',
-                    numerounidad: '101',
-                    // Missing preciom2
-                },
-            ];
+            // Mock headers and data
+            mockWorksheet.eachRow.mockImplementation((callback) => {
+                // Header
+                callback({ values: [null, 'proyecto', 'numerounidad', 'preciom2'] }, 1);
+                // Data row (missing preciom2)
+                callback({ values: [null, 'Test Project', '101', null] }, 2);
+            });
 
-            (XLSX.utils.sheet_to_json as jest.Mock).mockReturnValue(mockData);
             mockPrismaService.$transaction.mockImplementation(async (callback) => {
                 return callback(mockPrismaService);
             });
@@ -232,11 +236,9 @@ describe('UnidadesImportService', () => {
             it('should accept valid external URLs', async () => {
                 const validUrl = 'https://example.com/file.xlsx';
                 (axios.get as jest.Mock).mockResolvedValue({ data: Buffer.from('data') });
-                (XLSX.read as jest.Mock).mockReturnValue({
-                    SheetNames: ['Sheet1'],
-                    Sheets: { Sheet1: {} },
-                });
-                (XLSX.utils.sheet_to_json as jest.Mock).mockReturnValue([]);
+
+                // Mock mockWorksheet iteration
+                mockWorksheet.eachRow.mockImplementation((cb) => { });
 
                 await expect(service.importFromUrl(validUrl, mockUser)).resolves.toBeDefined();
             });

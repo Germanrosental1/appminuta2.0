@@ -27,7 +27,7 @@ interface AuthUser extends User {
 interface AuthContextType {
     user: AuthUser | null;
     loading: boolean;
-    signIn: (email: string, password: string) => Promise<{ error: any }>;
+    signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
     signOut: () => Promise<void>;
 
     // Permission-based checks
@@ -93,7 +93,7 @@ const fetchUserRoles = async (userId: string): Promise<Role[]> => {
         }
 
         // Obtener TODOS los IDs de roles (PascalCase keys)
-        const roleIds = rawData.map((r: any) => r.IdRol);
+        const roleIds = rawData.map((r: { IdRol: string }) => r.IdRol);
 
         // Consultar todos los roles en una sola query
         const { data: rolesData } = await supabase
@@ -104,7 +104,7 @@ const fetchUserRoles = async (userId: string): Promise<Role[]> => {
 
         if (rolesData && rolesData.length > 0) {
             // Map PascalCase DB to camelCase Interface
-            return rolesData.map((r: any) => ({
+            return rolesData.map((r: { Id: string; Nombre: string; CreatedAt: string }) => ({
                 id: r.Id,
                 nombre: r.Nombre,
                 created_at: r.CreatedAt

@@ -1,11 +1,9 @@
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabaseService } from "@/services/supabaseService";
-import { Unit } from "@/types/supabase-types";
 import { motion } from "framer-motion";
 import { usePersistentProject } from "@/hooks/usePersistentProject";
+import { useProjects, useAllUnits } from "@/hooks/useUnits";
 
 // Import refactored components
 import {
@@ -13,7 +11,6 @@ import {
   STATUS_NAMES,
   STATUS_COLORS,
   MultiSelectDropdown,
-  MetricasTab,
   StockTab,
   TitularTab,
   getMetrics,
@@ -23,16 +20,21 @@ import {
   getMotivosDistribution,
 } from "@/components/dashboard";
 
-export default function Dashboard() {
-  const [loading, setLoading] = useState(true);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [allUnits, setAllUnits] = useState<Unit[]>([]); // All units for Titular tab
-  const [projects, setProjects] = useState<string[]>([]);
-  const navigate = useNavigate();
+// Lazy load heavy chart components (bundle optimization)
+const MetricasTab = lazy(() => import("@/components/dashboard/MetricasTab").then(m => ({ default: m.MetricasTab })));
 
-  // Use persistent hook instead of simple state
+export default function Dashboard() {
+
+  // Use persistent hook for project selection
   const [selectedProject, setSelectedProject] = usePersistentProject("all");
 
+  // React Query Hooks
+  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+  const { data: allUnits = [], isLoading: isLoadingUnits } = useAllUnits();
+
+  const loading = isLoadingProjects || isLoadingUnits;
+
+  // Local UI state
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<string[]>([]);
   const [selectedDorms, setSelectedDorms] = useState<string[]>([]);
@@ -46,18 +48,49 @@ export default function Dashboard() {
   const [selectedTiposFilter, setSelectedTiposFilter] = useState<string[]>([]);
   const [selectedProyectosFilter, setSelectedProyectosFilter] = useState<string[]>([]);
 
-  // Open states for dropdowns (to prevent closing on click inside)
+  // Open states for dropdowns
   const [openProyectos, setOpenProyectos] = useState(false);
   const [openTipos, setOpenTipos] = useState(false);
   const [openEstados, setOpenEstados] = useState(false);
   const [openTitulares, setOpenTitulares] = useState(false);
 
-  // State to force re-animation on mount/return
+  // Animation key
   const [animationKey, setAnimationKey] = useState(0);
 
   useEffect(() => {
     setAnimationKey(prev => prev + 1);
   }, []);
+
+  // Filter units based on selected project
+  const units = selectedProject === "all"
+    ? allUnits
+    : allUnits.filter(u => u.proyecto === selectedProject);
+
+  // Initialize Titulares filter with "Cartera Propia" once loaded
+  useEffect(() => {
+    if (allUnits.length > 0 && selectedTitulares.length === 0) {
+      const carteraVariants = allUnits
+        .map(u => u.clienteTitularBoleto)
+        .filter(titular => {
+          if (!titular) return false;
+          const normalized = titular.toLowerCase().replace(/\s+/g, '');
+          return normalized === 'carterapropia';
+        });
+      const uniqueCartera = [...new Set(carteraVariants)] as string[];
+      if (uniqueCartera.length > 0) {
+        setSelectedTitulares(uniqueCartera);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingUnits]); // Only run once when units finish loading
+
+  // Reset filters when project changes
+  useEffect(() => {
+    setSelectedStatus([]);
+    setSelectedType([]);
+    setSelectedDorms([]);
+    setSelectedMotivo([]);
+  }, [selectedProject]);
 
   // Helper to get units filtered by everything EXCEPT the specified dimension
   const getFilteredUnits = (exclude: 'status' | 'type' | 'dorms' | 'motivo' | 'none') => {
@@ -88,72 +121,6 @@ export default function Dashboard() {
   const unitsForDorms = getFilteredUnits('dorms');
   const unitsForMotivo = getFilteredUnits('motivo');
   const filteredUnitsForMetrics = getFilteredUnits('none');
-
-  // Load projects
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const projectsData = await supabaseService.getProjects();
-        setProjects(projectsData);
-      } catch (error) {
-        console.error("Error loading dashboard data:", error);
-      }
-    };
-    loadInitialData();
-  }, []);
-
-  // Load ALL units once on mount (for Titular tab)
-  useEffect(() => {
-    const loadAllUnits = async () => {
-      try {
-        const allData = await supabaseService.getAllUnits();
-        setAllUnits(allData);
-
-        // Pre-select "Cartera Propia" variants in Titulares filter
-        const carteraVariants = allData
-          .map(u => u.clienteTitularBoleto)
-          .filter(titular => {
-            if (!titular) return false;
-            const normalized = titular.toLowerCase().replace(/\s+/g, '');
-            return normalized === 'carterapropia';
-          });
-        const uniqueCartera = [...new Set(carteraVariants)] as string[];
-        if (uniqueCartera.length > 0) {
-          setSelectedTitulares(uniqueCartera);
-        }
-      } catch (error) {
-        console.error("Error loading all units:", error);
-      }
-    };
-    loadAllUnits();
-  }, []);
-
-  // Load units when project changes
-  useEffect(() => {
-    const loadFilteredUnits = async () => {
-      try {
-        setLoading(true);
-        // Reset all chart filters when project changes
-        setSelectedStatus([]);
-        setSelectedType([]);
-        setSelectedDorms([]);
-        setSelectedMotivo([]);
-
-        let filteredUnits: Unit[] = [];
-        if (selectedProject !== "all" && selectedProject) {
-          filteredUnits = await supabaseService.getUnitsByProject(selectedProject);
-        } else {
-          filteredUnits = await supabaseService.getAllUnits();
-        }
-        setUnits(filteredUnits);
-      } catch (error) {
-        console.error("Error loading filtered units:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadFilteredUnits();
-  }, [selectedProject]);
 
   // Calculate metrics and distributions
   const metrics = getMetrics(filteredUnitsForMetrics);
@@ -199,22 +166,22 @@ export default function Dashboard() {
   const allTitulares = [...new Set(allUnits
     .filter(u => u.clienteTitularBoleto && u.clienteTitularBoleto.trim() !== '')
     .map(u => u.clienteTitularBoleto)
-  )].sort() as string[];
+  )].sort((a, b) => a.localeCompare(b));
 
   const allEstados = [...new Set(allUnits
     .filter(u => u.estado)
     .map(u => u.estado)
-  )].sort() as string[];
+  )].sort((a, b) => a.localeCompare(b)) as string[];
 
   const allTipos = [...new Set(allUnits
     .filter(u => u.tipo && u.tipo.trim() !== '')
     .map(u => u.tipo)
-  )].sort() as string[];
+  )].sort((a, b) => a.localeCompare(b));
 
   const allProyectos = [...new Set(allUnits
     .filter(u => u.proyecto && u.proyecto.trim() !== '')
     .map(u => u.proyecto)
-  )].sort() as string[];
+  )].sort((a, b) => a.localeCompare(b));
 
   return (
     <motion.div
@@ -293,18 +260,19 @@ export default function Dashboard() {
         </TabsList>
 
         <TabsContent value="metricas">
-          <MetricasTab
-            loading={loading}
-            metrics={metrics}
-            statusData={statusData}
-            tipoData={tipoData}
-            dormitoriosData={dormitoriosData}
-            motivosData={motivosData}
-            selectedStatus={selectedStatus}
-            setSelectedStatus={setSelectedStatus}
-            selectedType={selectedType}
-            setSelectedType={setSelectedType}
-            selectedDorms={selectedDorms}
+          <Suspense fallback={<div className="flex items-center justify-center p-8">Cargando métricas...</div>}>
+            <MetricasTab
+              loading={loading}
+              metrics={metrics}
+              statusData={statusData}
+              tipoData={tipoData}
+              dormitoriosData={dormitoriosData}
+              motivosData={motivosData}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+              selectedType={selectedType}
+              setSelectedType={setSelectedType}
+              selectedDorms={selectedDorms}
             setSelectedDorms={setSelectedDorms}
             selectedMotivo={selectedMotivo}
             setSelectedMotivo={setSelectedMotivo}
@@ -313,6 +281,7 @@ export default function Dashboard() {
             animationKey={animationKey}
             hasDepartamentos={tipoData.some(t => t.name === 'Departamento' && t.value > 0)}
           />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="stock">

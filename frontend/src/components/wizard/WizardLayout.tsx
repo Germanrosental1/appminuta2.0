@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, RefreshCw, Home } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
+import { validateStep } from "@/utils/validation";
 interface WizardLayoutProps {
   children: React.ReactNode;
   onNext?: () => boolean;
@@ -47,7 +47,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   finalStep = false,
   isEditMode = false,
 }) => {
-  const { currentStep, setCurrentStep, resetWizard, data } = useWizard();
+  const { currentStep, setCurrentStep, resetWizard, data, maxStepReached } = useWizard();
 
   // Determine array based on payment type
   const titles = data.tipoPago === "contado" ? [...TITLES_CONTADO] : [...TITLES_BASE];
@@ -59,6 +59,10 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
   // Calculate progress
   const progress = ((currentStep + 1) / titles.length) * 100;
+
+  // Validate current step
+  const stepValidation = validateStep(currentStep, data, data.tipoPago);
+  const isStepValid = stepValidation.valid;
 
   const handleBack = () => {
     if (isEditMode && currentStep === 1) {
@@ -74,6 +78,11 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   };
 
   const handleNext = () => {
+    if (!isStepValid) {
+      toast.error("Por favor complete los campos requeridos antes de avanzar");
+      return;
+    }
+
     if (onNext) {
       const canProceed = onNext();
       if (canProceed && currentStep < titles.length - 1) {
@@ -94,9 +103,9 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Sidebar Steps (Desktop) */}
-      <aside className="hidden w-80 flex-col border-r border-border bg-[#111622] p-6 lg:flex">
+      <aside className="hidden w-80 flex-col border-r border-border bg-card p-6 lg:flex">
         <div className="mb-8 flex items-center gap-2">
-          <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold text-white">
+          <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold text-foreground">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
               <span className="material-symbols-outlined text-lg">apartment</span>
             </span>
@@ -108,7 +117,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
           <div className="space-y-1">
             {titles.map((title, index) => {
               const isActive = currentStep === index;
-              const isCompleted = index < currentStep;
+              const isCompleted = index < currentStep || index < maxStepReached;
 
               return (
                 <div
@@ -118,24 +127,34 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                       toast.error("En modo edición no puedes cambiar el proyecto/unidad");
                       return;
                     }
-                    setCurrentStep(index);
+                    // Prevent skipping steps if current is invalid, unless going back
+                    if (index > currentStep && !isStepValid) {
+                      toast.error("Complete el paso actual antes de avanzar");
+                      return;
+                    }
+                    // Allow navigation if previously reached (handled by maxStepReached logic in UI) 
+                    // BUT explicitly enforce sequential validation for forward jumps effectively blocked by logic above + maxStepReached implicitly
+                    // Just set step if allowed
+                    if (index <= maxStepReached || (index === currentStep + 1 && isStepValid)) {
+                      setCurrentStep(index);
+                    }
                   }}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 cursor-pointer",
                     isActive
-                      ? "bg-primary text-white shadow-lg shadow-blue-900/20"
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-blue-500/20"
                       : isCompleted
-                        ? "text-[#92a4c8] hover:bg-white/5 hover:text-white"
-                        : "text-slate-600 dark:text-slate-500 hover:text-slate-400"
+                        ? "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        : "text-muted-foreground/70 hover:text-foreground"
                   )}
                 >
                   <div className={cn(
                     "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all",
                     isActive
-                      ? "border-white bg-white text-primary"
+                      ? "border-background bg-background text-primary"
                       : isCompleted
                         ? "border-green-500 bg-green-500 text-white"
-                        : "border-slate-600 bg-transparent text-slate-600"
+                        : "border-muted-foreground/30 bg-transparent text-muted-foreground"
                   )}>
                     {isCompleted ? (
                       <span className="material-symbols-outlined text-sm font-bold">check</span>
@@ -151,10 +170,10 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
         </div>
 
         {/* Bottom Actions */}
-        <div className="mt-4 pt-4 border-t border-slate-800">
+        <div className="mt-4 pt-4 border-t border-border">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-white/5"
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             onClick={handleReset}
           >
             <RefreshCw className="h-4 w-4" />
@@ -166,14 +185,14 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden relative">
         {/* Background Gradients */}
-        <div className="absolute inset-0 z-0 pointer-events-none bg-[#0f131a]">
+        <div className="absolute inset-0 z-0 pointer-events-none bg-background">
           <div className="absolute top-0 right-0 h-[500px] w-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
         </div>
 
         {/* Mobile Header (visible only on small screens) */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-[#111622] px-4 lg:hidden z-20">
-          <span className="font-bold text-white">Paso {currentStep + 1}: {titles[currentStep]}</span>
-          <span className="text-xs text-slate-400">{Math.round(progress)}%</span>
+        <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:hidden z-20">
+          <span className="font-bold text-foreground">Paso {currentStep + 1}: {titles[currentStep]}</span>
+          <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
         </header>
 
         {/* Scrollable Content */}
@@ -184,11 +203,11 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             </div>
 
             <div className="mb-8 hidden lg:block">
-              <h2 className="text-3xl font-display font-bold text-white mb-2">{titles[currentStep]}</h2>
-              <p className="text-[#92a4c8]">Complete la información solicitada para avanzar.</p>
+              <h2 className="text-3xl font-display font-bold text-foreground mb-2">{titles[currentStep]}</h2>
+              <p className="text-muted-foreground">Complete la información solicitada para avanzar.</p>
             </div>
 
-            <div className="bg-[#1a2233]/80 backdrop-blur-xl rounded-2xl border border-[#334366] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+            <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border p-6 md:p-8 shadow-2xl relative overflow-hidden">
               {/* Glow inside card */}
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-primary opacity-50"></div>
               {children}
@@ -198,12 +217,12 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
         {/* Footer Navigation (Sticky) */}
         {!hideNavigation && (
-          <footer className="h-20 border-t border-[#334366] bg-[#111622] px-8 flex items-center justify-between z-20">
+          <footer className="h-20 border-t border-border bg-card px-8 flex items-center justify-between z-20">
             <Button
               variant="ghost"
               onClick={handleBack}
               disabled={currentStep === 0 || (isEditMode && currentStep === 1)}
-              className="text-[#92a4c8] hover:text-white hover:bg-white/5"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Volver
@@ -213,7 +232,8 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               {!finalStep && (
                 <Button
                   onClick={handleNext}
-                  className="h-12 bg-primary px-8 text-base font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-600 rounded-xl"
+                  disabled={!isStepValid}
+                  className="h-12 bg-primary px-8 text-base font-bold shadow-lg shadow-blue-500/20 hover:bg-primary/90 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Siguiente Paso
                   <ChevronRight className="w-4 h-4 ml-2" />

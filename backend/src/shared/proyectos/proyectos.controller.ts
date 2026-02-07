@@ -50,7 +50,7 @@ export class ProyectosController {
         description: 'Retorna los proyectos asignados al usuario autenticado.',
     })
     @ApiResponseWrapper(ProyectoListItemDto, true)
-    getMyProjects(@Request() req) {
+    getMyProjects(@Request() req: any) {
         const userId = req.user?.sub || req.user?.id;
         return this.proyectosService.findByUserId(userId);
     }

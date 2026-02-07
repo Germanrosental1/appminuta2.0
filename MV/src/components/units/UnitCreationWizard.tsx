@@ -1,18 +1,19 @@
 
 import React, { useState, useEffect } from "react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useForm, Controller } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { cn } from "@/lib/utils";
 import { backendAPI } from "@/services/backendAPI";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+
 
 // Types matching backend DTO structure
 interface WizardData {
@@ -58,12 +59,12 @@ export const UnitCreationWizard = () => {
     const [loading, setLoading] = useState(false);
 
     // Catalogs
-    const [projects, setProjects] = useState<any[]>([]);
-    const [buildings, setBuildings] = useState<any[]>([]);
-    const [stages, setStages] = useState<any[]>([]);
-    const [unitTypes, setUnitTypes] = useState<any[]>([]);
-    const [commercialStates, setCommercialStates] = useState<any[]>([]);
-    const [commercials, setCommercials] = useState<any[]>([]);
+    const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
+    const [buildings, setBuildings] = useState<Record<string, unknown>[]>([]);
+    const [stages, setStages] = useState<Record<string, unknown>[]>([]);
+    const [unitTypes, setUnitTypes] = useState<Record<string, unknown>[]>([]);
+    const [commercialStates, setCommercialStates] = useState<Record<string, unknown>[]>([]);
+    const [commercials, setCommercials] = useState<Record<string, unknown>[]>([]);
 
     const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardData>({
         defaultValues: {
@@ -74,7 +75,6 @@ export const UnitCreationWizard = () => {
     });
 
     const selectedProjectId = watch("projectId");
-    const selectedTipo = watch("tipo");
 
     // Load initial catalogs
     useEffect(() => {
@@ -87,11 +87,11 @@ export const UnitCreationWizard = () => {
                     backendAPI.getCommercialStates(),
                     backendAPI.getCommercials()
                 ]);
-                setProjects(projs || []);
-                setUnitTypes(types || []);
-                setStages(stgs || []);
-                setCommercialStates(states || []);
-                setCommercials(comms || []);
+                setProjects((projs as Record<string, unknown>[]) || []);
+                setUnitTypes((types as Record<string, unknown>[]) || []);
+                setStages((stgs as Record<string, unknown>[]) || []);
+                setCommercialStates((states as Record<string, unknown>[]) || []);
+                setCommercials((comms as Record<string, unknown>[]) || []);
             } catch (err) {
                 console.error("Error loading catalogs", err);
                 toast.error("Error cargando listas desplegables");
@@ -106,7 +106,7 @@ export const UnitCreationWizard = () => {
             const loadBuildings = async () => {
                 try {
                     const blds = await backendAPI.getBuildings(selectedProjectId);
-                    setBuildings(blds || []);
+                    setBuildings((blds as Record<string, unknown>[]) || []);
                     setValue("edificioTorre", ""); // Reset building validation
                     setValue("etapa", ""); // Reset dependent fields if logic implies
                 } catch (err) {
@@ -160,72 +160,19 @@ export const UnitCreationWizard = () => {
             await backendAPI.createUnitComplete(payload);
             toast.success("Unidad creada exitosamente");
             navigate("/units");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error creating unit:", error);
-            toast.error(error.message || "Error al crear la unidad");
+            toast.error(error instanceof Error ? error.message : "Error al crear la unidad");
         } finally {
             setLoading(false);
         }
     };
 
+    // Navigation handlers
     const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, steps.length));
     const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
     const isLastStep = currentStep === steps.length;
 
-    // Creatable Combobox implementation
-    // Generic helper for comboboxes
-    const CreatableCombobox = ({ value, onChange, options, placeholder, labelField = "nombre", valueField = "id", disabled = false }: { value: string, onChange: (val: string) => void, options: any[], placeholder: string, labelField?: string, valueField?: string, disabled?: boolean }) => {
-        const [open, setOpen] = useState(false);
-        const [search, setSearch] = useState("");
-
-        // Filter options based on search
-        const filteredOptions = options.filter(opt =>
-            (opt[labelField] || "").toLowerCase().includes(search.toLowerCase())
-        );
-
-        const exactMatch = filteredOptions.some(opt => opt[labelField]?.toLowerCase() === search.toLowerCase());
-
-        return (
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between" disabled={disabled}>
-                        {value ? (options.find(opt => (opt[valueField] || opt[labelField]) === value)?.[labelField] || value) : placeholder}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
-                    <Command>
-                        <CommandInput placeholder={`Buscar ${placeholder.toLowerCase()}...`} onValueChange={setSearch} />
-                        <CommandList>
-                            <CommandEmpty>
-                                {!exactMatch && search && (
-                                    <div onClick={() => { onChange(search); setOpen(false); }} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-100 rounded-sm">
-                                        <Plus className="h-4 w-4" /> Crear "{search}"
-                                    </div>
-                                )}
-                                {(!search) && <span className="p-2 text-sm text-gray-500">Escriba para buscar o crear</span>}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {filteredOptions.map((opt) => (
-                                    <CommandItem
-                                        key={opt.id || opt[labelField]}
-                                        value={opt[labelField]}
-                                        onSelect={() => {
-                                            onChange(opt[valueField] || opt[labelField]);
-                                            setOpen(false);
-                                        }}
-                                    >
-                                        <Check className={cn("mr-2 h-4 w-4", value === (opt[valueField] || opt[labelField]) ? "opacity-100" : "opacity-0")} />
-                                        {opt[labelField]}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-        );
-    }
 
     return (
         <div className="container mx-auto p-6 max-w-3xl">
@@ -276,7 +223,7 @@ export const UnitCreationWizard = () => {
                                                 control={control}
                                                 rules={{ required: true }}
                                                 render={({ field }) => (
-                                                    <CreatableCombobox
+                                                    <SearchableSelect
                                                         value={field.value}
                                                         onChange={field.onChange}
                                                         options={projects}
@@ -303,7 +250,7 @@ export const UnitCreationWizard = () => {
                                                 control={control}
                                                 rules={{ required: true }}
                                                 render={({ field }) => (
-                                                    <CreatableCombobox
+                                                    <SearchableSelect
                                                         value={field.value}
                                                         onChange={field.onChange}
                                                         options={buildings}
@@ -333,7 +280,7 @@ export const UnitCreationWizard = () => {
                                                 control={control}
                                                 rules={{ required: true }}
                                                 render={({ field }) => (
-                                                    <CreatableCombobox
+                                                    <SearchableSelect
                                                         value={field.value}
                                                         onChange={field.onChange}
                                                         options={stages}
@@ -372,7 +319,7 @@ export const UnitCreationWizard = () => {
                                             control={control}
                                             rules={{ required: true }}
                                             render={({ field }) => (
-                                                <CreatableCombobox
+                                                <SearchableSelect
                                                     value={field.value}
                                                     onChange={field.onChange}
                                                     options={unitTypes}
@@ -438,7 +385,7 @@ export const UnitCreationWizard = () => {
                                             control={control}
                                             rules={{ required: true }}
                                             render={({ field }) => (
-                                                <CreatableCombobox
+                                                <SearchableSelect
                                                     value={field.value}
                                                     onChange={field.onChange}
                                                     options={commercialStates}
@@ -460,7 +407,7 @@ export const UnitCreationWizard = () => {
                                                 name="comercial"
                                                 control={control}
                                                 render={({ field }) => (
-                                                    <CreatableCombobox
+                                                    <SearchableSelect
                                                         value={field.value}
                                                         onChange={field.onChange}
                                                         options={commercials}

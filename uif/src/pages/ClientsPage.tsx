@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { uifApi } from '@/lib/api-client';
 import { Client, DEFAULT_FINANCIAL_DATA, DEFAULT_ANALYSIS_SETTINGS, PersonType } from '@/types/database';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,7 +47,7 @@ const ClientsTableSkeleton = () => (
       </TableHeader>
       <TableBody>
         {Array.from({ length: 5 }).map((_, i) => (
-          <TableRow key={i}>
+          <TableRow key={`skeleton-${i}`}>
             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
             <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
@@ -74,7 +75,7 @@ export default function ClientsPage() {
   // ⚡ PERFORMANCE: useQuery con cache automático
   const { data: clients = [], isLoading: loading } = useQuery({
     queryKey: ['clients'],
-    queryFn: () => uifApi.clients.list(),
+    queryFn: async () => (await uifApi.clients.list()) as Client[],
   });
 
   // Debounce search input
@@ -127,9 +128,9 @@ export default function ClientsPage() {
     setCreating(true);
 
     try {
-      const clientData = {
+      const clientData: Partial<Client> = {
         name: newClientName.trim(),
-        cuit: newClientCuit.trim() || undefined,
+        cuit: newClientCuit.trim() || null,
         person_type: newClientType,
         financial_data: DEFAULT_FINANCIAL_DATA,
         analysis_settings: DEFAULT_ANALYSIS_SETTINGS,
@@ -146,10 +147,11 @@ export default function ClientsPage() {
       setNewClientCuit('');
       setNewClientType('PF');
       // El realtime se encarga de actualizar el cache automáticamente
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       toast({
         title: 'Error',
-        description: `No se pudo crear el cliente: ${error.message}`,
+        description: `No se pudo crear el cliente: ${errorMessage}`,
         variant: 'destructive',
       });
     } finally {
@@ -166,8 +168,18 @@ export default function ClientsPage() {
     );
   }, [clients, debouncedSearch]);
 
+  // ⚡ VIRTUALIZATION: Handle large lists efficiently
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredClients.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 73, // Altura estimada de fila (53px content + padding)
+    overscan: 10,
+  });
+
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-6 animate-in h-screen flex flex-col pb-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -264,7 +276,7 @@ export default function ClientsPage() {
         />
       </div>
 
-      {/* Table */}
+      {/* Table (Virtualized) */}
       {loading ? (
         <ClientsTableSkeleton />
       ) : filteredClients.length === 0 ? (
@@ -282,9 +294,12 @@ export default function ClientsPage() {
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden">
+        <div
+          ref={parentRef}
+          className="rounded-lg border bg-card overflow-auto flex-1 relative"
+        >
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 bg-secondary z-10 shadow-sm">
               <TableRow>
                 <TableHead>Nombre</TableHead>
                 <TableHead>CUIT</TableHead>
@@ -293,42 +308,53 @@ export default function ClientsPage() {
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {filteredClients.map((client) => (
-                <TableRow
-                  key={client.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => navigate(`/clientes/${client.id}`)}
-                  // ⚡ PERFORMANCE: Prefetch al hover para navegación instantánea
-                  onMouseEnter={() => {
-                    queryClient.prefetchQuery({
-                      queryKey: ['client', client.id],
-                      queryFn: () => uifApi.clients.get(client.id),
-                      staleTime: 30_000,
-                    });
-                  }}
-                >
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {client.cuit || '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={client.status === 'Activo' ? 'default' : 'secondary'}>
-                      {client.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(client.updated_at), "d MMM yyyy, HH:mm", { locale: es })}
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/clientes/${client.id}`}>
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+            <TableBody
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                position: 'relative',
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const client = filteredClients[virtualRow.index];
+                return (
+                  <TableRow
+                    key={client.id}
+                    className="cursor-pointer hover:bg-muted/50 absolute w-full"
+                    style={{
+                      transform: `translateY(${virtualRow.start}px)`,
+                      height: `${virtualRow.size}px`,
+                    }}
+                    onClick={() => navigate(`/clientes/${client.id}`)}
+                    onMouseEnter={() => {
+                      queryClient.prefetchQuery({
+                        queryKey: ['client', client.id],
+                        queryFn: () => uifApi.clients.get(client.id),
+                        staleTime: 30_000,
+                      });
+                    }}
+                  >
+                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {client.cuit || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={client.status === 'Activo' ? 'default' : 'secondary'}>
+                        {client.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(client.updated_at), "d MMM yyyy, HH:mm", { locale: es })}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`/clientes/${client.id}`}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

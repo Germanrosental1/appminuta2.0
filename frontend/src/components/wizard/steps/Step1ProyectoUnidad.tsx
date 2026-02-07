@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useWizard } from "@/context/WizardContext";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash, Building, Car, Package, Store, Warehouse, Pencil, Lock, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Trash, Building, Car, Package, Pencil, Lock, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
 import { UnidadSeleccionada, TipoUnidad } from "@/types/wizard";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUnidadFilters } from "@/hooks/useUnidadFilters";
 import { useProyectos, useTipos } from "@/hooks/useUnidades";
 import { UnidadFormulario } from "./UnidadFormulario";
@@ -196,30 +193,17 @@ export const Step1ProyectoUnidad: React.FC = () => {
     updateData({ unidades: nuevasUnidades });
   };
 
-  const getIconForTipoUnidad = (tipo: string) => {
-    const icons: Record<string, React.ReactNode> = {
-      Departamento: <Building className="w-5 h-5" />,
-      Cochera: <Car className="w-5 h-5" />,
-      "Cochera Cubierta": <Car className="w-5 h-5" />,
-      "Cochera Semicubierta": <Car className="w-5 h-5" />,
-      "Cochera Descubierta": <Car className="w-5 h-5" />,
-      Baulera: <Package className="w-5 h-5" />,
-      Local: <Store className="w-5 h-5" />,
-      Nave: <Warehouse className="w-5 h-5" />
-    };
-    return icons[tipo] || <Building className="w-5 h-5" />;
-  };
 
   return (
     <div className="flex flex-col gap-8 pb-20">
       {/* Filtros Superiores */}
       <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
-        <section className="bg-[#1a2233] border border-[#334366] rounded-xl p-6 shadow-sm flex-1">
+        <section className="bg-muted/30 border border-border rounded-xl p-6 shadow-sm flex-1">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Proyecto */}
             <div className="flex flex-col gap-2 relative">
-              <Label htmlFor="proyectoGlobal" className="text-white text-sm font-semibold tracking-wide flex justify-between">
+              <Label htmlFor="proyectoGlobal" className="text-foreground text-sm font-semibold tracking-wide flex justify-between">
                 PROYECTO
                 {proyectoBloqueado && (
                   <span className="text-xs text-yellow-500 flex items-center gap-1 font-normal">
@@ -232,26 +216,26 @@ export const Step1ProyectoUnidad: React.FC = () => {
                 onValueChange={handleProyectoGlobalChange}
                 disabled={loadingProyectos || mostrarFormularioUnidad || proyectoBloqueado}
               >
-                <SelectTrigger id="proyectoGlobal" className="w-full h-12 bg-[#0f131a] border-[#334366] text-white">
+                <SelectTrigger id="proyectoGlobal" className="w-full h-12 bg-background border-border text-foreground">
                   <SelectValue placeholder={loadingProyectos ? "Cargando..." : "Seleccione proyecto"} />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                <SelectContent className="bg-popover border-border text-popover-foreground">
                   {proyectosDisponibles.map((proyecto) => (
-                    <SelectItem key={proyecto} value={proyecto} className="focus:bg-primary/20 focus:text-white">
+                    <SelectItem key={proyecto} value={proyecto} className="focus:bg-primary/20 focus:text-foreground">
                       {proyecto}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {proyectoBloqueado && (
-                <p className="text-xs text-[#92a4c8]">Para cambiar el proyecto, primero elimine todas las unidades agregadas.</p>
+                <p className="text-xs text-muted-foreground">Para cambiar el proyecto, primero elimine todas las unidades agregadas.</p>
               )}
               {errors.proyecto && <p className="text-sm text-destructive">{errors.proyecto}</p>}
             </div>
 
             {/* Tipo de Unidad */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="tipoUnidad" className="text-white text-sm font-semibold tracking-wide">
+              <Label htmlFor="tipoUnidad" className="text-foreground text-sm font-semibold tracking-wide">
                 TIPO DE UNIDAD
               </Label>
               <Select
@@ -259,12 +243,12 @@ export const Step1ProyectoUnidad: React.FC = () => {
                 onValueChange={setTipoUnidadSeleccionado}
                 disabled={!proyectoGlobal || loadingTipos}
               >
-                <SelectTrigger id="tipoUnidad" className="w-full h-12 bg-[#0f131a] border-[#334366] text-white">
-                  <SelectValue placeholder={!proyectoGlobal ? "Seleccione proyecto primero" : "Tipo de unidad"} />
+                <SelectTrigger id="tipoUnidad" className="w-full h-12 bg-background border-border text-foreground">
+                  <SelectValue placeholder={proyectoGlobal ? "Tipo de unidad" : "Seleccione proyecto primero"} />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                <SelectContent className="bg-popover border-border text-popover-foreground">
                   {tiposDelProyecto.map((tipo) => (
-                    <SelectItem key={tipo} value={tipo} className="focus:bg-primary/20 focus:text-white">
+                    <SelectItem key={tipo} value={tipo} className="focus:bg-primary/20 focus:text-foreground">
                       {tipo}
                     </SelectItem>
                   ))}
@@ -275,7 +259,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
 
             {/* Fecha de Posesión */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="fechaPosesion" className="text-white text-sm font-semibold tracking-wide">
+              <Label htmlFor="fechaPosesion" className="text-foreground text-sm font-semibold tracking-wide">
                 FECHA DE POSESIÓN
               </Label>
               <Popover>
@@ -283,7 +267,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-full h-12 justify-start text-left font-normal bg-[#0f131a] border-[#334366] text-white hover:bg-[#1a2233] hover:text-white",
+                      "w-full h-12 justify-start text-left font-normal bg-background border-border text-foreground hover:bg-muted hover:text-foreground",
                       !data.fechaPosesion && "text-muted-foreground",
                       errors.fechaPosesion && "border-destructive"
                     )}
@@ -292,13 +276,13 @@ export const Step1ProyectoUnidad: React.FC = () => {
                     {data.fechaPosesion ? format(new Date(data.fechaPosesion), "PPP", { locale: es }) : <span>Seleccione fecha</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-[#1a2233] border-[#334366] text-white" align="start">
+                <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground" align="start">
                   <Calendar
                     mode="single"
                     selected={data.fechaPosesion ? new Date(data.fechaPosesion) : undefined}
                     onSelect={(date) => updateData({ fechaPosesion: date ? date.toISOString().split('T')[0] : '' })}
                     initialFocus
-                    className="bg-[#1a2233] text-white"
+                    className="bg-popover text-popover-foreground"
                   />
                 </PopoverContent>
               </Popover>
@@ -311,7 +295,7 @@ export const Step1ProyectoUnidad: React.FC = () => {
         {/* Botón Reiniciar (Opcional, visualmente en HTML estaba) */}
         <Button
           variant="outline"
-          className="h-12 w-full lg:w-16 lg:h-auto lg:self-stretch flex flex-col items-center justify-center gap-2 rounded-xl bg-[#1a2233] border-[#334366] text-[#92a4c8] hover:text-orange-400 hover:border-orange-400/50 hover:bg-orange-500/5 transition-all shadow-sm group shrink-0"
+          className="h-12 w-full lg:w-16 lg:h-auto lg:self-stretch flex flex-col items-center justify-center gap-2 rounded-xl bg-card border-border text-muted-foreground hover:text-orange-400 hover:border-orange-400/50 hover:bg-orange-500/5 transition-all shadow-sm group shrink-0"
           title="Limpiar filtros"
           onClick={() => {
             setTipoUnidadSeleccionado("");
@@ -327,23 +311,23 @@ export const Step1ProyectoUnidad: React.FC = () => {
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h3 className="text-white text-xl font-bold">Unidades Seleccionadas</h3>
+            <h3 className="text-foreground text-xl font-bold">Unidades Seleccionadas</h3>
             <span className="bg-primary/20 text-primary text-xs font-bold px-2.5 py-1 rounded-full">{unidadesSeleccionadas.length}</span>
           </div>
           <Button
             onClick={mostrarFormulario}
             disabled={!proyectoGlobal || !tipoUnidadSeleccionado || mostrarFormularioUnidad}
-            className="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2.5 rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-500/20"
           >
             <Plus className="w-5 h-5" />
             <span>Agregar Unidad</span>
           </Button>
         </div>
 
-        <div className="border border-[#334366] rounded-xl bg-[#1a2233] overflow-hidden flex flex-col min-h-[200px]">
+        <div className="border border-border rounded-xl bg-muted/10 overflow-hidden flex flex-col min-h-[200px]">
           {unidadesSeleccionadas.length === 0 ? (
             !mostrarFormularioUnidad && (
-              <div className="flex flex-col items-center justify-center py-16 text-[#92a4c8]">
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <Building className="w-16 h-16 mb-4 opacity-50" />
                 <p className="text-lg font-medium">No hay unidades agregadas</p>
                 <p className="text-sm mt-2">
@@ -369,16 +353,16 @@ export const Step1ProyectoUnidad: React.FC = () => {
                 }
 
                 return (
-                  <div key={index} className="group flex items-center justify-between p-4 rounded-lg bg-[#0f131a] border border-[#334366] hover:border-primary/50 transition-all">
+                  <div key={index} className="group flex items-center justify-between p-4 rounded-lg bg-card border border-border hover:border-primary/50 transition-all">
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClass}`}>
                         {icon}
                       </div>
                       <div className="flex flex-col">
-                        <h4 className="text-white font-bold text-base">{unidad.tipo}: {unidad.descripcion}</h4>
-                        <div className="flex items-center gap-3 text-xs text-[#92a4c8] mt-1">
+                        <h4 className="text-foreground font-bold text-base">{unidad.tipo}: {unidad.descripcion}</h4>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                           {unidad.etapa && <span className="flex items-center gap-1">Etapa: {unidad.etapa}</span>}
-                          <span className="w-1 h-1 rounded-full bg-[#92a4c8]/30"></span>
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
                           <span className="flex items-center gap-1">Precio: ${unidad.precioLista.toLocaleString()}</span>
                         </div>
                       </div>
@@ -386,14 +370,14 @@ export const Step1ProyectoUnidad: React.FC = () => {
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => editarUnidad(index)}
-                        className="p-2 rounded-lg hover:bg-[#334366] text-[#92a4c8] hover:text-white transition-colors"
+                        className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Editar"
                       >
                         <Pencil className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => eliminarUnidad(index)}
-                        className="p-2 rounded-lg hover:bg-red-500/20 text-[#92a4c8] hover:text-red-400 transition-colors"
+                        className="p-2 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                         title="Eliminar"
                       >
                         <Trash className="w-5 h-5" />

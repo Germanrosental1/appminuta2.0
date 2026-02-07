@@ -80,17 +80,17 @@ export interface ImportErrorDetail {
  * Resolved IDs for unit sale details
  */
 export interface ResolvedSaleIds {
-  estadoId: string | null;
-  comercialId: string | null;
-  tipoCocheraId: string | null;
-  motivoNodispId: string | null;
-  clienteInteresadoId: string | null;
-  unidadCompradorId: string | null;
-  fechaReserva: Date | null;
-  fechaFirmaBoleto: Date | null;
-  fechaPisada: Date | null;
-  fechaPosesion: Date | null;
-  fechaPosesionPorBoleto: Date | null;
+  estadoId: string | undefined;
+  comercialId: string | undefined;
+  tipoCocheraId: string | undefined;
+  motivoNodispId: string | undefined;
+  clienteInteresadoId: string | undefined;
+  unidadCompradorId: string | undefined;
+  fechaReserva: Date | undefined;
+  fechaFirmaBoleto: Date | undefined;
+  fechaPisada: Date | undefined;
+  fechaPosesion: Date | undefined;
+  fechaPosesionPorBoleto: Date | undefined;
 }
 
 /**

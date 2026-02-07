@@ -22,18 +22,23 @@ import {
   Eye,
   RefreshCw,
   Edit,
-  Clock,
   CheckCircle2,
-  Plus,
-  Filter,
-  FileSignature,
   XCircle,
+  Folder,
+  Timer,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { KPICard } from '@/components/dashboard/KPICard';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import '@/components/dashboard/dashboard.css';
 
 export const DashboardComercial: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedMinutaId, setSelectedMinutaId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -74,36 +79,35 @@ export const DashboardComercial: React.FC = () => {
     navigate('/wizard');
   };
 
-  const handleVerMinuta = (minutaId: string) => {
+  const handleVerMinuta = React.useCallback((minutaId: string) => {
     setSelectedMinutaId(minutaId);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-  };
+  const handleEditar = React.useCallback((minutaId: string) => {
+    navigate(`/wizard?edit=${minutaId}`);
+  }, [navigate]);
 
-  const getEstadoBadge = (estado: string) => {
+  const getEstadoBadge = React.useCallback((estado: string) => {
     switch (estado) {
       case 'pendiente':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">Pendiente</Badge>;
       case 'en_edicion':
-        return <Badge variant="outline" className="bg-orange-100 text-orange-800">En Edición</Badge>;
+        return <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20">En Edición</Badge>;
       case 'revisada':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Revisada</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Revisada</Badge>;
       case 'aprobada':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Aprobada</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">Aprobada</Badge>;
       case 'firmada':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Firmada</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">Firmada</Badge>;
       case 'cancelada':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Cancelada</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">Cancelada</Badge>;
       case 'rechazada':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Rechazada</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">Rechazada</Badge>;
       default:
         return <Badge variant="outline">{estado}</Badge>;
     }
-  };
+  }, []);
 
   const renderMinutasContent = () => {
     if (isLoading) {
@@ -135,50 +139,26 @@ export const DashboardComercial: React.FC = () => {
     }
 
     return (
-      <div className="rounded-md border dashboard-table">
+      <div className="rounded-md border dashboard-table max-h-[600px] overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Proyecto</TableHead>
-              <TableHead>Unidad</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+              <TableHead className="w-[20%]">Proyecto</TableHead>
+              <TableHead className="w-[30%]">Unidad</TableHead>
+              <TableHead className="w-[20%]">Fecha</TableHead>
+              <TableHead className="w-[20%]">Estado</TableHead>
+              <TableHead className="text-right w-[10%]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <StaggerTableBody>
             {filteredMinutas.map((minuta) => (
-              <TableRowStagger key={minuta.Id}>
-                <TableCell>{minuta.Dato?.proyecto || minuta.Proyectos?.Nombre || 'Sin proyecto'}</TableCell>
-                <TableCell>{minuta.Dato?.unidadDescripcion || 'Sin unidad'}</TableCell>
-                <TableCell>
-                  {new Date(minuta.FechaCreacion).toLocaleDateString('es-AR')}
-                </TableCell>
-                <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleVerMinuta(minuta.Id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver
-                    </Button>
-                    {minuta.Estado === 'en_edicion' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-orange-50 hover:bg-orange-100"
-                        onClick={() => navigate(`/wizard?edit=${minuta.Id}`)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRowStagger>
+              <MinutaRow
+                key={minuta.Id}
+                minuta={minuta}
+                onVer={handleVerMinuta}
+                onEditar={handleEditar}
+                getEstadoBadge={getEstadoBadge}
+              />
             ))}
           </StaggerTableBody>
         </Table>
@@ -186,105 +166,188 @@ export const DashboardComercial: React.FC = () => {
     );
   };
 
+  interface MinutaRowProps {
+    minuta: any;
+    onVer: (id: string) => void;
+    onEditar: (id: string) => void;
+    getEstadoBadge: (estado: string) => React.ReactNode;
+  }
+
+  const MinutaRow = React.memo(({ minuta, onVer, onEditar, getEstadoBadge }: MinutaRowProps) => (
+    <TableRowStagger>
+      <TableCell>{minuta.ProyectoNombre || 'Sin proyecto'}</TableCell>
+      <TableCell>{minuta.UnidadIdentificador || 'Sin unidad'}</TableCell>
+      <TableCell>
+        {new Date(minuta.CreatedAt).toLocaleDateString('es-AR')}
+      </TableCell>
+      <TableCell>{getEstadoBadge(minuta.Estado)}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-border text-muted-foreground hover:bg-muted"
+                onClick={() => onVer(minuta.Id)}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ver</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {minuta.Estado === 'en_edicion' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
+                  onClick={() => onEditar(minuta.Id)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Editar</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </TableCell>
+    </TableRowStagger>
+  ));
+
   const userName = user?.Nombre && user?.Apellido ? `${user.Nombre} ${user.Apellido}` : user?.email || 'Usuario';
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header Area */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-white">Dashboard Comercial</h1>
-            <p className="text-[#92a4c8]">Bienvenido, {userName}</p>
+      <TooltipProvider>
+        <div className="space-y-8">
+          {/* Header Area */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="font-display text-3xl font-bold text-foreground">Dashboard Comercial</h1>
+              <p className="text-muted-foreground">Bienvenido, {userName}</p>
+            </div>
+            <Button
+              onClick={handleNuevaCalculadora}
+              className="h-12 bg-primary px-6 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-blue-600"
+            >
+              <Calculator className="mr-2 h-5 w-5" />
+              Nueva Minuta
+            </Button>
           </div>
-          <Button
-            onClick={handleNuevaCalculadora}
-            className="h-12 bg-primary px-6 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-blue-600"
-          >
-            <Calculator className="mr-2 h-5 w-5" />
-            Nueva Minuta
-          </Button>
-        </div>
 
-        {/* Stats / KPI Cards (Placeholder for Phase 3 Part 2 if needed, or integrating simple stats now) */}
-        {/* For now, just the Table Card */}
+          {/* Stats / KPI Cards */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <KPICard
+              title="Total Minutas"
+              value={stats.total}
+              icon={Folder}
+              variant="default"
+            />
+            <KPICard
+              title="Pendientes"
+              value={stats.pendientes}
+              icon={Timer}
 
-        {/* Historial Card */}
-        <Card className="border-none bg-[#1a2233]/80 backdrop-blur-xl shadow-2xl">
-          <CardHeader className="border-b border-[#334366] px-8 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-bold text-white">Mis Minutas</CardTitle>
-                <CardDescription className="text-[#92a4c8]">Tu historial de operaciones recientes</CardDescription>
+              variant="yellow"
+            />
+            <KPICard
+              title="Firmadas"
+              value={stats.firmadas}
+              icon={CheckCircle2}
+              variant="blue"
+            />
+            <KPICard
+              title="Canceladas"
+              value={stats.canceladas}
+              icon={XCircle}
+              variant="red"
+            />
+          </div>
+
+          {/* Historial Card */}
+          <Card className="border-none bg-card/80 backdrop-blur-xl shadow-2xl">
+            <CardHeader className="border-b border-border px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-bold text-card-foreground">Mis Minutas</CardTitle>
+                  <CardDescription className="text-muted-foreground">Tu historial de operaciones recientes</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => refetch()}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title="Refrescar lista"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => refetch()}
-                className="text-[#92a4c8] hover:bg-white/5 hover:text-white"
-                title="Refrescar lista"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-8">
-            {/* Status Filters */}
-            <div className="mb-6 flex flex-wrap gap-2">
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${!statusFilter
-                  ? 'bg-primary text-white shadow-lg shadow-blue-900/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter(null)}
-              >
-                Todas
-                <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-xs text-white">{stats.total}</span>
-              </button>
-              {/* Additional filters can be mapped or manual */}
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'pendiente'
-                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter('pendiente')}
-              >
-                Pendientes
-                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.pendientes}</span>
-              </button>
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'en_edicion'
-                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter('en_edicion')}
-              >
-                En Edición
-                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.enEdicion}</span>
-              </button>
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'aprobada'
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/20'
-                  : 'bg-[#0f131a] text-[#92a4c8] hover:bg-white/5'
-                  }`}
-                onClick={() => setStatusFilter('aprobada')}
-              >
-                Aprobadas
-                <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.aprobadas}</span>
-              </button>
-            </div>
+            </CardHeader>
+            <CardContent className="p-8">
+              {/* Status Filters */}
+              <div className="mb-6 flex flex-wrap gap-2">
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter
+                    ? 'bg-background text-muted-foreground hover:bg-muted'
+                    : 'bg-primary text-primary-foreground shadow-lg shadow-blue-900/20'
+                    }`}
+                  onClick={() => setStatusFilter(null)}
+                >
+                  Todas
+                  <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-xs text-white">{stats.total}</span>
+                </button>
+                {/* Additional filters can be mapped or manual */}
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'pendiente'
+                    ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/20'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  onClick={() => setStatusFilter('pendiente')}
+                >
+                  Pendientes
+                  <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.pendientes}</span>
+                </button>
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'en_edicion'
+                    ? 'bg-orange-500/20 text-orange-500 border border-orange-500/20'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  onClick={() => setStatusFilter('en_edicion')}
+                >
+                  En Edición
+                  <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.enEdicion}</span>
+                </button>
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${statusFilter === 'aprobada'
+                    ? 'bg-green-500/20 text-green-500 border border-green-500/20'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  onClick={() => setStatusFilter('aprobada')}
+                >
+                  Aprobadas
+                  <span className="ml-1 rounded-full bg-white/10 px-1.5 py-0.5 text-xs">{stats.aprobadas}</span>
+                </button>
+              </div>
 
-            {renderMinutasContent()}
-          </CardContent>
-        </Card>
+              {renderMinutasContent()}
+            </CardContent>
+          </Card>
 
-        {/* Modal para ver detalles de la minuta */}
-        <DetalleMinutaModal
-          minutaId={selectedMinutaId}
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-        />
-      </div>
+          {/* Modal para ver detalles de la minuta */}
+          <DetalleMinutaModal
+            minutaId={selectedMinutaId}
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+          />
+        </div>
+      </TooltipProvider>
     </DashboardLayout>
   );
 };

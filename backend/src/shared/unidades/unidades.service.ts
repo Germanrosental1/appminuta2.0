@@ -15,14 +15,22 @@ export class UnidadesService {
     constructor(private readonly prisma: PrismaService) { }
 
     async create(createUnidadDto: CreateUnidadDto) {
-        // Verificar que el sectorid no exista
-        const existing = await this.prisma.unidades.findUnique({
-            where: { SectorId: createUnidadDto.sectorid },
-        });
+        // Verificar que el sectorid no exista en este proyecto
+        let existing = null;
+        if (createUnidadDto.proyecto_id) {
+            existing = await this.prisma.unidades.findUnique({
+                where: {
+                    SectorId_ProyectoId: {
+                        SectorId: createUnidadDto.sectorid,
+                        ProyectoId: createUnidadDto.proyecto_id
+                    }
+                },
+            });
+        }
 
         if (existing) {
             throw new ConflictException(
-                `Ya existe una unidad con sectorid '${createUnidadDto.sectorid}'`
+                `Ya existe una unidad con sectorid '${createUnidadDto.sectorid}' en este proyecto`
             );
         }
 
@@ -53,13 +61,13 @@ export class UnidadesService {
     }
 
     private async _resolveCatalogIds(tx: Prisma.TransactionClient, dto: CreateUnidadDto) {
-        let estadoId: string | null = null;
+        let estadoId: string | undefined = undefined;
         if (dto.estadocomercial) {
             const estado = await tx.estadoComercial.findFirst({ where: { NombreEstado: { equals: dto.estadocomercial, mode: 'insensitive' } } });
             if (estado) estadoId = estado.Id;
         }
 
-        let comercialId: string | null = null;
+        let comercialId: string | undefined = undefined;
         if (dto.comercial) {
             const comercial = await tx.comerciales.findFirst({ where: { Nombre: { equals: dto.comercial, mode: 'insensitive' } } });
             if (comercial) comercialId = comercial.Id;
@@ -114,7 +122,7 @@ export class UnidadesService {
         return newEtapa.Id;
     }
 
-    private async _createUnidadRecord(tx: Prisma.TransactionClient, dto: CreateUnidadDto, tipoId: string, edificioId: string, etapaId: string) {
+    private async _createUnidadRecord(tx: Prisma.TransactionClient, dto: CreateUnidadDto, tipoId: string | undefined, edificioId: string | undefined, etapaId: string | undefined) {
         const data = this._mapDtoToUnidadData(dto, tipoId, edificioId, etapaId);
         return tx.unidades.create({ data });
     }
@@ -126,7 +134,7 @@ export class UnidadesService {
         });
     }
 
-    private async _createDetallesVenta(tx: Prisma.TransactionClient, unitId: string, dto: CreateUnidadDto, estadoId: string | null, comercialId: string | null) {
+    private async _createDetallesVenta(tx: Prisma.TransactionClient, unitId: string, dto: CreateUnidadDto, estadoId: string | undefined, comercialId: string | undefined) {
         const data = this._mapDtoToSalesData(dto, estadoId, comercialId);
         await tx.detallesVenta.create({
             data: { ...data, UnidadId: unitId }
@@ -137,6 +145,7 @@ export class UnidadesService {
     private _mapDtoToUnidadData(dto: any, tipoId?: string, edificioId?: string, etapaId?: string) {
         const data: any = {};
         if (dto.sectorid !== undefined) data.SectorId = dto.sectorid;
+        if (dto.proyecto_id !== undefined) data.ProyectoId = dto.proyecto_id;
         if (tipoId !== undefined) data.TipoUnidadId = tipoId;
         else if (dto.tipounidad_id !== undefined) data.TipoUnidadId = dto.tipounidad_id;
 
@@ -177,7 +186,7 @@ export class UnidadesService {
     }
 
     // Shared Helper: Map DTO to Sales Data
-    private _mapDtoToSalesData(dto: any, resolvedEstadoId: string | null = null, resolvedComercialId: string | null = null) {
+    private _mapDtoToSalesData(dto: any, resolvedEstadoId: string | undefined = undefined, resolvedComercialId: string | undefined = undefined) {
         const data: any = {};
 
         // IDs
@@ -190,7 +199,7 @@ export class UnidadesService {
 
         // Cliente Interesado
         if (dto.clienteinteresado !== undefined) {
-            data.ClienteInteresado = (dto.clienteinteresado && String(dto.clienteinteresado).trim() !== '') ? dto.clienteinteresado : null;
+            data.ClienteInteresado = (dto.clienteinteresado && String(dto.clienteinteresado).trim() !== '') ? dto.clienteinteresado : undefined;
         }
 
         if (dto.clientetitularboleto !== undefined) data.Titular = dto.clientetitularboleto;
@@ -263,7 +272,7 @@ export class UnidadesService {
     private async _updateSalesDetails(tx: Prisma.TransactionClient, id: string, updateDto: UpdateUnidadCompleteDto) {
         let salesData: any = {};
 
-        let resolvedEstadoId: string | null = null;
+        let resolvedEstadoId: string | undefined = undefined;
         if (updateDto.estadocomercial) {
             const estado = await tx.estadoComercial.findUnique({
                 where: { NombreEstado: updateDto.estadocomercial }
@@ -288,7 +297,7 @@ export class UnidadesService {
         const where: Record<string, any> = {};
 
         //  Cache proyecto_id para evitar query extra en cada request
-        if (query.proyecto) {
+        if (query.proyecto && query.proyecto.toLowerCase() !== 'all' && query.proyecto.toLowerCase() !== 'todos') {
             const proyecto = await this.prisma.proyectos.findFirst({
                 where: { Nombre: { equals: query.proyecto, mode: 'insensitive' } },
                 select: { Id: true }, // Solo necesitamos el ID
@@ -482,7 +491,7 @@ export class UnidadesService {
             select: { Nombre: true },
             orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.Nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     /**
@@ -494,7 +503,7 @@ export class UnidadesService {
             select: { Nombre: true },
             orderBy: { Nombre: 'asc' },
         });
-        return result.map((r) => r.Nombre).filter(Boolean);
+        return result.map((r) => r.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     /**
@@ -551,7 +560,7 @@ export class UnidadesService {
             },
         });
 
-        return result.map((r) => r.Etapas?.Nombre).filter(Boolean);
+        return result.map((r) => r.Etapas?.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     async getTipos(nombreProyecto: string, etapa?: string): Promise<string[]> {
@@ -591,7 +600,7 @@ export class UnidadesService {
             },
         });
 
-        return result.map((r) => r.TiposUnidad.Nombre).filter(Boolean);
+        return result.map((r) => r.TiposUnidad.Nombre).filter((v): v is string => v !== null && v !== undefined);
     }
 
     async getSectores(
@@ -656,20 +665,30 @@ export class UnidadesService {
 
         // Verificar unicidad de sectorid si se está cambiando
         if (updateUnidadDto.sectorid && updateUnidadDto.sectorid !== existing.SectorId) {
-            const duplicate = await this.prisma.unidades.findUnique({
-                where: { SectorId: updateUnidadDto.sectorid },
-            });
 
-            if (duplicate) {
-                throw new ConflictException(
-                    `Ya existe una unidad con sectorid '${updateUnidadDto.sectorid}'`
-                );
+            // Check for duplicate in the *same project* as existing unit
+            if (existing.ProyectoId) {
+                const duplicate = await this.prisma.unidades.findUnique({
+                    where: {
+                        SectorId_ProyectoId: {
+                            SectorId: updateUnidadDto.sectorid,
+                            ProyectoId: existing.ProyectoId
+                        }
+                    },
+                });
+
+                if (duplicate) {
+                    throw new ConflictException(
+                        `Ya existe una unidad con sectorid '${updateUnidadDto.sectorid}' en este proyecto`
+                    );
+                }
             }
         }
 
         // Map DTO fields to Prisma model fields
         const updateData: any = {};
         if (updateUnidadDto.sectorid !== undefined) updateData.SectorId = updateUnidadDto.sectorid;
+        if (updateUnidadDto.proyecto_id !== undefined) updateData.ProyectoId = updateUnidadDto.proyecto_id;
         if (updateUnidadDto.tipounidad_id !== undefined) updateData.TipoUnidadId = updateUnidadDto.tipounidad_id;
         if (updateUnidadDto.edificio_id !== undefined) updateData.EdificioId = updateUnidadDto.edificio_id;
         if (updateUnidadDto.etapa_id !== undefined) updateData.EtapaId = updateUnidadDto.etapa_id;

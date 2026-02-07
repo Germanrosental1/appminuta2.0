@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { salesMapService } from '@/services/salesMapService';
 import { SalesMapItem } from '@/types';
 import { Button } from '@/components/ui/button';
+import {
+  useSalesMapItemsByProject,
+  useSalesMapProjects,
+  useDeleteSalesMapItem,
+} from '@/hooks/useSalesMapItems';
 import {
   Table,
   TableBody,
@@ -22,72 +26,50 @@ import { Input } from '@/components/ui/input';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
 export function SalesMapList() {
-  const [salesMapItems, setSalesMapItems] = useState<SalesMapItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [projects, setProjects] = useState<string[]>([]);
+  // ===== REACT QUERY HOOKS =====
+  const {
+    data: projects = [],
+    isLoading: isProjectsLoading,
+  } = useSalesMapProjects();
+
   const [selectedProject, setSelectedProject] = useState<string>('');
+
+  const {
+    data: salesMapItems = [],
+    isLoading: isItemsLoading,
+    error: itemsError,
+  } = useSalesMapItemsByProject(selectedProject);
+
+  const deleteItemMutation = useDeleteSalesMapItem();
+
+  // ===== LOCAL UI STATE =====
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const navigate = useNavigate();
 
+  // Computed values
+  const loading = isProjectsLoading || isItemsLoading;
+  const error = itemsError ? itemsError.message : null;
+
+  // Auto-select first project when projects load
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await salesMapService.getAll();
-        setSalesMapItems(data);
-        
-        // Extract unique projects
-        const uniqueProjects = Array.from(new Set(data.map(item => item.proyecto).filter(Boolean) as string[]));
-        setProjects(uniqueProjects);
-        
-        if (uniqueProjects.length > 0 && !selectedProject) {
-          setSelectedProject(uniqueProjects[0]);
-        }
-      } catch (err) {
-        setError('Error al cargar los datos del mapa de ventas');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedProject) {
-      const fetchProjectData = async () => {
-        try {
-          setLoading(true);
-          const data = await salesMapService.getByProject(selectedProject);
-          setSalesMapItems(data);
-        } catch (err) {
-          setError(`Error al cargar los datos del proyecto ${selectedProject}`);
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchProjectData();
+    if (projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0]);
     }
-  }, [selectedProject]);
+  }, [projects, selectedProject]);
 
   const handleEdit = (id: string) => {
     navigate(`/sales-map/edit/${id}`);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este elemento?')) {
-      try {
-        await salesMapService.delete(id);
-        setSalesMapItems(salesMapItems.filter(item => item.id !== id));
-      } catch (err) {
-        setError('Error al eliminar el elemento');
-        console.error(err);
-      }
+    if (globalThis.confirm('¿Estás seguro de que deseas eliminar este elemento?')) {
+      // React Query mutation handles everything:
+      // - API call
+      // - Optimistic update (removes from UI immediately)
+      // - Cache invalidation
+      // - Toast notifications
+      await deleteItemMutation.mutateAsync(id);
     }
   };
 
@@ -97,7 +79,7 @@ export function SalesMapList() {
 
   const filteredItems = salesMapItems.filter(item => {
     if (!searchTerm) return true;
-    
+
     const searchLower = searchTerm.toLowerCase();
     return (
       (item.nrounidad?.toLowerCase().includes(searchLower) || false) ||
@@ -183,12 +165,11 @@ export function SalesMapList() {
                     {item.preciousd ? `$${item.preciousd.toLocaleString()}` : '-'}
                   </TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      item.estado === 'Disponible' ? 'bg-green-100 text-green-800' :
-                      item.estado === 'Reservado' ? 'bg-yellow-100 text-yellow-800' :
-                      item.estado === 'Vendido' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${item.estado === 'Disponible' ? 'bg-green-100 text-green-800' :
+                        item.estado === 'Reservado' ? 'bg-yellow-100 text-yellow-800' :
+                          item.estado === 'Vendido' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                      }`}>
                       {item.estado || 'Desconocido'}
                     </span>
                   </TableCell>

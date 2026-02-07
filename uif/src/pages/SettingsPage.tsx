@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MONOTRIBUTO_CATEGORIES, DEFAULT_ANALYSIS_SETTINGS } from '@/types/database';
 import { supabase } from '@/lib/supabase';
@@ -63,19 +62,19 @@ export default function SettingsPage() {
   };
 
   const handleCategoryChange = (key: string, value: string) => {
-    const numValue = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+    const numValue = Number.parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
     setCategories(prev => ({ ...prev, [key]: numValue }));
   };
 
   const handleWeightChange = (key: keyof typeof globalWeights, value: string) => {
-    const numValue = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+    const numValue = Number.parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
     // Limit to 0-100
     const clamped = Math.min(100, Math.max(0, numValue));
     setGlobalWeights(prev => ({ ...prev, [key]: clamped }));
   };
 
   const handleExtraChange = (key: 'rem' | 'cac', value: string) => {
-    const numValue = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+    const numValue = Number.parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
     setExtraSettings(prev => ({ ...prev, [key]: numValue }));
   };
 
@@ -97,7 +96,7 @@ export default function SettingsPage() {
         title: "Configuración guardada",
         description: "Los cambios se han guardado en la base de datos.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
         description: "No se pudo guardar la configuración.",

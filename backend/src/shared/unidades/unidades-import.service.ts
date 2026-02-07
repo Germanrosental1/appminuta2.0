@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoggerService } from '../../logger/logger.service';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import axios from 'axios';
 import {
     PrismaTransaction,
@@ -20,10 +20,63 @@ export class UnidadesImportService {
     ) { }
 
     async importFromExcel(buffer: Buffer, user?: UserInfo) {
-        const workbook = XLSX.read(buffer, { type: 'buffer', raw: false });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const data: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { raw: false });
+        const workbook = new ExcelJS.Workbook();
+        // Cast to unknown first to avoid direct 'any', though essentially solving a type definition mismatch
+        await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+        const worksheet = workbook.worksheets[0];
+
+        if (!worksheet) {
+            throw new Error('El archivo Excel no contiene hojas de trabajo.');
+        }
+
+        const data: Record<string, unknown>[] = [];
+        let headers: string[] = [];
+
+        // Leer filas
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) {
+                // Header row
+                if (Array.isArray(row.values)) {
+                    // ExcelJS values array is 1-based, index 0 is empty/undefined usually
+                    const rowValues = row.values;
+                    headers = rowValues.slice(1).map(val => {
+                        if (val === null || val === undefined) return '';
+                        if (typeof val === 'object') {
+                            if ('text' in val) return String((val as any).text);
+                            if ('result' in val) return String((val as any).result);
+                            return JSON.stringify(val);
+                        }
+                        return String(val);
+                    });
+                }
+            } else {
+                // Data rows
+                const rowData: Record<string, unknown> = {};
+
+                if (Array.isArray(row.values)) {
+                    const rowValues = row.values;
+
+                    // Map values to headers
+                    headers.forEach((header, index) => {
+                        // ExcelJS arrays are 1-based
+                        let cellValue = rowValues[index + 1];
+
+                        // Manejar enlaces/fórmulas
+                        if (cellValue && typeof cellValue === 'object') {
+                            if ('text' in cellValue) {
+                                cellValue = (cellValue).text;
+                            } else if ('result' in cellValue) {
+                                cellValue = (cellValue as ExcelJS.CellFormulaValue).result;
+                            }
+                        }
+
+                        rowData[header] = cellValue;
+                    });
+                    data.push(rowData);
+                }
+            }
+        });
+
         this.log.log(`Importing ${data.length} rows from Excel`);
 
         const results = {
@@ -32,7 +85,7 @@ export class UnidadesImportService {
             errors: 0,
             created: 0,
             updated: 0,
-            details: []
+            details: [] as Array<{ row: number; error: string }>
         };
 
         const cache = new Map<string, string>();
@@ -97,15 +150,17 @@ export class UnidadesImportService {
                         else if (resultType === 'updated') results.updated++;
                     } catch (rowError) {
                         results.errors++;
-                        this.log.error(`Error processing row ${globalIdx + 2}: ${rowError instanceof Error ? rowError.message : 'Unknown error'}`);
-                        results.details.push({ row: globalIdx + 2, error: rowError.message || 'Unknown error' });
+                        const errorMessage = rowError instanceof Error ? rowError.message : 'Unknown error';
+                        this.log.error(`Error processing row ${globalIdx + 2}: ${errorMessage}`);
+                        results.details.push({ row: globalIdx + 2, error: errorMessage });
                         // Continuar con la siguiente fila del batch
                     }
                 }
             }, { timeout: 60000 }); // Timeout extendido para batch más grande
         } catch (batchError) {
             // Si falla el batch, marcar todas las filas restantes como error
-            this.log.error(`Error in batch ${batchIndex + 1}/${totalBatches}: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
+            const errorMessage = batchError instanceof Error ? batchError.message : 'Unknown error';
+            this.log.error(`Error in batch ${batchIndex + 1}/${totalBatches}: ${errorMessage}`);
             for (let i = 0; i < batch.length; i++) {
                 const globalIdx = startIdx + i;
                 // Avoid duplicating errors if they were already logged inside the transaction loop (though transaction failure usually rolls back)
@@ -113,7 +168,7 @@ export class UnidadesImportService {
                 if (!results.details.some((d: any) => d.row === globalIdx + 2)) {
                     results.processed++;
                     results.errors++;
-                    results.details.push({ row: globalIdx + 2, error: `Batch failed: ${batchError.message}` });
+                    results.details.push({ row: globalIdx + 2, error: `Batch failed: ${errorMessage}` });
                 }
             }
         }
@@ -194,7 +249,6 @@ export class UnidadesImportService {
         const normalizedRow = this.normalizeRowFields(row);
 
 
-        // console.log('\n========== PROCESANDO FILA ==========');
         // 🔒 SEGURIDAD: No loguear datos completos de la fila para proteger información sensible
         // 1. Resolve Dependencies
         const proyectoId = await this.resolveProyecto(tx, normalizedRow, cache);
@@ -226,20 +280,31 @@ export class UnidadesImportService {
         }
 
         // 4. Create/Find Unit
-        const sectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
+        // Normalizar SectorId: mayúsculas, sin espacios alrededor de guiones
+        const rawSectorId = normalizedRow.sectorid || `${normalizedRow.proyecto}-${normalizedRow.edificiotorre || 'Torre Unica'}-${normalizedRow.numerounidad}`;
+        const sectorId = this.normalizeSectorId(rawSectorId);
 
         let unidadId: string;
         let isNew = false;
-        const existingUnidad = await tx.unidades.findUnique({ where: { SectorId: sectorId } });
+
+        // Lookup using composite unique key (SectorId + ProyectoId)
+        const existingUnidad = await tx.unidades.findUnique({
+            where: {
+                SectorId_ProyectoId: {
+                    SectorId: sectorId,
+                    ProyectoId: proyectoId
+                }
+            }
+        });
 
         if (existingUnidad) {
             unidadId = existingUnidad.Id;
-            // console.log('♻️  Unidad existente encontrada, actualizando:', unidadId);
             // Update existing unit
             await tx.unidades.update({
                 where: { Id: unidadId },
                 data: {
                     EdificioId: edificioId,
+                    ProyectoId: proyectoId, // Ensure consistency
                     EtapaId: etapaId,
                     TipoUnidadId: tipoId,
                     Piso: String(normalizedRow.piso || ''),
@@ -251,20 +316,21 @@ export class UnidadesImportService {
                 }
             });
         } else {
-            const newUnidad = await tx.unidades.create({
-                data: {
-                    SectorId: sectorId,
-                    EdificioId: edificioId,
-                    EtapaId: etapaId,
-                    TipoUnidadId: tipoId,
-                    Piso: String(normalizedRow.piso || ''),
-                    NroUnidad: String(normalizedRow.numerounidad || ''),
-                    Dormitorio: Number(normalizedRow.dormitorios) || 0,
-                    Frente: normalizedRow.frente,
-                    Manzana: normalizedRow.manzana,
-                    Destino: normalizedRow.destino
-                }
-            });
+            const createData: any = {
+                SectorId: sectorId,
+                ProyectoId: proyectoId,
+                Piso: String(normalizedRow.piso || ''),
+                NroUnidad: String(normalizedRow.numerounidad || ''),
+                Dormitorio: Number(normalizedRow.dormitorios) || 0,
+            };
+            if (edificioId !== undefined) createData.EdificioId = edificioId;
+            if (etapaId !== undefined) createData.EtapaId = etapaId;
+            if (tipoId !== undefined) createData.TipoUnidadId = tipoId;
+            if (normalizedRow.frente !== undefined) createData.Frente = normalizedRow.frente;
+            if (normalizedRow.manzana !== undefined) createData.Manzana = normalizedRow.manzana;
+            if (normalizedRow.destino !== undefined) createData.Destino = normalizedRow.destino;
+
+            const newUnidad = await tx.unidades.create({ data: createData });
             unidadId = newUnidad.Id;
             isNew = true;
         }
@@ -273,7 +339,7 @@ export class UnidadesImportService {
         const clienteInteresadoId = await this.resolveCliente(tx, normalizedRow.clienteinteresado, cache);
 
         // 6. Resolve Unidad Comprador (lookup by sectorId pattern)
-        const unidadCompradorId = await this.resolveUnidadComprador(tx, normalizedRow.deptartamentocomprador, cache);
+        const unidadCompradorId = await this.resolveUnidadComprador(tx, normalizedRow.deptartamentocomprador, proyectoId, cache);
 
         // 7. Upsert Related Data
         await this.upsertMetrics(tx, unidadId, normalizedRow, patioId);
@@ -362,8 +428,8 @@ export class UnidadesImportService {
     }
 
     // Resolve or create a Cliente by nombreApellido
-    private async resolveCliente(tx: PrismaTransaction, nombreApellido: string | undefined, cache: Map<string, string>): Promise<string | null> {
-        if (!nombreApellido || String(nombreApellido).trim() === '') return null;
+    private async resolveCliente(tx: PrismaTransaction, nombreApellido: string | undefined, cache: Map<string, string>): Promise<string | undefined> {
+        if (!nombreApellido || String(nombreApellido).trim() === '') return undefined;
 
         const cleanName = String(nombreApellido).trim();
         const cacheKey = `clientes:${cleanName}`;
@@ -424,16 +490,21 @@ export class UnidadesImportService {
     }
 
     // Resolve unidad comprador by looking up sectorid
-    private async resolveUnidadComprador(tx: PrismaTransaction, sectorId: string | undefined, cache: Map<string, string>): Promise<string | null> {
-        if (!sectorId || String(sectorId).trim() === '') return null;
+    private async resolveUnidadComprador(tx: PrismaTransaction, sectorId: string | undefined, proyectoId: string, cache: Map<string, string>): Promise<string | undefined> {
+        if (!sectorId || String(sectorId).trim() === '') return undefined;
 
-        const cleanSectorId = String(sectorId).trim();
-        const cacheKey = `unidad_comprador:${cleanSectorId}`;
+        const cleanSectorId = this.normalizeSectorId(String(sectorId));
+        const cacheKey = `unidad_comprador:${proyectoId}:${cleanSectorId}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached;
 
         const existing = await tx.unidades.findUnique({
-            where: { SectorId: cleanSectorId }
+            where: {
+                SectorId_ProyectoId: {
+                    SectorId: cleanSectorId,
+                    ProyectoId: proyectoId
+                }
+            }
         });
 
         if (existing) {
@@ -441,7 +512,7 @@ export class UnidadesImportService {
             return existing.Id;
         }
 
-        return null; // Unit doesn't exist yet
+        return undefined; // Unit doesn't exist yet
     }
 
     private async resolveProyecto(tx: PrismaTransaction, row: NormalizedExcelRow, cache: Map<string, string>): Promise<string> {
@@ -488,7 +559,7 @@ export class UnidadesImportService {
                 Nombre: proyNombre,
                 TablaNombre: proyNombre.toLowerCase().replace(/ /g, '_'),
                 Naturaleza: finalNaturalezaId,
-                IdOrg: null
+                IdOrg: undefined
             }
         });
         cache.set(cacheKey, created.Id);
@@ -536,25 +607,25 @@ export class UnidadesImportService {
         return created.Id;
     }
 
-    private async resolveCatalogo(tx: PrismaTransaction, table: string, field: string, value: string | number | undefined, cache: Map<string, string>): Promise<string | null> {
-        if (value === null || value === undefined || String(value).trim() === '') return null;
+    private async resolveCatalogo(tx: PrismaTransaction, table: string, field: string, value: string | number | undefined, cache: Map<string, string>): Promise<string | undefined> {
+        if (value === null || value === undefined || String(value).trim() === '') return undefined;
         const stringValue = String(value).trim();
         const cacheKey = `catalogo:${table}:${field}:${stringValue}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached;
 
-        const existing = await tx[table].findFirst({ where: { [field]: stringValue } });
+        const existing = await (tx as any)[table].findFirst({ where: { [field]: stringValue } });
         if (existing) {
             cache.set(cacheKey, existing.Id);
             return existing.Id;
         }
-        const created = await tx[table].create({ data: { [field]: stringValue } });
+        const created = await (tx as any)[table].create({ data: { [field]: stringValue } });
         cache.set(cacheKey, created.Id);
         return created.id;
     }
 
-    private parseDate(dateStr: string | undefined): Date | null {
-        if (!dateStr || String(dateStr).trim() === '') return null;
+    private parseDate(dateStr: string | undefined): Date | undefined {
+        if (!dateStr || String(dateStr).trim() === '') return undefined;
         const str = String(dateStr).trim();
 
         // Try DD/MM/YYYY format
@@ -568,10 +639,10 @@ export class UnidadesImportService {
         const parsed = new Date(str);
         if (!Number.isNaN(parsed.getTime())) return parsed;
 
-        return null;
+        return undefined;
     }
 
-    private async upsertMetrics(tx: PrismaTransaction, unidadId: string, row: NormalizedExcelRow, patioId: string | null) {
+    private async upsertMetrics(tx: PrismaTransaction, unidadId: string, row: NormalizedExcelRow, patioId: string | undefined) {
         const data = {
             M2Cubierto: this.parseNumber(row.m2cubierto),
             M2Semicubierto: this.parseNumber(row.m2semicubierto),
@@ -652,4 +723,21 @@ export class UnidadesImportService {
         const num = Number(strValue);
         return Number.isNaN(num) ? null : num;
     }
+
+    /**
+     * Normaliza el SectorId a un formato estándar:
+     * - Convierte a mayúsculas
+     * - Elimina espacios alrededor de guiones (" - " -> "-")
+     * - Elimina espacios múltiples
+     * Ejemplo: "e1 - 202" -> "E1-202"
+     */
+    private normalizeSectorId(sectorId: string): string {
+        if (!sectorId) return sectorId;
+        return String(sectorId)
+            .trim()
+            .toUpperCase()
+            .replace(/\s*-\s*/g, '-')  // Elimina espacios alrededor de guiones
+            .replace(/\s+/g, '-');      // Reemplaza espacios múltiples con guión
+    }
 }
+

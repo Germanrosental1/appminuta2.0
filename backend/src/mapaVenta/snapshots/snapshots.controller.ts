@@ -214,4 +214,33 @@ export class SnapshotsController {
             anterior: item.anterior ? { ...item.anterior, valorStock: null } : null,
         }));
     }
+
+    /**
+     * Get aggregated stock evolution
+     * GET /snapshots/analytics/evolution?desde=...&hasta=...
+     */
+    @Get('analytics/evolution')
+    @Throttle({ default: { limit: 30, ttl: 60000 } })
+    @ApiOperation({ summary: 'Obtener evolución del stock agregada' })
+    async getStockEvolution(@Query() query: GetSnapshotRangeDto) {
+        if (!query.desde || !query.hasta) {
+            throw new BadRequestException('Los parámetros desde y hasta son requeridos');
+        }
+
+        const desde = new Date(query.desde);
+        const hasta = new Date(query.hasta);
+
+        if (Number.isNaN(desde.getTime()) || Number.isNaN(hasta.getTime())) {
+            throw new BadRequestException('Fechas inválidas. Use formato YYYY-MM-DD');
+        }
+
+        if (desde > hasta) {
+            throw new BadRequestException('La fecha "desde" debe ser anterior a "hasta"');
+        }
+
+        desde.setHours(0, 0, 0, 0);
+        hasta.setHours(0, 0, 0, 0);
+
+        return this.snapshotsService.getStockEvolution(desde, hasta);
+    }
 }

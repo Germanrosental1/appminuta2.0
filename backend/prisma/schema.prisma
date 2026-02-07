@@ -737,6 +737,7 @@ model Proyectos {
   SnapshotsStock       SnapshotsStock[]
   UsuariosProyectos    UsuariosProyectos[]
   tablas               tablas[]
+  Unidades             Unidades[]
 
   @@index([Activo], map: "idx_proyectos_activo")
   @@schema("public")
@@ -809,7 +810,8 @@ model Unidades {
   EdificioId                                              String?                     @db.Uuid
   TipoUnidadId                                            String                      @db.Uuid
   EtapaId                                                 String?                     @db.Uuid
-  SectorId                                                String                      @unique(map: "unidades_sectorid_key")
+  SectorId                                                String                      
+  ProyectoId                                              String?                     @db.Uuid
   Piso                                                    String?                     @db.VarChar(50)
   NroUnidad                                               String?                     @db.VarChar(50)
   Dormitorio                                              Int?
@@ -822,10 +824,13 @@ model Unidades {
   Edificios                                               Edificios?                  @relation(fields: [EdificioId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "unidades_edificio_id_fkey")
   Etapas                                                  Etapas?                     @relation(fields: [EtapaId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "unidades_etapa_id_fkey")
   TiposUnidad                                             TiposUnidad                 @relation(fields: [TipoUnidadId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "unidades_tipounidad_id_fkey")
+  Proyectos                                               Proyectos?                  @relation(fields: [ProyectoId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "unidades_proyecto_id_fkey")
   UnidadesMetricas                                        UnidadesMetricas?
 
+  @@unique([SectorId, ProyectoId], map: "unidades_sectorid_proyectoid_key")
   @@index([EdificioId, TipoUnidadId], map: "idx_unidades_edificio_tipo")
   @@index([EtapaId], map: "idx_unidades_etapa_id")
+  @@index([ProyectoId], map: "idx_unidades_proyecto_id")
   @@schema("public")
 }
 

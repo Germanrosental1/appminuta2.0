@@ -28,7 +28,7 @@ export interface ApiErrorResponse {
     message: string;
     statusCode: number;
     errorCode?: string;
-    details?: any;
+    details?: Record<string, unknown>;
     metadata: ApiResponseMetadata;
 }
 

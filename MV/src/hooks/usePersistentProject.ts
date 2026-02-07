@@ -6,7 +6,7 @@ export function usePersistentProject(defaultValue: string = '') {
     const [project, setProject] = useState<string>(() => {
         try {
             const stored = localStorage.getItem(PROJECT_STORAGE_KEY);
-            return stored !== null ? stored : defaultValue;
+            return stored ?? defaultValue;
         } catch (error) {
             console.error('Error reading project from localStorage:', error);
             return defaultValue;

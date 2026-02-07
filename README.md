@@ -1,73 +1,95 @@
-# Welcome to your Lovable project
+# AppMinuta Monorepo
 
-## Project info
+Sistema integral para la gestión y generación de minutas comerciales inmobiliarias. Este repositorio sigue una arquitectura de monorepo que alberga tanto el frontend, backend como servicios auxiliares.
 
-**URL**: https://lovable.dev/projects/74b977ee-f682-4ca5-aa89-02bdec0c9044
+## 🏗 Estructura del Proyecto
 
-## How can I edit this code?
+El proyecto está organizado en los siguientes paquetes principales:
 
-There are several ways of editing your application.
+| Directorio | Descripción | Stack Tecnológico |
+|------------|-------------|-------------------|
+| `frontend/` | Aplicación Web SPA (Dashboards, Wizard) | React, Vite, TypeScript, Tailwind |
+| `backend/` | API RESTful y Lógica de Negocio | NestJS, Prisma, PostgreSQL |
+| `MV/` | Microservicio de Minutas (Legacy/Integration) | Node.js |
+| `uif/` | Servicio de Integración Financiera | Node.js / Integration Scripts |
 
-**Use Lovable**
+## 🚀 Requisitos Previos
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/74b977ee-f682-4ca5-aa89-02bdec0c9044) and start prompting.
+- **Node.js**: v18+
+- **Docker**: (Opcional) Para correr base de datos localmente.
+- **PostgreSQL**: Base de datos principal.
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠 Instalación y Configuración
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/Germanrosental1/appminuta.git
+cd appminuta
 ```
 
-**Edit a file directly in GitHub**
+### 2. Configurar Variables de Entorno
+Cada proyecto requiere su propio archivo `.env`. Consulte los `README` específicos de cada directorio para más detalles, o copie los ejemplos:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
 
-**Use GitHub Codespaces**
+### 3. Instalar Dependencias
+Se recomienda instalar las dependencias en cada proyecto individualmente por ahora:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Backend
+cd backend && npm install
 
-## What technologies are used for this project?
+# Frontend
+cd ../frontend && npm install
+```
 
-This project is built with:
+## 🏃‍♂️ Ejecución
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Backend (API)
+```bash
+cd backend
+npm run start:dev
+# Corre en http://localhost:3000
+```
 
-## How can I deploy this project?
+### Frontend (App)
+```bash
+cd frontend
+npm run dev
+# Corre en http://localhost:8080
+```
 
-Simply open [Lovable](https://lovable.dev/projects/74b977ee-f682-4ca5-aa89-02bdec0c9044) and click on Share -> Publish.
+## 🧪 Testing
 
-## Can I connect a custom domain to my Lovable project?
+El proyecto cuenta con suites de tests unitarios, de integración y E2E.
 
-Yes, you can!
+```bash
+# Backend Tests
+cd backend && npm test
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Frontend Unit Tests
+cd frontend && npm test
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+# Frontend E2E Tests (Playwright)
+cd frontend && npx playwright test
+```
+
+## 🔐 Seguridad
+
+Este proyecto implementa varias capas de seguridad:
+- **Helmet & CSP**: Protección contra XSS y ataques de inyección.
+- **Rate Limiting**: Protección contra fuerza bruta.
+- **Audit Logging**: Registro detallado de acciones críticas.
+- **Type Safety**: Uso estricto de TypeScript en todo el stack.
+
+## 📄 Documentación Adicional
+
+- [Backend Documentation](./backend/README.md) (Pendiente)
+- [Frontend Documentation](./frontend/README.md) (Pendiente)
+- [API Swagger](http://localhost:3000/api/docs) (Disponible al correr el backend)
+
+---
+© 2026 AppMinuta Team

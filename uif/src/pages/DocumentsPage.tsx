@@ -106,7 +106,7 @@ export default function DocumentsPage() {
             if (error) throw error;
 
             const url = URL.createObjectURL(data);
-            const a = window.document.createElement('a');
+            const a = globalThis.document.createElement('a');
             a.href = url;
             a.download = doc.original_filename || 'documento';
             a.click();
@@ -120,7 +120,7 @@ export default function DocumentsPage() {
         }
     };
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: string): "secondary" | "default" | "warning" | "success" | "destructive" | "outline" => {
         switch (status) {
             case 'Pendiente': return 'secondary';
             case 'Procesando': return 'default'; // Blue/Info
@@ -193,7 +193,7 @@ export default function DocumentsPage() {
                                         {doc.original_filename}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={getStatusColor(doc.status) as any}>
+                                        <Badge variant={getStatusColor(doc.status)}>
                                             {doc.status}
                                         </Badge>
                                     </TableCell>

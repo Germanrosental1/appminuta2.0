@@ -97,14 +97,14 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
                 </SelectTrigger>
                 <SelectContent className={contentClassName}>
                     {searchable && options.length > 5 && (
-                        <div className="p-2 border-b border-[#334366] sticky top-0 bg-[#1a2233] z-10">
+                        <div className="p-2 border-b border-border sticky top-0 bg-popover z-10">
                             <div className="relative">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder={`Buscar ${label.toLowerCase()}...`}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-8 bg-[#0f131a] border-[#334366] text-white placeholder:text-muted-foreground focus-visible:ring-blue-500"
+                                    className="pl-8 bg-background border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                                     onClick={(e) => e.stopPropagation()}
                                     onKeyDown={(e) => e.stopPropagation()}
                                 />

@@ -26,6 +26,17 @@ interface ConfirmarGuardarMinutaDefinitivaProps {
   onSuccess?: () => void;
 }
 
+// Tipo para datos del mapa de ventas con datos del wizard
+interface MapaVentasData {
+  _wizardData?: WizardData['unidades'][number];
+  [key: string]: unknown;
+}
+
+// Tipo para wizardData con minutaId opcional (modo edición)
+interface WizardDataWithMinutaId extends WizardData {
+  minutaId?: string;
+}
+
 export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDefinitivaProps> = ({
   unidadId,
   wizardData,
@@ -34,7 +45,7 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   // Cambiar a array para soportar múltiples unidades
-  const [datosMapaVentas, setDatosMapaVentas] = useState<any[]>([]);
+  const [datosMapaVentas, setDatosMapaVentas] = useState<MapaVentasData[]>([]);
   const [loadingMapaVentas, setLoadingMapaVentas] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -153,10 +164,11 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
       };
 
       // 3. Guardar o Actualizar
-      const isEditMode = !!(wizardData as any).minutaId;
+      const wizardDataWithId = wizardData as WizardDataWithMinutaId;
+      const isEditMode = !!wizardDataWithId.minutaId;
 
       if (isEditMode) {
-        const minutaId = (wizardData as any).minutaId;
+        const minutaId = wizardDataWithId.minutaId;
         await actualizarDatosMinutaDefinitiva(minutaId, {
           datos: datosCompletos,
           clienteInteresadoDni,
@@ -168,15 +180,13 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
           description: "La minuta ha sido actualizada y enviada para revisión",
         });
       } else {
+        // Create new minuta - use type assertion since service handles required fields
         await guardarMinutaDefinitiva({
           UsuarioId: user.id,
-          Dato: datosCompletos,
+          Dato: datosCompletos as unknown as Record<string, unknown>,
           Estado: 'pendiente',
           ClienteInteresadoDni: clienteInteresadoDni,
-          // Propiedades requeridas por el tipo pero que no usamos en el create (se pueden mockear o as any)
-          // Necesitamos satisfacer Omit<MinutaDefinitiva...>
-          // Lo mejor es hacer un cast parcial o update del servicio para aceptar parcial
-        } as any);
+        } as unknown as Parameters<typeof guardarMinutaDefinitiva>[0]);
 
         toast({
           title: "Minuta guardada",
@@ -232,16 +242,29 @@ export const ConfirmarGuardarMinutaDefinitiva: React.FC<ConfirmarGuardarMinutaDe
         </DialogHeader>
 
         <Tabs defaultValue="resumen">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="resumen">Resumen</TabsTrigger>
-            <TabsTrigger value="mapa-ventas">
+          <TabsList className="grid w-full grid-cols-3 bg-[#0f131a] border border-[#334366] p-1 h-auto">
+            <TabsTrigger
+              value="resumen"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 hover:text-white transition-all py-2"
+            >
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger
+              value="mapa-ventas"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 hover:text-white transition-all py-2"
+            >
               Mapa de Ventas {loadingMapaVentas && "(Cargando...)"}
             </TabsTrigger>
-            <TabsTrigger value="json">Datos JSON</TabsTrigger>
+            <TabsTrigger
+              value="json"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 hover:text-white transition-all py-2"
+            >
+              Datos JSON
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="resumen" className="mt-4">
-            <ScrollArea className="h-[50vh] bg-[#0f131a] rounded-md border border-[#334366]">
-              <Card className="bg-transparent border-none">
+            <ScrollArea className="h-[50vh] bg-[#0f131a] rounded-md border border-[#334366] text-slate-300">
+              <Card className="bg-transparent border-none text-slate-300">
                 <CardContent className="pt-6">
                   <MapaVentasContent
                     loading={loadingMapaVentas}
@@ -323,7 +346,7 @@ interface FieldConfig {
   label: string;
   wizardKey?: string; // Clave específica en wizardData
   mapKeys?: string[]; // Claves posibles en datos del mapa (soporta anidamiento simple o claves alternativas)
-  transform?: (val: any) => string;
+  transform?: (val: unknown) => string;
   isCurrency?: boolean;
 }
 
@@ -339,14 +362,19 @@ const FIELD_CONFIGS: FieldConfig[] = [
   { label: 'Piso', key: 'piso' },
   { label: 'Número de Unidad', key: 'nrounidad' },
   { label: 'Dormitorios', key: 'dormitorios' },
-  { label: 'M² Totales', mapKeys: ['unidadesmetricas.m2totales', 'm2totales'], transform: (v) => `${v} m²` },
+  { label: 'M² Totales', mapKeys: ['unidadesmetricas.m2totales', 'm2totales'], transform: (v) => typeof v === 'object' ? JSON.stringify(v) : `${v} m²` },
 ];
 
-const getValueFromPath = (obj: any, path: string) => {
-  return path.split('.').reduce((acc, part) => acc?.[part], obj);
+const getValueFromPath = (obj: Record<string, unknown>, path: string): unknown => {
+  return path.split('.').reduce<unknown>((acc, part) => {
+    if (acc && typeof acc === 'object' && part in (acc as Record<string, unknown>)) {
+      return (acc as Record<string, unknown>)[part];
+    }
+    return undefined;
+  }, obj);
 };
 
-const resolveFieldValue = (config: FieldConfig, datos: any, wizardData: any) => {
+const resolveFieldValue = (config: FieldConfig, datos: MapaVentasData, wizardData: Record<string, unknown>): unknown => {
   // 1. Try Wizard Data
   if (config.wizardKey && wizardData[config.wizardKey]) {
     return wizardData[config.wizardKey];
@@ -358,24 +386,27 @@ const resolveFieldValue = (config: FieldConfig, datos: any, wizardData: any) => 
   // 3. Try Map Keys
   if (config.mapKeys) {
     for (const key of config.mapKeys) {
-      const val = getValueFromPath(datos, key);
+      const val = getValueFromPath(datos as Record<string, unknown>, key);
       if (val) return val;
     }
   }
   return null;
 };
 
-const formatValue = (config: FieldConfig, value: any) => {
+const formatValue = (config: FieldConfig, value: unknown): string => {
   if (config.isCurrency) {
     return `$${Number(value).toLocaleString('es-AR')} USD`;
   }
   if (config.transform) {
     return config.transform(value);
   }
+  if (typeof value === 'object' && value !== null) {
+    return JSON.stringify(value);
+  }
   return String(value);
 };
 
-const formatearDatosUnidad = (datos: any): Array<{ label: string; value: string }> => {
+const formatearDatosUnidad = (datos: MapaVentasData): Array<{ label: string; value: string }> => {
   const datosFormateados: Array<{ label: string; value: string }> = [];
   const wizardData = datos._wizardData || {};
   const addedLabels = new Set<string>();
@@ -396,11 +427,11 @@ const formatearDatosUnidad = (datos: any): Array<{ label: string; value: string 
 };
 
 // Componente auxiliar para mostrar el contenido del mapa de ventas (múltiples unidades)
-const MapaVentasContent: React.FC<{ loading: boolean; datos: any[] }> = ({ loading, datos }) => {
+const MapaVentasContent: React.FC<{ loading: boolean; datos: MapaVentasData[] }> = ({ loading, datos }) => {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center py-8 text-slate-300">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         <span className="ml-2">Cargando datos del mapa de ventas...</span>
       </div>
     );

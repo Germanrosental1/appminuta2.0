@@ -105,34 +105,34 @@ export const Step2Comercial: React.FC = () => {
       </div>
 
       {unidades.length === 0 ? (
-        <div className="text-center py-8 border border-dashed border-[#334366] rounded-lg bg-[#1a2233]">
-          <Building className="w-12 h-12 mx-auto text-slate-400 mb-2" />
-          <p className="text-white">No hay unidades agregadas</p>
-          <p className="text-sm text-slate-300 mt-2">Regrese al paso anterior para agregar unidades</p>
+        <div className="text-center py-8 border border-dashed border-border rounded-lg bg-muted/30">
+          <Building className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+          <p className="text-foreground">No hay unidades agregadas</p>
+          <p className="text-sm text-muted-foreground mt-2">Regrese al paso anterior para agregar unidades</p>
         </div>
       ) : (
         <ScrollArea className="max-h-[600px] pr-4">
           <div className="space-y-4">
             {unidades.map((unidad, index) => (
-              <Card key={unidad.id || `unidad-${index}`} className="mb-4 bg-[#1a2233] border-[#334366] shadow-sm">
-                <CardHeader className="pb-2 border-b border-[#334366]">
+              <Card key={unidad.id || `unidad-${index}`} className="mb-4 bg-card border-border shadow-sm">
+                <CardHeader className="pb-2 border-b border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-lg ${unidad.tipo.includes("Cochera") ? "bg-emerald-500/10 text-emerald-400" :
-                        unidad.tipo.includes("Baulera") ? "bg-orange-500/10 text-orange-400" :
-                          "bg-blue-500/10 text-blue-400"
+                      <div className={`p-2 rounded-lg ${unidad.tipo.includes("Cochera") ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                        unidad.tipo.includes("Baulera") ? "bg-orange-500/10 text-orange-600 dark:text-orange-400" :
+                          "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                         }`}>
                         {getIconForTipoUnidad(unidad.tipo)}
                       </div>
-                      <CardTitle className="text-base text-white">
+                      <CardTitle className="text-base text-foreground">
                         {unidad.tipo}: {unidad.descripcion}
                       </CardTitle>
                     </div>
-                    <Badge variant="outline" className="border-[#334366] text-white bg-[#0f131a]">
+                    <Badge variant="outline" className="border-border text-foreground bg-background">
                       {unidad.proyecto} - {unidad.etapa}
                     </Badge>
                   </div>
-                  <CardDescription className="text-slate-300">
+                  <CardDescription className="text-muted-foreground">
                     Sector: {unidad.sector}
                   </CardDescription>
                 </CardHeader>
@@ -140,7 +140,7 @@ export const Step2Comercial: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                     {/* Precio Lista */}
                     <div className={unidad.tipoDescuento === "ninguno" ? "md:col-span-4" : "md:col-span-3"}>
-                      <Label htmlFor={`precioLista-${index}`} className="text-xs mb-1.5 block text-white font-medium">
+                      <Label htmlFor={`precioLista-${index}`} className="text-xs mb-1.5 block text-foreground font-medium">
                         Precio de Lista
                       </Label>
                       <CurrencyInput
@@ -148,24 +148,24 @@ export const Step2Comercial: React.FC = () => {
                         value={unidad.precioLista}
                         onChange={() => { }}
                         prefix="$"
-                        className="bg-[#0f131a] border-[#334366] h-9 text-sm text-white disabled:opacity-100 disabled:cursor-not-allowed"
+                        className="bg-muted/50 border-border h-9 text-sm text-foreground disabled:opacity-100 disabled:cursor-not-allowed"
                         disabled
                       />
                     </div>
 
                     {/* Tipo de Descuento */}
                     <div className={unidad.tipoDescuento === "ninguno" ? "md:col-span-4" : "md:col-span-3"}>
-                      <Label htmlFor={`tipoDescuento-${index}`} className="text-xs mb-1.5 block text-white font-medium">
+                      <Label htmlFor={`tipoDescuento-${index}`} className="text-xs mb-1.5 block text-foreground font-medium">
                         Tipo de Descuento
                       </Label>
                       <Select
                         value={unidad.tipoDescuento}
                         onValueChange={(value: TipoDescuento) => handleTipoDescuentoChange(index, value)}
                       >
-                        <SelectTrigger id={`tipoDescuento-${index}`} className="h-9 text-sm bg-[#0f131a] border-[#334366] text-white">
+                        <SelectTrigger id={`tipoDescuento-${index}`} className="h-9 text-sm bg-background border-border text-foreground">
                           <SelectValue placeholder="Seleccione tipo" />
                         </SelectTrigger>
-                        <SelectContent className="bg-[#1a2233] border-[#334366] text-white">
+                        <SelectContent className="bg-popover border-border text-popover-foreground">
                           <SelectItem value="ninguno">Sin descuento</SelectItem>
                           <SelectItem value="porcentaje">Porcentaje %</SelectItem>
                           <SelectItem value="importe">Importe $</SelectItem>
@@ -176,13 +176,13 @@ export const Step2Comercial: React.FC = () => {
                     {/* Valor Descuento (Condicional) */}
                     {unidad.tipoDescuento !== "ninguno" && (
                       <div className="md:col-span-3">
-                        <Label htmlFor={`valorDescuento-${index}`} className="text-xs mb-1.5 block text-white font-medium">
+                        <Label htmlFor={`valorDescuento-${index}`} className="text-xs mb-1.5 block text-foreground font-medium">
                           {unidad.tipoDescuento === "porcentaje" ? "% Descuento" : "$ Descuento"}
                         </Label>
                         <div className="relative">
                           {unidad.tipoDescuento === "porcentaje" ? (
                             <>
-                              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                               <Input
                                 id={`valorDescuento-${index}`}
                                 type="number"
@@ -190,7 +190,7 @@ export const Step2Comercial: React.FC = () => {
                                 min="0"
                                 value={unidad.valorDescuento || ""}
                                 onChange={(e) => handleValorDescuentoChange(index, e.target.value)}
-                                className="pl-8 h-9 text-sm bg-[#0f131a] border-[#334366] text-white"
+                                className="pl-8 h-9 text-sm bg-background border-border text-foreground"
                                 placeholder="0.00"
                                 onWheel={(e) => e.currentTarget.blur()}
                               />
@@ -202,7 +202,7 @@ export const Step2Comercial: React.FC = () => {
                               onChange={(value) => handleValorDescuentoChange(index, value.toString())}
                               prefix="$"
                               min={0}
-                              className={`h-9 text-sm border-[#334366] text-white ${unidad.tipoDescuento === "importe" ? "bg-[#0f131a] font-bold" : "bg-[#0f131a]"}`}
+                              className={`h-9 text-sm border-border text-foreground ${unidad.tipoDescuento === "importe" ? "bg-background font-bold" : "bg-background"}`}
                               disabled={unidad.tipoDescuento === "importe"}
                             />
                           )}
@@ -212,7 +212,7 @@ export const Step2Comercial: React.FC = () => {
 
                     {/* Precio Negociado */}
                     <div className={unidad.tipoDescuento === "ninguno" ? "md:col-span-4" : "md:col-span-3"}>
-                      <Label htmlFor={`precioNegociado-${index}`} className="text-xs mb-1.5 block text-white font-medium">
+                      <Label htmlFor={`precioNegociado-${index}`} className="text-xs mb-1.5 block text-foreground font-medium">
                         Precio Negociado
                       </Label>
                       <CurrencyInput
@@ -220,7 +220,7 @@ export const Step2Comercial: React.FC = () => {
                         value={unidad.precioNegociado}
                         onChange={(value) => handlePrecioNegociadoChange(index, value.toString())}
                         prefix="$"
-                        className={`h-9 text-sm border-[#334366] text-white ${unidad.tipoDescuento === "importe" ? "bg-[#0f131a]" : "bg-[#0f131a] font-bold"}`}
+                        className={`h-9 text-sm border-border text-foreground ${unidad.tipoDescuento === "importe" ? "bg-background" : "bg-background font-bold"}`}
                         disabled={unidad.tipoDescuento !== "importe"}
                       />
                     </div>
@@ -234,20 +234,20 @@ export const Step2Comercial: React.FC = () => {
 
       {/* Total General */}
       {data.unidades && data.unidades.length > 0 && (
-        <Card className="mt-4 bg-[#1a2233] border-[#334366]">
+        <Card className="mt-4 bg-muted/30 border-border">
           <CardContent className="p-5 flex justify-between items-center">
-            <div className="text-sm font-medium text-white uppercase tracking-wider">
+            <div className="text-sm font-medium text-foreground uppercase tracking-wider">
               Total ({data.unidades.length} unidades seleccionadas)
             </div>
-            <div className="text-2xl font-bold text-white tracking-tight">
+            <div className="text-2xl font-bold text-foreground tracking-tight">
               USD {(data.unidades.reduce((acc: number, curr: any) => acc + (curr.precioNegociado || 0), 0)).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="rounded-lg bg-blue-900/10 border border-blue-900/30 p-4 text-sm text-slate-300 mt-6 flex gap-2 items-start">
-        <span className="text-blue-400 mt-0.5">💡</span>
+      <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4 text-sm text-muted-foreground mt-6 flex gap-2 items-start">
+        <span className="text-blue-600 dark:text-blue-400 mt-0.5">💡</span>
         <p>Configure los descuentos o edite el precio negociado directamente (solo para descuento por importe).</p>
       </div>
     </div>

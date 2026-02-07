@@ -114,7 +114,7 @@ export class UnidadesController {
     @UseGuards(GlobalPermissionsGuard, BruteForceGuard)
     @Permissions('gestionarUnidades')
     @UseInterceptors(FileInterceptor('file'), BruteForceInterceptor)
-    async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req) {
+    async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any, @Request() req: any) {
         if (file) {
             const allowedMimes = [
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -173,7 +173,9 @@ export class UnidadesController {
         @CurrentUser() user: any,
         @Query('etapa') etapa?: string
     ) {
-
+        if (proyecto) {
+            await this.validateProjectAccess(user.id, proyecto);
+        }
         return await this.unidadesQueryService.getTipos(proyecto, etapa);
     }
 
@@ -193,6 +195,18 @@ export class UnidadesController {
     }
 
     private async validateProjectAccess(userId: string, projectName: string): Promise<void> {
+        // Check if user has global admin role (superadminmv or adminmv)
+        const userAccessInfo = await this.authService.getUserAccessInfo(userId);
+        const isGlobalAdmin = userAccessInfo?.UsuariosRoles?.some(
+            ur => ur.Roles?.Nombre === 'superadminmv' || ur.Roles?.Nombre === 'adminmv'
+        );
+
+        // Global admins have access to all projects
+        if (isGlobalAdmin) {
+            return;
+        }
+
+        // For non-admin users, check project-specific access
         const userProjects = await this.authService.getUserProjectsDetailed(userId);
         const hasAccess = userProjects.some(p =>
             p.Nombre.toLowerCase() === projectName.toLowerCase()

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { uifApi } from '@/lib/api-client';
-import { Analysis } from '@/types/database';
+import { Analysis, Client, Document } from '@/types/database';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -64,10 +64,10 @@ const AnalysisDetailView = ({
   activeTab,
   setActiveTab
 }: {
-  client: any;
+  client: Client;
   analysisId: string;
   initialAnalysis: Analysis;
-  documents: any[];
+  documents: Document[];
   onUpdate: (updates: Partial<Analysis>) => Promise<boolean>;
   onDocumentsChange: () => void;
   activeTab: string;
@@ -76,7 +76,7 @@ const AnalysisDetailView = ({
   // ⚡ PERFORMANCE: Fetch full analysis details (including financial_data) only when viewing details
   const { data: fullAnalysis, isLoading, error } = useQuery({
     queryKey: ['analysis', analysisId],
-    queryFn: () => uifApi.analyses.get(analysisId),
+    queryFn: async () => (await uifApi.analyses.get(analysisId)) as unknown as Analysis,
     // Only fetch if we suspect data is missing (e.g. financial_data is undefined in list view)
     enabled: !!analysisId,
   });
@@ -145,19 +145,19 @@ export default function ClientDetailPage() {
   // ⚡ PERFORMANCE: useQuery con cache automático
   const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ['client', id],
-    queryFn: () => uifApi.clients.get(id),
+    queryFn: async () => (await uifApi.clients.get(id)) as unknown as Client,
     enabled: !!id,
   });
 
   const { data: analyses = [], isLoading: analysesLoading } = useQuery({
     queryKey: ['analyses', id],
-    queryFn: () => uifApi.analyses.list(id),
+    queryFn: async () => (await uifApi.analyses.list(id)) as unknown as Analysis[],
     enabled: !!id,
   });
 
   const { data: documents = [] } = useQuery({
     queryKey: ['documents', id],
-    queryFn: () => uifApi.documents.list(id),
+    queryFn: async () => (await uifApi.documents.list(id)) as unknown as Document[],
     enabled: !!id,
   });
 
@@ -178,7 +178,7 @@ export default function ClientDetailPage() {
       // ⚡ PERFORMANCE: Invalidar cache para refetch
       queryClient.invalidateQueries({ queryKey: ['analyses', id] });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: 'No se pudieron guardar los cambios del análisis',

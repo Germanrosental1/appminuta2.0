@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthEventType } from './dto/log-auth-event.dto';
 import { LoggerService } from '../logger/logger.service';
@@ -6,6 +6,8 @@ import { maskEmail } from '../common/sanitize.helper';
 
 @Injectable()
 export class AuthLoggerService {
+    private readonly nestLogger = new Logger(AuthLoggerService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly logger: LoggerService
@@ -21,18 +23,32 @@ export class AuthLoggerService {
         email?: string,
         details?: Record<string, any>,
         userAgent?: string,
+        ipAddress?: string,
     ): Promise<void> {
         try {
+            const contextDetails = {
+                ...details,
+                ip: ipAddress,
+            };
+
             await this.prisma.authLogs.create({
                 data: {
                     UserId: userId,
                     Email: maskEmail(email || 'unknown'),
                     EventType: eventType,
                     Timestamp: new Date(),
-                    Detail: details ? structuredClone(details) : null,
+                    Detail: details ? structuredClone(contextDetails) : undefined,
                     UserAgent: userAgent,
                 },
             });
+
+            // Log de consola estructurado para monitoreo en tiempo real
+            if (eventType === AuthEventType.LOGIN_FAILED) {
+                this.nestLogger.warn(
+                    `ALERTA DE SEGURIDAD: Fallo de inicio de sesión | Email: ${maskEmail(email || 'unknown')} | IP: ${ipAddress} | Motivo: ${details?.reason || 'Desconocido'}`,
+                    'AuthSecurity'
+                );
+            }
 
             // AUDIT LOG para cambios de contraseña
             if (eventType === AuthEventType.PASSWORD_CHANGED) {
@@ -41,12 +57,16 @@ export class AuthLoggerService {
                     descripcion: 'El usuario ha cambiado su contraseña.',
                     impacto: 'Alto',
                     tablaafectada: 'users',
-                    usuarioID: userId,
+                    usuarioID: userId ?? undefined,
                     usuarioemail: email || 'unknown',
                 });
             }
         } catch (error: unknown) {
-            console.error('Error al registrar evento de autenticación:', error instanceof Error ? error.message : error);
+            this.nestLogger.error(
+                `Error al registrar evento de autenticación: ${error instanceof Error ? error.message : error}`,
+                error instanceof Error ? error.stack : undefined,
+                'AuthLoggerService'
+            );
             // No lanzar error para no interrumpir el flujo de autenticación
         }
     }

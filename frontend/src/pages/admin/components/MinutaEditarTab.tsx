@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Edit, Save, XCircle, Loader2 } from 'lucide-react';
+import type { WizardData } from '@/types/wizard';
 
 interface MinutaEditarTabProps {
     editandoDatos: boolean;
     guardandoDatos: boolean;
-    datosEditados: any;
-    minutaDatos: any;
+    datosEditados: Partial<WizardData> | null;
+    minutaDatos: Partial<WizardData> | null;
     onEditar: () => void;
     onCancelar: () => void;
     onGuardar: () => void;

@@ -8,7 +8,8 @@
   color: #000;
   background-color: #fff;
   padding: 20px;
-  max-width: 210mm; /* Ancho A4 */
+  max-width: 210mm;
+  /* Ancho A4 */
 }
 
 .pdf-content h2 {
@@ -25,8 +26,9 @@
 
 /* Evitar que los elementos se corten entre páginas */
 @media print {
+
   .pdf-content .card,
-  .pdf-content .grid > div {
+  .pdf-content .grid>div {
     page-break-inside: avoid;
   }
 }
@@ -37,11 +39,13 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 215 20% 15%;
+    --background: 210 20% 98%;
+    /* Light Grey Background */
+    --foreground: 218 27% 8%;
+    /* Dark Mode Background Color #0f131a */
 
     --card: 0 0% 100%;
-    --card-foreground: 215 20% 15%;
+    --card-foreground: 218 27% 8%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 215 20% 15%;
@@ -53,7 +57,8 @@ All colors MUST be HSL.
     --secondary-foreground: 215 20% 15%;
 
     --muted: 210 15% 96%;
-    --muted-foreground: 215 15% 45%;
+    --muted-foreground: 218 20% 40%;
+    /* Darker blue-grey for better readability */
 
     --accent: 214 95% 48%;
     --accent-foreground: 0 0% 100%;
@@ -67,7 +72,8 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 20% 88%;
+    --border: 220 13% 85%;
+    /* Slightly darker border for contrast */
     --input: 214 20% 88%;
     --ring: 214 95% 48%;
 
@@ -85,7 +91,7 @@ All colors MUST be HSL.
 
   .dark {
     /* Background: #0f131a (Deep Dark) -> HSL 218 27% 8% */
-    --background: 218 27% 8%; 
+    --background: 218 27% 8%;
     --foreground: 210 20% 95%;
 
     /* Card: #1a2233 -> HSL 221 33% 15% */
@@ -110,7 +116,7 @@ All colors MUST be HSL.
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    
+
     /* Success: #0bda62 -> HSL 145 90% 45% approx */
     --success: 145 90% 45%;
     --success-foreground: 0 0% 100%;
@@ -121,7 +127,7 @@ All colors MUST be HSL.
     /* Border: #334366 -> HSL 221 33% 30% */
     --border: 221 33% 30%;
     --input: 221 33% 30%;
-    
+
     --ring: 221 84% 53%;
 
     --sidebar-background: 218 27% 8%;

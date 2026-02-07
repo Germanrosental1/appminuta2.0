@@ -49,7 +49,7 @@ export function MFASettings() {
             }
             const verifiedFactors = data.totp.filter(f => f.status === 'verified');
             setFactors(verifiedFactors as MFAFactor[]);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err.message);
         } finally {
             setLoading(false);
@@ -111,7 +111,7 @@ export function MFASettings() {
             setUnenrollFactorId(null);
             await loadFactors();
             await supabase.auth.refreshSession();
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError('Error al desactivar 2FA');
         } finally {
             setUnenrolling(false);
